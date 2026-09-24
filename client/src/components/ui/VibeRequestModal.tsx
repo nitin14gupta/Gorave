@@ -1,0 +1,156 @@
+import { useState, useRef, useEffect } from 'react'
+import { View, Text, TextInput, Pressable, StyleSheet, Keyboard } from 'react-native'
+import { Image } from 'expo-image'
+import { BottomSheetModal, BottomSheetView, BottomSheetBackdrop } from '@gorhom/bottom-sheet'
+import type { BottomSheetBackdropProps } from '@gorhom/bottom-sheet'
+import { Flame } from 'lucide-react-native'
+import { hMedium, hTap } from '@/lib/haptics'
+import { Colors, FontFamily, withOpacity } from '@/constants'
+import type { DiscoverUser } from '@/api/apiService'
+import { PrimaryButton } from './PrimaryButton'
+
+const MAX_CHARS = 150
+const SNAP_POINTS = ['86%', '85%']
+
+interface Props {
+  visible: boolean
+  user: DiscoverUser | null
+  onSend: (message: string) => void
+  onClose: () => void
+}
+
+function renderBackdrop(props: BottomSheetBackdropProps) {
+  return (
+    <BottomSheetBackdrop
+      {...props}
+      disappearsOnIndex={-1}
+      appearsOnIndex={0}
+      pressBehavior="close"
+      opacity={0.6}
+    />
+  )
+}
+
+function VibeRequestModalCore({ user, onSend, onClose }: Omit<Props, 'visible'>) {
+  const sheetRef = useRef<BottomSheetModal>(null)
+  const [message, setMessage] = useState('')
+
+  useEffect(() => { sheetRef.current?.present() }, [])
+
+  useEffect(() => {
+    const show = Keyboard.addListener('keyboardDidShow', () => sheetRef.current?.snapToIndex(1))
+    const hide = Keyboard.addListener('keyboardDidHide', () => sheetRef.current?.snapToIndex(0))
+    return () => { show.remove(); hide.remove() }
+  }, [])
+
+  const handleSend = () => {
+    const trimmed = message.trim()
+    if (!trimmed) return
+    hMedium()
+    onSend(trimmed)
+    setMessage('')
+  }
+
+  const handleClose = () => {
+    hTap()
+    setMessage('')
+    onClose()
+  }
+
+  const charsLeft = MAX_CHARS - message.length
+  const canSend = message.trim().length > 0
+  const avatar = user?.photos?.[0]?.url
+
+  return (
+    <BottomSheetModal
+      ref={sheetRef}
+      snapPoints={SNAP_POINTS}
+      enablePanDownToClose
+      keyboardBehavior="interactive"
+      keyboardBlurBehavior="restore"
+      android_keyboardInputMode="adjustResize"
+      onDismiss={handleClose}
+      backdropComponent={renderBackdrop}
+      backgroundStyle={s.bg}
+      handleIndicatorStyle={s.handleIndicator}
+    >
+      <BottomSheetView style={s.content}>
+        <View style={s.partnerRow}>
+          {avatar ? (
+            <Image source={{ uri: avatar }} style={s.avatar} cachePolicy="memory-disk" priority="high" transition={150} />
+          ) : (
+            <View style={[s.avatar, s.avatarFallback]}>
+              <Text style={s.avatarInitial}>{(user?.name ?? '?').charAt(0)}</Text>
+            </View>
+          )}
+          <View style={s.partnerInfo}>
+            <Text style={s.partnerName}>{user?.name ?? 'Someone'}</Text>
+            {user?.city ? <Text style={s.partnerCity}>{user.city}</Text> : null}
+          </View>
+          <View style={s.flameBadge}>
+            <Flame size={18} color={Colors.inkPrimary} fill={Colors.inkPrimary} />
+          </View>
+        </View>
+
+        <Text style={s.heading}>Send your vibe</Text>
+        <Text style={s.sub}>Say something genuine — they can see this before deciding</Text>
+
+        <View style={s.inputWrapper}>
+          <TextInput
+            style={s.input}
+            value={message}
+            onChangeText={t => t.length <= MAX_CHARS && setMessage(t)}
+            placeholder="What made you want to connect?"
+            placeholderTextColor={Colors.inkDisabled}
+            multiline
+            maxLength={MAX_CHARS}
+            autoFocus
+          />
+          <Text style={[s.charCount, charsLeft < 20 && s.charCountWarn]}>
+            {charsLeft}
+          </Text>
+        </View>
+
+        <PrimaryButton
+          label="Send Vibe"
+          onPress={handleSend}
+          disabled={!canSend}
+          icon={<Flame size={16} color={Colors.background} fill={Colors.background} />}
+          style={s.sendBtn}
+        />
+
+        <Pressable onPress={handleClose} style={s.cancelBtn}>
+          <Text style={s.cancelText}>Cancel</Text>
+        </Pressable>
+      </BottomSheetView>
+    </BottomSheetModal>
+  )
+}
+
+export function VibeRequestModal({ visible, user, onSend, onClose }: Props) {
+  if (!visible || !user) return null
+  return <VibeRequestModalCore user={user} onSend={onSend} onClose={onClose} />
+}
+
+const s = StyleSheet.create({
+  bg: { backgroundColor: Colors.surface },
+  handleIndicator: { backgroundColor: withOpacity(Colors.inkPrimary, 0.18) },
+  content: { paddingHorizontal: 20, paddingBottom: 36, paddingTop: 8 },
+  partnerRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 20 },
+  avatar: { width: 52, height: 52, borderRadius: 26},
+  avatarFallback: { backgroundColor: Colors.surface, alignItems: 'center', justifyContent: 'center' },
+  avatarInitial: { fontFamily: FontFamily.headingBold, fontSize: 22, color: Colors.inkPrimary },
+  partnerInfo: { flex: 1, marginLeft: 12 },
+  partnerName: { fontFamily: FontFamily.headingBold, fontSize: 18, color: Colors.inkPrimary },
+  partnerCity: { fontFamily: FontFamily.bodyRegular, fontSize: 13, color: Colors.inkSecondary, marginTop: 2 },
+  flameBadge: { width: 36, height: 36, borderRadius: 18, backgroundColor: withOpacity(Colors.inkPrimary, 0.15), alignItems: 'center', justifyContent: 'center' },
+  heading: { fontFamily: FontFamily.headingBold, fontSize: 22, color: Colors.inkPrimary, marginBottom: 4 },
+  sub: { fontFamily: FontFamily.bodyRegular, fontSize: 13, color: Colors.inkSecondary, marginBottom: 20, lineHeight: 18 },
+  inputWrapper: { backgroundColor: Colors.elevated, borderRadius: 16, borderWidth: 1, borderColor: Colors.grayBorder, padding: 14, marginBottom: 16, minHeight: 100 },
+  input: { fontFamily: FontFamily.bodyRegular, fontSize: 15, color: Colors.inkPrimary, lineHeight: 22, flex: 1 },
+  charCount: { fontFamily: FontFamily.bodyRegular, fontSize: 11, color: Colors.inkDisabled, textAlign: 'right', marginTop: 6 },
+  charCountWarn: { color: Colors.destructive },
+  sendBtn: { marginBottom: 12 },
+  cancelBtn: { alignItems: 'center', paddingVertical: 10 },
+  cancelText: { fontFamily: FontFamily.bodyRegular, fontSize: 14, color: Colors.inkSecondary },
+})

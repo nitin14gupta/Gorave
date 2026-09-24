@@ -1,0 +1,256 @@
+import { useEffect, useRef, useState } from 'react'
+import { Animated, Dimensions, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { Image } from 'expo-image'
+import { LinearGradient } from 'expo-linear-gradient'
+import { StatusBar } from 'expo-status-bar'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { useLocalSearchParams, useRouter } from 'expo-router'
+import { Users, Calendar, MapPin } from 'lucide-react-native'
+import { Colors, FontFamily, Spacing, Radius, withOpacity } from '@/constants'
+import { PrimaryButton, OutlineButton, BackButton, ConfirmSheet } from '@/components/ui'
+import { WaitlistPositionBadge } from '@/components/events/WaitlistPositionBadge'
+import { WaitlistInfoCard } from '@/components/events/WaitlistInfoCard'
+import { formatEventDate } from '@/components/events/EventCard'
+import { useLeaveWaitlist } from '@/hooks/useLeaveWaitlist'
+import ApiService, { type EventDetail } from '@/api/apiService'
+
+const { width: SCREEN_W } = Dimensions.get('window')
+// Event imagery is always 16:9 across the app — a portion-of-screen-height
+// banner (the old BANNER_H = SCREEN_H * 0.48) doesn't respect that and crops
+// differently per device; deriving height from width keeps the true ratio.
+const BANNER_H = (SCREEN_W * 9) / 16
+
+export default function WaitlistJoinedScreen() {
+  const { id, position, coverUrl, title } = useLocalSearchParams<{
+    id: string
+    position: string
+    coverUrl: string
+    title: string
+  }>()
+  const insets = useSafeAreaInsets()
+  const router = useRouter()
+  const { leaving, leave } = useLeaveWaitlist(id!)
+  const [confirmVisible, setConfirmVisible] = useState(false)
+  const [event, setEvent] = useState<EventDetail | null>(null)
+
+  const pos = parseInt(position ?? '1', 10)
+
+  useEffect(() => {
+    if (!id) return
+    ApiService.getEvent(id).then(setEvent).catch(() => {})
+  }, [id])
+
+  const cardY = useRef(new Animated.Value(24)).current
+  const cardOpacity = useRef(new Animated.Value(0)).current
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(cardY, { toValue: 0, duration: 400, useNativeDriver: true }),
+      Animated.timing(cardOpacity, { toValue: 1, duration: 400, useNativeDriver: true }),
+    ]).start()
+  }, [])
+
+  return (
+    <View style={s.root}>
+      {/* White status bar icons over the dark image */}
+      <StatusBar style="light" />
+
+      <ScrollView
+        style={s.scroll}
+        contentContainerStyle={{ paddingBottom: insets.bottom + Spacing.xl }}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Full-bleed banner — goes behind status bar */}
+        <View style={s.bannerWrap}>
+          {coverUrl ? (
+            <Image
+              source={{ uri: coverUrl }}
+              style={s.bannerImg}
+              contentFit="cover"
+              cachePolicy="memory-disk"
+              priority="high"
+              transition={150}
+            />
+          ) : (
+            <View style={[s.bannerImg, s.bannerFallback]} />
+          )}
+          <LinearGradient
+            colors={['transparent', Colors.background]}
+            start={{ x: 0, y: 0.3 }}
+            end={{ x: 0, y: 1 }}
+            style={StyleSheet.absoluteFill}
+          />
+
+          {/* Back button sits over the banner, respects inset */}
+          <View style={[s.backBtnWrap, { top: insets.top + 8 }]}>
+            <BackButton onPress={() => router.back()} />
+          </View>
+        </View>
+
+        {/* Card — full width, top rounded only, open at the bottom (IS the screen) */}
+        <Animated.View
+          style={[s.card, { opacity: cardOpacity, transform: [{ translateY: cardY }] }]}
+        >
+          <WaitlistPositionBadge position={pos} />
+
+          <Text style={s.heading}>You're on the{'\n'}waitlist</Text>
+          {title ? (
+            <Text style={s.eventTitle} numberOfLines={2}>{title}</Text>
+          ) : null}
+
+          {event && (
+            <View style={s.detailRow}>
+              <View style={s.detailItem}>
+                <Calendar size={13} color={Colors.inkDisabled} strokeWidth={1.8} />
+                <Text style={s.detailText} numberOfLines={1}>{formatEventDate(event.date_time)}</Text>
+              </View>
+              {event.location_name ? (
+                <View style={s.detailItem}>
+                  <MapPin size={13} color={Colors.inkDisabled} strokeWidth={1.8} />
+                  <Text style={s.detailText} numberOfLines={1}>{event.location_name}</Text>
+                </View>
+              ) : null}
+            </View>
+          )}
+
+          {/* Position chip */}
+          <View style={s.posChip}>
+            <Users size={14} color={Colors.inkSecondary} strokeWidth={1.8} />
+            <Text style={s.posText}>
+              Position{' '}
+              <Text style={s.posNum}>#{pos}</Text>
+              {' '}in queue
+            </Text>
+          </View>
+
+          <WaitlistInfoCard />
+
+          {/* Actions inside the open card */}
+          <View style={s.actions}>
+            <OutlineButton
+              label="Leave Waitlist"
+              onPress={() => setConfirmVisible(true)}
+              style={s.leaveBtn}
+            />
+            <PrimaryButton
+              label="Back to Event"
+              onPress={() => router.back()}
+            />
+          </View>
+        </Animated.View>
+      </ScrollView>
+
+      {/* Confirmation sheet — Gorhom bottom sheet, already in the project */}
+      <ConfirmSheet
+        visible={confirmVisible}
+        title="Leave Waitlist?"
+        body="You'll lose your spot and won't be notified if one opens up. You can rejoin, but you'll go to the back of the queue."
+        confirmLabel="Yes, Leave"
+        destructive
+        onConfirm={leave}
+        onClose={() => setConfirmVisible(false)}
+      />
+    </View>
+  )
+}
+
+const s = StyleSheet.create({
+  root: { flex: 1, backgroundColor: Colors.surface },
+  scroll: { flex: 1 },
+
+  // Banner starts at y=0, behind status bar (no top padding on root)
+  bannerWrap: {
+    width: SCREEN_W,
+    height: BANNER_H,
+    overflow: 'hidden',
+  },
+  bannerImg: { width: '100%', height: '100%' },
+  bannerFallback: { backgroundColor: Colors.surface },
+  backBtnWrap: {
+    position: 'absolute',
+    left: 0,
+    zIndex: 10,
+  },
+
+  // Full-width card — open at bottom, IS the screen surface
+  card: {
+    marginTop: -48,
+    backgroundColor: Colors.surface,
+    borderTopLeftRadius: Radius.modal,
+    borderTopRightRadius: Radius.modal,
+    paddingHorizontal: Spacing.screenPadding,
+    paddingTop: Spacing.xl,
+    alignItems: 'center',
+    borderTopWidth: 1,
+    borderColor: Colors.divider,
+  },
+
+  heading: {
+    fontFamily: FontFamily.headingBold,
+    fontSize: 30,
+    letterSpacing: -0.6,
+    color: Colors.inkPrimary,
+    textAlign: 'center',
+    lineHeight: 36,
+    marginBottom: Spacing.xs,
+  },
+  eventTitle: {
+    fontFamily: FontFamily.bodyRegular,
+    fontSize: 13,
+    color: Colors.inkSecondary,
+    textAlign: 'center',
+    marginBottom: Spacing.md,
+    paddingHorizontal: Spacing.sm,
+  },
+
+  detailRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: 14,
+    marginTop: -Spacing.sm,
+    marginBottom: Spacing.md,
+  },
+  detailItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    maxWidth: 160,
+  },
+  detailText: {
+    fontFamily: FontFamily.bodyRegular,
+    fontSize: 12,
+    color: Colors.inkDisabled,
+  },
+
+  posChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: withOpacity(Colors.inkPrimary, 0.1),
+    borderWidth: 1,
+    borderColor: withOpacity(Colors.inkPrimary, 0.22),
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 10,
+    borderRadius: Radius.pill,
+  },
+  posText: {
+    fontFamily: FontFamily.bodyMedium,
+    fontSize: 14,
+    color: Colors.inkSecondary,
+  },
+  posNum: {
+    fontFamily: FontFamily.bodySemiBold,
+    color: Colors.inkPrimary,
+  },
+
+  actions: {
+    width: '100%',
+    paddingTop: Spacing.lg,
+    paddingBottom: Spacing.md,
+    gap: Spacing.sm,
+  },
+  leaveBtn: {
+    borderColor: withOpacity(Colors.destructive, 0.35),
+  },
+})

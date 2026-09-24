@@ -1,0 +1,38 @@
+import { create } from 'zustand'
+import { persist, createJSONStorage } from 'zustand/middleware'
+import AsyncStorage from '@react-native-async-storage/async-storage'
+import { isEventPast } from '@/lib/dates'
+import type { EventSummary } from '@/api/apiService'
+
+const MAX = 12
+
+interface RecentEventsStore {
+  events: EventSummary[]
+  add: (event: EventSummary) => void
+  remove: (eventId: string) => void
+  pruneEnded: () => void
+}
+
+export const useRecentEventsStore = create<RecentEventsStore>()(
+  persist(
+    (set) => ({
+      events: [],
+      add: (event) => {
+        if (event.is_cancelled) {
+          set((s) => ({ events: s.events.filter((e) => e.id !== event.id) }))
+          return
+        }
+        set((s) => ({
+          events: [event, ...s.events.filter((e) => e.id !== event.id)]
+            .filter((e) => !isEventPast(e) && !e.is_cancelled)
+            .slice(0, MAX),
+        }))
+      },
+      remove: (eventId) =>
+        set((s) => ({ events: s.events.filter((e) => e.id !== eventId) })),
+      pruneEnded: () =>
+        set((s) => ({ events: s.events.filter((e) => !isEventPast(e) && !e.is_cancelled) })),
+    }),
+    { name: 'vibe-recent-events', storage: createJSONStorage(() => AsyncStorage) },
+  ),
+)

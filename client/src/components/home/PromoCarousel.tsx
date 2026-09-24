@@ -1,0 +1,194 @@
+import { ReactNode, useMemo } from 'react'
+import { View, Text, StyleSheet, Pressable, FlatList, Dimensions, Linking } from 'react-native'
+import { Image } from 'expo-image'
+import { router } from 'expo-router'
+import { hTap } from '@/lib/haptics'
+import { useHasEmergencyContacts } from '@/hooks/useEmergencyContacts'
+import { FontFamily, SOCIAL_LINKS, Colors } from '@/constants'
+
+const { width: SCREEN_W } = Dimensions.get('window')
+const CARD_W = SCREEN_W - 16 * 2 - 36 // sits inside the home feed's 16px padding, peeks the next card
+const CARD_GAP = 12
+
+const INSTAGRAM_GORAVE_IMG = require('../../../assets/promo/instagramXgorave.png')
+const CALENDAR_GORAVE_IMG = require('../../../assets/promo/calenderXgorave.png')
+const HOST_GORAVE_IMG = require('../../../assets/promo/hostXgorave.png')
+// TODO: swap for a dedicated safety-promo graphic — reusing the Instagram
+// card's image as a placeholder until one's provided.
+const SAFETY_GORAVE_IMG = INSTAGRAM_GORAVE_IMG
+
+interface PromoCardData {
+  key: string
+  bg: string
+  title: string
+  subtitle: string
+  cta: string
+  onPress: () => void
+  graphic: ReactNode
+}
+
+const s = StyleSheet.create({
+  list: { gap: CARD_GAP, paddingRight: 4 },
+  card: {
+    width: CARD_W,
+    borderRadius: 20,
+    minHeight: 116,
+    flexDirection: 'row',
+    overflow: 'hidden',
+  },
+  textCol: {
+    flex: 1,
+    gap: 4,
+    justifyContent: 'center',
+    paddingVertical: 18,
+    paddingLeft: 18,
+    paddingRight: 10,
+  },
+  title: {
+    fontFamily: FontFamily.headingBold,
+    fontSize: 17,
+    color: '#181818',
+  },
+  subtitle: {
+    fontFamily: FontFamily.bodyRegular,
+    fontSize: 13,
+    color: '#5B5650',
+    lineHeight: 18,
+  },
+  ctaBtn: {
+    marginTop: 10,
+    alignSelf: 'flex-start',
+    backgroundColor: Colors.background,
+    borderRadius: 999,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  ctaText: {
+    fontFamily: FontFamily.bodySemiBold,
+    fontSize: 13,
+    color: Colors.inkPrimary,
+  },
+  bleedImageWrap: {
+    width: 128,
+    alignSelf: 'stretch',
+  },
+  bleedImage: {
+    width: '100%',
+    height: '100%',
+  },
+})
+
+const CARDS: PromoCardData[] = [
+  {
+    key: 'instagram',
+    bg: '#EEF2F5',
+    title: "Don't miss the latest",
+    subtitle: 'Follow Gorave on Instagram',
+    cta: 'Follow us',
+    onPress: () => { hTap(); Linking.openURL(SOCIAL_LINKS.instagram) },
+    graphic: (
+      <View style={s.bleedImageWrap}>
+        <Image
+          source={INSTAGRAM_GORAVE_IMG}
+          style={s.bleedImage}
+          contentFit="cover"
+          cachePolicy="memory-disk"
+          transition={150}
+        />
+      </View>
+    ),
+  },
+  {
+    key: 'calendar',
+    bg: '#E7ECEA',
+    title: 'Introducing Calendar',
+    subtitle: 'Every event you care about, in one place',
+    cta: 'Open calendar',
+    onPress: () => { hTap(); router.push('/(settings)/calendar' as any) },
+    graphic: (
+      <View style={s.bleedImageWrap}>
+        <Image
+          source={CALENDAR_GORAVE_IMG}
+          style={s.bleedImage}
+          contentFit="cover"
+          cachePolicy="memory-disk"
+          transition={150}
+        />
+      </View>
+    ),
+  },
+  {
+    key: 'host',
+    bg: '#FCE9DC',
+    title: 'Host your own event',
+    subtitle: 'Create, get discovered, and earn — free',
+    cta: 'Become a host',
+    onPress: () => { hTap(); router.push('/(host-onboarding)' as any) },
+    graphic: (
+      <View style={s.bleedImageWrap}>
+        <Image
+          source={HOST_GORAVE_IMG}
+          style={s.bleedImage}
+          contentFit="cover"
+          cachePolicy="memory-disk"
+          transition={150}
+        />
+      </View>
+    ),
+  },
+]
+
+// Only shown to users with zero emergency contacts set up — disappears the
+// moment they add one, and reappears if they remove their last one, since
+// it reads from the same live useSafetyStore cache as the Safety Hub.
+const SAFETY_CARD: PromoCardData = {
+  key: 'safety',
+  bg: '#DCEDE7',
+  title: 'Stay protected',
+  subtitle: 'Add an emergency contact for SOS alerts',
+  cta: 'Set up safety',
+  onPress: () => { hTap(); router.push('/(safety)' as any) },
+  graphic: (
+    <View style={s.bleedImageWrap}>
+      <Image
+        source={SAFETY_GORAVE_IMG}
+        style={s.bleedImage}
+        contentFit="cover"
+        cachePolicy="memory-disk"
+        transition={150}
+      />
+    </View>
+  ),
+}
+
+export function PromoCarousel() {
+  const hasEmergencyContacts = useHasEmergencyContacts()
+  const cards = useMemo(
+    () => (hasEmergencyContacts ? CARDS : [SAFETY_CARD, ...CARDS]),
+    [hasEmergencyContacts],
+  )
+
+  return (
+    <FlatList
+      data={cards}
+      horizontal
+      keyExtractor={c => c.key}
+      showsHorizontalScrollIndicator={false}
+      snapToInterval={CARD_W + CARD_GAP}
+      decelerationRate="fast"
+      contentContainerStyle={s.list}
+      renderItem={({ item }) => (
+        <Pressable style={[s.card, { backgroundColor: item.bg }]} onPress={item.onPress}>
+          <View style={s.textCol}>
+            <Text style={s.title}>{item.title}</Text>
+            <Text style={s.subtitle}>{item.subtitle}</Text>
+            <View style={s.ctaBtn}>
+              <Text style={s.ctaText}>{item.cta}</Text>
+            </View>
+          </View>
+          {item.graphic}
+        </Pressable>
+      )}
+    />
+  )
+}

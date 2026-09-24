@@ -1,0 +1,84 @@
+import { useState } from 'react'
+import { View, Pressable, StyleSheet } from 'react-native'
+import { useLocalSearchParams, router } from 'expo-router'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { X, Share2, Download, MessageCircle } from 'lucide-react-native'
+import { hTap } from '@/lib/haptics'
+import { buildProfileShareUrl } from '@/lib/deepLink'
+import { Colors, withOpacity } from '@/constants'
+import { useQrShare } from '@/hooks/useQrShare'
+import { QrCard, PrimaryButton, OutlineButton, ShareToChatSheet } from '@/components/ui'
+
+export default function ProfileQrScreen() {
+  const { userId, username, name, avatar, city, interests } = useLocalSearchParams<{
+    userId: string; username?: string; name?: string; avatar?: string; city?: string; interests?: string
+  }>()
+  const insets = useSafeAreaInsets()
+  const [chatShareOpen, setChatShareOpen] = useState(false)
+
+  const shareUrl = buildProfileShareUrl(userId, username)
+  const handle = username ? `@${username}` : (name ?? 'this profile')
+  const { cardRef, handleShare, handleSave } = useQrShare(`Hey, this is my profile on Gorave! Follow me 🔥\n${shareUrl}`)
+
+  return (
+    <View style={s.root}>
+      <Pressable
+        style={[s.closeBtn, { top: insets.top + 8 }]}
+        onPress={() => { hTap(); router.back() }}
+        hitSlop={10}
+      >
+        <X size={22} color={Colors.inkPrimary} strokeWidth={2.2} />
+      </Pressable>
+
+      <View style={s.center}>
+        <QrCard ref={cardRef} data={shareUrl} title={handle} subtitle={name} />
+      </View>
+
+      <View style={[s.actionsRow, { paddingBottom: insets.bottom + 24 }]}>
+        <View style={s.actionBtn}>
+          <PrimaryButton label="Share" onPress={handleShare} icon={<Share2 size={18} color={Colors.background} strokeWidth={2.2} />} />
+        </View>
+        <View style={s.actionBtn}>
+          <OutlineButton label="Save" onPress={handleSave} icon={<Download size={18} color={Colors.inkPrimary} strokeWidth={2.2} />} />
+        </View>
+        <View style={s.actionBtn}>
+          <OutlineButton label="Chat" onPress={() => { hTap(); setChatShareOpen(true) }} icon={<MessageCircle size={18} color={Colors.inkPrimary} strokeWidth={2.2} />} />
+        </View>
+      </View>
+
+      <ShareToChatSheet
+        visible={chatShareOpen}
+        onClose={() => setChatShareOpen(false)}
+        contentType="profile"
+        metadata={{
+          user_id: userId,
+          name: name ?? null,
+          avatar_url: avatar ?? null,
+          city: city ?? null,
+          interests: interests ? interests.split(',').filter(Boolean) : [],
+        }}
+        previewTitle={name ?? handle}
+        previewSubtitle={username ? `@${username}` : null}
+        previewImage={avatar}
+      />
+    </View>
+  )
+}
+
+const s = StyleSheet.create({
+  root: { flex: 1, backgroundColor: Colors.background },
+  closeBtn: {
+    position: 'absolute', left: 16, zIndex: 10,
+    width: 38, height: 38, borderRadius: 19,
+    backgroundColor: withOpacity(Colors.inkPrimary, 0.12),
+    alignItems: 'center', justifyContent: 'center',
+  },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  actionsRow: {
+    flexDirection: 'row',
+    gap: 12,
+    paddingHorizontal: 24,
+    paddingTop: 8,
+  },
+  actionBtn: { flex: 1 },
+})

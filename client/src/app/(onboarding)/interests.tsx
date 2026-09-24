@@ -1,0 +1,120 @@
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator } from 'react-native'
+import { router } from 'expo-router'
+import { OutlineButton, StepDots, InterestChip, PrimaryButton, Screen, GlowLinesBackground } from '@/components/ui'
+import { useInterests } from '@/hooks/useInterests'
+import { Colors, FontFamily, Spacing } from '@/constants'
+
+export default function InterestsScreen() {
+  const { availableInterests, loadingList, selected, atMax, canProceed, remaining, loading, toggle, handleNext } = useInterests()
+
+  return (
+    <View style={styles.rootWrap}>
+      <GlowLinesBackground />
+      <Screen transparent>
+      <View style={styles.header}>
+        <Text style={styles.title}>What are you into?</Text>
+        <Text style={styles.subtitle}>
+          Pick 3–4 interests that define your vibe
+          {selected.length > 0 && (
+            <Text style={canProceed ? styles.countReady : styles.count}>
+              {' '}· {selected.length}/4
+            </Text>
+          )}
+        </Text>
+        {atMax && (
+          <Text style={styles.maxHint}>Max 4 reached — deselect one to swap</Text>
+        )}
+      </View>
+
+      {loadingList ? (
+        <View style={styles.listLoader}>
+          <ActivityIndicator color={Colors.inkSecondary} />
+        </View>
+      ) : (
+        <ScrollView
+          style={styles.scroll}
+          contentContainerStyle={styles.chips}
+          showsVerticalScrollIndicator={false}
+        >
+          {availableInterests.map(({ name, emoji }) => (
+            <InterestChip
+              bordered
+              key={name}
+              label={name}
+              emoji={emoji}
+              selected={selected.includes(name)}
+              onPress={() => toggle(name)}
+            />
+          ))}
+          <View style={styles.spacer} />
+        </ScrollView>
+      )}
+
+      <StepDots step={4} />
+
+      <View style={styles.footer}>
+        {!canProceed && !atMax && (
+          <Text style={styles.hint}>Select {remaining} more to continue</Text>
+        )}
+        <View style={styles.footerRow}>
+          <OutlineButton label="Back" onPress={() => router.back()} style={styles.backBtn} />
+          <View style={styles.nextBtn}>
+            <PrimaryButton
+              label="Next"
+              onPress={handleNext}
+              disabled={!canProceed}
+              loading={loading}
+            />
+          </View>
+        </View>
+      </View>
+      </Screen>
+    </View>
+  )
+}
+
+const styles = StyleSheet.create({
+  rootWrap: { flex: 1, backgroundColor: Colors.background },
+  header: { paddingHorizontal: Spacing.screenPadding, paddingBottom: 12 },
+  title: {
+    fontFamily: FontFamily.headingBold,
+    fontSize: 24,
+    letterSpacing: -0.24,
+    color: Colors.inkPrimary,
+    marginBottom: 6,
+  },
+  subtitle: {
+    fontFamily: FontFamily.bodyRegular,
+    fontSize: 13,
+    color: Colors.inkSecondary,
+  },
+  count: { color: Colors.inkSecondary },
+  countReady: { color: Colors.accentGreen },
+  maxHint: {
+    fontFamily: FontFamily.bodyRegular,
+    fontSize: 12,
+    color: Colors.accentGreen,
+    marginTop: 6,
+  },
+  listLoader: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  scroll: { flex: 1 },
+  chips: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+    paddingHorizontal: Spacing.screenPadding,
+    paddingTop: 8,
+  },
+  spacer: { width: '100%', height: 12 },
+  footer: { paddingHorizontal: Spacing.screenPadding, paddingBottom: 16 },
+  footerRow: { flexDirection: 'row', gap: 12 },
+  backBtn: { width: 96 },
+  nextBtn: { flex: 1 },
+  hint: {
+    textAlign: 'center',
+    fontFamily: FontFamily.bodyRegular,
+    fontSize: 12,
+    color: Colors.inkDisabled,
+    marginBottom: 10,
+  },
+})

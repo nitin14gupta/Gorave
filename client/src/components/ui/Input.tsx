@@ -1,0 +1,115 @@
+import { useState, useRef, ReactNode, memo } from 'react'
+import { View, Text, TextInput, StyleSheet, KeyboardTypeOptions, TextInputProps, ViewStyle, Pressable } from 'react-native'
+import { Colors, FontFamily, ComponentSize, Radius } from '@/constants'
+
+interface Props {
+  label?: string
+  placeholder?: string
+  value: string
+  onChangeText: (text: string) => void
+  keyboardType?: KeyboardTypeOptions
+  secureTextEntry?: boolean
+  leftIcon?: ReactNode
+  rightIcon?: ReactNode
+  error?: string
+  style?: ViewStyle
+  autoFocus?: boolean
+  onBlur?: () => void
+  autoCapitalize?: TextInputProps['autoCapitalize']
+}
+
+function InputBase({
+  label,
+  placeholder,
+  value,
+  onChangeText,
+  keyboardType,
+  secureTextEntry,
+  leftIcon,
+  rightIcon,
+  error,
+  style,
+  autoFocus,
+  onBlur: onBlurProp,
+  autoCapitalize,
+}: Props) {
+  const [focused, setFocused] = useState(false)
+  const inputRef = useRef<TextInput>(null)
+
+  return (
+    <View style={style}>
+      {label ? <Text style={styles.label}>{label.toUpperCase()}</Text> : null}
+      <Pressable
+        onPress={() => inputRef.current?.focus()}
+        style={[
+          styles.container,
+          focused && styles.focused,
+          !!error && styles.errored,
+        ]}
+      >
+        {leftIcon}
+        <TextInput
+          ref={inputRef}
+          style={styles.input}
+          value={value}
+          onChangeText={onChangeText}
+          placeholder={placeholder}
+          placeholderTextColor={Colors.inkSecondary}
+          keyboardType={keyboardType}
+          secureTextEntry={secureTextEntry}
+          autoFocus={autoFocus}
+          autoCapitalize={autoCapitalize}
+          onFocus={() => setFocused(true)}
+          onBlur={() => { setFocused(false); onBlurProp?.() }}
+          showSoftInputOnFocus
+        />
+        {rightIcon}
+      </Pressable>
+      {error ? <Text style={styles.errorText}>{error}</Text> : null}
+    </View>
+  )
+}
+
+export const Input = memo(InputBase)
+
+const styles = StyleSheet.create({
+  label: {
+    fontFamily: FontFamily.bodyMedium,
+    fontSize: 11,
+    letterSpacing: 0.88,
+    color: Colors.inkSecondary,
+    marginBottom: 6,
+  },
+  container: {
+    height: ComponentSize.inputHeight,
+    backgroundColor: Colors.elevated,
+    borderRadius: Radius.input,
+    borderWidth: 1.5,
+    borderColor: Colors.divider,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+  },
+  focused: {
+    borderColor: Colors.inkSecondary,
+    shadowColor: Colors.inkSecondary,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.16,
+    shadowRadius: 3,
+  },
+  errored: {
+    borderColor: Colors.destructive,
+  },
+  input: {
+    flex: 1,
+    fontFamily: FontFamily.bodyRegular,
+    fontSize: 16,
+    color: Colors.inkPrimary,
+  },
+  errorText: {
+    fontFamily: FontFamily.bodyRegular,
+    fontSize: 12,
+    color: Colors.destructive,
+    marginTop: 4,
+  },
+})

@@ -1,2 +1,1 @@
-# Gorave
-Gorave is a platform to host hosue parties and attend house parties
+btw in setting rmeove the signature demo, 

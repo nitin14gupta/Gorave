@@ -1,0 +1,755 @@
+import { useCallback, useState, useEffect, useRef, forwardRef, useImperativeHandle } from 'react'
+import {
+  View, Text, StyleSheet, ActivityIndicator,
+} from 'react-native'
+import { Pressable } from 'react-native-gesture-handler'
+import { hTap, hSelection, hMedium } from '@/lib/haptics'
+import { Image } from 'expo-image'
+import { VideoView, useVideoPlayer } from 'expo-video'
+import Animated, {
+  useSharedValue, useAnimatedStyle, withTiming, runOnJS,
+} from 'react-native-reanimated'
+import { Gesture, GestureDetector } from 'react-native-gesture-handler'
+import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio'
+import * as FileSystem from 'expo-file-system/legacy'
+import { router } from 'expo-router'
+import { Play, Pause, Download, Film, Mic, Image as ImageIcon, Calendar, User, Check } from 'lucide-react-native'
+import { Colors, FontFamily, withOpacity } from '@/constants'
+import type { Message } from '@/api/apiService'
+import type { MediaViewType } from '@/components/chat/MediaViewerModal'
+import { ReactionPills } from './ReactionPills'
+import { PlaybackWave, OutlineButton } from '@/components/ui'
+import { LinkPreviewCard } from './LinkPreviewCard'
+import { isUrlOnly, normalizeUrl } from '@/lib/linkify'
+
+// ── Reply preview ─────────────────────────────────────────────────────────────
+
+type ReplyIcon = { Icon: any; label: string }
+
+function getReplyIcon(contentType?: string): ReplyIcon | null {
+  switch (contentType) {
+    case 'voice':   return { Icon: Mic,      label: 'Voice message' }
+    case 'image':   return { Icon: ImageIcon, label: 'Photo' }
+    case 'gif':     return { Icon: Film,     label: 'GIF' }
+    case 'video':   return { Icon: Film,     label: 'Video' }
+    case 'event':   return { Icon: Calendar, label: 'Event' }
+    case 'profile': return { Icon: User,     label: 'Profile' }
+    default:        return null
+  }
+}
+
+function ReplyPreview({ metadata, isMine, onPress }: {
+  metadata: Record<string, any> | null
+  isMine: boolean
+  onPress?: (msgId: string) => void
+}) {
+  if (!metadata?.reply_to) return null
+  const rt = metadata.reply_to as {
+    message_id?: string; content?: string; content_type?: string; sender_label?: string
+  }
+  const mediaIcon = getReplyIcon(rt.content_type)
+
+  return (
+    <Pressable
+      style={[rp.wrap, isMine ? rp.wrapMine : rp.wrapTheirs]}
+      onPress={() => rt.message_id && onPress?.(rt.message_id)}
+      hitSlop={4}
+    >
+      <View style={rp.accent} />
+      <View style={rp.body}>
+        {rt.sender_label ? (
+          <Text style={rp.sender} numberOfLines={1}>{rt.sender_label}</Text>
+        ) : null}
+        {mediaIcon ? (
+          <View style={rp.iconRow}>
+            <mediaIcon.Icon size={11} color={withOpacity(Colors.inkPrimary, 0.4)} strokeWidth={2} />
+            <Text style={rp.text} numberOfLines={1}>{mediaIcon.label}</Text>
+          </View>
+        ) : (
+          <Text style={rp.text} numberOfLines={1}>{rt.content ?? ''}</Text>
+        )}
+      </View>
+    </Pressable>
+  )
+}
+
+const rp = StyleSheet.create({
+  wrap: {
+    flexDirection: 'row',
+    borderRadius: 6,
+    marginBottom: 4,
+    overflow: 'hidden',
+    alignSelf: 'stretch',
+  },
+  wrapMine: { backgroundColor: withOpacity(Colors.inkPrimary, 0.15) },
+  wrapTheirs: { backgroundColor: withOpacity(Colors.inkPrimary, 0.07) },
+  accent: { width: 3, backgroundColor: Colors.inkSecondary },
+  body: { flex: 1, paddingHorizontal: 7, paddingVertical: 4, gap: 1 },
+  sender: { fontFamily: FontFamily.bodySemiBold, fontSize: 11, color: Colors.inkPrimary },
+  iconRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  text: { fontFamily: FontFamily.bodyRegular, fontSize: 12, color: withOpacity(Colors.inkPrimary, 0.5) },
+})
+
+// ── Voice bubble ──────────────────────────────────────────────────────────────
+
+export interface VoiceBubbleHandle {
+  toggle: () => void
+}
+
+const VoiceBubble = forwardRef<VoiceBubbleHandle, {
+  url: string; duration?: number; isMine: boolean; isPending: boolean
+}>(({ url, duration, isMine, isPending }, ref) => {
+  const player = useAudioPlayer(null)
+  const status = useAudioPlayerStatus(player)
+
+  useEffect(() => {
+    player.replace({ uri: url })
+  }, [url])
+
+  const toggle = useCallback(() => {
+    if (isPending) return
+    if (status.playing) {
+      player.pause()
+    } else {
+      player.seekTo(0)
+      player.play()
+    }
+  }, [isPending, status.playing, player])
+
+  useImperativeHandle(ref, () => ({ toggle }), [toggle])
+
+  const dur = duration ?? 0
+  const mins = Math.floor(dur / 60)
+  const secs = String(dur % 60).padStart(2, '0')
+  const durationStr = `${mins}:${secs}`
+
+  return (
+    <View style={[vb.bubble, isMine ? vb.bubbleMine : vb.bubbleTheirs]}>
+      <View style={[vb.playBtn, isPending && { opacity: 0.4 }]}>
+        {status.playing
+          ? <Pause size={16} color={Colors.background} strokeWidth={2.5} />
+          : <Play  size={16} color={Colors.background} strokeWidth={2.5} />
+        }
+      </View>
+      <View style={vb.waveWrap}>
+        <PlaybackWave isActive={status.playing} color={Colors.inkSecondary} />
+      </View>
+      {isPending
+        ? <ActivityIndicator size="small" color={Colors.inkSecondary} />
+        : <Text style={[vb.duration, { color: isMine ? Colors.inkPrimary : Colors.inkSecondary }]}>
+            {durationStr}
+          </Text>
+      }
+    </View>
+  )
+})
+
+const vb = StyleSheet.create({
+  bubble: { flexDirection: 'row', alignItems: 'center', gap: 10, borderRadius: 18, paddingHorizontal: 12, paddingVertical: 12, minWidth: 200 },
+  bubbleMine: { backgroundColor: withOpacity(Colors.brandOrange, 0.18), borderWidth: 1, borderColor: withOpacity(Colors.brandOrange, 0.35), borderBottomRightRadius: 4 },
+  bubbleTheirs: { backgroundColor: Colors.elevated, borderWidth: 1, borderColor: Colors.surfaceMuted, borderBottomLeftRadius: 4 },
+  playBtn: { width: 32, height: 32, borderRadius: 16, backgroundColor: Colors.inkPrimary, alignItems: 'center', justifyContent: 'center' },
+  waveWrap: { flex: 1, overflow: 'hidden' },
+  duration: { fontFamily: FontFamily.bodyRegular, fontSize: 11, minWidth: 30, textAlign: 'right' },
+})
+
+// ── Media bubble (image / gif) ────────────────────────────────────────────────
+
+const MEDIA_WIDTH = 220
+
+function ImageChatBubble({ url, isMine, width: srcW, height: srcH, isPending }: {
+  url: string; isMine: boolean; width?: number; height?: number; isPending: boolean
+}) {
+  const aspectRatio = srcW && srcH ? srcW / srcH : 4 / 3
+  const displayH = Math.round(MEDIA_WIDTH / aspectRatio)
+  const h = Math.min(Math.max(displayH, 120), 320)
+
+  // Tap is handled by the parent GestureDetector's singleTap gesture —
+  // Pressable inside a GestureDetector doesn't fire on New Architecture (RNGH v2)
+  return (
+    <View style={{ width: MEDIA_WIDTH, height: h }}>
+      <Image
+        source={{ uri: url }}
+        style={[mc.img, { width: MEDIA_WIDTH, height: h }]}
+        contentFit="cover"
+        cachePolicy="memory-disk"
+        priority="high"
+        transition={150}
+      />
+      {isPending && (
+        <View style={mc.pendingOverlay}>
+          <ActivityIndicator size="small" color={Colors.inkPrimary} />
+        </View>
+      )}
+    </View>
+  )
+}
+
+// ── Video bubble ──────────────────────────────────────────────────────────────
+
+function VideoChatBubble({ url, isMine, width: srcW, height: srcH, isPending, onPress }: {
+  url: string; isMine: boolean; width?: number; height?: number; isPending: boolean
+  onPress: (playUrl: string) => void
+}) {
+  const [localUri, setLocalUri] = useState<string | null>(null)
+  const [downloading, setDownloading] = useState(false)
+  // Always call hook unconditionally (Rules of Hooks) — only rendered for isMine path
+  const videoPlayer = useVideoPlayer(url, p => { p.loop = false })
+
+  const aspectRatio = srcW && srcH ? srcW / srcH : 16 / 9
+  const displayH = Math.round(MEDIA_WIDTH / aspectRatio)
+  const h = Math.min(Math.max(displayH, 120), 390)
+  const boxStyle = { width: MEDIA_WIDTH, height: h }
+
+  const handleDownload = async () => {
+    if (downloading) return
+    setDownloading(true)
+    try {
+      const filename = url.split('/').pop() ?? 'video.mp4'
+      const dest = `${FileSystem.cacheDirectory}${filename}`
+      const result = await FileSystem.downloadAsync(url, dest)
+      setLocalUri(result.uri)
+      onPress(result.uri)
+    } catch {
+      setDownloading(false)
+    }
+  }
+
+  const handleTap = () => {
+    if (localUri) { onPress(localUri); return }
+    if (isMine) { onPress(url); return }
+    handleDownload()
+  }
+
+  // Plain View + RNGH Pressable (not Gesture.Tap+GestureDetector) — this bubble
+  // is nested inside the message's own outer GestureDetector, and a second,
+  // independent Gesture.Tap here silently loses the touch to the outer one on
+  // New Architecture. RNGH's Pressable composes correctly in that position
+  // (same fix already applied to VoiceBubble's play button above).
+  const content = isMine ? (
+    <>
+      <VideoView
+        player={videoPlayer}
+        style={mc.video}
+        contentFit="cover"
+        nativeControls={false}
+      />
+      {isPending
+        ? <View style={mc.playOverlay}><ActivityIndicator size="small" color={Colors.inkPrimary} /></View>
+        : <View style={mc.playOverlay}><Play size={28} color={Colors.inkPrimary} fill={Colors.inkPrimary} strokeWidth={0} /></View>
+      }
+    </>
+  ) : localUri ? (
+    <View style={mc.playOverlay}><Play size={28} color={Colors.inkPrimary} fill={Colors.inkPrimary} strokeWidth={0} /></View>
+  ) : (
+    <View style={[mc.downloadPlaceholder, boxStyle]}>
+      <Film size={32} color={withOpacity(Colors.inkPrimary, 0.5)} strokeWidth={1.5} />
+      {downloading
+        ? <ActivityIndicator size="small" color={Colors.inkSecondary} style={{ marginTop: 8 }} />
+        : <>
+            <Download size={18} color={Colors.inkSecondary} strokeWidth={2} style={{ marginTop: 10 }} />
+            <Text style={mc.downloadText}>Tap to download</Text>
+          </>
+      }
+    </View>
+  )
+
+  // Rounded corners live on this outer plain View — RNGH's Pressable doesn't
+  // reliably clip children to a border radius via overflow:hidden on its own
+  // native view, so the radius silently disappeared when Pressable owned it.
+  return (
+    <View style={[mc.videoWrap, boxStyle]}>
+      <Pressable onPress={handleTap} style={StyleSheet.absoluteFill}>
+        {content}
+      </Pressable>
+    </View>
+  )
+}
+
+const mc = StyleSheet.create({
+  img: { borderRadius: 14 },
+  pendingOverlay: {
+    position: 'absolute', bottom: 8, right: 8,
+    width: 28, height: 28, borderRadius: 14,
+    backgroundColor: withOpacity(Colors.background, 0.45),
+    alignItems: 'center', justifyContent: 'center',
+  },
+  videoWrap: { borderRadius: 14, overflow: 'hidden', backgroundColor: Colors.background },
+  video: { width: '100%', height: '100%' },
+  playOverlay: {
+    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+    alignItems: 'center', justifyContent: 'center',
+    backgroundColor: withOpacity(Colors.background, 0.3),
+  },
+  downloadPlaceholder: {
+    borderRadius: 14,
+    backgroundColor: Colors.surface,
+    alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1, borderColor: Colors.surfaceMuted,
+  },
+  downloadText: {
+    fontFamily: FontFamily.bodyRegular, fontSize: 12,
+    color: Colors.inkSecondary, marginTop: 4,
+  },
+})
+
+// ── Event / Profile cards ─────────────────────────────────────────────────────
+
+// Just the card itself — no bubbleWrap/time/reactions here. Those are handled
+// by renderBubbleContent the same way as every other message type, so these
+// cards get the standard long-press menu (react/reply/unsend/delete) too.
+function EventCard({ metadata }: { metadata: Record<string, any> }) {
+  return (
+    <View style={s.richCard}>
+      {metadata.cover_url
+        ? <Image source={{ uri: metadata.cover_url }} style={s.richCardImg} contentFit="cover" />
+        : <View style={[s.richCardImg, s.richCardImgFallback]} />
+      }
+      <View style={s.richCardBody}>
+        <Text style={s.richCardTitle} numberOfLines={2}>{metadata.title}</Text>
+        {metadata.date ? <Text style={s.richCardSub}>{metadata.date}</Text> : null}
+        {/* Visual only — this card sits inside the bubble's GestureDetector,
+            where a plain RN Pressable never receives touches (New Architecture).
+            The actual tap is handled by handleSingleTap on the outer gesture. */}
+        <OutlineButton
+          label="View Event"
+          size="small"
+          style={s.richCardBtn}
+          onPress={() => metadata.event_id && router.push(`/(events)/${metadata.event_id}` as any)}
+        />
+      </View>
+    </View>
+  )
+}
+
+function ProfileCard({ metadata, myId }: { metadata: Record<string, any>; myId: string }) {
+  return (
+    <View style={s.richCard}>
+      <View style={s.profileRow}>
+        {metadata.avatar_url
+          ? <Image source={{ uri: metadata.avatar_url }} style={s.profileAvatar} contentFit="cover" />
+          : (
+            <View style={[s.profileAvatar, s.profileAvatarFallback]}>
+              <Text style={s.profileAvatarInitial}>{(metadata.name ?? '?').charAt(0)}</Text>
+            </View>
+          )
+        }
+        <View style={{ flex: 1 }}>
+          <Text style={s.richCardTitle}>{metadata.name}</Text>
+          {metadata.city ? <Text style={s.richCardSub}>{metadata.city}</Text> : null}
+        </View>
+      </View>
+      {metadata.interests?.length > 0 && (
+        <View style={s.profileChips}>
+          {(metadata.interests as string[]).slice(0, 3).map((t: string) => (
+            <View key={t} style={s.profileChip}><Text style={s.profileChipText}>{t}</Text></View>
+          ))}
+        </View>
+      )}
+      {/* Visual only — see EventCard's comment above; outer handleSingleTap does the real navigation. */}
+      <OutlineButton
+        label="View Profile"
+        size="small"
+        style={s.profileCardBtn}
+        onPress={() => {
+          if (!metadata.user_id) return
+          // Someone can share your own profile back to you — that route is
+          // built for viewing other people, so send self back to the actual
+          // profile tab instead of a "profile not found"-shaped dead end.
+          if (metadata.user_id === myId) router.push('/(tabs)/profile' as any)
+          else router.push(`/(profile)/${metadata.user_id}` as any)
+        }}
+      />
+    </View>
+  )
+}
+
+// ── Main MessageBubble ────────────────────────────────────────────────────────
+
+interface Props {
+  msg: Message
+  isMine: boolean
+  myId: string
+  isFailed?: boolean
+  /** Bulk "select messages to delete" mode — see EmojiPickerOverlay's Select action */
+  selectMode?: boolean
+  isSelected?: boolean
+  onToggleSelect?: (msgId: string) => void
+  onDoubleTap: (msgId: string) => void
+  onLongPress: (msgId: string, pageY: number, isMine: boolean) => void
+  onSwipeReply: (msg: Message) => void
+  onReactionPillPress: (msgId: string, emoji: string) => void
+  onReplyTap: (originalMsgId: string) => void
+  onMediaTap?: (url: string, type: MediaViewType) => void
+  onRetry?: (tempId: string) => void
+  onLinkTap?: (url: string) => void
+}
+
+export function MessageBubble({
+  msg, isMine, myId, isFailed,
+  selectMode, isSelected, onToggleSelect,
+  onDoubleTap, onLongPress, onSwipeReply,
+  onReactionPillPress, onReplyTap, onMediaTap, onRetry, onLinkTap,
+}: Props) {
+  const translateX = useSharedValue(0)
+  const hasTriggeredReply = useSharedValue(false)
+  const voiceBubbleRef = useRef<VoiceBubbleHandle>(null)
+
+  const isLinkMessage = msg.content_type === 'text' && !!msg.content && isUrlOnly(msg.content)
+
+  const handleDoubleTap = useCallback(() => { hSelection(); onDoubleTap(msg.id) }, [msg.id, onDoubleTap])
+  const handleSwipeReply = useCallback(() => { hTap(); onSwipeReply(msg) }, [msg, onSwipeReply])
+  const handleSingleTap = useCallback(() => {
+    if (isLinkMessage && msg.content) {
+      hTap()
+      onLinkTap?.(normalizeUrl(msg.content))
+      return
+    }
+    if ((msg.content_type === 'image' || msg.content_type === 'gif') && msg.metadata?.url) {
+      onMediaTap?.(msg.metadata.url, msg.content_type as MediaViewType)
+      return
+    }
+    if (msg.content_type === 'voice') {
+      hTap()
+      voiceBubbleRef.current?.toggle()
+      return
+    }
+    if (msg.content_type === 'event' && msg.metadata?.event_id) {
+      hTap()
+      router.push(`/(events)/${msg.metadata.event_id}` as any)
+      return
+    }
+    if (msg.content_type === 'profile' && msg.metadata?.user_id) {
+      hTap()
+      if (msg.metadata.user_id === myId) router.push('/(tabs)/profile' as any)
+      else router.push(`/(profile)/${msg.metadata.user_id}` as any)
+    }
+  }, [isLinkMessage, msg.content, msg.content_type, msg.metadata, myId, onMediaTap, onLinkTap])
+
+  const doubleTap = Gesture.Tap()
+    .numberOfTaps(2)
+    .maxDelay(250)
+    .onEnd(() => runOnJS(handleDoubleTap)())
+
+  // Single tap for image/gif → open modal. requireExternalGestureToFail ensures
+  // double-tap-to-react still works (single tap waits ~250ms to confirm it's not a double tap)
+  const singleTap = Gesture.Tap()
+    .numberOfTaps(1)
+    .requireExternalGestureToFail(doubleTap)
+    .onEnd(() => runOnJS(handleSingleTap)())
+
+  const longPress = Gesture.LongPress()
+    .minDuration(400)
+    .onStart(e => { runOnJS(hMedium)(); runOnJS(onLongPress)(msg.id, e.absoluteY, isMine) })
+
+  const pan = Gesture.Pan()
+    .activeOffsetX(isMine ? [-Infinity, -40] : [40, Infinity])
+    .failOffsetY([-20, 20])
+    .onUpdate(e => {
+      const dx = isMine ? -e.translationX : e.translationX
+      if (dx > 0) translateX.value = Math.min(dx * 0.55, 64)
+      if (dx > 55 && !hasTriggeredReply.value) {
+        hasTriggeredReply.value = true
+        runOnJS(handleSwipeReply)()
+      }
+    })
+    .onEnd(() => {
+      translateX.value = withTiming(0, { duration: 220 })
+      hasTriggeredReply.value = false
+    })
+
+  const gesture = Gesture.Simultaneous(pan, singleTap, Gesture.Exclusive(doubleTap, longPress))
+
+  const animStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: isMine ? -translateX.value : translateX.value }],
+  }))
+
+  const timeRevealStyle = useAnimatedStyle(() => ({
+    opacity: Math.min(translateX.value / 40, 1),
+  }))
+
+  const isPending = msg.id.startsWith('_temp_')
+  const hasReply = !!msg.metadata?.reply_to
+  const timeStr = isPending
+    ? '…'
+    : new Date(msg.sent_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + (msg.edited_at ? ' · Edited' : '')
+
+  const renderBubbleContent = () => {
+    if ((msg.content_type === 'image' || msg.content_type === 'gif') && msg.metadata?.url) {
+      return (
+        <View style={[s.bubbleWrap, isMine ? s.wrapMine : s.wrapTheirs]}>
+          <GestureDetector gesture={gesture}>
+            <Animated.View style={animStyle}>
+              <ImageChatBubble
+                url={msg.metadata.url}
+                isMine={isMine}
+                width={msg.metadata.width}
+                height={msg.metadata.height}
+                isPending={isPending}
+              />
+            </Animated.View>
+          </GestureDetector>
+          {msg.reactions && (
+            <ReactionPills reactions={msg.reactions} myId={myId} onPillPress={emoji => onReactionPillPress(msg.id, emoji)} />
+          )}
+          <Animated.Text style={[s.timeBelow, isMine ? s.timeBelowMine : s.timeBelowTheirs, timeRevealStyle]}>
+            {timeStr}
+          </Animated.Text>
+          {isFailed && (
+            <Pressable onPress={() => onRetry?.(msg.id)} hitSlop={4}>
+              <Text style={s.failedText}>⚠ Failed · Tap to retry</Text>
+            </Pressable>
+          )}
+        </View>
+      )
+    }
+
+    if (msg.content_type === 'video' && msg.metadata?.url) {
+      return (
+        <View style={[s.bubbleWrap, isMine ? s.wrapMine : s.wrapTheirs]}>
+          <GestureDetector gesture={gesture}>
+            <Animated.View style={animStyle}>
+              <VideoChatBubble
+                url={msg.metadata.url}
+                isMine={isMine}
+                width={msg.metadata.width}
+                height={msg.metadata.height}
+                isPending={isPending}
+                onPress={playUrl => onMediaTap?.(playUrl, 'video')}
+              />
+            </Animated.View>
+          </GestureDetector>
+          {msg.reactions && (
+            <ReactionPills reactions={msg.reactions} myId={myId} onPillPress={emoji => onReactionPillPress(msg.id, emoji)} />
+          )}
+          <Animated.Text style={[s.timeBelow, isMine ? s.timeBelowMine : s.timeBelowTheirs, timeRevealStyle]}>
+            {timeStr}
+          </Animated.Text>
+          {isFailed && (
+            <Pressable onPress={() => onRetry?.(msg.id)} hitSlop={4}>
+              <Text style={s.failedText}>⚠ Failed · Tap to retry</Text>
+            </Pressable>
+          )}
+        </View>
+      )
+    }
+
+    if (msg.content_type === 'voice' && msg.metadata?.url) {
+      return (
+        <View style={[s.bubbleWrap, isMine ? s.wrapMine : s.wrapTheirs]}>
+          <GestureDetector gesture={gesture}>
+            <Animated.View style={animStyle}>
+              <VoiceBubble ref={voiceBubbleRef} url={msg.metadata.url} duration={msg.metadata.duration} isMine={isMine} isPending={isPending} />
+            </Animated.View>
+          </GestureDetector>
+          {msg.reactions && (
+            <ReactionPills reactions={msg.reactions} myId={myId} onPillPress={emoji => onReactionPillPress(msg.id, emoji)} />
+          )}
+          <Animated.Text style={[s.timeBelow, isMine ? s.timeBelowMine : s.timeBelowTheirs, timeRevealStyle]}>
+            {timeStr}
+          </Animated.Text>
+          {isFailed && (
+            <Pressable onPress={() => onRetry?.(msg.id)} hitSlop={4}>
+              <Text style={s.failedText}>⚠ Failed · Tap to retry</Text>
+            </Pressable>
+          )}
+        </View>
+      )
+    }
+
+    if (msg.content_type === 'event' && msg.metadata) {
+      return (
+        <View style={[s.bubbleWrap, isMine ? s.wrapMine : s.wrapTheirs]}>
+          <GestureDetector gesture={gesture}>
+            <Animated.View style={animStyle}>
+              <EventCard metadata={msg.metadata} />
+            </Animated.View>
+          </GestureDetector>
+          {msg.reactions && (
+            <ReactionPills reactions={msg.reactions} myId={myId} onPillPress={emoji => onReactionPillPress(msg.id, emoji)} />
+          )}
+          <Animated.Text style={[s.timeBelow, isMine ? s.timeBelowMine : s.timeBelowTheirs, timeRevealStyle]}>
+            {timeStr}
+          </Animated.Text>
+          {isFailed && (
+            <Pressable onPress={() => onRetry?.(msg.id)} hitSlop={4}>
+              <Text style={s.failedText}>⚠ Failed · Tap to retry</Text>
+            </Pressable>
+          )}
+        </View>
+      )
+    }
+    if (msg.content_type === 'profile' && msg.metadata) {
+      return (
+        <View style={[s.bubbleWrap, isMine ? s.wrapMine : s.wrapTheirs]}>
+          <GestureDetector gesture={gesture}>
+            <Animated.View style={animStyle}>
+              <ProfileCard metadata={msg.metadata} myId={myId} />
+            </Animated.View>
+          </GestureDetector>
+          {msg.reactions && (
+            <ReactionPills reactions={msg.reactions} myId={myId} onPillPress={emoji => onReactionPillPress(msg.id, emoji)} />
+          )}
+          <Animated.Text style={[s.timeBelow, isMine ? s.timeBelowMine : s.timeBelowTheirs, timeRevealStyle]}>
+            {timeStr}
+          </Animated.Text>
+          {isFailed && (
+            <Pressable onPress={() => onRetry?.(msg.id)} hitSlop={4}>
+              <Text style={s.failedText}>⚠ Failed · Tap to retry</Text>
+            </Pressable>
+          )}
+        </View>
+      )
+    }
+
+    // Text bubble (or, if the whole message is a link, a rich preview card)
+    return (
+      <View style={[s.bubbleWrap, isMine ? s.wrapMine : s.wrapTheirs]}>
+        <GestureDetector gesture={gesture}>
+          <Animated.View style={[
+            s.bubble,
+            isMine ? s.bubbleMine : s.bubbleTheirs,
+            isPending && s.bubblePending,
+            isFailed && s.bubbleFailed,
+            hasReply && s.bubbleWithReply,
+            isLinkMessage && s.bubbleLink,
+            animStyle,
+          ]}>
+            <ReplyPreview metadata={msg.metadata} isMine={isMine} onPress={onReplyTap} />
+            {isLinkMessage && msg.content ? (
+              <LinkPreviewCard url={normalizeUrl(msg.content)} isMine={isMine} />
+            ) : (
+              <Text style={[s.text, isMine && s.textMine]}>{msg.content}</Text>
+            )}
+            {!isLinkMessage && (
+              <Animated.Text style={[s.timeInner, timeRevealStyle]}>
+                {timeStr}
+              </Animated.Text>
+            )}
+          </Animated.View>
+        </GestureDetector>
+        {isLinkMessage && (
+          <Animated.Text style={[s.timeBelow, isMine ? s.timeBelowMine : s.timeBelowTheirs, timeRevealStyle]}>
+            {timeStr}
+          </Animated.Text>
+        )}
+        {isFailed && (
+          <Pressable onPress={() => onRetry?.(msg.id)} hitSlop={4}>
+            <Text style={s.failedText}>⚠ Failed · Tap to retry</Text>
+          </Pressable>
+        )}
+        {msg.reactions && (
+          <ReactionPills
+            reactions={msg.reactions}
+            myId={myId}
+            onPillPress={emoji => onReactionPillPress(msg.id, emoji)}
+          />
+        )}
+      </View>
+    )
+  }
+
+  if (!selectMode) return renderBubbleContent()
+
+  return (
+    <View style={sel.row}>
+      <Pressable
+        style={sel.checkboxWrap}
+        onPress={() => { hSelection(); onToggleSelect?.(msg.id) }}
+        hitSlop={8}
+      >
+        <View style={[sel.checkbox, isSelected && sel.checkboxChecked]}>
+          {isSelected && <Check size={13} color={Colors.background} strokeWidth={3} />}
+        </View>
+      </Pressable>
+      <View style={sel.content}>
+        {renderBubbleContent()}
+        {/* Swallows taps/gestures on the bubble itself while selecting —
+            tapping the message body toggles selection too, not just the box. */}
+        <Pressable
+          style={StyleSheet.absoluteFill}
+          onPress={() => { hSelection(); onToggleSelect?.(msg.id) }}
+        />
+      </View>
+    </View>
+  )
+}
+
+const sel = StyleSheet.create({
+  row: { flexDirection: 'row', alignItems: 'center' },
+  checkboxWrap: { width: 36, alignItems: 'center', justifyContent: 'center' },
+  checkbox: {
+    width: 20, height: 20, borderRadius: 5,
+    borderWidth: 1.5, borderColor: withOpacity(Colors.inkPrimary, 0.3),
+    alignItems: 'center', justifyContent: 'center',
+  },
+  checkboxChecked: { backgroundColor: Colors.brandOrange, borderColor: Colors.brandOrange },
+  content: { flex: 1 },
+})
+
+const s = StyleSheet.create({
+  bubbleWrap: { marginBottom: 4, maxWidth: '82%', overflow: 'visible' },
+  wrapMine: { alignSelf: 'flex-end', alignItems: 'flex-end' },
+  wrapTheirs: { alignSelf: 'flex-start', alignItems: 'flex-start' },
+
+  bubble: {
+    borderRadius: 18,
+    paddingHorizontal: 10,
+    paddingTop: 7,
+    paddingBottom: 16,
+  },
+  bubbleWithReply: { minWidth: 160 },
+  bubbleLink: { padding: 0, overflow: 'hidden' },
+  bubbleTheirs: { backgroundColor: Colors.elevated, borderBottomLeftRadius: 4 },
+  bubbleMine: {
+    backgroundColor: withOpacity(Colors.brandOrange, 0.22),
+    borderBottomRightRadius: 4,
+  },
+  bubblePending: { opacity: 0.6 },
+  bubbleFailed: {
+    borderWidth: 1,
+    borderColor: Colors.destructive,
+    opacity: 0.85,
+  },
+  text: { fontFamily: FontFamily.bodyRegular, fontSize: 15, color: Colors.inkPrimary, lineHeight: 21 },
+  textMine: { color: Colors.inkPrimary },
+
+  timeInner: {
+    position: 'absolute',
+    bottom: 3,
+    right: 8,
+    fontFamily: FontFamily.bodyRegular,
+    fontSize: 10,
+    color: withOpacity(Colors.inkPrimary, 0.4),
+  },
+
+  timeBelow: { fontFamily: FontFamily.bodyRegular, fontSize: 10, color: Colors.inkDisabled, marginTop: 3 },
+  timeBelowMine: { marginRight: 2 },
+  timeBelowTheirs: { marginLeft: 2 },
+
+  failedText: {
+    fontFamily: FontFamily.bodyRegular,
+    fontSize: 11,
+    color: Colors.destructive,
+    marginTop: 3,
+  },
+
+  richCard: {
+    backgroundColor: Colors.skeletonBase, borderWidth: 1, borderColor: Colors.surfaceMuted,
+    borderRadius: 16, overflow: 'hidden', width: 260,
+  },
+  richCardImg: { width: '100%', height: 140 },
+  richCardImgFallback: { backgroundColor: Colors.surfaceMuted },
+  richCardBody: { padding: 12, gap: 4 },
+  richCardTitle: { fontFamily: FontFamily.bodySemiBold, fontSize: 15, color: Colors.inkPrimary },
+  richCardSub: { fontFamily: FontFamily.bodyRegular, fontSize: 12, color: Colors.inkSecondary },
+  richCardBtn: { marginTop: 8 },
+  profileRow: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12 },
+  profileAvatar: { width: 44, height: 44, borderRadius: 22 },
+  profileAvatarFallback: { backgroundColor: Colors.surfaceMuted, alignItems: 'center', justifyContent: 'center' },
+  profileAvatarInitial: { fontFamily: FontFamily.headingBold, fontSize: 18, color: Colors.inkPrimary },
+  profileChips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, paddingHorizontal: 12, paddingBottom: 4 },
+  profileCardBtn: { marginHorizontal: 12, marginBottom: 12, marginTop: 4 },
+  profileChip: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, backgroundColor: withOpacity(Colors.inkPrimary, 0.08) },
+  profileChipText: { fontFamily: FontFamily.bodyRegular, fontSize: 11, color: Colors.inkPrimary },
+})

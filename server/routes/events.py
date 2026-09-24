@@ -1,0 +1,2316 @@
+from fastapi import APIRouter, BackgroundTasks, Depends, Query, HTTPException
+from typing import List, Optional
+from datetime import datetime, timezone, timedelta, date
+from pydantic import BaseModel
+from middleware.auth import get_current_user
+from db.config import get_db
+from utils.push import send_push
+from routes.payments import PLATFORM_FEE_INR, HOST_COMMISSION_RATE
+from routes.users import compute_host_badges
+from middleware.rate_limit import enforce_rate_limit
+
+router = APIRouter(prefix="/events", tags=["events"])
+
+# Single source of truth for both create and edit, so the two can't drift apart.
+MIN_TICKET_PRICE_INR = 99
+
+
+def _fee_snapshot(price_inr: int) -> tuple[int, int, int]:
+    """Platform fee, host commission, and total profit for a ticket at this
+    price — computed once at creation/edit time so each event keeps the rates
+    it was created under even if the global fee/commission changes later."""
+    if price_inr == 0:
+        return 0, 0, 0
+    fee = PLATFORM_FEE_INR
+    commission = round(price_inr * HOST_COMMISSION_RATE)
+    return fee, commission, fee + commission
+
+def _calc_age(dob: date) -> int:
+    today = date.today()
+    return today.year - dob.year - ((today.month, today.day) < (dob.month, dob.day))
+
+
+def _promote_next_waitlist(cur, event_id: str) -> dict | None:
+    """Promote the next user in the waitlist queue. Holds the spot by decrementing spots_left."""
+    cur.execute(
+        """
+        SELECT ea.id, ea.user_id::text, u.name
+        FROM event_attendees ea
+        JOIN users u ON u.id = ea.user_id
+        WHERE ea.event_id = %s AND ea.status = 'waitlist' AND ea.offer_expires_at IS NULL
+        ORDER BY ea.joined_at ASC
+        LIMIT 1
+        """,
+        (event_id,),
+    )
+    next_row = cur.fetchone()
+    if not next_row:
+        return None
+    cur.execute(
+        "UPDATE event_attendees SET offer_expires_at = NOW() + INTERVAL '1 hour' WHERE id = %s",
+        (next_row["id"],),
+    )
+    cur.execute(
+        "UPDATE events SET spots_left = GREATEST(0, spots_left - 1) WHERE id = %s",
+        (event_id,),
+    )
+    return dict(next_row)
+
+
+def _expire_stale_offers(cur, event_id: str) -> list:
+    """Expire promoted users who didn't confirm in time. Returns list of expired user_ids."""
+    cur.execute(
+        """
+        UPDATE event_attendees
+        SET status = 'cancelled', blocked_from_rejoin = TRUE, offer_expires_at = NULL
+        WHERE event_id = %s AND status = 'waitlist'
+          AND offer_expires_at IS NOT NULL AND offer_expires_at < NOW()
+        RETURNING user_id::text
+        """,
+        (event_id,),
+    )
+    expired = [r["user_id"] for r in cur.fetchall()]
+    if not expired:
+        return expired
+
+    # Only re-promote if event starts more than 2h from now — under 2h the spot becomes an empty seat
+    cur.execute("SELECT date_time FROM events WHERE id = %s", (event_id,))
+    ev_row = cur.fetchone()
+    ev_dt = ev_row["date_time"] if ev_row else None
+    if ev_dt and ev_dt.tzinfo is None:
+        ev_dt = ev_dt.replace(tzinfo=timezone.utc)
+    waitlist_still_open = ev_dt and ev_dt > datetime.now(timezone.utc) + timedelta(hours=2)
+
+    for _ in expired:
+        cur.execute(
+            "UPDATE events SET spots_left = LEAST(capacity, spots_left + 1) WHERE id = %s",
+            (event_id,),
+        )
+        if waitlist_still_open:
+            _promote_next_waitlist(cur, event_id)
+    return expired
+
+
+# ── Schemas ───────────────────────────────────────────────────────────────────
+
+class EventPhotoItem(BaseModel):
+    url: str
+    position: int
+
+
+class EventSummary(BaseModel):
+    id: str
+    title: str
+    event_type: str
+    date_time: str
+    end_time: Optional[str] = None
+    location_name: Optional[str] = None
+    location_lat: Optional[float] = None
+    waitlist_count: int = 0
+    is_waitlist_full: bool = False
+    location_lng: Optional[float] = None
+    price_inr: int
+    is_free: bool
+    platform_fee_inr: int = 0
+    host_commission_inr: int = 0
+    platform_profit_inr: int = 0
+    spots_left: int
+    capacity: int
+    distance_km: Optional[int] = None
+    cover_photos: List[EventPhotoItem] = []
+    host_id: Optional[str] = None
+    host_name: Optional[str] = None
+    host_avatar: Optional[str] = None
+    host_is_deleted: bool = False
+    age_restriction: int
+    attendee_count: int = 0
+    attendee_avatars: List[str] = []
+    is_cancelled: bool = False
+    is_following_host: bool = False
+    attended_host_before: bool = False
+    paid_attended_host_before: bool = False
+    is_hotlisted: bool = False
+    my_checked_in_at: Optional[str] = None
+    my_review_rating: Optional[int] = None
+
+
+class MyEventsPage(BaseModel):
+    events: List[EventSummary]
+    upcoming_count: int
+    past_count: int
+    has_more: bool
+
+
+class EventDetail(EventSummary):
+    description: Optional[str] = None
+    rules: Optional[str] = None
+    host_id: str
+    host_badges: List[str] = []
+    is_cancelled: bool
+    cancel_deadline: str
+    edit_deadline: str
+    my_ticket_token: Optional[str] = None
+    my_checked_in_at: Optional[str] = None
+    avg_rating: Optional[float] = None
+    review_count: int = 0
+    host_avg_rating: Optional[float] = None
+    host_review_count: int = 0
+    my_rsvp_status: Optional[str] = None        # 'going' | 'waitlist' | 'cancelled' | None
+    my_waitlist_position: Optional[int] = None  # position in queue (1-indexed), None if not on waitlist
+    my_offer_expires_at: Optional[str] = None   # ISO string when promoted, else None
+    my_review_rating: Optional[int] = None
+
+
+class CheckinBody(BaseModel):
+    ticket_token: str
+    method: str = 'qr_scan'  # 'qr_scan' | 'manual_host'
+
+
+class ReviewBody(BaseModel):
+    rating: int
+    body: Optional[str] = None
+
+
+class ReportEventBody(BaseModel):
+    reason: str
+    description: Optional[str] = None
+
+
+class CreateEventBody(BaseModel):
+    title: str
+    event_type: str
+    description: Optional[str] = None
+    rules: Optional[str] = None
+    date_time: str
+    end_time: str
+    capacity: int = 20
+    age_restriction: int = 18
+    location_name: Optional[str] = None
+    location_lat: Optional[float] = None
+    location_lng: Optional[float] = None
+    price_inr: int = 0
+    cover_photos: List[str] = []
+
+
+class RsvpBody(BaseModel):
+    action: str  # "going" | "cancel"
+
+
+# ── Helpers ────────────────────────────────────────────────────────────────────
+
+def _haversine_sql(me_lat, me_lng):
+    return f"""
+        ROUND(6371.0 * acos(LEAST(1.0,
+            cos(radians({me_lat})) * cos(radians(e.location_lat)) *
+            cos(radians(e.location_lng) - radians({me_lng})) +
+            sin(radians({me_lat})) * sin(radians(e.location_lat))
+        )))::int
+    """
+
+
+# ── GET /events ────────────────────────────────────────────────────────────────
+
+@router.get("", response_model=List[EventSummary])
+def list_events(
+    lat: Optional[float] = Query(default=None),
+    lng: Optional[float] = Query(default=None),
+    radius_km: Optional[int] = Query(default=50),
+    category: Optional[str] = Query(default=None),
+    is_free: Optional[bool] = Query(default=None),
+    date_range: Optional[str] = Query(default=None),  # tonight | weekend | all
+    q: Optional[str] = Query(default=None),
+    min_lat: Optional[float] = Query(default=None),
+    max_lat: Optional[float] = Query(default=None),
+    min_lng: Optional[float] = Query(default=None),
+    max_lng: Optional[float] = Query(default=None),
+    # Calendar-style date-window queries (e.g. "everything in the next 90
+    # days") need a much higher cap than the browse/map feeds — a plain
+    # distance/relevance-ranked top-30 silently drops real events that are
+    # merely farther away, which reads as "the calendar is missing events."
+    start_date: Optional[str] = Query(default=None),
+    end_date: Optional[str] = Query(default=None),
+    limit: int = Query(default=30, le=200),
+    current_user: dict = Depends(get_current_user),
+):
+    viewer_id = current_user["id"]
+
+    dist_sql = _haversine_sql(lat, lng) if lat and lng else "NULL::int"
+
+    filters = ["e.is_published = TRUE", "e.is_cancelled = FALSE", "e.date_time > NOW()"]
+    filter_params: list = []
+
+    if category:
+        filters.append("e.event_type = %s")
+        filter_params.append(category)
+
+    if is_free is True:
+        filters.append("e.price_inr = 0")
+    elif is_free is False:
+        filters.append("e.price_inr > 0")
+
+    if date_range == "tonight":
+        filters.append("e.date_time::date = CURRENT_DATE")
+    elif date_range == "weekend":
+        filters.append("EXTRACT(DOW FROM e.date_time) IN (5, 6, 0)")
+
+    if start_date:
+        filters.append("e.date_time::date >= %s")
+        filter_params.append(start_date)
+    if end_date:
+        filters.append("e.date_time::date <= %s")
+        filter_params.append(end_date)
+
+    if q:
+        filters.append("(e.title ILIKE %s OR e.location_name ILIKE %s)")
+        like = f"%{q}%"
+        filter_params.extend([like, like])
+
+    # Viewport bounds take priority over radius — used by MapLibre's onRegionDidChange
+    if min_lat is not None and max_lat is not None and min_lng is not None and max_lng is not None:
+        filters.append("e.location_lat BETWEEN %s AND %s")
+        filters.append("e.location_lng BETWEEN %s AND %s")
+        filter_params.extend([min_lat, max_lat, min_lng, max_lng])
+    elif lat and lng and radius_km:
+        filters.append(f"""
+            6371.0 * acos(LEAST(1.0,
+                cos(radians(%s)) * cos(radians(e.location_lat)) *
+                cos(radians(e.location_lng) - radians(%s)) +
+                sin(radians(%s)) * sin(radians(e.location_lat))
+            )) <= %s
+        """)
+        filter_params.extend([lat, lng, lat, radius_km])
+
+    where = "WHERE " + " AND ".join(filters)
+
+    # Relationship signals — used to rank every listing (browsing or search),
+    # see the ORDER BY below, and also returned so the client can show "why"
+    # badges (e.g. "You've been to their events").
+    relationship_select = """
+        EXISTS(
+            SELECT 1 FROM follows
+            WHERE follower_id = %s::uuid AND following_id = e.host_id
+        ) AS is_following_host,
+        EXISTS(
+            SELECT 1 FROM event_attendees ea
+            WHERE ea.user_id = %s::uuid AND ea.status = 'going'
+              AND ea.event_id IN (SELECT id FROM events WHERE host_id = e.host_id)
+        ) AS attended_host_before,
+        EXISTS(
+            SELECT 1 FROM event_attendees ea
+            WHERE ea.user_id = %s::uuid AND ea.status = 'going' AND ea.payment_id IS NOT NULL
+              AND ea.event_id IN (SELECT id FROM events WHERE host_id = e.host_id)
+        ) AS paid_attended_host_before,
+        EXISTS(
+            SELECT 1 FROM event_hotlist h
+            WHERE h.user_id = %s::uuid AND h.event_id = e.id
+        ) AS is_hotlisted
+    """
+    relationship_params = [viewer_id, viewer_id, viewer_id, viewer_id]
+
+    default_order = dist_sql + " ASC NULLS LAST" if lat and lng else "e.date_time ASC"
+    # Relationship ranking (paid-attended > attended > following) applies to
+    # every listing, not just an active text search — a followed host's event
+    # should float up whether you're browsing nearby or typing a query. Text
+    # relevance (exact/prefix title match) only makes sense when there's a q.
+    text_rank_sql = "(LOWER(e.title) = LOWER(%s)) DESC, (LOWER(e.title) LIKE LOWER(%s)) DESC," if q else ""
+    order_sql = f"""
+        paid_attended_host_before DESC,
+        attended_host_before DESC,
+        is_following_host DESC,
+        {text_rank_sql}
+        {default_order}
+    """
+    order_params = [q, f"{q}%"] if q else []
+
+    sql = f"""
+        SELECT
+            e.id::text,
+            e.title, e.event_type,
+            e.date_time::text, e.end_time::text,
+            e.location_name, e.location_lat, e.location_lng,
+            e.price_inr, (e.price_inr = 0) AS is_free,
+            e.platform_fee_inr, e.host_commission_inr, e.platform_profit_inr,
+            e.spots_left, e.capacity, e.age_restriction,
+            e.cover_photos,
+            e.host_id::text,
+            {dist_sql} AS distance_km,
+            u.name AS host_name,
+            (SELECT p.url FROM user_photos p WHERE p.user_id = u.id ORDER BY p.position LIMIT 1) AS host_avatar,
+            COALESCE(u.is_deleted, FALSE) AS host_is_deleted,
+            (SELECT COUNT(*) FROM event_attendees ea WHERE ea.event_id = e.id AND ea.status = 'going')::int AS attendee_count,
+            (SELECT COALESCE(json_agg(au.avatar_url), '[]'::json) FROM (
+                SELECT (SELECT p.url FROM user_photos p WHERE p.user_id = eav.user_id ORDER BY p.position LIMIT 1) AS avatar_url
+                FROM event_attendees eav
+                WHERE eav.event_id = e.id AND eav.status = 'going'
+                ORDER BY EXISTS(
+                    SELECT 1 FROM follows fo WHERE fo.follower_id = %s::uuid AND fo.following_id = eav.user_id
+                ) DESC, eav.joined_at ASC LIMIT 3
+            ) au WHERE au.avatar_url IS NOT NULL) AS attendee_avatars,
+            {relationship_select}
+        FROM events e
+        JOIN users u ON u.id = e.host_id
+        {where}
+        ORDER BY {order_sql}
+        LIMIT %s
+    """
+    params = [viewer_id] + relationship_params + filter_params + order_params + [limit]
+
+    with get_db() as (cur, _):
+        cur.execute(sql, params)
+        rows = cur.fetchall()
+
+    result = []
+    for row in rows:
+        d = dict(row)
+        photos_raw = d.get("cover_photos") or []
+        d["cover_photos"] = [{"url": p, "position": i} for i, p in enumerate(photos_raw)] if isinstance(photos_raw, list) and photos_raw and isinstance(photos_raw[0], str) else photos_raw
+        result.append(d)
+    return result
+
+
+# ── GET /events/hosted — events I am hosting (full, unpaginated list — used
+# by the calendar, account-deletion check, home "My Events" section, and the
+# search modal, all of which need the complete set, not one page of it) ──────
+
+@router.get("/hosted", response_model=List[EventSummary])
+def get_hosted_events(current_user: dict = Depends(get_current_user)):
+    uid = current_user["id"]
+    with get_db() as (cur, _):
+        cur.execute(
+            """
+            SELECT
+                e.id::text,
+                e.title, e.event_type,
+                e.date_time::text, e.end_time::text,
+                e.location_name, e.location_lat, e.location_lng,
+                e.price_inr, (e.price_inr = 0) AS is_free,
+            e.platform_fee_inr, e.host_commission_inr, e.platform_profit_inr,
+                e.spots_left, e.capacity, e.age_restriction,
+                e.cover_photos, e.is_cancelled,
+                e.host_id::text,
+                NULL::int AS distance_km,
+                u.name AS host_name,
+                (SELECT p.url FROM user_photos p WHERE p.user_id = u.id ORDER BY p.position LIMIT 1) AS host_avatar,
+                COALESCE(u.is_deleted, FALSE) AS host_is_deleted,
+                (SELECT COUNT(*) FROM event_attendees ea WHERE ea.event_id = e.id AND ea.status = 'going')::int AS attendee_count,
+                (SELECT COALESCE(json_agg(au.avatar_url), '[]'::json) FROM (
+                    SELECT (SELECT p.url FROM user_photos p WHERE p.user_id = eav.user_id ORDER BY p.position LIMIT 1) AS avatar_url
+                    FROM event_attendees eav
+                    WHERE eav.event_id = e.id AND eav.status = 'going'
+                    ORDER BY EXISTS(
+                        SELECT 1 FROM follows fo WHERE fo.follower_id = %s::uuid AND fo.following_id = eav.user_id
+                    ) DESC, eav.joined_at ASC LIMIT 3
+                ) au WHERE au.avatar_url IS NOT NULL) AS attendee_avatars,
+                EXISTS(SELECT 1 FROM event_hotlist h WHERE h.user_id = %s::uuid AND h.event_id = e.id) AS is_hotlisted
+            FROM events e
+            JOIN users u ON u.id = e.host_id
+            WHERE e.host_id = %s::uuid
+            ORDER BY e.date_time DESC
+            """,
+            (uid, uid, uid),
+        )
+        rows = cur.fetchall()
+    result = []
+    for row in rows:
+        d = dict(row)
+        photos_raw = d.get("cover_photos") or []
+        d["cover_photos"] = [{"url": p, "position": i} for i, p in enumerate(photos_raw)] if isinstance(photos_raw, list) and photos_raw and isinstance(photos_raw[0], str) else photos_raw
+        result.append(d)
+    return result
+
+
+# ── GET /events/hosted/paged — paginated hosted events for the My Events
+# screen: cheap upcoming/past counts on every call, but only fetches the
+# content of whichever tab is active, a page at a time ──────────────────────
+
+@router.get("/hosted/paged", response_model=MyEventsPage)
+def get_hosted_events_paged(
+    tab: str = Query("upcoming", pattern="^(upcoming|past)$"),
+    limit: int = Query(6, ge=1, le=50),
+    offset: int = Query(0, ge=0),
+    current_user: dict = Depends(get_current_user),
+):
+    uid = current_user["id"]
+    is_past = tab == "past"
+    with get_db() as (cur, _):
+        cur.execute(
+            """
+            SELECT
+                COUNT(*) FILTER (WHERE e.date_time < NOW())  AS past_count,
+                COUNT(*) FILTER (WHERE e.date_time >= NOW()) AS upcoming_count
+            FROM events e
+            WHERE e.host_id = %s::uuid
+            """,
+            (uid,),
+        )
+        counts = cur.fetchone()
+        upcoming_count = int(counts["upcoming_count"])
+        past_count = int(counts["past_count"])
+
+        cur.execute(
+            f"""
+            SELECT
+                e.id::text,
+                e.title, e.event_type,
+                e.date_time::text, e.end_time::text,
+                e.location_name, e.location_lat, e.location_lng,
+                e.price_inr, (e.price_inr = 0) AS is_free,
+            e.platform_fee_inr, e.host_commission_inr, e.platform_profit_inr,
+                e.spots_left, e.capacity, e.age_restriction,
+                e.cover_photos, e.is_cancelled,
+                e.host_id::text,
+                NULL::int AS distance_km,
+                u.name AS host_name,
+                (SELECT p.url FROM user_photos p WHERE p.user_id = u.id ORDER BY p.position LIMIT 1) AS host_avatar,
+                COALESCE(u.is_deleted, FALSE) AS host_is_deleted,
+                (SELECT COUNT(*) FROM event_attendees ea WHERE ea.event_id = e.id AND ea.status = 'going')::int AS attendee_count,
+                (SELECT COALESCE(json_agg(au.avatar_url), '[]'::json) FROM (
+                    SELECT (SELECT p.url FROM user_photos p WHERE p.user_id = eav.user_id ORDER BY p.position LIMIT 1) AS avatar_url
+                    FROM event_attendees eav
+                    WHERE eav.event_id = e.id AND eav.status = 'going'
+                    ORDER BY eav.joined_at ASC LIMIT 3
+                ) au WHERE au.avatar_url IS NOT NULL) AS attendee_avatars,
+                EXISTS(SELECT 1 FROM event_hotlist h WHERE h.user_id = %s::uuid AND h.event_id = e.id) AS is_hotlisted
+            FROM events e
+            JOIN users u ON u.id = e.host_id
+            WHERE e.host_id = %s::uuid AND e.date_time {"<" if is_past else ">="} NOW()
+            ORDER BY e.date_time {"DESC" if is_past else "ASC"}
+            LIMIT %s OFFSET %s
+            """,
+            (uid, uid, limit, offset),
+        )
+        rows = cur.fetchall()
+    result = []
+    for row in rows:
+        d = dict(row)
+        photos_raw = d.get("cover_photos") or []
+        d["cover_photos"] = [{"url": p, "position": i} for i, p in enumerate(photos_raw)] if isinstance(photos_raw, list) and photos_raw and isinstance(photos_raw[0], str) else photos_raw
+        result.append(d)
+    tab_total = past_count if is_past else upcoming_count
+    return {
+        "events": result,
+        "upcoming_count": upcoming_count,
+        "past_count": past_count,
+        "has_more": offset + len(result) < tab_total,
+    }
+
+
+# ── GET /events/joined — events I have RSVPed to (full, unpaginated list —
+# same reasoning as /hosted above: other consumers need the complete set) ────
+
+@router.get("/joined", response_model=List[EventSummary])
+def get_joined_events(current_user: dict = Depends(get_current_user)):
+    uid = current_user["id"]
+    with get_db() as (cur, _):
+        cur.execute(
+            """
+            SELECT
+                e.id::text,
+                e.title, e.event_type,
+                e.date_time::text, e.end_time::text,
+                e.location_name, e.location_lat, e.location_lng,
+                e.price_inr, (e.price_inr = 0) AS is_free,
+            e.platform_fee_inr, e.host_commission_inr, e.platform_profit_inr,
+                e.spots_left, e.capacity, e.age_restriction,
+                e.cover_photos, e.is_cancelled,
+                e.host_id::text,
+                NULL::int AS distance_km,
+                u.name AS host_name,
+                (SELECT p.url FROM user_photos p WHERE p.user_id = u.id ORDER BY p.position LIMIT 1) AS host_avatar,
+                COALESCE(u.is_deleted, FALSE) AS host_is_deleted,
+                (SELECT COUNT(*) FROM event_attendees ea2 WHERE ea2.event_id = e.id AND ea2.status = 'going')::int AS attendee_count,
+                (SELECT COALESCE(json_agg(au.avatar_url), '[]'::json) FROM (
+                    SELECT (SELECT p.url FROM user_photos p WHERE p.user_id = eav.user_id ORDER BY p.position LIMIT 1) AS avatar_url
+                    FROM event_attendees eav
+                    WHERE eav.event_id = e.id AND eav.status = 'going'
+                    ORDER BY EXISTS(
+                        SELECT 1 FROM follows fo WHERE fo.follower_id = %s::uuid AND fo.following_id = eav.user_id
+                    ) DESC, eav.joined_at ASC LIMIT 3
+                ) au WHERE au.avatar_url IS NOT NULL) AS attendee_avatars,
+                EXISTS(SELECT 1 FROM event_hotlist h WHERE h.user_id = %s::uuid AND h.event_id = e.id) AS is_hotlisted,
+                ea.checked_in_at::text AS my_checked_in_at,
+                (SELECT rating FROM event_reviews WHERE event_id = e.id AND reviewer_id = %s::uuid LIMIT 1) AS my_review_rating
+            FROM events e
+            JOIN users u ON u.id = e.host_id
+            JOIN event_attendees ea ON ea.event_id = e.id AND ea.user_id = %s::uuid AND ea.status = 'going'
+            ORDER BY e.date_time DESC
+            """,
+            (uid, uid, uid, uid),
+        )
+        rows = cur.fetchall()
+    result = []
+    for row in rows:
+        d = dict(row)
+        photos_raw = d.get("cover_photos") or []
+        d["cover_photos"] = [{"url": p, "position": i} for i, p in enumerate(photos_raw)] if isinstance(photos_raw, list) and photos_raw and isinstance(photos_raw[0], str) else photos_raw
+        result.append(d)
+    return result
+
+
+# ── GET /events/joined/paged — paginated joined events for the Joined Events
+# screen (same pattern as /hosted/paged) ─────────────────────────────────────
+
+@router.get("/joined/paged", response_model=MyEventsPage)
+def get_joined_events_paged(
+    tab: str = Query("upcoming", pattern="^(upcoming|past)$"),
+    limit: int = Query(6, ge=1, le=50),
+    offset: int = Query(0, ge=0),
+    current_user: dict = Depends(get_current_user),
+):
+    uid = current_user["id"]
+    is_past = tab == "past"
+    with get_db() as (cur, _):
+        cur.execute(
+            """
+            SELECT
+                COUNT(*) FILTER (WHERE e.date_time < NOW())  AS past_count,
+                COUNT(*) FILTER (WHERE e.date_time >= NOW()) AS upcoming_count
+            FROM events e
+            JOIN event_attendees ea ON ea.event_id = e.id AND ea.user_id = %s::uuid AND ea.status = 'going'
+            """,
+            (uid,),
+        )
+        counts = cur.fetchone()
+        upcoming_count = int(counts["upcoming_count"])
+        past_count = int(counts["past_count"])
+
+        cur.execute(
+            f"""
+            SELECT
+                e.id::text,
+                e.title, e.event_type,
+                e.date_time::text, e.end_time::text,
+                e.location_name, e.location_lat, e.location_lng,
+                e.price_inr, (e.price_inr = 0) AS is_free,
+            e.platform_fee_inr, e.host_commission_inr, e.platform_profit_inr,
+                e.spots_left, e.capacity, e.age_restriction,
+                e.cover_photos, e.is_cancelled,
+                e.host_id::text,
+                NULL::int AS distance_km,
+                u.name AS host_name,
+                (SELECT p.url FROM user_photos p WHERE p.user_id = u.id ORDER BY p.position LIMIT 1) AS host_avatar,
+                COALESCE(u.is_deleted, FALSE) AS host_is_deleted,
+                (SELECT COUNT(*) FROM event_attendees ea2 WHERE ea2.event_id = e.id AND ea2.status = 'going')::int AS attendee_count,
+                (SELECT COALESCE(json_agg(au.avatar_url), '[]'::json) FROM (
+                    SELECT (SELECT p.url FROM user_photos p WHERE p.user_id = eav.user_id ORDER BY p.position LIMIT 1) AS avatar_url
+                    FROM event_attendees eav
+                    WHERE eav.event_id = e.id AND eav.status = 'going'
+                    ORDER BY eav.joined_at ASC LIMIT 3
+                ) au WHERE au.avatar_url IS NOT NULL) AS attendee_avatars,
+                EXISTS(SELECT 1 FROM event_hotlist h WHERE h.user_id = %s::uuid AND h.event_id = e.id) AS is_hotlisted
+            FROM events e
+            JOIN users u ON u.id = e.host_id
+            JOIN event_attendees ea ON ea.event_id = e.id AND ea.user_id = %s::uuid AND ea.status = 'going'
+            WHERE e.date_time {"<" if is_past else ">="} NOW()
+            ORDER BY e.date_time {"DESC" if is_past else "ASC"}
+            LIMIT %s OFFSET %s
+            """,
+            (uid, uid, limit, offset),
+        )
+        rows = cur.fetchall()
+    result = []
+    for row in rows:
+        d = dict(row)
+        photos_raw = d.get("cover_photos") or []
+        d["cover_photos"] = [{"url": p, "position": i} for i, p in enumerate(photos_raw)] if isinstance(photos_raw, list) and photos_raw and isinstance(photos_raw[0], str) else photos_raw
+        result.append(d)
+    tab_total = past_count if is_past else upcoming_count
+    return {
+        "events": result,
+        "upcoming_count": upcoming_count,
+        "past_count": past_count,
+        "has_more": offset + len(result) < tab_total,
+    }
+
+
+# ── GET /events/waitlisted — events I'm on the waitlist for ──────────────────
+
+@router.get("/waitlisted", response_model=List[EventSummary])
+def get_waitlisted_events(current_user: dict = Depends(get_current_user)):
+    uid = current_user["id"]
+    with get_db() as (cur, _):
+        cur.execute(
+            """
+            SELECT
+                e.id::text,
+                e.title, e.event_type,
+                e.date_time::text, e.end_time::text,
+                e.location_name, e.location_lat, e.location_lng,
+                e.price_inr, (e.price_inr = 0) AS is_free,
+            e.platform_fee_inr, e.host_commission_inr, e.platform_profit_inr,
+                e.spots_left, e.capacity, e.age_restriction,
+                e.cover_photos, e.is_cancelled,
+                e.host_id::text,
+                NULL::int AS distance_km,
+                u.name AS host_name,
+                (SELECT p.url FROM user_photos p WHERE p.user_id = u.id ORDER BY p.position LIMIT 1) AS host_avatar,
+                COALESCE(u.is_deleted, FALSE) AS host_is_deleted,
+                (SELECT COUNT(*) FROM event_attendees ea2 WHERE ea2.event_id = e.id AND ea2.status = 'going')::int AS attendee_count,
+                (SELECT COALESCE(json_agg(au.avatar_url), '[]'::json) FROM (
+                    SELECT (SELECT p.url FROM user_photos p WHERE p.user_id = eav.user_id ORDER BY p.position LIMIT 1) AS avatar_url
+                    FROM event_attendees eav
+                    WHERE eav.event_id = e.id AND eav.status = 'going'
+                    ORDER BY eav.joined_at ASC LIMIT 3
+                ) au WHERE au.avatar_url IS NOT NULL) AS attendee_avatars,
+                EXISTS(SELECT 1 FROM event_hotlist h WHERE h.user_id = %s::uuid AND h.event_id = e.id) AS is_hotlisted
+            FROM events e
+            JOIN users u ON u.id = e.host_id
+            JOIN event_attendees ea ON ea.event_id = e.id AND ea.user_id = %s::uuid AND ea.status = 'waitlist'
+            ORDER BY e.date_time ASC
+            """,
+            (uid, uid),
+        )
+        rows = cur.fetchall()
+    result = []
+    for row in rows:
+        d = dict(row)
+        photos_raw = d.get("cover_photos") or []
+        d["cover_photos"] = [{"url": p, "position": i} for i, p in enumerate(photos_raw)] if isinstance(photos_raw, list) and photos_raw and isinstance(photos_raw[0], str) else photos_raw
+        result.append(d)
+    return result
+
+
+# ── Hotlist — events a user has saved/bookmarked, not necessarily going to ───
+# (see event_hotlist table). Zomato-style "save for later", separate from
+# RSVP/waitlist which are about attendance.
+
+@router.get("/hotlist", response_model=List[EventSummary])
+def get_hotlist_events(current_user: dict = Depends(get_current_user)):
+    uid = current_user["id"]
+    with get_db() as (cur, _):
+        # Auto-remove events that have already ended — nobody wants a hotlist
+        # full of stuff that's over. Mirrors the end_time-aware "is past"
+        # rule the client uses (see client/src/lib/dates.ts:isEventPast).
+        cur.execute(
+            """
+            DELETE FROM event_hotlist h
+            USING events e
+            WHERE h.event_id = e.id AND h.user_id = %s::uuid
+              AND COALESCE(e.end_time, e.date_time) < NOW()
+            """,
+            (uid,),
+        )
+        cur.execute(
+            """
+            SELECT
+                e.id::text,
+                e.title, e.event_type,
+                e.date_time::text, e.end_time::text,
+                e.location_name, e.location_lat, e.location_lng,
+                e.price_inr, (e.price_inr = 0) AS is_free,
+            e.platform_fee_inr, e.host_commission_inr, e.platform_profit_inr,
+                e.spots_left, e.capacity, e.age_restriction,
+                e.cover_photos, e.is_cancelled,
+                e.host_id::text,
+                NULL::int AS distance_km,
+                u.name AS host_name,
+                (SELECT p.url FROM user_photos p WHERE p.user_id = u.id ORDER BY p.position LIMIT 1) AS host_avatar,
+                COALESCE(u.is_deleted, FALSE) AS host_is_deleted,
+                (SELECT COUNT(*) FROM event_attendees ea2 WHERE ea2.event_id = e.id AND ea2.status = 'going')::int AS attendee_count,
+                (SELECT COALESCE(json_agg(au.avatar_url), '[]'::json) FROM (
+                    SELECT (SELECT p.url FROM user_photos p WHERE p.user_id = eav.user_id ORDER BY p.position LIMIT 1) AS avatar_url
+                    FROM event_attendees eav
+                    WHERE eav.event_id = e.id AND eav.status = 'going'
+                    ORDER BY eav.joined_at ASC LIMIT 3
+                ) au WHERE au.avatar_url IS NOT NULL) AS attendee_avatars,
+                TRUE AS is_hotlisted
+            FROM events e
+            JOIN users u ON u.id = e.host_id
+            JOIN event_hotlist h ON h.event_id = e.id AND h.user_id = %s::uuid
+            ORDER BY h.created_at DESC
+            """,
+            (uid,),
+        )
+        rows = cur.fetchall()
+    result = []
+    for row in rows:
+        d = dict(row)
+        photos_raw = d.get("cover_photos") or []
+        d["cover_photos"] = [{"url": p, "position": i} for i, p in enumerate(photos_raw)] if isinstance(photos_raw, list) and photos_raw and isinstance(photos_raw[0], str) else photos_raw
+        result.append(d)
+    return result
+
+
+@router.post("/{event_id}/hotlist", status_code=201)
+def add_to_hotlist(event_id: str, current_user: dict = Depends(get_current_user)):
+    uid = current_user["id"]
+    with get_db() as (cur, _):
+        cur.execute(
+            "SELECT (COALESCE(end_time, date_time) < NOW()) AS is_past FROM events WHERE id = %s::uuid",
+            (event_id,),
+        )
+        row = cur.fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="Event not found")
+        if row["is_past"]:
+            raise HTTPException(status_code=400, detail="This event has already ended")
+        cur.execute(
+            """
+            INSERT INTO event_hotlist (event_id, user_id)
+            VALUES (%s::uuid, %s::uuid)
+            ON CONFLICT (event_id, user_id) DO NOTHING
+            """,
+            (event_id, uid),
+        )
+    return {"ok": True}
+
+
+@router.delete("/{event_id}/hotlist")
+def remove_from_hotlist(event_id: str, current_user: dict = Depends(get_current_user)):
+    uid = current_user["id"]
+    with get_db() as (cur, _):
+        cur.execute(
+            "DELETE FROM event_hotlist WHERE event_id = %s::uuid AND user_id = %s::uuid",
+            (event_id, uid),
+        )
+    return {"ok": True}
+
+
+# ── Calendar screen ──────────────────────────────────────────────────────────
+# The old approach had the calendar pull the full unpaginated /hosted,
+# /joined and /waitlisted lists (a user's entire history, no date bound) just
+# to know which days deserve a dot. That gets slower forever as an account
+# ages. Instead: a cheap month-scoped summary (dates + booleans, no event
+# payload) drives the grid, and full event details are fetched lazily, one
+# day at a time, only for whichever day the user actually taps.
+
+class CalendarDaySummary(BaseModel):
+    date: str
+    has_joined: bool = False
+    has_hosted: bool = False
+    has_waitlisted: bool = False
+    has_other: bool = False
+
+
+class CalendarDayEvents(BaseModel):
+    joined: List[EventSummary] = []
+    hosted: List[EventSummary] = []
+    waitlisted: List[EventSummary] = []
+    other: List[EventSummary] = []
+
+
+_EVENT_COLUMNS = """
+    e.id::text, e.title, e.event_type,
+    e.date_time::text, e.end_time::text,
+    e.location_name, e.location_lat, e.location_lng,
+    e.price_inr, (e.price_inr = 0) AS is_free,
+    e.platform_fee_inr, e.host_commission_inr, e.platform_profit_inr,
+    e.spots_left, e.capacity, e.age_restriction,
+    e.cover_photos, e.is_cancelled,
+    e.host_id::text,
+    NULL::int AS distance_km,
+    u.name AS host_name,
+    (SELECT p.url FROM user_photos p WHERE p.user_id = u.id ORDER BY p.position LIMIT 1) AS host_avatar,
+    COALESCE(u.is_deleted, FALSE) AS host_is_deleted,
+    (SELECT COUNT(*) FROM event_attendees ea2 WHERE ea2.event_id = e.id AND ea2.status = 'going')::int AS attendee_count,
+    (SELECT COALESCE(json_agg(au.avatar_url), '[]'::json) FROM (
+        SELECT (SELECT p.url FROM user_photos p WHERE p.user_id = eav.user_id ORDER BY p.position LIMIT 1) AS avatar_url
+        FROM event_attendees eav
+        WHERE eav.event_id = e.id AND eav.status = 'going'
+        ORDER BY eav.joined_at ASC LIMIT 3
+    ) au WHERE au.avatar_url IS NOT NULL) AS attendee_avatars,
+    EXISTS(SELECT 1 FROM event_hotlist h WHERE h.user_id = %s::uuid AND h.event_id = e.id) AS is_hotlisted
+"""
+
+
+def _shape_event_rows(rows) -> list:
+    result = []
+    for row in rows:
+        d = dict(row)
+        photos_raw = d.get("cover_photos") or []
+        d["cover_photos"] = [{"url": p, "position": i} for i, p in enumerate(photos_raw)] if isinstance(photos_raw, list) and photos_raw and isinstance(photos_raw[0], str) else photos_raw
+        result.append(d)
+    return result
+
+
+def _other_filter_sql(date_filter: str, params: list, uid: str, lat, lng, radius_km) -> tuple[str, list]:
+    """'Other' = published, not cancelled, upcoming events that aren't mine
+    (not hosted, not going, not waitlisted) — same definition the client used
+    to compute locally, now scoped server-side per day/month instead."""
+    filters = [
+        "e.is_published = TRUE", "e.is_cancelled = FALSE", "e.date_time > NOW()",
+        date_filter,
+        "e.host_id != %s::uuid",
+        "NOT EXISTS (SELECT 1 FROM event_attendees ea WHERE ea.event_id = e.id AND ea.user_id = %s::uuid AND ea.status IN ('going', 'waitlist'))",
+    ]
+    all_params = params + [uid, uid]
+    if lat is not None and lng is not None and radius_km:
+        filters.append("""
+            6371.0 * acos(LEAST(1.0,
+                cos(radians(%s)) * cos(radians(e.location_lat)) *
+                cos(radians(e.location_lng) - radians(%s)) +
+                sin(radians(%s)) * sin(radians(e.location_lat))
+            )) <= %s
+        """)
+        all_params.extend([lat, lng, lat, radius_km])
+    return " AND ".join(filters), all_params
+
+
+@router.get("/calendar/summary", response_model=List[CalendarDaySummary])
+def get_calendar_summary(
+    start_date: str = Query(...),
+    end_date: str = Query(...),
+    lat: Optional[float] = Query(default=None),
+    lng: Optional[float] = Query(default=None),
+    radius_km: Optional[int] = Query(default=50),
+    current_user: dict = Depends(get_current_user),
+):
+    uid = current_user["id"]
+    days: dict = {}
+
+    def mark(d, key):
+        k = d.isoformat()
+        entry = days.setdefault(k, {"date": k, "has_joined": False, "has_hosted": False, "has_waitlisted": False, "has_other": False})
+        entry[key] = True
+
+    with get_db() as (cur, _):
+        cur.execute(
+            """
+            SELECT DISTINCT e.date_time::date AS d
+            FROM events e
+            JOIN event_attendees ea ON ea.event_id = e.id AND ea.user_id = %s::uuid AND ea.status = 'going'
+            WHERE e.date_time::date BETWEEN %s AND %s
+            """,
+            (uid, start_date, end_date),
+        )
+        for row in cur.fetchall():
+            mark(row["d"], "has_joined")
+
+        cur.execute(
+            """
+            SELECT DISTINCT e.date_time::date AS d
+            FROM events e
+            WHERE e.host_id = %s::uuid AND e.date_time::date BETWEEN %s AND %s
+            """,
+            (uid, start_date, end_date),
+        )
+        for row in cur.fetchall():
+            mark(row["d"], "has_hosted")
+
+        cur.execute(
+            """
+            SELECT DISTINCT e.date_time::date AS d
+            FROM events e
+            JOIN event_attendees ea ON ea.event_id = e.id AND ea.user_id = %s::uuid AND ea.status = 'waitlist'
+            WHERE e.date_time::date BETWEEN %s AND %s
+            """,
+            (uid, start_date, end_date),
+        )
+        for row in cur.fetchall():
+            mark(row["d"], "has_waitlisted")
+
+        other_where, other_params = _other_filter_sql(
+            "e.date_time::date BETWEEN %s AND %s", [start_date, end_date], uid, lat, lng, radius_km,
+        )
+        cur.execute(f"SELECT DISTINCT e.date_time::date AS d FROM events e WHERE {other_where}", other_params)
+        for row in cur.fetchall():
+            mark(row["d"], "has_other")
+
+    return list(days.values())
+
+
+@router.get("/calendar/day", response_model=CalendarDayEvents)
+def get_calendar_day(
+    date_: str = Query(..., alias="date"),
+    lat: Optional[float] = Query(default=None),
+    lng: Optional[float] = Query(default=None),
+    radius_km: Optional[int] = Query(default=50),
+    current_user: dict = Depends(get_current_user),
+):
+    uid = current_user["id"]
+    with get_db() as (cur, _):
+        cur.execute(
+            f"""
+            SELECT {_EVENT_COLUMNS}
+            FROM events e
+            JOIN users u ON u.id = e.host_id
+            JOIN event_attendees ea ON ea.event_id = e.id AND ea.user_id = %s::uuid AND ea.status = 'going'
+            WHERE e.date_time::date = %s
+            """,
+            (uid, uid, date_),
+        )
+        joined = _shape_event_rows(cur.fetchall())
+
+        cur.execute(
+            f"""
+            SELECT {_EVENT_COLUMNS}
+            FROM events e
+            JOIN users u ON u.id = e.host_id
+            WHERE e.host_id = %s::uuid AND e.date_time::date = %s
+            """,
+            (uid, uid, date_),
+        )
+        hosted = _shape_event_rows(cur.fetchall())
+
+        cur.execute(
+            f"""
+            SELECT {_EVENT_COLUMNS}
+            FROM events e
+            JOIN users u ON u.id = e.host_id
+            JOIN event_attendees ea ON ea.event_id = e.id AND ea.user_id = %s::uuid AND ea.status = 'waitlist'
+            WHERE e.date_time::date = %s
+            """,
+            (uid, uid, date_),
+        )
+        waitlisted = _shape_event_rows(cur.fetchall())
+
+        other_where, other_params = _other_filter_sql("e.date_time::date = %s", [date_], uid, lat, lng, radius_km)
+        cur.execute(
+            f"""
+            SELECT {_EVENT_COLUMNS}
+            FROM events e
+            JOIN users u ON u.id = e.host_id
+            WHERE {other_where}
+            ORDER BY e.date_time ASC
+            """,
+            [uid] + other_params,
+        )
+        other = _shape_event_rows(cur.fetchall())
+
+    return {"joined": joined, "hosted": hosted, "waitlisted": waitlisted, "other": other}
+
+
+# ── GET /events/free-slots ────────────────────────────────────────────────────
+# Must be registered BEFORE /{event_id} so FastAPI doesn't swallow "free-slots" as a UUID.
+
+@router.get("/free-slots")
+def get_free_slots(current_user: dict = Depends(get_current_user)):
+    uid = current_user["id"]
+    with get_db() as (cur, _):
+        cur.execute(
+            """
+            SELECT COUNT(*)::int AS count FROM events
+            WHERE host_id = %s::uuid AND price_inr = 0
+              AND DATE_TRUNC('month', created_at AT TIME ZONE 'UTC')
+                = DATE_TRUNC('month', NOW() AT TIME ZONE 'UTC')
+              AND is_cancelled = FALSE
+            """,
+            (uid,),
+        )
+        used = cur.fetchone()["count"]
+    today = date.today()
+    if today.month == 12:
+        resets_on = date(today.year + 1, 1, 1).isoformat()
+    else:
+        resets_on = date(today.year, today.month + 1, 1).isoformat()
+    return {"used": used, "limit": 2, "resets_on": resets_on}
+
+
+# ── GET /events/{id} ──────────────────────────────────────────────────────────
+
+@router.get("/{event_id}", response_model=EventDetail)
+def get_event(event_id: str, current_user: dict = Depends(get_current_user)):
+    uid = current_user["id"]
+    with get_db() as (cur, _):
+        cur.execute(
+            """
+            SELECT
+                e.id::text, e.title, e.event_type,
+                e.date_time::text, e.end_time::text,
+                e.description, e.rules,
+                e.location_name, e.location_lat, e.location_lng,
+                e.price_inr, (e.price_inr = 0) AS is_free,
+            e.platform_fee_inr, e.host_commission_inr, e.platform_profit_inr,
+                e.spots_left, e.capacity, e.age_restriction,
+                e.cover_photos, e.is_cancelled,
+                e.host_id::text,
+                (e.date_time - INTERVAL '48 hours')::text AS cancel_deadline,
+                (e.date_time - INTERVAL '7 hours')::text AS edit_deadline,
+                u.name AS host_name,
+                (SELECT p.url FROM user_photos p WHERE p.user_id = u.id ORDER BY p.position LIMIT 1) AS host_avatar,
+                COALESCE(u.is_deleted, FALSE) AS host_is_deleted,
+                (SELECT COUNT(*) FROM events he
+                 WHERE he.host_id = u.id AND COALESCE(he.is_cancelled, FALSE) = FALSE
+                )::int AS host_hosted_events_count,
+                (SELECT ROUND(AVG(er.rating)::numeric, 1) FROM event_reviews er
+                 JOIN events he2 ON he2.id = er.event_id
+                 WHERE he2.host_id = u.id
+                ) AS host_avg_rating,
+                (SELECT COUNT(*) FROM event_reviews er2
+                 JOIN events he3 ON he3.id = er2.event_id
+                 WHERE he3.host_id = u.id
+                )::int AS host_review_count,
+                (SELECT COUNT(*) FROM event_attendees ea WHERE ea.event_id = e.id AND ea.status = 'going')::int AS attendee_count,
+                (SELECT COALESCE(json_agg(au.avatar_url), '[]'::json) FROM (
+                    SELECT (SELECT p.url FROM user_photos p WHERE p.user_id = eav.user_id ORDER BY p.position LIMIT 1) AS avatar_url
+                    FROM event_attendees eav
+                    WHERE eav.event_id = e.id AND eav.status = 'going'
+                    ORDER BY EXISTS(
+                        SELECT 1 FROM follows fo WHERE fo.follower_id = %s::uuid AND fo.following_id = eav.user_id
+                    ) DESC, eav.joined_at ASC LIMIT 3
+                ) au WHERE au.avatar_url IS NOT NULL) AS attendee_avatars,
+                NULL::int AS distance_km,
+                going_ea.ticket_token AS my_ticket_token,
+                going_ea.checked_in_at::text AS my_checked_in_at,
+                (SELECT ROUND(AVG(rating)::numeric, 1) FROM event_reviews WHERE event_id = e.id) AS avg_rating,
+                (SELECT COUNT(*) FROM event_reviews WHERE event_id = e.id)::int AS review_count,
+                (SELECT rating FROM event_reviews WHERE event_id = e.id AND reviewer_id = %s::uuid LIMIT 1) AS my_review_rating,
+                -- Waitlist fields
+                (SELECT COUNT(*) FROM event_attendees wl
+                 WHERE wl.event_id = e.id AND wl.status = 'waitlist' AND wl.offer_expires_at IS NULL)::int AS waitlist_count,
+                (SELECT COUNT(*) FROM event_attendees wl
+                 WHERE wl.event_id = e.id AND wl.status = 'waitlist' AND wl.offer_expires_at IS NULL
+                )::int >= FLOOR(e.capacity * 0.5) AS is_waitlist_full,
+                -- Viewer's RSVP status
+                (SELECT ea2.status FROM event_attendees ea2
+                 WHERE ea2.event_id = e.id AND ea2.user_id = %s::uuid
+                 LIMIT 1) AS my_rsvp_status,
+                -- Viewer's waitlist position (NULL if not in regular queue)
+                (SELECT COUNT(*) FROM event_attendees pos
+                 WHERE pos.event_id = e.id AND pos.status = 'waitlist' AND pos.offer_expires_at IS NULL
+                   AND pos.joined_at <= (
+                     SELECT joined_at FROM event_attendees
+                     WHERE event_id = e.id AND user_id = %s::uuid AND status = 'waitlist' AND offer_expires_at IS NULL
+                   )
+                )::int AS my_waitlist_position,
+                -- Viewer's promotion offer expiry
+                (SELECT ea3.offer_expires_at::text FROM event_attendees ea3
+                 WHERE ea3.event_id = e.id AND ea3.user_id = %s::uuid
+                   AND ea3.status = 'waitlist' AND ea3.offer_expires_at IS NOT NULL
+                 LIMIT 1) AS my_offer_expires_at,
+                EXISTS(
+                    SELECT 1 FROM event_hotlist h
+                    WHERE h.user_id = %s::uuid AND h.event_id = e.id
+                ) AS is_hotlisted
+            FROM events e
+            JOIN users u ON u.id = e.host_id
+            LEFT JOIN event_attendees going_ea ON going_ea.event_id = e.id AND going_ea.user_id = %s::uuid AND going_ea.status = 'going'
+            WHERE e.id = %s
+            """,
+            (uid, uid, uid, uid, uid, uid, uid, event_id),
+        )
+        row = cur.fetchone()
+
+    if not row:
+        raise HTTPException(status_code=404, detail="Event not found")
+
+    d = dict(row)
+    photos_raw = d.get("cover_photos") or []
+    d["cover_photos"] = [{"url": p, "position": i} for i, p in enumerate(photos_raw)] if isinstance(photos_raw, list) and photos_raw and isinstance(photos_raw[0], str) else photos_raw
+    # 0 position means not in regular queue (promoted or not on waitlist)
+    if not d.get("my_waitlist_position"):
+        d["my_waitlist_position"] = None
+    d["host_badges"] = compute_host_badges(d.pop("host_hosted_events_count", 0))
+    return d
+
+
+# ── POST /events ──────────────────────────────────────────────────────────────
+
+@router.post("", response_model=EventDetail, status_code=201)
+def create_event(body: CreateEventBody, background_tasks: BackgroundTasks, current_user: dict = Depends(get_current_user)):
+    # Parse and validate date_time
+    try:
+        dt = datetime.fromisoformat(body.date_time.replace("Z", "+00:00"))
+    except ValueError:
+        raise HTTPException(status_code=422, detail="Invalid date_time format")
+
+    now = datetime.now(timezone.utc)
+    if dt < now + timedelta(hours=24):
+        raise HTTPException(status_code=422, detail="Events must be posted at least 24 hours in advance")
+
+    try:
+        end_dt = datetime.fromisoformat(body.end_time.replace("Z", "+00:00"))
+    except ValueError:
+        raise HTTPException(status_code=422, detail="Invalid end_time format")
+
+    duration = end_dt - dt
+    if duration.total_seconds() < 3600:
+        raise HTTPException(status_code=422, detail="Event must be at least 1 hour long")
+    if duration.total_seconds() > 72 * 3600:
+        raise HTTPException(status_code=422, detail="Events can't run longer than 3 days")
+
+    if not (5 <= body.capacity <= 200):
+        raise HTTPException(status_code=422, detail="Capacity must be between 5 and 200")
+
+    # Check monthly free event limit
+    uid = current_user["id"]
+    enforce_rate_limit(f"events:create:user:{uid}", max_events=10, window_seconds=86400,
+                        message="You're creating events too quickly, try again later.")
+    with get_db() as (cur, _):
+        cur.execute(
+            """
+            SELECT COUNT(*)::int AS count FROM events
+            WHERE host_id = %s::uuid AND price_inr = 0
+              AND DATE_TRUNC('month', created_at AT TIME ZONE 'UTC')
+                = DATE_TRUNC('month', NOW() AT TIME ZONE 'UTC')
+              AND is_cancelled = FALSE
+            """,
+            (uid,),
+        )
+        free_this_month = cur.fetchone()["count"]
+
+    slots_exhausted = free_this_month >= 2
+
+    if body.price_inr == 0 and slots_exhausted:
+        raise HTTPException(status_code=422, detail=f"You've used your 2 free events this month. Set a ticket price (minimum ₹{MIN_TICKET_PRICE_INR}).")
+    if body.price_inr != 0 and body.price_inr < MIN_TICKET_PRICE_INR:
+        raise HTTPException(status_code=422, detail=f"Minimum ticket price is ₹{MIN_TICKET_PRICE_INR}")
+
+    if body.age_restriction not in (18, 21, 25):
+        raise HTTPException(status_code=422, detail="Age restriction must be 18, 21, or 25")
+
+    cover_photos = body.cover_photos or []
+    fee_inr, commission_inr, profit_inr = _fee_snapshot(body.price_inr)
+
+    with get_db() as (cur, conn):
+        cur.execute(
+            """
+            SELECT COUNT(*)::int AS count FROM events
+            WHERE host_id = %s::uuid AND is_cancelled = FALSE
+            """,
+            (current_user["id"],),
+        )
+        hosted_count_before = cur.fetchone()["count"]
+        badge_before = compute_host_badges(hosted_count_before)
+
+        cur.execute(
+            """
+            INSERT INTO events (
+                host_id, title, description, rules, event_type,
+                date_time, end_time, capacity, spots_left, age_restriction,
+                location_name, location_lat, location_lng,
+                price_inr, cover_photos, is_published,
+                platform_fee_inr, host_commission_inr, platform_profit_inr
+            ) VALUES (
+                %s, %s, %s, %s, %s,
+                %s, %s, %s, %s, %s,
+                %s, %s, %s,
+                %s, %s::jsonb, TRUE,
+                %s, %s, %s
+            )
+            RETURNING id::text
+            """,
+            (
+                current_user["id"], body.title, body.description, body.rules, body.event_type,
+                body.date_time, body.end_time, body.capacity, body.capacity, body.age_restriction,
+                body.location_name, body.location_lat, body.location_lng,
+                body.price_inr, __import__('json').dumps(cover_photos),
+                fee_inr, commission_inr, profit_inr,
+            ),
+        )
+        new_id = cur.fetchone()["id"]
+
+        # Did this event push the host into a new badge tier? (e.g. their
+        # 2nd non-cancelled event → "Rising", 10th → "Established", ...)
+        badge_after = compute_host_badges(hosted_count_before + 1)
+        new_badge = badge_after[0] if badge_after and badge_after != badge_before else None
+
+        # Notify followers about the new event
+        from routes.notifications import notify_followers_event_created, notify_event_created, notify_host_badge_earned, HOST_BADGE_COPY
+        cur.execute("SELECT name FROM users WHERE id = %s::uuid", (current_user["id"],))
+        host_row = cur.fetchone()
+        host_name = host_row["name"] if host_row else "Someone"
+        notify_followers_event_created(cur, current_user["id"], new_id, body.title, host_name)
+
+        # Confirm to the host that their event was created successfully
+        notify_event_created(cur, current_user["id"], new_id, body.title)
+
+        if new_badge:
+            notify_host_badge_earned(cur, current_user["id"], new_badge)
+
+        if hosted_count_before == 0:
+            from routes.notifications import notify_first_event_hosted
+            notify_first_event_hosted(cur, current_user["id"], new_id, body.title)
+
+        # Collect follower IDs for push delivery after commit
+        cur.execute(
+            "SELECT follower_id::text FROM follows WHERE following_id = %s::uuid",
+            (current_user["id"],),
+        )
+        follower_ids = [r["follower_id"] for r in cur.fetchall()]
+        conn.commit()
+
+    from utils.push import get_event_image_url, get_user_avatar_url
+    cover_url = get_event_image_url(new_id)
+
+    for fid in follower_ids:
+        background_tasks.add_task(
+            send_push, fid, f"{host_name} posted an event",
+            body.title,
+            {"type": "event", "event_id": new_id}, cover_url, category="social",
+        )
+
+    background_tasks.add_task(
+        send_push, current_user["id"], "Your event is live!",
+        f"{body.title} was posted successfully.",
+        {"type": "event", "event_id": new_id}, cover_url, category="hosting",
+    )
+
+    if new_badge:
+        badge_title, badge_body = HOST_BADGE_COPY.get(new_badge, (f"You're a {new_badge} Host now!", None))
+        avatar_url = get_user_avatar_url(current_user["id"])
+        background_tasks.add_task(
+            send_push, current_user["id"], badge_title,
+            badge_body or "",
+            {"type": "profile", "user_id": current_user["id"]}, avatar_url, category="hosting",
+        )
+
+    if hosted_count_before == 0:
+        background_tasks.add_task(
+            send_push, current_user["id"], "You're officially a host! \U0001f973",
+            f"{body.title} is your first event — nice work.",
+            {"type": "event", "event_id": new_id}, cover_url, category="hosting",
+        )
+
+    return get_event(new_id, current_user)
+
+
+# ── PATCH /events/{id} ────────────────────────────────────────────────────────
+
+@router.patch("/{event_id}", response_model=EventDetail)
+def update_event(event_id: str, body: CreateEventBody, background_tasks: BackgroundTasks, current_user: dict = Depends(get_current_user)):
+    with get_db() as (cur, conn):
+        cur.execute(
+            """
+            SELECT host_id::text, date_time, capacity, title, description, rules,
+                event_type, end_time, age_restriction, location_name, location_lat,
+                location_lng, price_inr,
+                (SELECT COUNT(*) FROM event_attendees WHERE event_id = %s AND status = 'going')::int AS attendee_count
+            FROM events WHERE id = %s
+            """,
+            (event_id, event_id),
+        )
+        ev = cur.fetchone()
+    if not ev:
+        raise HTTPException(status_code=404, detail="Event not found")
+    if ev["host_id"] != current_user["id"]:
+        raise HTTPException(status_code=403, detail="Not your event")
+
+    now = datetime.now(timezone.utc)
+    dt = ev["date_time"]
+    dt = dt.replace(tzinfo=timezone.utc) if dt.tzinfo is None else dt
+    edit_deadline = dt - timedelta(hours=7)
+    capacity_deadline = dt - timedelta(hours=2)
+    ed = edit_deadline.replace(tzinfo=timezone.utc) if edit_deadline.tzinfo is None else edit_deadline
+
+    capacity_increasing = body.capacity > ev["capacity"]
+    capacity_decreasing = body.capacity < ev["capacity"]
+
+    # Determine if any non-capacity fields have changed
+    def _parse_dt(s):
+        try: return datetime.fromisoformat(s.replace("Z", "+00:00")) if s else None
+        except: return None
+    body_dt = _parse_dt(body.date_time)
+    ev_dt   = ev["date_time"].replace(tzinfo=timezone.utc) if ev["date_time"].tzinfo is None else ev["date_time"]
+    body_end = _parse_dt(body.end_time) if body.end_time else None
+    ev_end   = (ev["end_time"].replace(tzinfo=timezone.utc) if ev["end_time"] and ev["end_time"].tzinfo is None else ev["end_time"]) if ev["end_time"] else None
+
+    non_capacity_changed = (
+        body.title != ev["title"] or
+        (body.description or "") != (ev["description"] or "") or
+        (body.rules or "") != (ev["rules"] or "") or
+        body.event_type != ev["event_type"] or
+        (body_dt and body_dt != ev_dt) or
+        (body_end != ev_end) or
+        body.age_restriction != ev["age_restriction"] or
+        (body.location_name or "") != (ev["location_name"] or "") or
+        body.location_lat != ev["location_lat"] or
+        body.location_lng != ev["location_lng"] or
+        body.price_inr != ev["price_inr"]
+    )
+
+    if non_capacity_changed and now > ed:
+        raise HTTPException(status_code=403, detail="Events can only be edited up to 7 hours before start")
+
+    # Validate end_time duration whenever start or end changes
+    new_dt  = body_dt or ev_dt
+    new_end = body_end or ev_end
+    if new_end:
+        duration = new_end - new_dt
+        if duration.total_seconds() < 3600:
+            raise HTTPException(status_code=422, detail="Event must be at least 1 hour long")
+        if duration.total_seconds() > 72 * 3600:
+            raise HTTPException(status_code=422, detail="Events can't run longer than 3 days")
+
+    if capacity_decreasing and ev["attendee_count"] > 0:
+        raise HTTPException(status_code=400, detail="Cannot reduce capacity — attendees have already booked")
+
+    if capacity_increasing and now > capacity_deadline:
+        raise HTTPException(status_code=403, detail="Capacity cannot be changed within 2 hours of start")
+
+    if body.price_inr != 0 and body.price_inr < MIN_TICKET_PRICE_INR:
+        raise HTTPException(status_code=422, detail=f"Minimum ticket price is ₹{MIN_TICKET_PRICE_INR}")
+
+    old_capacity = ev["capacity"]
+    promoted_users = []
+    affected_user_ids = []
+    fee_inr, commission_inr, profit_inr = _fee_snapshot(body.price_inr)
+
+    with get_db() as (cur, conn):
+        cur.execute(
+            """
+            UPDATE events SET
+                title=%s, description=%s, rules=%s, event_type=%s,
+                date_time=%s, end_time=%s,
+                capacity=%s,
+                spots_left = GREATEST(0, spots_left + (%s - capacity)),
+                age_restriction=%s,
+                location_name=%s, location_lat=%s, location_lng=%s,
+                price_inr=%s,
+                platform_fee_inr=%s, host_commission_inr=%s, platform_profit_inr=%s,
+                updated_at=NOW()
+            WHERE id=%s
+            """,
+            (
+                body.title, body.description, body.rules, body.event_type,
+                body.date_time, body.end_time,
+                body.capacity, body.capacity,
+                body.age_restriction,
+                body.location_name, body.location_lat, body.location_lng,
+                body.price_inr,
+                fee_inr, commission_inr, profit_inr,
+                event_id,
+            ),
+        )
+        spots_gained = body.capacity - old_capacity
+        for _ in range(max(0, spots_gained)):
+            promoted = _promote_next_waitlist(cur, event_id)
+            if not promoted:
+                break
+            promoted_users.append(promoted)
+
+        if non_capacity_changed:
+            from routes.notifications import notify_event_updated
+            cur.execute(
+                "SELECT user_id::text FROM event_attendees WHERE event_id = %s AND status IN ('going', 'waitlist')",
+                (event_id,),
+            )
+            affected_user_ids = [r["user_id"] for r in cur.fetchall()]
+            for a_uid in affected_user_ids:
+                notify_event_updated(cur, a_uid, event_id, body.title)
+
+        conn.commit()
+
+    if affected_user_ids or promoted_users:
+        from utils.push import get_event_image_url
+        cover_url = get_event_image_url(event_id)
+
+    if affected_user_ids:
+        for a_uid in affected_user_ids:
+            background_tasks.add_task(
+                send_push, a_uid, "Event details changed",
+                f"The host updated {body.title}. Check what's new.",
+                {"type": "event", "event_id": event_id}, cover_url, category="attending",
+            )
+
+    if promoted_users:
+        from routes.notifications import notify_waitlist_promoted
+        with get_db() as (cur, conn):
+            cur.execute("SELECT title FROM events WHERE id = %s", (event_id,))
+            ev_title = (cur.fetchone() or {}).get("title", "")
+            for p in promoted_users:
+                notify_waitlist_promoted(cur, p["user_id"], event_id, ev_title)
+            conn.commit()
+        for p in promoted_users:
+            background_tasks.add_task(
+                send_push, p["user_id"], "A spot opened up!",
+                "You have 1 hour to confirm your spot.",
+                {"type": "event", "event_id": event_id}, cover_url, category="attending",
+            )
+
+    return get_event(event_id, current_user)
+
+
+# ── POST /events/{id}/rsvp ────────────────────────────────────────────────────
+
+@router.post("/{event_id}/rsvp")
+def rsvp_event(event_id: str, body: RsvpBody, background_tasks: BackgroundTasks, current_user: dict = Depends(get_current_user)):
+    if body.action not in ("going", "cancel"):
+        raise HTTPException(status_code=400, detail="action must be 'going' or 'cancel'")
+
+    with get_db() as (cur, conn):
+        # Lazy expiry: expire stale promotion offers before any logic
+        expired_user_ids = _expire_stale_offers(cur, event_id)
+
+        # Fetch event + user dob for age check
+        cur.execute(
+            "SELECT capacity, spots_left, age_restriction, date_time, end_time, title, price_inr FROM events WHERE id = %s AND is_cancelled = FALSE",
+            (event_id,),
+        )
+        ev = cur.fetchone()
+        if not ev:
+            conn.commit()
+            raise HTTPException(status_code=404, detail="Event not found")
+
+        if body.action == "going":
+            # Prevent RSVP after event has ended
+            ev_end = ev["end_time"] if ev.get("end_time") else ev["date_time"] + timedelta(hours=6)
+            if datetime.now(timezone.utc) > ev_end:
+                conn.commit()
+                raise HTTPException(status_code=400, detail="This event has ended")
+            # Age check
+            cur.execute("SELECT dob FROM users WHERE id = %s", (current_user["id"],))
+            user = cur.fetchone()
+            if user and user.get("dob"):
+                age = _calc_age(user["dob"])
+                if age < ev["age_restriction"]:
+                    conn.commit()
+                    raise HTTPException(
+                        status_code=403,
+                        detail=f"You must be {ev['age_restriction']}+ to attend this event",
+                    )
+
+            # Check if this user has an active promotion offer (promoted waitlist user confirming)
+            cur.execute(
+                """
+                SELECT id, offer_expires_at FROM event_attendees
+                WHERE event_id = %s AND user_id = %s AND status = 'waitlist'
+                  AND offer_expires_at IS NOT NULL AND offer_expires_at > NOW()
+                """,
+                (event_id, current_user["id"]),
+            )
+            promoted_row = cur.fetchone()
+
+            # Count non-promoted waitlist members — they have priority over new bookings
+            cur.execute(
+                """
+                SELECT COUNT(*) AS cnt FROM event_attendees
+                WHERE event_id = %s AND status = 'waitlist' AND offer_expires_at IS NULL
+                """,
+                (event_id,),
+            )
+            active_waitlist_count = cur.fetchone()["cnt"]
+
+            just_sold_out = False
+            if promoted_row:
+                # Promoted user confirming — spot was already held, just flip status
+                cur.execute(
+                    "UPDATE event_attendees SET status = 'going', offer_expires_at = NULL WHERE id = %s",
+                    (promoted_row["id"],),
+                )
+                status = "going"
+            elif ev["spots_left"] > 0 and active_waitlist_count == 0:
+                # Normal RSVP — spots available AND no one in the queue waiting
+                cur.execute(
+                    """
+                    INSERT INTO event_attendees (event_id, user_id, status)
+                    VALUES (%s, %s, 'going')
+                    ON CONFLICT (event_id, user_id) DO UPDATE SET status = 'going', offer_expires_at = NULL
+                    """,
+                    (event_id, current_user["id"]),
+                )
+                cur.execute(
+                    "UPDATE events SET spots_left = GREATEST(0, spots_left - 1) WHERE id = %s",
+                    (event_id,),
+                )
+                just_sold_out = ev["spots_left"] == 1
+                status = "going"
+            else:
+                # Event is full — join waitlist with validation
+                cur.execute(
+                    "SELECT blocked_from_rejoin FROM event_attendees WHERE event_id = %s AND user_id = %s",
+                    (event_id, current_user["id"]),
+                )
+                existing = cur.fetchone()
+                if existing and existing["blocked_from_rejoin"]:
+                    conn.commit()
+                    raise HTTPException(status_code=403, detail="You previously ignored a spot offer and can't rejoin this waitlist")
+
+                # Timing check: no new waitlist joins within 2h of start
+                ev_dt = ev["date_time"].replace(tzinfo=timezone.utc) if ev["date_time"].tzinfo is None else ev["date_time"]
+                if datetime.now(timezone.utc) > ev_dt - timedelta(hours=2):
+                    conn.commit()
+                    raise HTTPException(status_code=403, detail="Waitlist closed — event starts soon")
+
+                # Waitlist cap: max 50% of capacity
+                cur.execute(
+                    "SELECT COUNT(*) AS cnt FROM event_attendees WHERE event_id = %s AND status = 'waitlist' AND offer_expires_at IS NULL",
+                    (event_id,),
+                )
+                wl_count = cur.fetchone()["cnt"]
+                if wl_count >= ev["capacity"] * 0.5:
+                    conn.commit()
+                    raise HTTPException(status_code=403, detail="Waitlist is full")
+
+                cur.execute(
+                    """
+                    INSERT INTO event_attendees (event_id, user_id, status)
+                    VALUES (%s, %s, 'waitlist')
+                    ON CONFLICT (event_id, user_id) DO UPDATE SET status = 'waitlist', blocked_from_rejoin = FALSE
+                    """,
+                    (event_id, current_user["id"]),
+                )
+                # Get position
+                cur.execute(
+                    """
+                    SELECT COUNT(*) AS pos FROM event_attendees
+                    WHERE event_id = %s AND status = 'waitlist' AND offer_expires_at IS NULL
+                    """,
+                    (event_id,),
+                )
+                position = cur.fetchone()["pos"]
+                status = "waitlist"
+
+            # Notify host if going
+            if status == "going":
+                cur.execute("SELECT host_id::text, title FROM events WHERE id = %s", (event_id,))
+                ev_row = cur.fetchone()
+                if ev_row:
+                    cur.execute("SELECT name FROM users WHERE id = %s::uuid", (current_user["id"],))
+                    attendee_row = cur.fetchone()
+                    attendee_name = attendee_row["name"] if attendee_row else "Someone"
+                    host_id = ev_row["host_id"]
+                    uid = current_user["id"]
+                    cur.execute(
+                        "SELECT 1 FROM user_blocks WHERE (blocker_id=%s::uuid AND blocked_id=%s::uuid) OR (blocker_id=%s::uuid AND blocked_id=%s::uuid)",
+                        (host_id, uid, uid, host_id),
+                    )
+                    from utils.push import get_event_image_url
+                    cover_url = get_event_image_url(event_id)
+
+                    if not cur.fetchone():
+                        from routes.notifications import notify_event_rsvp
+                        notify_event_rsvp(cur, host_id, uid, attendee_name, event_id, ev_row["title"])
+                        background_tasks.add_task(
+                            send_push, host_id, "New RSVP",
+                            f"{attendee_name} is going to {ev_row['title']}",
+                            {"type": "event", "event_id": event_id}, cover_url, category="hosting",
+                        )
+
+                    # Self-confirmation to the attendee — paid tickets already
+                    # get this via notify_payment_confirmed, free RSVPs didn't.
+                    from routes.notifications import notify_rsvp_confirmed
+                    notify_rsvp_confirmed(cur, uid, event_id, ev_row["title"])
+                    background_tasks.add_task(
+                        send_push, uid, "You're going! \U0001f389",
+                        f"Your ticket for {ev_row['title']} is ready — tap to view it.",
+                        {"type": "ticket_ready", "event_id": event_id}, cover_url, category="attending",
+                    )
+
+                    if just_sold_out:
+                        from routes.notifications import notify_event_sold_out
+                        notify_event_sold_out(cur, host_id, event_id, ev_row["title"])
+                        background_tasks.add_task(
+                            send_push, host_id, "Your event sold out!",
+                            f"{ev_row['title']} has no spots left.",
+                            {"type": "event", "event_id": event_id}, cover_url, category="hosting",
+                        )
+                    elif ev["capacity"] > 0 and (ev["spots_left"] - 1) <= ev["capacity"] * 0.1:
+                        # Almost sold out (<=10% of capacity left, but not the
+                        # very last spot — that's just_sold_out's moment).
+                        # Fire once per event — otherwise every subsequent
+                        # RSVP while under the threshold re-triggers it.
+                        cur.execute(
+                            "UPDATE events SET low_capacity_notice_sent_at = NOW() "
+                            "WHERE id = %s AND low_capacity_notice_sent_at IS NULL",
+                            (event_id,),
+                        )
+                        if cur.rowcount:
+                            from routes.notifications import notify_host_low_capacity
+                            notify_host_low_capacity(cur, host_id, event_id, ev_row["title"], "almost_sold_out")
+                            background_tasks.add_task(
+                                send_push, host_id, "Your event is almost sold out!",
+                                f"{ev_row['title']} is almost full — raise capacity to let more people in.",
+                                {"type": "event", "event_id": event_id}, cover_url, category="hosting",
+                            )
+
+                    # Notify followers who are ALSO already going to this same
+                    # event — "someone you follow is going to this event you
+                    # joined too" is a co-attendance signal, not a generic
+                    # "they RSVPed somewhere" nudge, so it's scoped to people
+                    # who already have skin in this specific event.
+                    from routes.notifications import notify_follow_rsvp
+                    cur.execute(
+                        """
+                        SELECT f.follower_id::text FROM follows f
+                        WHERE f.following_id = %s::uuid
+                          AND EXISTS(
+                              SELECT 1 FROM event_attendees ea
+                              WHERE ea.event_id = %s AND ea.user_id = f.follower_id AND ea.status = 'going'
+                          )
+                        """,
+                        (uid, event_id),
+                    )
+                    for f in cur.fetchall():
+                        notify_follow_rsvp(cur, f["follower_id"], uid, attendee_name, event_id, ev_row["title"])
+                        background_tasks.add_task(
+                            send_push, f["follower_id"], f"{attendee_name} is going to {ev_row['title']} too",
+                            "Someone you follow just joined an event you're already going to.",
+                            {"type": "event", "event_id": event_id}, cover_url, category="social",
+                        )
+
+            elif status == "waitlist":
+                cur.execute("SELECT host_id::text, title, capacity FROM events WHERE id = %s", (event_id,))
+                ev_row = cur.fetchone()
+                # Waitlist just crossed 50% of its own cap (which is itself
+                # 50% of event capacity) — a real signal demand outstrips supply.
+                if ev_row and wl_count + 1 >= (ev_row["capacity"] * 0.5) * 0.5:
+                    cur.execute(
+                        "UPDATE events SET low_capacity_notice_sent_at = NOW() "
+                        "WHERE id = %s AND low_capacity_notice_sent_at IS NULL",
+                        (event_id,),
+                    )
+                    if cur.rowcount:
+                        from routes.notifications import notify_host_low_capacity
+                        notify_host_low_capacity(cur, ev_row["host_id"], event_id, ev_row["title"], "waitlist_forming")
+                        from utils.push import get_event_image_url
+                        background_tasks.add_task(
+                            send_push, ev_row["host_id"], "People are waitlisting for your event",
+                            f"{ev_row['title']} has a growing waitlist — consider raising capacity.",
+                            {"type": "event", "event_id": event_id}, get_event_image_url(event_id), category="hosting",
+                        )
+
+            conn.commit()
+
+        else:  # cancel
+            cur.execute(
+                "SELECT status, offer_expires_at FROM event_attendees WHERE event_id = %s AND user_id = %s",
+                (event_id, current_user["id"]),
+            )
+            existing = cur.fetchone()
+            if not existing:
+                conn.commit()
+                raise HTTPException(status_code=404, detail="Not attending this event")
+
+            prev_status = existing["status"]
+            had_offer = existing["offer_expires_at"] is not None
+
+            if prev_status == "going" and ev["price_inr"] > 0:
+                conn.commit()
+                raise HTTPException(status_code=400, detail="Tickets for paid events cannot be cancelled.")
+
+            cur.execute(
+                "UPDATE event_attendees SET status = 'cancelled', offer_expires_at = NULL WHERE event_id = %s AND user_id = %s",
+                (event_id, current_user["id"]),
+            )
+
+            # Only promote if event starts > 2h from now — under 2h the freed spot becomes an empty seat
+            ev_dt_cancel = ev["date_time"]
+            if ev_dt_cancel and ev_dt_cancel.tzinfo is None:
+                ev_dt_cancel = ev_dt_cancel.replace(tzinfo=timezone.utc)
+            can_promote = ev_dt_cancel and ev_dt_cancel > datetime.now(timezone.utc) + timedelta(hours=2)
+
+            promoted = None
+            if prev_status == "going":
+                cur.execute(
+                    "UPDATE events SET spots_left = LEAST(capacity, spots_left + 1) WHERE id = %s",
+                    (event_id,),
+                )
+                if can_promote:
+                    promoted = _promote_next_waitlist(cur, event_id)
+            elif prev_status == "waitlist" and had_offer:
+                # Was promoted, spot was held — restore it then offer to next
+                cur.execute(
+                    "UPDATE events SET spots_left = LEAST(capacity, spots_left + 1) WHERE id = %s",
+                    (event_id,),
+                )
+                if can_promote:
+                    promoted = _promote_next_waitlist(cur, event_id)
+
+            # Fetch for notifications
+            cur.execute("SELECT host_id::text, title FROM events WHERE id = %s", (event_id,))
+            ev_cancel = cur.fetchone()
+            event_title_cancel = ev_cancel["title"] if ev_cancel else ""
+
+            conn.commit()
+
+            if promoted:
+                from routes.notifications import notify_waitlist_promoted
+                from utils.push import get_event_image_url
+                with get_db() as (cur2, conn2):
+                    notify_waitlist_promoted(cur2, promoted["user_id"], event_id, event_title_cancel)
+                    conn2.commit()
+                background_tasks.add_task(
+                    send_push, promoted["user_id"], "A spot opened up!",
+                    f"You have 1 hour to confirm your spot at {event_title_cancel}.",
+                    {"type": "event", "event_id": event_id}, get_event_image_url(event_id), category="attending",
+                )
+
+            status = "cancelled"
+
+        # Queue expiry push notifications (outside transaction)
+        if expired_user_ids:
+            from routes.notifications import notify_waitlist_expired
+            from utils.push import get_event_image_url
+            with get_db() as (cur2, conn2):
+                cur2.execute("SELECT title FROM events WHERE id = %s", (event_id,))
+                ev_title_row = cur2.fetchone()
+                ev_title = ev_title_row["title"] if ev_title_row else ""
+                for uid in expired_user_ids:
+                    notify_waitlist_expired(cur2, uid, event_id, ev_title)
+                conn2.commit()
+            cover_url = get_event_image_url(event_id)
+            for uid in expired_user_ids:
+                background_tasks.add_task(
+                    send_push, uid, "Spot offer expired",
+                    f"Your reserved spot was given to the next person.",
+                    {"type": "event", "event_id": event_id}, cover_url, category="attending",
+                )
+
+    result = {"ok": True, "status": status}
+    if status == "waitlist":
+        result["position"] = position
+    return result
+
+
+# ── DELETE /events/{id} ───────────────────────────────────────────────────────
+
+def _cancel_event_and_refund(event_id: str, background_tasks: BackgroundTasks, cancelled_by_admin: bool = False):
+    """Marks an event cancelled, notifies waitlist/attendees, and refunds paid
+    attendees to their Gorave Wallet. Shared by the host's own cancel route
+    and the admin force-cancel route — callers are responsible for their own
+    authorization/deadline checks before calling this.
+    """
+    with get_db() as (cur, conn):
+        cur.execute("SELECT title, price_inr, host_id::text FROM events WHERE id = %s", (event_id,))
+        ev_title_row = cur.fetchone()
+        ev_title = ev_title_row["title"] if ev_title_row else ""
+        ev_price = ev_title_row["price_inr"] if ev_title_row else 0
+        host_id = ev_title_row["host_id"] if ev_title_row else None
+
+        cur.execute("UPDATE events SET is_cancelled = TRUE WHERE id = %s", (event_id,))
+
+        # Fetch waitlist users to notify
+        cur.execute(
+            "SELECT user_id::text FROM event_attendees WHERE event_id = %s AND status = 'waitlist'",
+            (event_id,),
+        )
+        waitlist_user_ids = [r["user_id"] for r in cur.fetchall()]
+
+        from routes.notifications import notify_waitlist_event_cancelled, notify_event_cancelled_attendee, notify_event_cancelled_host
+        for wl_uid in waitlist_user_ids:
+            notify_waitlist_event_cancelled(cur, wl_uid, event_id, ev_title)
+
+        if host_id:
+            notify_event_cancelled_host(cur, host_id, event_id, ev_title, by_admin=cancelled_by_admin)
+
+        # Confirmed attendees (free or paid) — notify everyone the event was cancelled
+        cur.execute(
+            "SELECT user_id::text FROM event_attendees WHERE event_id = %s AND status = 'going'",
+            (event_id,),
+        )
+        going_user_ids = [r["user_id"] for r in cur.fetchall()]
+        for going_uid in going_user_ids:
+            notify_event_cancelled_attendee(cur, going_uid, event_id, ev_title)
+
+        # Refund paid attendees to Gorave Wallet
+        paid_user_ids = []
+        if ev_price > 0:
+            refund_amount = ev_price
+            for att_uid in going_user_ids:
+                paid_user_ids.append(att_uid)
+                cur.execute(
+                    "UPDATE users SET wallet_balance = wallet_balance + %s WHERE id = %s::uuid",
+                    (refund_amount, att_uid),
+                )
+                cur.execute(
+                    """
+                    INSERT INTO wallet_transactions
+                        (user_id, amount_inr, type, source, reference_id, description, expires_at)
+                    VALUES (%s::uuid, %s, 'credit', 'event_refund', %s::uuid, %s, NOW() + INTERVAL '6 months')
+                    """,
+                    (att_uid, refund_amount, event_id, f"Refund — {ev_title}"),
+                )
+
+        conn.commit()
+
+    from utils.push import get_event_image_url
+    cover_url = get_event_image_url(event_id)
+
+    if host_id:
+        host_push_body = (
+            f"{ev_title} was cancelled by the Gorave team. Attendees have been refunded."
+            if cancelled_by_admin else
+            f"You cancelled {ev_title}. Attendees have been notified and refunded."
+        )
+        background_tasks.add_task(
+            send_push, host_id, "Event cancelled",
+            host_push_body,
+            {"type": "event", "event_id": event_id}, cover_url, category="hosting",
+        )
+
+    for wl_uid in waitlist_user_ids:
+        background_tasks.add_task(
+            send_push, wl_uid, "Event cancelled",
+            f"{ev_title} was cancelled. You've been removed from the waitlist.",
+            {"type": "event", "event_id": event_id}, cover_url, category="attending",
+        )
+
+    for going_uid in going_user_ids:
+        background_tasks.add_task(
+            send_push, going_uid, "Event cancelled",
+            f"{ev_title} was cancelled by the host.",
+            {"type": "event", "event_id": event_id}, cover_url, category="attending",
+        )
+
+    for att_uid in paid_user_ids:
+        background_tasks.add_task(
+            send_push, att_uid,
+            "Refund in your Gorave Wallet 💰",
+            f"₹{ev_price} from '{ev_title}' is now in your Gorave Wallet.",
+            {"type": "wallet", "event_id": event_id}, category="payments",
+        )
+
+
+@router.delete("/{event_id}")
+def cancel_event(event_id: str, background_tasks: BackgroundTasks, current_user: dict = Depends(get_current_user)):
+    with get_db() as (cur, conn):
+        cur.execute(
+            "SELECT host_id::text, date_time FROM events WHERE id = %s",
+            (event_id,),
+        )
+        ev = cur.fetchone()
+    if not ev:
+        raise HTTPException(status_code=404, detail="Event not found")
+    if ev["host_id"] != current_user["id"]:
+        raise HTTPException(status_code=403, detail="Not your event")
+
+    cancel_deadline = ev["date_time"] - timedelta(hours=48)
+    now = datetime.now(timezone.utc)
+    cd = cancel_deadline.replace(tzinfo=timezone.utc) if cancel_deadline.tzinfo is None else cancel_deadline
+    if now > cd:
+        raise HTTPException(status_code=403, detail="Events can only be cancelled up to 48 hours before start")
+
+    _cancel_event_and_refund(event_id, background_tasks)
+    return {"ok": True}
+
+
+# ── POST /events/{id}/waitlist/admit ─────────────────────────────────────────
+
+@router.post("/{event_id}/waitlist/admit")
+def admit_from_waitlist(event_id: str, background_tasks: BackgroundTasks, current_user: dict = Depends(get_current_user)):
+    with get_db() as (cur, conn):
+        cur.execute("SELECT host_id::text, title FROM events WHERE id = %s AND is_cancelled = FALSE", (event_id,))
+        ev = cur.fetchone()
+        if not ev:
+            raise HTTPException(status_code=404, detail="Event not found")
+        if ev["host_id"] != current_user["id"]:
+            raise HTTPException(status_code=403, detail="Not your event")
+
+        cur.execute(
+            "SELECT COUNT(*) AS cnt FROM event_attendees WHERE event_id = %s AND status = 'waitlist' AND offer_expires_at IS NULL",
+            (event_id,),
+        )
+        if cur.fetchone()["cnt"] == 0:
+            conn.commit()
+            raise HTTPException(status_code=404, detail="No one on the waitlist")
+
+        # Grow capacity by 1 then promote
+        cur.execute(
+            "UPDATE events SET capacity = capacity + 1, spots_left = spots_left + 1 WHERE id = %s",
+            (event_id,),
+        )
+        promoted = _promote_next_waitlist(cur, event_id)
+
+        cur.execute(
+            "SELECT COUNT(*) AS cnt FROM event_attendees WHERE event_id = %s AND status = 'waitlist' AND offer_expires_at IS NULL",
+            (event_id,),
+        )
+        waitlist_remaining = cur.fetchone()["cnt"]
+
+        from routes.notifications import notify_waitlist_promoted
+        if promoted:
+            notify_waitlist_promoted(cur, promoted["user_id"], event_id, ev["title"])
+
+        conn.commit()
+
+    if promoted:
+        from utils.push import get_event_image_url
+        background_tasks.add_task(
+            send_push, promoted["user_id"], "A spot opened up!",
+            f"You have 1 hour to confirm your spot at {ev['title']}.",
+            {"type": "event", "event_id": event_id}, get_event_image_url(event_id), category="attending",
+        )
+
+    return {
+        "ok": True,
+        "admitted": {"user_id": promoted["user_id"], "name": promoted["name"]} if promoted else None,
+        "waitlist_remaining": waitlist_remaining,
+    }
+
+
+# ── GET /events/{id}/waitlist ─────────────────────────────────────────────────
+
+@router.get("/{event_id}/waitlist")
+def get_waitlist(event_id: str, current_user: dict = Depends(get_current_user)):
+    with get_db() as (cur, _):
+        cur.execute("SELECT host_id::text FROM events WHERE id = %s", (event_id,))
+        ev = cur.fetchone()
+        if not ev:
+            raise HTTPException(status_code=404, detail="Event not found")
+        if ev["host_id"] != current_user["id"]:
+            raise HTTPException(status_code=403, detail="Only the host can view the waitlist")
+
+        cur.execute(
+            """
+            SELECT
+                u.id::text,
+                u.name,
+                u.username,
+                ea.joined_at::text,
+                ea.offer_expires_at::text,
+                ROW_NUMBER() OVER (
+                    PARTITION BY ea.event_id
+                    ORDER BY ea.joined_at ASC
+                ) AS position,
+                (SELECT url FROM user_photos WHERE user_id = u.id ORDER BY position LIMIT 1) AS avatar
+            FROM event_attendees ea
+            JOIN users u ON u.id = ea.user_id
+            WHERE ea.event_id = %s AND ea.status = 'waitlist'
+            ORDER BY ea.joined_at ASC
+            """,
+            (event_id,),
+        )
+        rows = [dict(r) for r in cur.fetchall()]
+    return {"waitlist": rows, "total": len(rows)}
+
+
+# ── GET /events/{id}/attendees ────────────────────────────────────────────────
+
+@router.get("/{event_id}/attendees")
+def get_attendees(event_id: str, current_user: dict = Depends(get_current_user)):
+    with get_db() as (cur, _):
+        # Only host can see attendee list
+        cur.execute("SELECT host_id::text FROM events WHERE id = %s", (event_id,))
+        ev = cur.fetchone()
+        if not ev:
+            raise HTTPException(status_code=404, detail="Event not found")
+        if ev["host_id"] != current_user["id"]:
+            raise HTTPException(status_code=403, detail="Only the host can view attendees")
+
+        cur.execute(
+            """
+            SELECT
+                u.id::text,
+                u.name,
+                u.username,
+                u.city,
+                ea.status,
+                ea.joined_at::text,
+                ea.checked_in_at::text,
+                ea.ticket_token,
+                (SELECT url FROM user_photos WHERE user_id = u.id ORDER BY position LIMIT 1) AS avatar
+            FROM event_attendees ea
+            JOIN users u ON u.id = ea.user_id
+            WHERE ea.event_id = %s
+            ORDER BY ea.joined_at ASC
+            """,
+            (event_id,),
+        )
+        rows = [dict(r) for r in cur.fetchall()]
+    return {"attendees": rows, "total": len(rows)}
+
+
+# ── GET /events/{id}/guests ───────────────────────────────────────────────────
+# Public guest list — anyone can see who's going, just name/avatar (no PII like
+# check-in time or ticket tokens, unlike the host-only /attendees endpoint above).
+
+@router.get("/{event_id}/guests")
+def get_guests(event_id: str, current_user: dict = Depends(get_current_user)):
+    with get_db() as (cur, _):
+        cur.execute("SELECT id FROM events WHERE id = %s", (event_id,))
+        if not cur.fetchone():
+            raise HTTPException(status_code=404, detail="Event not found")
+
+        cur.execute(
+            """
+            SELECT
+                u.id::text,
+                u.name,
+                u.username,
+                (SELECT url FROM user_photos WHERE user_id = u.id ORDER BY position LIMIT 1) AS avatar,
+                EXISTS(
+                    SELECT 1 FROM follows f
+                    WHERE f.follower_id = %s AND f.following_id = u.id
+                ) AS is_following
+            FROM event_attendees ea
+            JOIN users u ON u.id = ea.user_id
+            WHERE ea.event_id = %s AND ea.status = 'going'
+            ORDER BY is_following DESC, ea.joined_at ASC
+            LIMIT 200
+            """,
+            (current_user["id"], event_id),
+        )
+        rows = [dict(r) for r in cur.fetchall()]
+
+        cur.execute(
+            """
+            SELECT
+                u.id::text,
+                u.name,
+                u.username,
+                (SELECT url FROM user_photos WHERE user_id = u.id ORDER BY position LIMIT 1) AS avatar,
+                EXISTS(
+                    SELECT 1 FROM follows f
+                    WHERE f.follower_id = %s AND f.following_id = u.id
+                ) AS is_following
+            FROM event_attendees ea
+            JOIN users u ON u.id = ea.user_id
+            WHERE ea.event_id = %s AND ea.status = 'waitlist'
+            ORDER BY ea.joined_at ASC
+            LIMIT 200
+            """,
+            (current_user["id"], event_id),
+        )
+        waitlist_rows = [dict(r) for r in cur.fetchall()]
+    return {"guests": rows, "total": len(rows), "waitlist": waitlist_rows}
+
+
+# ── GET /events/{id}/ticket ───────────────────────────────────────────────────
+
+@router.get("/{event_id}/ticket")
+def get_my_ticket(event_id: str, current_user: dict = Depends(get_current_user)):
+    uid = current_user["id"]
+    with get_db() as (cur, _):
+        cur.execute(
+            """
+            SELECT ea.ticket_token, e.title AS event_title, e.date_time::text,
+                   e.end_time::text, e.location_name, e.event_type,
+                   u.name AS host_name,
+                   (SELECT p.url FROM user_photos p WHERE p.user_id = u.id ORDER BY p.position LIMIT 1) AS host_avatar,
+                   (SELECT COUNT(*) FROM event_attendees g WHERE g.event_id = e.id AND g.status = 'going')::int AS attendee_count
+            FROM event_attendees ea
+            JOIN events e ON e.id = ea.event_id
+            JOIN users u ON u.id = e.host_id
+            WHERE ea.event_id = %s AND ea.user_id = %s::uuid AND ea.status = 'going'
+            """,
+            (event_id, uid),
+        )
+        row = cur.fetchone()
+    if not row:
+        raise HTTPException(status_code=404, detail="No ticket found — you are not attending this event")
+    return dict(row)
+
+
+# ── POST /events/{id}/checkin ─────────────────────────────────────────────────
+
+@router.post("/{event_id}/checkin")
+def checkin_attendee(event_id: str, body: CheckinBody, background_tasks: BackgroundTasks, current_user: dict = Depends(get_current_user)):
+    with get_db() as (cur, conn):
+        cur.execute("SELECT host_id::text, title, date_time, end_time FROM events WHERE id = %s", (event_id,))
+        ev = cur.fetchone()
+        if not ev:
+            raise HTTPException(status_code=404, detail="Event not found")
+        if ev["host_id"] != current_user["id"]:
+            raise HTTPException(status_code=403, detail="Only the host can check in attendees")
+
+        now = datetime.now(timezone.utc)
+        checkin_open = ev["date_time"] - timedelta(hours=3)
+        checkin_close = ev["end_time"] if ev["end_time"] else ev["date_time"] + timedelta(hours=6)
+        if now < checkin_open:
+            raise HTTPException(status_code=400, detail="Check-in opens 3 hours before the event")
+        if now > checkin_close:
+            raise HTTPException(status_code=400, detail="This event has ended")
+
+        cur.execute(
+            """
+            SELECT ea.id, ea.checked_in_at, ea.user_id::text, u.name, u.username
+            FROM event_attendees ea
+            JOIN users u ON u.id = ea.user_id
+            WHERE ea.event_id = %s AND ea.ticket_token = %s AND ea.status = 'going'
+            """,
+            (event_id, body.ticket_token),
+        )
+        row = cur.fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="Invalid or cancelled ticket")
+
+        if row["checked_in_at"] is not None:
+            return {"ok": True, "already_checked_in": True, "name": row["name"], "username": row["username"]}
+
+        method = body.method if body.method in ('qr_scan', 'manual_host') else 'qr_scan'
+        cur.execute(
+            "UPDATE event_attendees SET checked_in_at = NOW(), check_in_method = %s WHERE id = %s",
+            (method, row["id"]),
+        )
+
+        from routes.notifications import notify_checked_in
+        from utils.push import get_event_image_url
+        notify_checked_in(cur, row["user_id"], event_id, ev["title"])
+        cover_url = get_event_image_url(event_id)
+        conn.commit()
+
+    background_tasks.add_task(
+        send_push, row["user_id"], "You're checked in! \U0001f389", f"Enjoy {ev['title']}.",
+        {"type": "event", "event_id": event_id}, cover_url, category="attending",
+    )
+    return {"ok": True, "already_checked_in": False, "name": row["name"], "username": row["username"], "method": method}
+
+
+# ── POST /events/{id}/report ──────────────────────────────────────────────────
+
+@router.post("/{event_id}/report", status_code=201)
+def report_event(event_id: str, body: ReportEventBody, current_user: dict = Depends(get_current_user)):
+    uid = current_user["id"]
+    enforce_rate_limit(f"events:report:user:{uid}", max_events=10, window_seconds=3600,
+                        message="You're reporting too quickly, try again later.")
+    allowed = {"fake_scam", "inappropriate_content", "misleading_info", "spam", "dangerous_activity", "other"}
+    if body.reason not in allowed:
+        raise HTTPException(status_code=400, detail="Invalid reason")
+    with get_db() as (cur, conn):
+        cur.execute("SELECT 1 FROM events WHERE id = %s", (event_id,))
+        if not cur.fetchone():
+            raise HTTPException(status_code=404, detail="Event not found")
+        cur.execute(
+            "SELECT 1 FROM event_reports WHERE event_id = %s AND reporter_id = %s::uuid",
+            (event_id, uid),
+        )
+        if cur.fetchone():
+            raise HTTPException(status_code=409, detail="You have already reported this event")
+        cur.execute(
+            "INSERT INTO event_reports (event_id, reporter_id, reason, description) VALUES (%s, %s::uuid, %s, %s)",
+            (event_id, uid, body.reason, body.description),
+        )
+        from routes.notifications import notify_report_submitted
+        notify_report_submitted(cur, uid, "event", event_id)
+        conn.commit()
+    return {"ok": True}
+
+
+# ── POST /events/{id}/reviews ─────────────────────────────────────────────────
+
+@router.post("/{event_id}/reviews")
+def submit_review(event_id: str, body: ReviewBody, background_tasks: BackgroundTasks, current_user: dict = Depends(get_current_user)):
+    if not (1 <= body.rating <= 5):
+        raise HTTPException(status_code=422, detail="Rating must be between 1 and 5")
+
+    uid = current_user["id"]
+    enforce_rate_limit(f"events:review:user:{uid}", max_events=20, window_seconds=86400,
+                        message="You're submitting reviews too quickly, try again later.")
+    with get_db() as (cur, conn):
+        cur.execute("SELECT date_time FROM events WHERE id = %s", (event_id,))
+        ev = cur.fetchone()
+        if not ev:
+            raise HTTPException(status_code=404, detail="Event not found")
+        if ev["date_time"].replace(tzinfo=timezone.utc) > datetime.now(timezone.utc):
+            raise HTTPException(status_code=403, detail="Event has not ended yet")
+
+        cur.execute(
+            "SELECT checked_in_at FROM event_attendees WHERE event_id = %s AND user_id = %s::uuid AND status = 'going'",
+            (event_id, uid),
+        )
+        ea_row = cur.fetchone()
+        if not ea_row:
+            raise HTTPException(status_code=403, detail="You did not attend this event")
+        if ea_row["checked_in_at"] is None:
+            raise HTTPException(status_code=403, detail="You didn't check in at this event")
+
+        cur.execute(
+            "SELECT 1 FROM event_reviews WHERE event_id = %s AND reviewer_id = %s::uuid",
+            (event_id, uid),
+        )
+        if cur.fetchone():
+            raise HTTPException(status_code=409, detail="You have already reviewed this event")
+
+        cur.execute(
+            """
+            INSERT INTO event_reviews (event_id, reviewer_id, rating, body)
+            VALUES (%s, %s::uuid, %s, %s)
+            """,
+            (event_id, uid, body.rating, body.body),
+        )
+        cur.execute("SELECT host_id::text, title FROM events WHERE id = %s", (event_id,))
+        ev_review = cur.fetchone()
+        cur.execute("SELECT name FROM users WHERE id = %s::uuid", (uid,))
+        reviewer_row = cur.fetchone()
+        host_id_review = ev_review["host_id"] if ev_review else None
+        reviewer_name = reviewer_row["name"] if reviewer_row else "Someone"
+        event_title_review = ev_review["title"] if ev_review else ""
+
+        milestone = None
+        milestone_avg = None
+        if host_id_review and host_id_review != uid:
+            from routes.notifications import notify_new_review, notify_review_milestone, review_milestone_reached
+            notify_new_review(cur, host_id_review, event_id, event_title_review, uid, reviewer_name, body.rating)
+
+            cur.execute(
+                """
+                SELECT COUNT(*)::int AS cnt, ROUND(AVG(er.rating)::numeric, 1) AS avg
+                FROM event_reviews er JOIN events e ON e.id = er.event_id
+                WHERE e.host_id = %s::uuid
+                """,
+                (host_id_review,),
+            )
+            rc = cur.fetchone()
+            milestone = review_milestone_reached(rc["cnt"]) if rc and float(rc["avg"] or 0) >= 4.0 else None
+            milestone_avg = float(rc["avg"]) if rc else None
+            if milestone:
+                notify_review_milestone(cur, host_id_review, milestone, milestone_avg)
+
+        conn.commit()
+
+    if host_id_review and host_id_review != uid:
+        from utils.push import get_event_image_url, get_user_avatar_url
+        background_tasks.add_task(
+            send_push, host_id_review, f"{reviewer_name} left a {body.rating}-star review",
+            event_title_review,
+            {"type": "event", "event_id": event_id}, get_event_image_url(event_id), category="hosting",
+        )
+        if milestone:
+            background_tasks.add_task(
+                send_push, host_id_review, f"{milestone} reviews and {milestone_avg}★ average!",
+                "Your reputation is building — keep hosting to unlock more visibility.",
+                {"type": "user", "user_id": host_id_review}, get_user_avatar_url(host_id_review), category="hosting",
+            )
+    return {"ok": True}
+
+
+# ── GET /events/{id}/reviews ──────────────────────────────────────────────────
+
+@router.get("/{event_id}/reviews")
+def get_reviews(
+    event_id: str,
+    rating: Optional[int] = None,
+    limit: int = 10,
+    offset: int = 0,
+    current_user: dict = Depends(get_current_user),
+):
+    with get_db() as (cur, _):
+        cur.execute(
+            """
+            SELECT
+                COUNT(*)::int AS count,
+                ROUND(AVG(rating)::numeric, 1) AS avg_rating,
+                COUNT(*) FILTER (WHERE rating = 5)::int AS r5,
+                COUNT(*) FILTER (WHERE rating = 4)::int AS r4,
+                COUNT(*) FILTER (WHERE rating = 3)::int AS r3,
+                COUNT(*) FILTER (WHERE rating = 2)::int AS r2,
+                COUNT(*) FILTER (WHERE rating = 1)::int AS r1
+            FROM event_reviews
+            WHERE event_id = %s
+            """,
+            (event_id,),
+        )
+        stats = cur.fetchone()
+
+        cur.execute(
+            """
+            SELECT
+                er.id::text,
+                u.id::text AS reviewer_id,
+                u.name AS reviewer_name,
+                (SELECT url FROM user_photos WHERE user_id = u.id ORDER BY position LIMIT 1) AS reviewer_avatar,
+                er.rating, er.body, er.created_at::text
+            FROM event_reviews er
+            JOIN users u ON u.id = er.reviewer_id
+            WHERE er.event_id = %s
+              AND (%s::int IS NULL OR er.rating = %s)
+            ORDER BY er.created_at DESC
+            LIMIT %s OFFSET %s
+            """,
+            (event_id, rating, rating, limit, offset),
+        )
+        reviews = [dict(r) for r in cur.fetchall()]
+
+    return {
+        "avg_rating": float(stats["avg_rating"]) if stats["avg_rating"] is not None else None,
+        "count": stats["count"],
+        "distribution": {"5": stats["r5"], "4": stats["r4"], "3": stats["r3"], "2": stats["r2"], "1": stats["r1"]},
+        "reviews": reviews,
+    }
+
+
+# ── GET /events/{id}/reviews/me ───────────────────────────────────────────────
+
+@router.get("/{event_id}/reviews/me")
+def get_my_review(event_id: str, current_user: dict = Depends(get_current_user)):
+    uid = current_user["id"]
+    with get_db() as (cur, _):
+        cur.execute(
+            "SELECT rating, body FROM event_reviews WHERE event_id = %s AND reviewer_id = %s::uuid",
+            (event_id, uid),
+        )
+        row = cur.fetchone()
+    if not row:
+        raise HTTPException(status_code=404, detail="No review found")
+    return dict(row)

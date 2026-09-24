@@ -1,0 +1,369 @@
+import { memo, useCallback, useEffect, useRef, useState } from 'react'
+import { Pressable, StyleSheet, Text, View } from 'react-native'
+import { Image } from 'expo-image'
+import { router } from 'expo-router'
+import { BlurView } from 'expo-blur'
+import { LinearGradient } from 'expo-linear-gradient'
+import { BottomSheetModal, BottomSheetView, BottomSheetFlatList, BottomSheetBackdrop } from '@gorhom/bottom-sheet'
+import type { BottomSheetBackdropProps } from '@gorhom/bottom-sheet'
+import { AutoSkeletonView } from 'react-native-auto-skeleton'
+import { Heart, Lock, Users, X as XIcon } from 'lucide-react-native'
+import { hTap, hSelection } from '@/lib/haptics'
+import { Colors, FontFamily, Spacing, withOpacity } from '@/constants'
+import ApiService, { type EventGuest } from '@/api/apiService'
+import { useAuthStore } from '@/store/auth'
+import { usePillStore } from '@/store/pillStore'
+
+const SNAP_POINTS = ['74%']
+const VISIBLE_COUNT = 3
+
+interface Props {
+  visible: boolean
+  eventId: string
+  guests: EventGuest[]
+  total: number
+  waitlist?: EventGuest[]
+  canViewFull?: boolean
+  loading?: boolean
+  onClose: () => void
+}
+
+function GuestTileSkeleton() {
+  return (
+    <View style={t.root}>
+      <View style={[t.avatar, sk.circle]} />
+      <View style={sk.line} />
+    </View>
+  )
+}
+
+function GuestListSkeleton() {
+  return (
+    <BottomSheetView style={s.container}>
+      <View style={s.header}>
+        <View>
+          <View style={[sk.title, { marginBottom: 6 }]} />
+          <View style={sk.subtitle} />
+        </View>
+      </View>
+      <AutoSkeletonView isLoading animationType="gradient" defaultRadius={8} gradientColors={[Colors.surfaceMuted, '#3a3a3a']}>
+        <View style={s.grid}>
+          {Array.from({ length: 12 }).map((_, i) => (
+            <GuestTileSkeleton key={i} />
+          ))}
+        </View>
+      </AutoSkeletonView>
+    </BottomSheetView>
+  )
+}
+
+const sk = StyleSheet.create({
+  circle: { backgroundColor: Colors.surfaceMuted },
+  line: { width: 48, height: 10, borderRadius: 5, backgroundColor: Colors.surfaceMuted },
+  title: { width: 130, height: 20, borderRadius: 6, backgroundColor: Colors.surfaceMuted },
+  subtitle: { width: 70, height: 13, borderRadius: 6, backgroundColor: Colors.surfaceMuted },
+})
+
+function renderBackdrop(props: BottomSheetBackdropProps) {
+  return (
+    <BottomSheetBackdrop
+      {...props}
+      disappearsOnIndex={-1}
+      appearsOnIndex={0}
+      pressBehavior="close"
+      opacity={0.6}
+    />
+  )
+}
+
+const GuestTile = memo(function GuestTile({ guest, isMe, isFollowing, onOpenProfile, onToggleFollow }: {
+  guest: EventGuest
+  isMe: boolean
+  isFollowing: boolean
+  onOpenProfile: (id: string) => void
+  onToggleFollow: (guest: EventGuest) => void
+}) {
+  return (
+    <Pressable style={t.root} onPress={() => onOpenProfile(guest.id)}>
+      <View style={t.avatarWrap}>
+        {guest.avatar ? (
+          <Image source={{ uri: guest.avatar }} style={t.avatar} contentFit="cover" cachePolicy="memory-disk" transition={150} />
+        ) : (
+          <View style={[t.avatar, t.avatarFallback]}>
+            <Text style={t.avatarInitial}>{(guest.name ?? '?').charAt(0).toUpperCase()}</Text>
+          </View>
+        )}
+        {!isMe && (
+          <Pressable
+            style={t.heartBtn}
+            hitSlop={8}
+            onPress={() => onToggleFollow(guest)}
+          >
+            <Heart
+              size={16}
+              color={isFollowing ? Colors.brandCoral : Colors.inkPrimary}
+              fill={isFollowing ? Colors.brandCoral : 'transparent'}
+              strokeWidth={2}
+            />
+          </Pressable>
+        )}
+      </View>
+      <Text style={t.name} numberOfLines={1}>{isMe ? 'You' : (guest.name ?? 'Guest')}</Text>
+    </Pressable>
+  )
+})
+
+const t = StyleSheet.create({
+  root: { width: '33.333%', alignItems: 'center', paddingVertical: 12, gap: 8 },
+  avatarWrap: { width: 76, height: 76 },
+  avatar: { width: 76, height: 76, borderRadius: 38 },
+  avatarFallback: { backgroundColor: Colors.elevated, alignItems: 'center', justifyContent: 'center' },
+  avatarInitial: { fontFamily: FontFamily.headingBold, fontSize: 26, color: Colors.inkPrimary },
+  heartBtn: {
+    position: 'absolute',
+    bottom: -2,
+    right: -2,
+    width: 24,
+    height: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  name: { fontFamily: FontFamily.bodyMedium, fontSize: 12, color: Colors.inkSecondary, maxWidth: 84, textAlign: 'center' },
+})
+
+function GuestListSheetCore({ eventId, guests, total, waitlist = [], canViewFull = true, loading, onClose }: Omit<Props, 'visible'>) {
+  const sheetRef = useRef<BottomSheetModal>(null)
+  const myId = useAuthStore(s => s.userId)
+  const showPill = usePillStore(s => s.show)
+
+  useEffect(() => { sheetRef.current?.present() }, [])
+
+  const [followingIds, setFollowingIds] = useState<Set<string>>(
+    () => new Set([...guests, ...waitlist].filter(g => g.is_following).map(g => g.id)),
+  )
+
+  const handleOpenProfile = useCallback((id: string) => {
+    hTap()
+    onClose()
+    router.push(`/(profile)/${id}` as any)
+  }, [onClose])
+
+  const handleToggleFollow = useCallback((guest: EventGuest) => {
+    hSelection()
+    const nowFollowing = !followingIds.has(guest.id)
+    setFollowingIds(prev => {
+      const next = new Set(prev)
+      if (nowFollowing) next.add(guest.id)
+      else next.delete(guest.id)
+      return next
+    })
+    const call = nowFollowing ? ApiService.followUser(guest.id) : ApiService.unfollowUser(guest.id)
+    call.catch(() => {
+      showPill(nowFollowing ? "Couldn't follow, try again" : "Couldn't unfollow, try again", 'error')
+      setFollowingIds(prev => {
+        const next = new Set(prev)
+        if (nowFollowing) next.delete(guest.id)
+        else next.add(guest.id)
+        return next
+      })
+    })
+  }, [followingIds, showPill])
+
+  const Header = (
+    <View style={s.header}>
+      <View>
+        <Text style={s.title}>Guest List</Text>
+        <Text style={s.subtitle}>{total} going</Text>
+      </View>
+      <Pressable style={s.closeBtn} onPress={() => { hTap(); onClose() }} hitSlop={8}>
+        <XIcon size={18} color={Colors.inkSecondary} strokeWidth={2} />
+      </Pressable>
+    </View>
+  )
+
+  const isLocked = !canViewFull && guests.length > VISIBLE_COUNT
+  const visibleGuests = isLocked ? guests.slice(0, VISIBLE_COUNT) : guests
+  const lockedGuests = isLocked ? guests.slice(VISIBLE_COUNT, VISIBLE_COUNT + 6) : []
+  const lockedCount = guests.length - VISIBLE_COUNT
+
+  const LockedTeaser = isLocked ? (
+    <View style={s.lockedSection}>
+      <View style={s.lockedGrid}>
+        {lockedGuests.map(g => (
+          <View key={g.id} style={t.root}>
+            {g.avatar ? (
+              <Image source={{ uri: g.avatar }} style={t.avatar} contentFit="cover" cachePolicy="memory-disk" transition={150} />
+            ) : (
+              <View style={[t.avatar, t.avatarFallback]} />
+            )}
+            <View style={s.lockedNameStub} />
+          </View>
+        ))}
+      </View>
+      <BlurView
+        intensity={100}
+        tint="dark"
+        experimentalBlurMethod="dimezisBlurView"
+        style={StyleSheet.absoluteFill}
+      />
+      <LinearGradient
+        colors={[withOpacity(Colors.surface, 0.45), withOpacity(Colors.surface, 0.85), withOpacity(Colors.surface, 0.96)]}
+        locations={[0, 0.3, 1]}
+        style={StyleSheet.absoluteFill}
+      />
+      <View style={s.lockedOverlay}>
+        <View style={s.lockedIconBadge}>
+          <Lock size={18} color={Colors.inkPrimary} strokeWidth={2} />
+        </View>
+        <Text style={s.lockedTitle}>+{lockedCount} more guest{lockedCount === 1 ? '' : 's'}</Text>
+        <Text style={s.lockedSub}>Join the event to see who's going</Text>
+      </View>
+    </View>
+  ) : null
+
+  const Footer = (
+    <>
+      {LockedTeaser}
+      {waitlist.length > 0 ? (
+        <View style={s.waitlistSection}>
+          <View style={s.waitlistDivider} />
+          <Text style={s.waitlistTitle}>Waitlist · {waitlist.length}</Text>
+          <View style={s.waitlistGrid}>
+            {waitlist.map(g => (
+              <GuestTile
+                key={g.id}
+                guest={g}
+                isMe={g.id === myId}
+                isFollowing={followingIds.has(g.id)}
+                onOpenProfile={handleOpenProfile}
+                onToggleFollow={handleToggleFollow}
+              />
+            ))}
+          </View>
+        </View>
+      ) : null}
+    </>
+  )
+
+  return (
+    <BottomSheetModal
+      ref={sheetRef}
+      snapPoints={SNAP_POINTS}
+      enableDynamicSizing={false}
+      enablePanDownToClose
+      topInset={0}
+      onDismiss={onClose}
+      backdropComponent={renderBackdrop}
+      backgroundStyle={s.bg}
+      handleIndicatorStyle={s.handleIndicator}
+    >
+      {loading ? (
+        <GuestListSkeleton />
+      ) : guests.length === 0 ? (
+        <BottomSheetView style={s.container}>
+          {Header}
+          <View style={s.empty}>
+            <Users size={40} color={Colors.inkDisabled} strokeWidth={1.2} />
+            <Text style={s.emptyText}>No one's RSVP'd yet</Text>
+          </View>
+          {Footer}
+        </BottomSheetView>
+      ) : (
+        <BottomSheetFlatList
+          data={visibleGuests}
+          keyExtractor={g => g.id}
+          numColumns={3}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={s.grid}
+          ListHeaderComponent={Header}
+          ListFooterComponent={Footer}
+          renderItem={({ item }) => (
+            <GuestTile
+              guest={item}
+              isMe={item.id === myId}
+              isFollowing={followingIds.has(item.id)}
+              onOpenProfile={handleOpenProfile}
+              onToggleFollow={handleToggleFollow}
+            />
+          )}
+        />
+      )}
+    </BottomSheetModal>
+  )
+}
+
+export function GuestListSheet({ visible, eventId, guests, total, waitlist, canViewFull, loading, onClose }: Props) {
+  if (!visible) return null
+  return (
+    <GuestListSheetCore
+      eventId={eventId} guests={guests} total={total} waitlist={waitlist}
+      canViewFull={canViewFull} loading={loading} onClose={onClose}
+    />
+  )
+}
+
+const s = StyleSheet.create({
+  bg: { backgroundColor: Colors.surface },
+  handleIndicator: { backgroundColor: withOpacity(Colors.inkPrimary, 0.2) },
+  container: { flex: 1 },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing.screenPadding,
+    paddingTop: 20,
+    paddingBottom: 16,
+  },
+  title: { fontFamily: FontFamily.headingBold, fontSize: 22, color: Colors.inkPrimary },
+  subtitle: { fontFamily: FontFamily.bodyRegular, fontSize: 13, color: Colors.inkSecondary, marginTop: 2 },
+  closeBtn: {
+    width: 32, height: 32, borderRadius: 16,
+    backgroundColor: Colors.elevated,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  grid: { paddingHorizontal: Spacing.screenPadding - 12, paddingBottom: 32 },
+  empty: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, paddingTop: 60 },
+  emptyText: { fontFamily: FontFamily.bodyRegular, fontSize: 14, color: Colors.inkSecondary },
+  waitlistSection: { paddingHorizontal: 12, marginTop: 8 },
+  waitlistDivider: { height: StyleSheet.hairlineWidth, backgroundColor: Colors.divider, marginBottom: 16 },
+  waitlistTitle: {
+    fontFamily: FontFamily.bodySemiBold, fontSize: 13, color: Colors.inkSecondary,
+    textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 4,
+  },
+  waitlistGrid: { flexDirection: 'row', flexWrap: 'wrap' },
+  lockedSection: {
+    marginTop: 4,
+    overflow: 'hidden',
+    minHeight: 170,
+  },
+  lockedGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    paddingHorizontal: 8,
+    paddingTop: 14,
+    opacity: 0.9,
+  },
+  lockedNameStub: { width: 48, height: 10, borderRadius: 5, backgroundColor: Colors.divider },
+  lockedOverlay: {
+    ...StyleSheet.absoluteFill,
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    gap: 4,
+    paddingBottom: 24,
+    paddingHorizontal: 24,
+  },
+  lockedIconBadge: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: Colors.glassSurface,
+    borderWidth: 1,
+    borderColor: Colors.glassBorder,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 6,
+  },
+  lockedTitle: { fontFamily: FontFamily.headingBold, fontSize: 16, color: Colors.inkPrimary },
+  lockedSub: { fontFamily: FontFamily.bodyRegular, fontSize: 13, color: Colors.inkSecondary, textAlign: 'center' },
+})

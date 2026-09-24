@@ -1,0 +1,133 @@
+import { useState, useEffect } from 'react'
+import {
+  useAudioRecorder, useAudioRecorderState,
+  useAudioPlayer, useAudioPlayerStatus,
+  AudioModule, RecordingPresets, setAudioModeAsync,
+} from 'expo-audio'
+import { uploadVoice } from '@/api/user'
+import { usePermissionSheetStore } from '@/store/permissionSheetStore'
+
+const MAX_SECONDS = 30
+const MIN_SECONDS = 3
+
+export function useVoiceEdit(existingUrl?: string | null) {
+  const [localUri, setLocalUri] = useState<string | null>(null)
+  const [recorded, setRecorded] = useState(false)
+  const [uploading, setUploading] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
+
+  const audioRecorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY)
+  const recorderState = useAudioRecorderState(audioRecorder)
+  const player = useAudioPlayer(existingUrl ? { uri: existingUrl } : null)
+  const playerStatus = useAudioPlayerStatus(player)
+
+  const isRecording = recorderState.isRecording
+  const seconds = Math.round((recorderState.durationMillis ?? 0) / 1000)
+  // The recorder's own durationMillis resets once stop() is called, so once
+  // there's a recording to play back, read its length from the player
+  // instead (same source onboarding's voice screen uses for its playback timer).
+  const playbackSeconds = Math.round(playerStatus.duration ?? 0)
+  const playing = playerStatus.playing
+
+  useEffect(() => {
+    if (isRecording && seconds >= MAX_SECONDS) stopRecording()
+  }, [seconds, isRecording])
+
+  const stopRecording = async () => {
+    const durationSeconds = seconds
+    try {
+      await audioRecorder.stop()
+      const uri = audioRecorder.uri
+      if (uri) {
+        if (durationSeconds < MIN_SECONDS) {
+          setLocalUri(null)
+          setSaveError(`Recording too short — hold for at least ${MIN_SECONDS} seconds`)
+          if (existingUrl) player.replace({ uri: existingUrl })
+          return
+        }
+        setLocalUri(uri)
+        player.replace({ uri })
+        setRecorded(true)
+      }
+    } catch {
+      setSaveError('Recording stopped unexpectedly, try again')
+    }
+  }
+
+  const tapRecord = async () => {
+    if (isRecording) {
+      await stopRecording()
+    } else {
+      const perm = await AudioModule.requestRecordingPermissionsAsync()
+      if (!perm.granted) {
+        usePermissionSheetStore.getState().show(
+          'Microphone Permission Required',
+          'You need to allow microphone access in your device settings to record a voice intro.'
+        )
+        return
+      }
+      await setAudioModeAsync({ playsInSilentMode: true, allowsRecording: true })
+
+      setRecorded(false)
+      setLocalUri(null)
+      setSaveError(null)
+      if (existingUrl) player.replace({ uri: existingUrl })
+      try {
+        await audioRecorder.prepareToRecordAsync()
+        audioRecorder.record()
+      } catch {
+        setSaveError("Couldn't start recording, try again")
+      }
+    }
+  }
+
+  const handlePlayPause = () => {
+    if (playing) {
+      player.pause()
+    } else {
+      if (playerStatus.duration > 0 && playerStatus.currentTime >= playerStatus.duration - 0.05) {
+        player.seekTo(0)
+      }
+      player.play()
+    }
+  }
+
+  const handleRetake = () => {
+    player.pause()
+    setRecorded(false)
+    setLocalUri(null)
+    if (existingUrl) player.replace({ uri: existingUrl })
+  }
+
+  // Uploads voice and returns the R2 URL. Throws on failure.
+  const saveVoice = async (): Promise<string> => {
+    if (!localUri) throw new Error('No recording to save')
+    setUploading(true)
+    setSaveError(null)
+    try {
+      const url = await uploadVoice(localUri)
+      return url
+    } catch (e: any) {
+      const msg = e?.message ?? 'Voice upload failed'
+      setSaveError(msg)
+      throw e
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  return {
+    isRecording,
+    seconds,
+    playbackSeconds,
+    recorded,
+    uploading,
+    saveError,
+    playing,
+    localUri,
+    tapRecord,
+    handlePlayPause,
+    handleRetake,
+    saveVoice,
+  }
+}
