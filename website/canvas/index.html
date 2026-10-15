@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Gorave Website — design canvas</title>
+
+  <link rel="stylesheet" href="tokens.css?v=3" />
+
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" crossorigin="anonymous"></script>
+
+  <style>
+    body { background: #2a2724; margin: 0; }
+    * { box-sizing: border-box; }
+    @keyframes cursor { 50% { opacity: 0; } }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <!-- <script>window.DC_NO_AUTORELOAD = true;</script> -->
+  <script type="text/babel" src="design-canvas.jsx?v=1"></script>
+
+  <script type="text/babel" src="frames/kit.jsx?v=2"></script>
+  <script type="text/babel" src="frames/system.jsx?v=1"></script>
+  <script type="text/babel" src="frames/v1-editorial.jsx?v=1"></script>
+  <script type="text/babel" src="frames/v2-photo.jsx?v=1"></script>
+  <script type="text/babel" src="frames/v3-noir.jsx?v=1"></script>
+  <script type="text/babel" src="frames/v4-shout.jsx?v=1"></script>
+  <script type="text/babel" src="frames/final.jsx?v=1"></script>
+
+  <script type="text/babel">
+    const { DesignCanvas, DCSection, DCArtboard } = window;
+    const W = 1440;
+
+    const App = () => (
+      <DesignCanvas title="Gorave — website" subtitle="Landing lab · 4 directions · open any artboard → 'Preview as page' to scroll it like a real site">
+        <DCSection id="final" title="00 · Final landing — pick one" subtitle="V1 base + your picks from V3/V4 · 10 sections · only difference: section-heading font">
+          <DCArtboard id="final-a" label="Final A · Editorial (Cabinet only)" width={W} height={8200}><LandingFinal /></DCArtboard>
+          <DCArtboard id="final-b" label="Final B · Editorial + Shout (Anton headings)" width={W} height={8300}><LandingFinal shout /></DCArtboard>
+        </DCSection>
+
+        <DCSection id="landing" title="01 · Landing page — 4 directions" subtitle="Same 8 sections, same brand, different art direction. Pick one (or mix sections).">
+          <DCArtboard id="v1" label="V1 · Editorial Cream" width={W} height={6900}><LandingV1 /></DCArtboard>
+          <DCArtboard id="v2" label="V2 · Photo-led" width={W} height={7400}><LandingV2 /></DCArtboard>
+          <DCArtboard id="v3" label="V3 · Cream + Noir" width={W} height={6400}><LandingV3 /></DCArtboard>
+          <DCArtboard id="v4" label="V4 · Shout (Anton)" width={W} height={7000}><LandingV4 /></DCArtboard>
+        </DCSection>
+
+        <DCSection id="heroes" title="02 · Heroes side by side" subtitle="First screen only — the 3-second decision">
+          <DCArtboard id="h1" label="V1 hero" width={W} height={900}><V1Hero /></DCArtboard>
+          <DCArtboard id="h2" label="V2 hero" width={W} height={980}><V2Hero /></DCArtboard>
+          <DCArtboard id="h3" label="V3 hero" width={W} height={940}><V3Hero /></DCArtboard>
+          <DCArtboard id="h4" label="V4 hero" width={W} height={1100}><V4Hero /></DCArtboard>
+        </DCSection>
+
+        <DCSection id="nav" title="03 · Navigation" subtitle="Floating nav · Apple-style mega menu · hide-on-scroll + bottom dock">
+          <DCArtboard id="nav-default" label="Nav · default" width={W} height={520}><NavStates state="default" /></DCArtboard>
+          <DCArtboard id="nav-events" label="Nav · Events mega menu" width={W} height={520}><NavStates state="events" /></DCArtboard>
+          <DCArtboard id="nav-cities" label="Nav · Cities mega menu" width={W} height={520}><NavStates state="cities" /></DCArtboard>
+          <DCArtboard id="nav-scrolled" label="Scrolled · nav hidden + dock" width={W} height={520}><NavStates state="scrolled" /></DCArtboard>
+        </DCSection>
+
+        <DCSection id="system" title="04 · System + page map" subtitle="Tokens shared with the app · every template we'll build">
+          <DCArtboard id="type" label="Type + colour" width={W} height={820}><TypeAndColour /></DCArtboard>
+          <DCArtboard id="map" label="Page map" width={W} height={820}><PageMap /></DCArtboard>
+        </DCSection>
+      </DesignCanvas>
+    );
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>

@@ -1,26 +1,111 @@
 @import "tailwindcss";
+@import "lenis/dist/lenis.css";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* Gorave website design system — one brand with the app: same fonts, same
+   orange→coral gradient, the app's "Cream" flyer paper as the daytime base,
+   and its Noir surfaces for the sections that feel like the app itself. */
+@theme {
+  --color-cream: #f1e9d8;
+  --color-cream-deep: #e4d5b8;
+  --color-tile: #e9e1cf;
+  --color-paper: #fbf7ef;
+  --color-ink: #171310;
+  --color-ink-2: #4a423a;
+  --color-ink-3: #8a8076;
+  --color-line: #ddd2be;
+
+  --color-orange: #ff6b35;
+  --color-coral: #ff3864;
+  --color-gold: #ffb830;
+  --color-green: #00c48c;
+
+  --color-noir: #111111;
+  --color-noir-2: #1a1a1a;
+  --color-noir-3: #222222;
+  --color-noir-ink: #f5f0eb;
+  --color-noir-ink-2: #a09890;
+
+  --color-blush: #f4d9df;
+  --color-blush-ink: #2b1418;
+  --color-sage: #dce8d6;
+  --color-sage-ink: #16231a;
+  --color-sky: #dce6f2;
+  --color-sky-ink: #131e2a;
+
+  --font-display: var(--font-cabinet), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-satoshi), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-instrument), Georgia, serif;
+
+  --shadow-soft: 0 1px 0 rgb(23 19 16 / 0.04), 0 24px 60px -28px rgb(23 19 16 / 0.28);
+  --shadow-pop: 0 30px 80px -30px rgb(23 19 16 / 0.45);
+
+  --ease-out-expo: cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@layer base {
+  html {
+    background: var(--color-cream);
+    color: var(--color-ink);
+    -webkit-font-smoothing: antialiased;
+  }
+  body {
+    font-family: var(--font-sans);
+  }
+  ::selection {
+    background: var(--color-coral);
+    color: white;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@utility bg-brand {
+  background-image: linear-gradient(135deg, var(--color-orange) 0%, var(--color-coral) 100%);
+}
+@utility text-brand {
+  background-image: linear-gradient(135deg, var(--color-orange) 0%, var(--color-coral) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+@utility tracking-display {
+  letter-spacing: -0.05em;
+}
+@utility no-scrollbar {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* One-shot shine on hover for the primary CTA — never loops on its own */
+@keyframes shine {
+  from { background-position: -200% 0, 0 0; }
+  to { background-position: 200% 0, 0 0; }
+}
+.btn-shine {
+  background-image:
+    linear-gradient(110deg, transparent 30%, rgb(255 255 255 / 0.45) 50%, transparent 70%),
+    linear-gradient(135deg, var(--color-orange), var(--color-coral));
+  background-size: 200% 100%, 100% 100%;
+  background-position: -200% 0, 0 0;
+}
+.btn-shine:hover {
+  animation: shine 1.1s var(--ease-out-expo) 1;
+}
+
+@keyframes typing {
+  0%, 60%, 100% { opacity: 0.25; transform: translateY(0); }
+  30% { opacity: 1; transform: translateY(-3px); }
+}
+
+/* QR placeholder pattern used on the ticket illustration */
+.qr-pattern {
+  background: repeating-conic-gradient(var(--color-ink) 0 25%, #fff 0 50%) 0 0 / 18px 18px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

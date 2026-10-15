@@ -1,0 +1,87 @@
+/* Condensed display candidate (Partiful-style shouty headings) — compared in v4 */
+@import url('https://fonts.googleapis.com/css2?family=Anton&family=Instrument+Serif:ital@0;1&display=swap');
+
+/* Gorave — website design system (light)
+   One brand with the app: same fonts (Cabinet Grotesk + Satoshi), same
+   orange→coral gradient, same "Cream" flyer paper the app shares invites on.
+   The website is the daytime version; Noir sections are the app at night. */
+
+@font-face { font-family: 'Cabinet Grotesk'; src: url('assets/fonts/CabinetGrotesk-Medium.otf') format('opentype'); font-weight: 500; font-display: swap; }
+@font-face { font-family: 'Cabinet Grotesk'; src: url('assets/fonts/CabinetGrotesk-Bold.otf') format('opentype'); font-weight: 700; font-display: swap; }
+@font-face { font-family: 'Cabinet Grotesk'; src: url('assets/fonts/CabinetGrotesk-Extrabold.otf') format('opentype'); font-weight: 800; font-display: swap; }
+@font-face { font-family: 'Satoshi'; src: url('assets/fonts/Satoshi-Regular.otf') format('opentype'); font-weight: 400; font-display: swap; }
+@font-face { font-family: 'Satoshi'; src: url('assets/fonts/Satoshi-Medium.otf') format('opentype'); font-weight: 500; font-display: swap; }
+@font-face { font-family: 'Satoshi'; src: url('assets/fonts/Satoshi-Bold.otf') format('opentype'); font-weight: 700; font-display: swap; }
+
+
+:root {
+  /* Paper — from the app's flyer themes (client/src/constants/flyerThemes.ts) */
+  --cream:      #F1E9D8;
+  --cream-deep: #E4D5B8;
+  --paper:      #FBF7EF;
+  --ink:        #171310;
+  --ink-2:      #4A423A;
+  --ink-3:      #8A8076;
+  --line:       #DDD2BE;
+
+  /* Brand — identical to the app (client/src/constants/colors.ts) */
+  --orange:     #FF6B35;
+  --coral:      #FF3864;
+  --gold:       #FFB830;
+  --green:      #00C48C;
+  --brand-grad: linear-gradient(135deg, #FF6B35 0%, #FF3864 100%);
+
+  /* Noir — the app itself */
+  --noir:       #111111;
+  --noir-2:     #1A1A1A;
+  --noir-3:     #222222;
+  --noir-ink:   #F5F0EB;
+  --noir-ink-2: #A09890;
+
+  /* Flyer tints for category colour-coding */
+  --blush: #F4D9DF;  --blush-deep: #E9B8C3;  --blush-ink: #2B1418;
+  --sage:  #DCE8D6;  --sage-deep:  #BFD8B4;  --sage-ink:  #16231A;
+  --sky:   #DCE6F2;  --sky-deep:   #B9CEE8;  --sky-ink:   #131E2A;
+
+  --font-display: 'Cabinet Grotesk', 'Satoshi', ui-sans-serif, system-ui, sans-serif;
+  --font-body:    'Satoshi', ui-sans-serif, system-ui, sans-serif;
+  --font-shout:   'Anton', 'Cabinet Grotesk', Impact, sans-serif;
+  --font-serif:   'Instrument Serif', Georgia, serif;
+
+  --r-card: 28px;
+  --r-pill: 999px;
+  --shadow-soft: 0 1px 0 rgba(23,19,16,0.04), 0 24px 60px -28px rgba(23,19,16,0.28);
+  --shadow-pop:  0 30px 80px -30px rgba(23,19,16,0.45);
+}
+
+/* ── Motion vocabulary shared by every variant (the real site uses Motion +
+   Lenis; these CSS keyframes stand in for the canvas) ── */
+@keyframes gr-marquee   { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+@keyframes gr-marquee-r { from { transform: translateX(-50%); } to { transform: translateX(0); } }
+@keyframes gr-float     { 0%,100% { transform: translateY(0) rotate(var(--rot,0deg)); } 50% { transform: translateY(-12px) rotate(var(--rot,0deg)); } }
+@keyframes gr-pop       { 0% { opacity: 0; transform: translateY(14px) scale(.96); } 100% { opacity: 1; transform: none; } }
+@keyframes gr-typing    { 0%,60%,100% { opacity: .25; transform: translateY(0); } 30% { opacity: 1; transform: translateY(-3px); } }
+@keyframes gr-rise      { from { opacity: 0; transform: translateY(40px); clip-path: inset(0 0 100% 0); } to { opacity: 1; transform: none; clip-path: inset(0 0 0 0); } }
+@keyframes gr-shine     { from { background-position: -200% 0; } to { background-position: 200% 0; } }
+@keyframes gr-pulse     { 0%,100% { box-shadow: 0 0 0 0 rgba(255,56,100,.45); } 70% { box-shadow: 0 0 0 10px rgba(255,56,100,0); } }
+@keyframes gr-spin      { to { transform: rotate(360deg); } }
+
+.gr-grad-text {
+  background: var(--brand-grad);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.gr-shine-btn {
+  background-image: linear-gradient(110deg, transparent 30%, rgba(255,255,255,.45) 50%, transparent 70%), var(--brand-grad);
+  background-size: 200% 100%, 100% 100%;
+  background-position: -200% 0, 0 0;
+  transition: transform .3s cubic-bezier(.2,.8,.2,1);
+}
+/* Shine sweeps once on hover — never loops on its own */
+.gr-shine-btn:hover { animation: gr-shine 1.1s ease-out 1; transform: translateY(-1px); }
+.gr-hover-lift { transition: transform .45s cubic-bezier(.2,.8,.2,1), box-shadow .45s; }
+.gr-hover-lift:hover { transform: translateY(-6px) rotate(-.6deg); box-shadow: var(--shadow-pop); }
+.gr-zoom img { transition: transform .9s cubic-bezier(.2,.8,.2,1); }
+.gr-zoom:hover img { transform: scale(1.06); }
+.gr-underline { background: linear-gradient(currentColor,currentColor) 0 100% / 0 1.5px no-repeat; transition: background-size .35s; }
+.gr-underline:hover { background-size: 100% 1.5px; }
+.gr-noscroll::-webkit-scrollbar { display: none; }
