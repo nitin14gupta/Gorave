@@ -1,5 +1,4 @@
 @import "tailwindcss";
-@import "lenis/dist/lenis.css";
 
 /* Gorave website design system — one brand with the app: same fonts, same
    orange→coral gradient, the app's "Cream" flyer paper as the daytime base,
@@ -95,11 +94,6 @@
 @keyframes typing {
   0%, 60%, 100% { opacity: 0.25; transform: translateY(0); }
   30% { opacity: 1; transform: translateY(-3px); }
-}
-
-/* QR placeholder pattern used on the ticket illustration */
-.qr-pattern {
-  background: repeating-conic-gradient(var(--color-ink) 0 25%, #fff 0 50%) 0 0 / 18px 18px;
 }
 
 @media (prefers-reduced-motion: reduce) {
