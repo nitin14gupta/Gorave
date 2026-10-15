@@ -21,8 +21,8 @@ import { useHeaderAndTabBarScroll } from '@/hooks/useHeaderAndTabBarScroll'
 import { useExpandTabBarOnFocus } from '@/hooks/useExpandTabBarOnFocus'
 
 const GENDER_DISPLAY: Record<string, string> = {
-  Man: 'Male',
-  Woman: 'Female',
+  Male: 'Male',
+  Female: 'Female',
   'Non-binary': 'Non-binary',
   'Prefer not to say': '—',
 }

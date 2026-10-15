@@ -27,6 +27,8 @@ import { usePermissionSheetStore } from "@/store/permissionSheetStore";
 import { useEventViewModeStore } from "@/store/eventViewModeStore";
 import { useExpandTabBarOnFocus } from "@/hooks/useExpandTabBarOnFocus";
 import { useHeaderAndTabBarScroll } from "@/hooks/useHeaderAndTabBarScroll";
+import { CityPickerSheet } from "@/components/ui/CityPickerSheet";
+import { useCities } from "@/hooks/useCities";
 
 const PREVIEW_MAX = 8;
 const LIST_PAGE = 8;
@@ -34,7 +36,11 @@ const LIST_PAGE = 8;
 export default function EventsScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { events, loading, error, filters, setFilter, reload, loadInBounds, userLat, userLng, userHeading, locationStatus } = useEvents();
+  const { events, loading, error, filters, setFilter, reload, loadInBounds, city, setCity, userLat, userLng, userHeading, locationStatus } = useEvents();
+  const [cityPickerOpen, setCityPickerOpen] = useState(false);
+  const { cities } = useCities();
+  const cityRow = cities.find((c) => c.name === city);
+  const cityFocus = cityRow && (cityRow.lat !== 0 || cityRow.lng !== 0) ? { lat: cityRow.lat, lng: cityRow.lng } : null;
   const [viewMode, setViewModeState] = useState<"map" | "list">("map");
   const { hideProgress, scrollHandler } = useHeaderAndTabBarScroll();
   useExpandTabBarOnFocus();
@@ -78,13 +84,15 @@ export default function EventsScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      if (locationStatus === 'denied') {
+      // The feed is city-based now, so location only matters when there's
+      // no city to browse at all.
+      if (locationStatus === 'denied' && !city) {
         permissionSheet.show(
           "Location Required",
           "We need your location to show events happening nearby. Please enable it in Settings."
         );
       }
-    }, [locationStatus])
+    }, [locationStatus, city])
   );
 
   const hasError = !loading && !!error;
@@ -153,6 +161,16 @@ export default function EventsScreen() {
   const togglePill = <ViewModeTogglePill viewMode={viewMode} onChange={setViewMode} />;
 
   const goToCreate = () => router.push("/(events)/create" as any);
+  const openCityPicker = () => setCityPickerOpen(true);
+  const cityPicker = (
+    <CityPickerSheet
+      visible={cityPickerOpen}
+      title="Browse events in"
+      selected={city}
+      onSelect={(c) => { setCity(c.name); setListCount(LIST_PAGE); }}
+      onClose={() => setCityPickerOpen(false)}
+    />
+  );
 
   // ── MAP VIEW — fullscreen ────────────────────────────────────────────────────
 
@@ -168,6 +186,7 @@ export default function EventsScreen() {
           activeEventId={activeEventId}
           onEventSelect={handleMarkerPress}
           onBoundsChange={loadInBounds}
+          focus={cityFocus}
           style={{ flex: 1 }}
         />
 
@@ -195,7 +214,10 @@ export default function EventsScreen() {
           togglePill={togglePill}
           onSearch={() => setSearchModalOpen(true)}
           onCreate={goToCreate}
+          city={city}
+          onPickCity={openCityPicker}
         />
+        {cityPicker}
 
         <EventSearchModal
           visible={searchModalOpen}
@@ -238,7 +260,10 @@ export default function EventsScreen() {
         onSearch={() => setSearchModalOpen(true)}
         onCreate={goToCreate}
         hideProgress={hideProgress}
+        city={city}
+        onPickCity={openCityPicker}
       />
+      {cityPicker}
 
       <EventSearchModal
         visible={searchModalOpen}

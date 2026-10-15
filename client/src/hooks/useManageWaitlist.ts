@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import ApiService, { type WaitlistEntry } from '@/api/apiService'
 import { usePillStore } from '@/store/pillStore'
+import { genderBucket } from '@/lib/crowdMix'
 
 export function useManageWaitlist(id: string | undefined) {
   const showPill = usePillStore(s => s.show)
@@ -50,6 +51,10 @@ export function useManageWaitlist(id: string | undefined) {
 
   const pending = waitlist.filter(w => !w.offer_expires_at)
   const offered = waitlist.filter(w => w.offer_expires_at)
+  // Who's waiting by crowd-mix share — "Admit next" picks the oldest person
+  // whose share still has room, so this explains who'll get the next spot.
+  const pendingByGender = { women: 0, men: 0, other: 0 }
+  for (const w of pending) pendingByGender[genderBucket(w.gender)]++
 
-  return { waitlist, loading, refreshing, loadError, admitting, pending, offered, handleAdmit, reload: load }
+  return { waitlist, loading, refreshing, loadError, admitting, pending, offered, pendingByGender, handleAdmit, reload: load }
 }

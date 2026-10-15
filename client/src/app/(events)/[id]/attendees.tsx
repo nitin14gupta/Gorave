@@ -19,7 +19,7 @@ export default function AttendeesScreen() {
   const showPill = usePillStore(s => s.show)
   const [filter, setFilter] = useState<AttendeeFilter>('all')
 
-  const { loading, refreshing, loadError, going, checkedIn, notArrived, waitlist, scannerStatus, reload } = useAttendees(id)
+  const { loading, refreshing, loadError, going, checkedIn, notArrived, waitlist, scannerStatus, reload, genderCounts, event } = useAttendees(id)
 
   const handleScannerPress = () => {
     if (scannerStatus === 'ended') {
@@ -67,6 +67,11 @@ export default function AttendeesScreen() {
               {going.length} going
               {checkedIn.length > 0 ? ` · ${checkedIn.length} checked in` : ''}
               {waitlist.length > 0 ? ` · ${waitlist.length} waitlist` : ''}
+            </Text>
+          )}
+          {!loading && !loadError && event?.women_pct != null && going.length > 0 && (
+            <Text style={s.headerSub}>
+              {genderCounts.women} women · {genderCounts.men} men{genderCounts.other ? ` · ${genderCounts.other} others` : ''}
             </Text>
           )}
         </View>

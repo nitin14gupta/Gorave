@@ -1,13 +1,14 @@
 import React from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { ArrowLeft, Clock, Shield } from 'lucide-react-native'
+import { ArrowLeft, Clock, Shield, Users } from 'lucide-react-native'
 import { Colors, FontFamily, withOpacity } from '@/constants'
 import { parseDate } from './eventDetailUtils'
 import type { EventDetail } from '@/api/apiService'
+import type { LockedReason } from '@/hooks/useEventDetail'
 
 interface Props {
-  reason: 'checkin' | 'edit' | 'cancel' | 'age'
+  reason: LockedReason
   event: EventDetail
   onBack: () => void
 }
@@ -40,6 +41,11 @@ export function EventLockedScreen({ reason, event, onBack }: Props) {
     title = 'Cancellation is closed'
     subtitle = 'Events can only be cancelled at least 48 hours in advance.\n\nThis window has passed for this event.'
     icon = <Clock size={40} color={Colors.inkPrimary} strokeWidth={1.5} />
+  } else if (reason === 'gender') {
+    const womenOnly = (event.women_pct ?? 0) >= 100
+    title = womenOnly ? 'Women only' : 'Men only'
+    subtitle = `The host has set this event for ${womenOnly ? 'women' : 'men'} only.\n\nThere's plenty more happening this week — check the Events tab.`
+    icon = <Users size={40} color={Colors.inkPrimary} strokeWidth={1.5} />
   } else {
     title = `${event.age_restriction}+ Only`
     subtitle = `This event has an age restriction of ${event.age_restriction}+.\n\nYou must be ${event.age_restriction} or older to attend.`

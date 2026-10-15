@@ -13,7 +13,7 @@ export default function ManageWaitlistScreen() {
   const insets = useSafeAreaInsets()
   const router = useRouter()
 
-  const { waitlist, loading, refreshing, loadError, admitting, pending, offered, handleAdmit, reload } = useManageWaitlist(id)
+  const { waitlist, loading, refreshing, loadError, admitting, pending, offered, pendingByGender, handleAdmit, reload } = useManageWaitlist(id)
 
   return (
     <View style={[s.root, { paddingTop: insets.top }]}>
@@ -78,7 +78,10 @@ export default function ManageWaitlistScreen() {
 
             {pending.length > 0 && (
               <>
-                <Text style={s.sectionLabel}>Waiting ({pending.length})</Text>
+                <Text style={s.sectionLabel}>
+                  Waiting ({pending.length}) · {pendingByGender.women} women · {pendingByGender.men} men
+                  {pendingByGender.other ? ` · ${pendingByGender.other} others` : ''}
+                </Text>
                 {pending.map(entry => (
                   <WaitlistEntryRow key={entry.id} entry={entry} isOffered={false} />
                 ))}

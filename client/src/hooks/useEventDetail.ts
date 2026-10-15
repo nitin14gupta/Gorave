@@ -6,13 +6,22 @@ import ApiService, { type EventDetail, type EventAttendee, type EventGuest } fro
 import { useAuthStore } from '@/store/auth'
 import { useRecentEventsStore } from '@/store/recentEventsStore'
 import { usePillStore } from '@/store/pillStore'
+import { useOnboardingStore } from '@/store/onboarding'
+import { peekCached } from '@/lib/queryCache'
+import { CacheKeys } from '@/constants'
+import { genderBucket } from '@/lib/crowdMix'
+import type { ProfileResponse } from '@/api/user'
 import { calcAge, hoursUntil, parseDate, type RsvpStatus } from '@/components/events/eventDetailUtils'
+
+export type LockedReason = 'checkin' | 'edit' | 'cancel' | 'age' | 'gender'
 
 export function useEventDetail(id: string | undefined) {
   const router = useRouter()
   const myId = useAuthStore(s => s.userId)
   const myDob = useAuthStore(s => s.dob)
   const showPill = usePillStore(s => s.show)
+  const storedGender = useOnboardingStore(s => s.gender)
+  const myGender = peekCached<ProfileResponse>(CacheKeys.profile())?.gender ?? storedGender ?? null
 
   const [event, setEvent] = useState<EventDetail | null>(null)
   const [loading, setLoading] = useState(true)
@@ -20,7 +29,8 @@ export function useEventDetail(id: string | undefined) {
   const [optionsOpen, setOptionsOpen] = useState(false)
   const [cancelConfirm, setCancelConfirm] = useState(false)
   const [reportOpen, setReportOpen] = useState(false)
-  const [lockedReason, setLockedReason] = useState<null | 'checkin' | 'edit' | 'cancel' | 'age'>(null)
+  const [lockedReason, setLockedReason] = useState<null | LockedReason>(null)
+  const [requestBusy, setRequestBusy] = useState(false)
   const [attendees, setAttendees] = useState<EventAttendee[]>([])
   const [attendeesLoading, setAttendeesLoading] = useState(false)
   const [guests, setGuests] = useState<EventGuest[]>([])
@@ -93,8 +103,52 @@ export function useEventDetail(id: string | undefined) {
     }
   }, [id, showPill])
 
+  // Crowd mix from the viewer's side — the server re-checks all of this.
+  const bucket = genderBucket(myGender)
+  const womenPct = event?.women_pct ?? null
+  const crowdIneligible = womenPct != null &&
+    ((womenPct >= 100 && bucket !== 'women') || (womenPct <= 0 && bucket !== 'men'))
+  const ratio = event?.ratio
+  const myBucketLeft = ratio
+    ? bucket === 'women' ? ratio.women_left : bucket === 'men' ? ratio.men_left : ratio.open_left
+    : null
+  const crowdFull = !crowdIneligible && myBucketLeft != null && myBucketLeft <= 0
+  const isRequestMode = event?.join_mode === 'request'
+
+  const sendRequest = useCallback(async () => {
+    if (!event || !id) return
+    setRequestBusy(true)
+    try {
+      await ApiService.requestToJoin(id)
+      setEvent(prev => prev ? { ...prev, my_rsvp_status: 'requested' } : prev)
+      showPill("Request sent — we'll let you know when the host decides", 'default')
+    } catch (e: any) {
+      showPill(e?.message || "Couldn't send your request", 'error')
+    } finally {
+      setRequestBusy(false)
+    }
+  }, [event, id, showPill])
+
+  const withdrawRequest = useCallback(async () => {
+    if (!id) return
+    setRequestBusy(true)
+    try {
+      await ApiService.withdrawJoinRequest(id)
+      setEvent(prev => prev ? { ...prev, my_rsvp_status: 'cancelled' } : prev)
+      showPill('Request withdrawn', 'default')
+    } catch (e: any) {
+      showPill(e?.message || "Couldn't withdraw your request", 'error')
+    } finally {
+      setRequestBusy(false)
+    }
+  }, [id, showPill])
+
   const handleRsvp = useCallback(async () => {
     if (!event) return
+    if (crowdIneligible) {
+      setLockedReason('gender')
+      return
+    }
     if (event.age_restriction) {
       let dob = myDob
       if (!dob) {
@@ -109,8 +163,12 @@ export function useEventDetail(id: string | undefined) {
         return
       }
     }
+    if (event.join_mode === 'request') {
+      await sendRequest()
+      return
+    }
     router.push(`/(events)/${id}/book` as any)
-  }, [event, myDob, id, router])
+  }, [event, myDob, id, router, crowdIneligible, sendRequest])
 
   const handleScanner = useCallback(() => {
     if (!event) return
@@ -210,7 +268,9 @@ export function useEventDetail(id: string | undefined) {
   const isInProgress = isStarted && !isEnded
   const isPast = isEnded
   const hasTicket = !!(event?.my_ticket_token)
-  const shouldWaitlist = !!event && (event.spots_left === 0 || (event.waitlist_count ?? 0) > 0)
+  // Request-mode events never waitlist — requests are the queue.
+  const shouldWaitlist = !!event && !isRequestMode &&
+    (event.spots_left === 0 || (event.waitlist_count ?? 0) > 0 || crowdFull)
   const spotsLow = !!event && !shouldWaitlist && event.spots_left <= 10 && !event.is_free
   const isGoing = rsvpStatus === 'going'
   const isWaitlist = rsvpStatus === 'waitlist'
@@ -256,5 +316,12 @@ export function useEventDetail(id: string | undefined) {
     isGoing,
     isWaitlist,
     coverPhotos,
+    isRequestMode,
+    crowdIneligible,
+    crowdFull,
+    myBucket: bucket,
+    requestBusy,
+    sendRequest,
+    withdrawRequest,
   }
 }

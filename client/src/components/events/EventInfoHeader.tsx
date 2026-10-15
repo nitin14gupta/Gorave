@@ -1,12 +1,23 @@
 import React from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
-import { Calendar, ChevronRight, Clock, MapPin, Shield, Users } from 'lucide-react-native'
+import { Calendar, ChevronRight, Clock, Lock, MapPin, Shield, Users } from 'lucide-react-native'
 import * as Clipboard from 'expo-clipboard'
 import { Colors, EVENT_ICONS, EVENT_ICON_FALLBACK, FontFamily, withOpacity } from '@/constants'
 import { hTap, hSuccess } from '@/lib/haptics'
 import { usePillStore } from '@/store/pillStore'
 import { daysUntil, formatDateTime } from './eventDetailUtils'
 import type { EventDetail } from '@/api/apiService'
+import { crowdLabel } from '@/lib/crowdMix'
+
+function spotsLine(event: EventDetail): string {
+  const base = `${event.attendee_count} going · ${event.spots_left} spots left`
+  const r = event.ratio
+  if (!r || event.spots_left <= 0) return base
+  if (r.women_pct >= 100 || r.women_pct <= 0) return base
+  // Open-pool spots count toward both, so show each side's own reach
+  return `${base}
+${r.women_left} for women · ${r.men_left} for men`
+}
 
 interface Props {
   event: EventDetail
@@ -32,6 +43,12 @@ export function EventInfoHeader({ event, onPressAddress }: Props) {
             <Text style={styles.ageBadgeText}>{event.age_restriction}+</Text>
           </View>
         )}
+        {crowdLabel(event.women_pct) && (
+          <View style={styles.ageBadge}>
+            <Users size={12} color={Colors.inkSecondary} />
+            <Text style={styles.ageBadgeText}>{crowdLabel(event.women_pct)}</Text>
+          </View>
+        )}
       </View>
 
       <Text style={styles.title}>{event.title}</Text>
@@ -51,7 +68,21 @@ export function EventInfoHeader({ event, onPressAddress }: Props) {
             </View>
           </>
         )}
-        {event.location_name && (
+        {event.location_name && event.is_location_masked ? (
+          <>
+            <View style={styles.infoDivider} />
+            <View style={styles.infoRow}>
+              <MapPin size={16} color={Colors.inkSecondary} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.infoText}>{event.location_name}</Text>
+                <View style={styles.maskedNote}>
+                  <Lock size={11} color={Colors.inkSecondary} strokeWidth={2} />
+                  <Text style={styles.maskedNoteText}>Exact address unlocks once you're in</Text>
+                </View>
+              </View>
+            </View>
+          </>
+        ) : event.location_name && (
           <>
             <View style={styles.infoDivider} />
             <Pressable
@@ -72,9 +103,7 @@ export function EventInfoHeader({ event, onPressAddress }: Props) {
         <View style={styles.infoDivider} />
         <View style={styles.infoRow}>
           <Users size={16} color={Colors.inkSecondary} />
-          <Text style={styles.infoText}>
-            {event.attendee_count} going · {event.spots_left} spots left
-          </Text>
+          <Text style={styles.infoText}>{spotsLine(event)}</Text>
         </View>
       </View>
     </>
@@ -116,4 +145,6 @@ const styles = StyleSheet.create({
   infoRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
   infoText: { flex: 1, fontFamily: FontFamily.bodyRegular, fontSize: 14, color: Colors.inkPrimary, lineHeight: 20 },
   infoDivider: { height: 1, backgroundColor: Colors.divider },
+  maskedNote: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 4 },
+  maskedNoteText: { fontFamily: FontFamily.bodyRegular, fontSize: 12, color: Colors.inkSecondary },
 })

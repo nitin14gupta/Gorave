@@ -1,9 +1,9 @@
+import { SectionHeader } from '@/components/ui/SectionHeader'
 import { useCallback, useEffect, useState } from 'react'
-import { View, Pressable, StyleSheet } from 'react-native'
+import { View, StyleSheet } from 'react-native'
 import { useFocusEffect } from 'expo-router'
 import { useRecentEventsStore } from '@/store/recentEventsStore'
-import { EventListCard, ShimmerText } from '@/components/ui'
-import { hTap } from '@/lib/haptics'
+import { EventListCard } from '@/components/ui'
 import { Colors, FontFamily } from '@/constants'
 
 const COLLAPSED_COUNT = 3
@@ -28,14 +28,11 @@ export function RecentlyViewedSection({ onEmptyChange }: Props) {
 
   return (
     <View style={s.wrap}>
-      <View style={s.header}>
-        <ShimmerText style={s.title}>Recently Viewed</ShimmerText>
-        {hasMore && (
-          <Pressable onPress={() => { hTap(); setExpanded(v => !v) }} hitSlop={8}>
-            <ShimmerText style={s.seeAll}>{expanded ? 'Show less' : 'See all'}</ShimmerText>
-          </Pressable>
-        )}
-      </View>
+      <SectionHeader
+        title="Recently Viewed"
+        actionLabel={hasMore ? (expanded ? 'Show less' : 'See all') : undefined}
+        onAction={() => setExpanded(v => !v)}
+      />
       <View style={s.list}>
         {visible.map(e => <EventListCard key={e.id} event={e} showHotlist={false} />)}
       </View>
@@ -45,8 +42,5 @@ export function RecentlyViewedSection({ onEmptyChange }: Props) {
 
 const s = StyleSheet.create({
   wrap: { gap: 10 },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  title: { fontFamily: FontFamily.headingBold, fontSize: 18, color: Colors.inkPrimary },
-  seeAll: { fontFamily: FontFamily.bodyMedium, fontSize: 13, color: Colors.inkPrimary },
   list: { gap: 10 },
 })

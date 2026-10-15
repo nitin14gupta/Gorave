@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { useRouter } from 'expo-router'
-import { Colors, FontFamily } from '@/constants'
+import { Colors, FontFamily, withOpacity } from '@/constants'
 import { hSelection, hTap } from '@/lib/haptics'
 import { StaticEventMap } from '@/components/maps'
 import type { EventDetail } from '@/api/apiService'
@@ -51,6 +51,11 @@ export function EventDetailsSection({ event, eventId }: Props) {
             lng={event.location_lng}
             eventType={event.event_type}
           />
+          {event.is_location_masked && (
+            <View style={styles.approxBadge} pointerEvents="none">
+              <Text style={styles.approxText}>Approximate area</Text>
+            </View>
+          )}
         </Pressable>
       )}
     </>
@@ -64,4 +69,10 @@ const styles = StyleSheet.create({
   readMore: { color: Colors.inkPrimary, fontFamily: FontFamily.bodyMedium, fontSize: 13, marginTop: 6 },
 
   miniMapWrap: { height: 160, borderRadius: 16, overflow: 'hidden', marginBottom: 16 },
+  approxBadge: {
+    position: 'absolute', left: 10, bottom: 10,
+    paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999,
+    backgroundColor: withOpacity(Colors.background, 0.8),
+  },
+  approxText: { fontFamily: FontFamily.bodyMedium, fontSize: 11, color: Colors.inkPrimary },
 })

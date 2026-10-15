@@ -366,6 +366,58 @@ def notify_first_event_hosted(cur, host_id: str, event_id: str, event_title: str
     )
 
 
+def notify_join_request(cur, host_id: str, requester_id: str, requester_name: str, event_id: str, event_title: str):
+    _insert_notification(
+        cur, host_id, "join_request",
+        title=f"{requester_name} wants to join {event_title}",
+        body="Accept or decline their request.",
+        actor_id=requester_id,
+        entity_id=event_id,
+        entity_type="event",
+    )
+
+
+def notify_request_accepted(cur, user_id: str, host_id: str, event_id: str, event_title: str):
+    _insert_notification(
+        cur, user_id, "request_accepted",
+        title="You're in! \U0001f389",
+        body=f"Your request for {event_title} was accepted — your ticket is ready.",
+        actor_id=host_id,
+        entity_id=event_id,
+        entity_type="event",
+    )
+
+
+def notify_request_declined(cur, user_id: str, event_id: str, event_title: str):
+    _insert_notification(
+        cur, user_id, "request_declined",
+        title="Not this time",
+        body=f"The host couldn't fit you in at {event_title}. Plenty more events this week.",
+        entity_id=event_id,
+        entity_type="event",
+    )
+
+
+def notify_request_expired(cur, user_id: str, event_id: str, event_title: str):
+    _insert_notification(
+        cur, user_id, "request_expired",
+        title="Request expired",
+        body=f"{event_title} has started and your request wasn't answered.",
+        entity_id=event_id,
+        entity_type="event",
+    )
+
+
+def notify_spot_opened_for_requests(cur, host_id: str, event_id: str, event_title: str, pending: int):
+    _insert_notification(
+        cur, host_id, "spot_opened",
+        title=f"A spot opened at {event_title}",
+        body=f"{pending} pending request{'s' if pending != 1 else ''} waiting for you.",
+        entity_id=event_id,
+        entity_type="event",
+    )
+
+
 # ── Action-button enrichment ───────────────────────────────────────────────────
 # Attaches an actionable next-step to certain notification types so the list
 # doesn't just inform — it lets you act (follow back, send a vibe, message).
@@ -450,6 +502,20 @@ def _enrich_notification(cur, uid: str, row: dict) -> dict:
                 d["action_label"] = "Send Vibe"
                 d["action_target_id"] = actor_id
             # else: pending vibe between the two — ambiguous, no button
+
+    elif ntype == "join_request" and actor_id and d.get("entity_id"):
+        # Inline Accept/Decline only while the request is still pending —
+        # once decided (here, from the requests screen, or another device)
+        # the row goes back to being informational.
+        cur.execute(
+            "SELECT status FROM event_attendees WHERE event_id = %s::uuid AND user_id = %s::uuid",
+            (d["entity_id"], actor_id),
+        )
+        req = cur.fetchone()
+        if req and req["status"] == "requested":
+            d["action"] = "join_request"
+            d["action_label"] = "Accept"
+            d["action_target_id"] = actor_id
 
     if d.get("entity_type") == "event" and d.get("entity_id"):
         cur.execute("SELECT cover_photos FROM events WHERE id = %s", (d["entity_id"],))

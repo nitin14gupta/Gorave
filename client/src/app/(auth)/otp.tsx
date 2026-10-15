@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, Pressable } from 'react-native'
 import { router, useLocalSearchParams } from 'expo-router'
 import { hTap } from '@/lib/haptics'
 import { Pencil } from 'lucide-react-native'
-import { BackButton, OTPInput, PrimaryButton, Screen, KeyboardAvoidingWrapper, DeletedAccountSheet, LogoMark } from '@/components/ui'
+import { BackButton, OTPInput, PrimaryButton, Screen, KeyboardAvoidingWrapper, DeletedAccountSheet, LogoMark, GlowLinesBackground } from '@/components/ui'
 import { useAuth } from '@/hooks/useAuth'
 import { useCountdown } from '@/hooks/useCountdown'
 import { Colors, FontFamily, Spacing } from '@/constants'
@@ -69,67 +69,71 @@ export default function OTPScreen() {
   }
 
   return (
-    <Screen>
-      <DeletedAccountSheet
-        visible={deletedOn !== null}
-        deletedOn={deletedOn ?? ''}
-        onClose={() => setDeletedOn(null)}
-      />
-      <View style={styles.topRow}>
-        <BackButton transparent onPress={() => router.back()} />
-        <LogoMark size={20} opacity={0.7} style={styles.topLogo} />
-      </View>
-      <KeyboardAvoidingWrapper transparent>
-        <View style={styles.inner}>
-          <Text style={styles.title}>Enter the code</Text>
-          <View style={styles.sentRow}>
-            <Text style={styles.sentText}>Sent to +91 {phone}</Text>
-            <Pressable onPress={() => router.back()}>
-              <Pencil size={14} color={Colors.inkSecondary} strokeWidth={2} />
-            </Pressable>
-          </View>
-
-          <OTPInput
-            value={code}
-            onChange={setCode}
-            error={error}
-            autoFocus
-          />
-
-          {errorMsg ? (
-            <Text style={styles.errorMsg}>{errorMsg}</Text>
-          ) : null}
-
-          <View style={styles.resendArea}>
-            {!isExpired && !tooManyAttempts ? (
-              <Text style={styles.countdown}>
-                Resend code in{' '}
-                <Text style={styles.countdownTimer}>
-                  0:{String(seconds).padStart(2, '0')}
-                </Text>
-              </Text>
-            ) : (
-              <Pressable onPress={() => { hTap(); handleResend() }}>
-                <Text style={styles.resendBtn}>Resend code</Text>
+    <View style={styles.rootWrap}>
+      <GlowLinesBackground />
+      <Screen transparent>
+        <DeletedAccountSheet
+          visible={deletedOn !== null}
+          deletedOn={deletedOn ?? ''}
+          onClose={() => setDeletedOn(null)}
+        />
+        <View style={styles.topRow}>
+          <BackButton transparent onPress={() => router.back()} />
+          <LogoMark size={20} opacity={0.7} style={styles.topLogo} />
+        </View>
+        <KeyboardAvoidingWrapper transparent>
+          <View style={styles.inner}>
+            <Text style={styles.title}>Enter the code</Text>
+            <View style={styles.sentRow}>
+              <Text style={styles.sentText}>Sent to +91 {phone}</Text>
+              <Pressable onPress={() => router.back()}>
+                <Pencil size={14} color={Colors.inkSecondary} strokeWidth={2} />
               </Pressable>
-            )}
-          </View>
-        </View>
+            </View>
 
-        <View style={styles.footer}>
-          <PrimaryButton
-            label="Continue"
-            onPress={handleVerify}
-            disabled={!isComplete || tooManyAttempts}
-            loading={loading}
-          />
-        </View>
-      </KeyboardAvoidingWrapper>
-    </Screen>
+            <OTPInput
+              value={code}
+              onChange={setCode}
+              error={error}
+              autoFocus
+            />
+
+            {errorMsg ? (
+              <Text style={styles.errorMsg}>{errorMsg}</Text>
+            ) : null}
+
+            <View style={styles.resendArea}>
+              {!isExpired && !tooManyAttempts ? (
+                <Text style={styles.countdown}>
+                  Resend code in{' '}
+                  <Text style={styles.countdownTimer}>
+                    0:{String(seconds).padStart(2, '0')}
+                  </Text>
+                </Text>
+              ) : (
+                <Pressable onPress={() => { hTap(); handleResend() }}>
+                  <Text style={styles.resendBtn}>Resend code</Text>
+                </Pressable>
+              )}
+            </View>
+          </View>
+
+          <View style={styles.footer}>
+            <PrimaryButton
+              label="Continue"
+              onPress={handleVerify}
+              disabled={!isComplete || tooManyAttempts}
+              loading={loading}
+            />
+          </View>
+        </KeyboardAvoidingWrapper>
+      </Screen>
+    </View>
   )
 }
 
 const styles = StyleSheet.create({
+  rootWrap: { flex: 1, backgroundColor: Colors.background },
   topRow: {
     flexDirection: 'row',
     alignItems: 'center',

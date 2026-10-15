@@ -2,7 +2,7 @@ import React from 'react'
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native'
 import { LinearGradient } from 'expo-linear-gradient'
 import { useRouter } from 'expo-router'
-import { ChevronRight, PartyPopper, QrCode, ScanLine, Star, Users } from 'lucide-react-native'
+import { ChevronRight, Hourglass, Inbox, PartyPopper, QrCode, ScanLine, Star, Users } from 'lucide-react-native'
 import { Colors, FontFamily, withOpacity } from '@/constants'
 import { hSuccess, hTap } from '@/lib/haptics'
 import { PrimaryButton, TickingCountdown } from '@/components/ui'
@@ -28,6 +28,14 @@ interface Props {
   onScanner: () => void
   onRsvp: () => void
   onJoinWaitlist: () => void
+  /** Free events: guests request, host approves */
+  isRequestMode?: boolean
+  crowdIneligible?: boolean
+  /** Viewer's share of the crowd mix is full (instant events → waitlist) */
+  crowdFull?: boolean
+  myBucket?: 'women' | 'men' | 'other'
+  requestBusy?: boolean
+  onWithdrawRequest?: () => void
 }
 
 export function EventRsvpBar({
@@ -49,8 +57,17 @@ export function EventRsvpBar({
   onScanner,
   onRsvp,
   onJoinWaitlist,
+  isRequestMode,
+  crowdIneligible,
+  crowdFull,
+  myBucket,
+  requestBusy,
+  onWithdrawRequest,
 }: Props) {
   const router = useRouter()
+  const myStatus = event.my_rsvp_status
+  const pending = event.pending_request_count ?? 0
+  const bucketLabel = myBucket === 'women' ? 'women' : myBucket === 'men' ? 'men' : 'open spots'
 
   return (
     <View style={[styles.stickyBar, { paddingBottom: bottomInset + 12 }]}>
@@ -66,6 +83,19 @@ export function EventRsvpBar({
               </Text>
             )}
           </View>
+          {isRequestMode && !isPast && (
+            <Pressable
+              style={styles.requestsChip}
+              onPress={() => { hTap(); router.push(`/(events)/${eventId}/requests` as any) }}
+            >
+              <Inbox size={15} color={Colors.inkPrimary} strokeWidth={2} />
+              <Text style={styles.requestsChipText}>
+                {pending > 0 ? `${pending} request${pending === 1 ? '' : 's'} to review` : 'Join requests'}
+              </Text>
+              {pending > 0 && <View style={styles.requestsDot} />}
+              <ChevronRight size={14} color={Colors.inkSecondary} strokeWidth={2} />
+            </Pressable>
+          )}
           <View style={styles.hostActions}>
             <Pressable
               style={styles.hostBtn}
@@ -100,6 +130,9 @@ export function EventRsvpBar({
       ) : (
         <>
           <View style={styles.stickyLeft}>
+            {isRequestMode && !isGoing && myStatus !== 'requested' && (
+              <Text style={styles.requestHint}>Host approves each guest</Text>
+            )}
             {spotsLow && !isGoing && !isWaitlist && (
               <View style={styles.spotsAlert}>
                 <View style={styles.spotsDot} />
@@ -143,10 +176,44 @@ export function EventRsvpBar({
             <View style={styles.inProgressBtn}>
               <Text style={styles.inProgressText}>Event in Progress</Text>
             </View>
-          ) : rsvpStatus === 'loading' ? (
+          ) : rsvpStatus === 'loading' || requestBusy ? (
             <View style={styles.waitlistBtn}>
               <ActivityIndicator color={Colors.inkSecondary} />
             </View>
+          ) : crowdIneligible ? (
+            <View style={styles.eventFullBtn}>
+              <Text style={styles.waitlistBtnText}>{(event.women_pct ?? 0) >= 100 ? 'Women only' : 'Men only'}</Text>
+            </View>
+          ) : isRequestMode && myStatus === 'requested' ? (
+            <Pressable style={styles.waitlistActiveBtn} onPress={() => { hTap(); onWithdrawRequest?.() }}>
+              <Hourglass size={14} color={Colors.inkPrimary} strokeWidth={2} />
+              <Text style={styles.waitlistActiveBtnText}>Requested · Withdraw</Text>
+            </Pressable>
+          ) : isRequestMode && myStatus === 'declined' ? (
+            <View style={styles.eventFullBtn}>
+              <Text style={styles.waitlistBtnText}>Request declined</Text>
+            </View>
+          ) : isRequestMode && myStatus === 'expired' ? (
+            <View style={styles.eventFullBtn}>
+              <Text style={styles.waitlistBtnText}>Request expired</Text>
+            </View>
+          ) : isRequestMode && event.my_can_request_again === false ? (
+            <View style={styles.eventFullBtn}>
+              <Text style={styles.waitlistBtnText}>Request limit reached</Text>
+            </View>
+          ) : isRequestMode ? (
+            <Pressable style={styles.bookBtn} onPress={() => { hSuccess(); onRsvp() }}>
+              <LinearGradient
+                colors={[Colors.brandOrange, Colors.brandCoral]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.bookGradient}
+              >
+                <Text style={styles.bookBtnText}>
+                  {event.spots_left <= 0 || crowdFull ? 'Request anyway' : 'Request to join'}
+                </Text>
+              </LinearGradient>
+            </Pressable>
           ) : isWaitlist && event.my_offer_expires_at ? (
             <Pressable style={styles.offerBtn} onPress={() => { hSuccess(); onRsvp() }}>
               <LinearGradient
@@ -194,7 +261,9 @@ export function EventRsvpBar({
             </View>
           ) : shouldWaitlist ? (
             <Pressable style={styles.waitlistJoinBtn} onPress={() => { hSuccess(); onJoinWaitlist() }}>
-              <Text style={styles.waitlistJoinText}>Join Waitlist</Text>
+              <Text style={styles.waitlistJoinText}>
+                {crowdFull && event.spots_left > 0 ? `${bucketLabel === 'open spots' ? 'Open spots' : `Spots for ${bucketLabel}`} full · Waitlist` : 'Join Waitlist'}
+              </Text>
             </Pressable>
           ) : (
             <Pressable style={styles.bookBtn} onPress={() => { hSuccess(); onRsvp() }}>
@@ -369,6 +438,15 @@ const styles = StyleSheet.create({
   ticketBtnText: { color: Colors.inkPrimary, fontFamily: FontFamily.bodySemiBold, fontSize: 14 },
 
   hostBar: { flex: 1, gap: 10 },
+  requestsChip: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    paddingHorizontal: 14, paddingVertical: 10, borderRadius: 999,
+    backgroundColor: withOpacity(Colors.inkPrimary, 0.06),
+    borderWidth: 1, borderColor: Colors.divider,
+  },
+  requestsChipText: { flex: 1, fontFamily: FontFamily.bodySemiBold, fontSize: 14, color: Colors.inkPrimary },
+  requestsDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: Colors.brandOrange },
+  requestHint: { fontFamily: FontFamily.bodyRegular, fontSize: 12, color: Colors.inkSecondary, marginBottom: 2 },
   hostMeta: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   hostAttendeeCount: {
     fontFamily: FontFamily.bodyRegular, fontSize: 13, color: Colors.inkSecondary,

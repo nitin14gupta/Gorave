@@ -100,7 +100,7 @@ export default function BookScreen() {
       if (e?.status === 403) {
         showPill(e?.message ?? "You don't meet the requirements for this event", 'error')
       } else {
-        showPill("Booking didn't go through, try again", 'error')
+        showPill(e?.message || "Booking didn't go through, try again", 'error')
       }
       setPaying(false)
     }

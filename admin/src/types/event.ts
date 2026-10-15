@@ -37,6 +37,12 @@ export interface EventDetailInfo {
   location_name: string | null
   location_lat: number | null
   location_lng: number | null
+  city: string | null
+  area: string | null
+  join_mode: 'instant' | 'request'
+  /** % of spots for women; null = open crowd */
+  women_pct: number | null
+  pending_requests: number
   price_inr: number
   is_free: boolean
   platform_fee_inr: number
@@ -63,6 +69,7 @@ export interface EventAttendeeRow {
   user_id: string
   name: string | null
   phone: string
+  gender?: string | null
 }
 
 export interface EventReviewRow {

@@ -1,5 +1,6 @@
+import { SectionHeader } from '@/components/ui/SectionHeader'
 import { forwardRef, useCallback, useImperativeHandle, useRef, useState } from 'react'
-import { View, Pressable, Text, StyleSheet } from 'react-native'
+import { View, StyleSheet } from 'react-native'
 import { router, useFocusEffect } from 'expo-router'
 import { Star } from 'lucide-react-native'
 import ApiService, { type EventSummary } from '@/api/apiService'
@@ -66,17 +67,11 @@ export const PendingReviewsSection = forwardRef<PendingReviewsSectionHandle, Pro
 
   return (
     <View style={s.wrap}>
-      <View style={s.header}>
-        <View style={s.titleRow}>
-          {/* <Star size={16} color={Colors.brandOrange} fill={Colors.brandOrange} strokeWidth={1.5} /> */}
-          <Text style={s.title}>Rate Your Nights</Text>
-        </View>
-        {hasMore && (
-          <Pressable onPress={() => { hTap(); setExpanded(v => !v) }} hitSlop={8}>
-            <Text style={s.seeAll}>{expanded ? 'Show less' : 'See all'}</Text>
-          </Pressable>
-        )}
-      </View>
+      <SectionHeader
+        title="Rate Your Nights"
+        actionLabel={hasMore ? (expanded ? 'Show less' : 'See all') : undefined}
+        onAction={() => setExpanded(v => !v)}
+      />
       <View style={s.list}>
         {visible.map(e => {
           const goToReview = () => { hTap(); router.push(`/(events)/${e.id}/review` as any) }
@@ -107,10 +102,6 @@ export const PendingReviewsSection = forwardRef<PendingReviewsSectionHandle, Pro
 
 const s = StyleSheet.create({
   wrap: { gap: 10 },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  titleRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  title: { fontFamily: FontFamily.headingBold, fontSize: 18, color: Colors.inkPrimary },
-  seeAll: { fontFamily: FontFamily.bodyMedium, fontSize: 13, color: Colors.inkPrimary },
   list: { gap: 10 },
   // Inset CTA area attached to the card's bottom — the card's own
   // overflow:hidden clips this to match its rounded corners, so it reads as

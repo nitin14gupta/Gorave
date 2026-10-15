@@ -105,6 +105,17 @@ export interface EventPhoto {
   position: number
 }
 
+export type JoinMode = 'instant' | 'request'
+
+export type RsvpStatus = 'going' | 'waitlist' | 'cancelled' | 'requested' | 'declined' | 'expired'
+
+export interface CrowdRatio {
+  women_pct: number
+  women_left: number
+  men_left: number
+  open_left: number
+}
+
 export interface EventSummary {
   id: string
   title: string
@@ -114,6 +125,17 @@ export interface EventSummary {
   location_name: string | null
   location_lat: number | null
   location_lng: number | null
+  city?: string | null
+  area?: string | null
+  // Withheld (null) unless the viewer is the host or a confirmed guest —
+  // see is_location_masked.
+  address_line1?: string | null
+  address_line2?: string | null
+  pincode?: string | null
+  is_location_masked?: boolean
+  join_mode?: JoinMode
+  women_pct?: number | null
+  my_rsvp_status?: RsvpStatus | null
   price_inr: number
   is_free: boolean
   platform_fee_inr: number
@@ -180,10 +202,51 @@ export interface EventDetail extends EventSummary {
   review_count: number
   host_avg_rating: number | null
   host_review_count: number
-  my_rsvp_status: 'going' | 'waitlist' | 'cancelled' | null
+  my_rsvp_status: RsvpStatus | null
   my_waitlist_position: number | null
   my_offer_expires_at: string | null
   my_review_rating: number | null
+  my_can_request_again?: boolean
+  ratio?: CrowdRatio | null
+  pending_request_count?: number
+}
+
+export interface JoinRequest {
+  id: string
+  name: string | null
+  username: string | null
+  gender: string | null
+  age: number | null
+  city: string | null
+  avatar: string | null
+  requested_at: string
+  is_following: boolean
+  mutual_count: number
+  events_attended: number
+  attended_your_events: boolean
+  can_accept: boolean
+}
+
+export interface GenderCounts {
+  women: number
+  men: number
+  other: number
+}
+
+export interface JoinRequestsResponse {
+  requests: JoinRequest[]
+  total: number
+  spots_left: number
+  capacity: number
+  counts: GenderCounts
+  ratio: CrowdRatio | null
+}
+
+export interface BulkAcceptResponse {
+  ok: boolean
+  accepted: string[]
+  skipped: { user_id: string; reason: string }[]
+  spots_left: number
 }
 
 export interface WaitlistEntry {
@@ -194,6 +257,7 @@ export interface WaitlistEntry {
   joined_at: string
   offer_expires_at: string | null
   position: number
+  gender?: string | null
 }
 
 export interface TicketInfo {
@@ -243,6 +307,12 @@ export interface CreateEventPayload {
   location_name?: string
   location_lat?: number
   location_lng?: number
+  city: string
+  area?: string
+  address_line1: string
+  address_line2?: string
+  pincode?: string
+  women_pct?: number | null
   price_inr: number
   cover_photos?: string[]
 }
@@ -302,6 +372,7 @@ export interface EventAttendee {
   name: string | null
   username: string | null
   city: string | null
+  gender?: string | null
   avatar: string | null
   status: string
   joined_at: string
@@ -395,7 +466,8 @@ export interface AppNotification {
   read_at: string | null
   created_at: string
   // Server-computed contextual action (follow back, send vibe, message, …) — see server/routes/notifications.py
-  action?: 'follow' | 'send_vibe' | 'message' | null
+  // 'join_request' renders Accept + Decline (target = requester, entity = event)
+  action?: 'follow' | 'send_vibe' | 'message' | 'join_request' | null
   action_label?: string | null
   action_target_id?: string | null
   cover_photo?: string | null

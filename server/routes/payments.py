@@ -77,6 +77,88 @@ def _notify_paid_rsvp_extras(cur, uid: str, buyer_name: str, event_id: str, ev_t
                     pass
 
 
+def _precheck_paid_seat(cur, event_id: str, uid: str) -> dict:
+    """Everything that must hold before we take money for a ticket: event
+    live, age, crowd mix, a free seat, and no waitlister ahead in line. A
+    guest holding a waitlist promotion offer already has their seat."""
+    from datetime import timedelta
+    from fastapi import HTTPException as _H
+    from utils import seats
+    from routes.events import _calc_age
+
+    cur.execute(
+        """
+        SELECT id::text, host_id::text, title, capacity, spots_left, women_pct, age_restriction,
+               price_inr, platform_fee_inr, date_time, end_time, is_cancelled
+        FROM events WHERE id = %s
+        """,
+        (event_id,),
+    )
+    ev = cur.fetchone()
+    if not ev or ev["is_cancelled"]:
+        raise _H(status_code=404, detail="Event not found")
+    if ev["price_inr"] <= 0:
+        raise _H(status_code=400, detail="This event is free")
+    end = ev["end_time"] or ev["date_time"] + timedelta(hours=6)
+    if datetime.now(timezone.utc) > end:
+        raise _H(status_code=400, detail="This event has ended")
+
+    cur.execute("SELECT dob FROM users WHERE id = %s::uuid", (uid,))
+    me = cur.fetchone()
+    if me and me.get("dob") and _calc_age(me["dob"]) < ev["age_restriction"]:
+        raise _H(status_code=403, detail=f"You must be {ev['age_restriction']}+ to attend this event")
+
+    if seats.user_holds_offer(cur, event_id, uid):
+        return ev
+    seats.assert_seat_available(cur, ev, uid)
+    cur.execute(
+        """
+        SELECT u.gender FROM event_attendees ea JOIN users u ON u.id = ea.user_id
+        WHERE ea.event_id = %s AND ea.status = 'waitlist' AND ea.offer_expires_at IS NULL
+        """,
+        (event_id,),
+    )
+    counts = seats.seat_counts(cur, event_id)
+    if any(seats.bucket_has_room(ev["capacity"], ev["women_pct"], counts, seats.gender_bucket(w["gender"]))
+           for w in cur.fetchall()):
+        raise _H(status_code=409, detail="People on the waitlist are ahead of you — join the waitlist")
+    return ev
+
+
+def _claim_paid_seat(cur, event_id: str, uid: str) -> tuple[bool, bool]:
+    """Called inside a finaliser's transaction once money is in hand. Locks
+    the event and decides whether this guest still gets a seat. Returns
+    (got_seat, held_offer). A guest holding a promotion offer already had
+    their spot reserved, so nothing is decremented for them."""
+    from fastapi import HTTPException as _H
+    from utils import seats
+
+    ev = seats.lock_event(cur, event_id)
+    if not ev or ev["is_cancelled"]:
+        return False, False
+    if seats.user_holds_offer(cur, event_id, uid):
+        return True, True
+    try:
+        seats.assert_seat_available(cur, ev, uid)
+    except _H:
+        return False, False
+    return True, False
+
+
+def _refund_to_wallet(cur, uid: str, event_id: str, amount: int, ev_title: str) -> None:
+    if amount <= 0:
+        return
+    cur.execute("UPDATE users SET wallet_balance = wallet_balance + %s WHERE id = %s::uuid", (amount, uid))
+    cur.execute(
+        """
+        INSERT INTO wallet_transactions
+            (user_id, amount_inr, type, source, reference_id, description, expires_at)
+        VALUES (%s::uuid, %s, 'credit', 'event_refund', %s::uuid, %s, NOW() + INTERVAL '6 months')
+        """,
+        (uid, amount, event_id, f"Refund — spot no longer available at {ev_title}"),
+    )
+
+
 _rz_client: Optional[razorpay.Client] = None
 
 
@@ -136,15 +218,7 @@ def create_order(body: CreateOrderBody, current_user: dict = Depends(get_current
     enforce_rate_limit(f"payments:create-order:user:{uid}", max_events=30, window_seconds=3600)
 
     with get_db() as (cur, _):
-        cur.execute(
-            "SELECT price_inr, platform_fee_inr, title, spots_left FROM events WHERE id = %s AND is_cancelled = FALSE",
-            (body.event_id,),
-        )
-        ev = cur.fetchone()
-        if not ev:
-            raise HTTPException(status_code=404, detail="Event not found")
-        if ev["spots_left"] <= 0:
-            raise HTTPException(status_code=409, detail="No spots left for this event")
+        ev = _precheck_paid_seat(cur, body.event_id, uid)
 
         cur.execute(
             "SELECT wallet_balance, phone, country_code FROM users WHERE id = %s::uuid", (uid,)
@@ -219,24 +293,37 @@ def verify_payment(body: VerifyPaymentBody, current_user: dict = Depends(get_cur
         raise HTTPException(status_code=400, detail="Invalid payment signature")
 
     with get_db() as (cur, _):
+        # event and wallet split come from the order we created, never the
+        # request body — otherwise a paid order for one event could be
+        # redeemed against another.
         cur.execute(
-            "SELECT status FROM payment_orders WHERE razorpay_order_id = %s AND user_id = %s::uuid",
+            "SELECT status, event_id::text, wallet_amount_inr FROM payment_orders "
+            "WHERE razorpay_order_id = %s AND user_id = %s::uuid",
             (body.razorpay_order_id, uid),
         )
         row = cur.fetchone()
     if not row:
         raise HTTPException(status_code=404, detail="Order not found")
     if row["status"] == "paid":
-        return {"ok": True, "status": "going"}
+        return {"ok": True, "status": _booking_status(row["event_id"], uid)}
 
-    _finalise_rsvp(
+    status = _finalise_rsvp(
         order_id=body.razorpay_order_id,
-        event_id=body.event_id,
+        event_id=row["event_id"],
         uid=uid,
         payment_id=body.razorpay_payment_id,
-        wallet_amount=body.wallet_amount,
+        wallet_amount=row["wallet_amount_inr"] or 0,
     )
-    return {"ok": True, "status": "going"}
+    return {"ok": True, "status": status}
+
+
+def _booking_status(event_id: str, uid: str) -> str:
+    with get_db() as (cur, _):
+        cur.execute(
+            "SELECT 1 FROM event_attendees WHERE event_id = %s::uuid AND user_id = %s::uuid AND status = 'going'",
+            (event_id, uid),
+        )
+        return "going" if cur.fetchone() else "refunded"
 
 
 # ── POST /payments/wallet-pay ─────────────────────────────────────────────────
@@ -247,19 +334,10 @@ def wallet_pay(body: WalletPayBody, current_user: dict = Depends(get_current_use
     enforce_rate_limit(f"payments:wallet-pay:user:{uid}", max_events=20, window_seconds=3600)
 
     with get_db() as (cur, _):
-        cur.execute(
-            "SELECT title, host_id::text, price_inr, platform_fee_inr, spots_left FROM events WHERE id = %s AND is_cancelled = FALSE",
-            (body.event_id,),
-        )
-        ev = cur.fetchone()
-        if not ev:
-            raise HTTPException(status_code=404, detail="Event not found")
-        if ev["spots_left"] <= 0:
-            raise HTTPException(status_code=409, detail="No spots left")
+        ev = _precheck_paid_seat(cur, body.event_id, uid)
 
         ev_title = ev["title"]
         ev_host_id = ev["host_id"]
-        just_sold_out = ev["spots_left"] == 1
         ticket_price = ev["price_inr"]
         platform_fee = ev["platform_fee_inr"]
         total = ticket_price + platform_fee
@@ -269,6 +347,14 @@ def wallet_pay(body: WalletPayBody, current_user: dict = Depends(get_current_use
         buyer_name = user["name"] if user else "Someone"
 
     with get_db() as (cur, conn):
+        # Seat first, under the event row lock — nothing is debited if the
+        # last spot went to someone else since the precheck.
+        got_seat, held_offer = _claim_paid_seat(cur, body.event_id, uid)
+        if not got_seat:
+            raise HTTPException(status_code=409, detail="That spot was just taken — no money was charged")
+        cur.execute("SELECT spots_left FROM events WHERE id = %s::uuid", (body.event_id,))
+        just_sold_out = not held_offer and cur.fetchone()["spots_left"] == 1
+
         # Atomic guard: the WHERE clause makes this a no-op (rowcount 0) if the
         # balance has dropped below `total` since the check above — closes the
         # race where two concurrent wallet-pay calls could both pass a
@@ -296,10 +382,11 @@ def wallet_pay(body: WalletPayBody, current_user: dict = Depends(get_current_use
             """,
             (body.event_id, uid),
         )
-        cur.execute(
-            "UPDATE events SET spots_left = GREATEST(0, spots_left - 1) WHERE id = %s::uuid",
-            (body.event_id,),
-        )
+        if not held_offer:
+            cur.execute(
+                "UPDATE events SET spots_left = spots_left - 1 WHERE id = %s::uuid",
+                (body.event_id,),
+            )
 
         from routes.notifications import notify_payment_confirmed, notify_event_sold_out, notify_ticket_sold
         notify_payment_confirmed(cur, uid, body.event_id, ev_title)
@@ -387,10 +474,7 @@ def _close_qr(rz_client, qr_id: str) -> None:
 
 # ── Internal helper ───────────────────────────────────────────────────────────
 
-def _finalise_rsvp(*, order_id: str, event_id: str, uid: str, payment_id: str, wallet_amount: int):  # noqa: E501
-    from utils.push import send_push
-    from routes.notifications import notify_payment_confirmed
-
+def _finalise_rsvp(*, order_id: str, event_id: str, uid: str, payment_id: str, wallet_amount: int) -> str:
     with get_db() as (cur, conn):
         # Atomic claim: the WHERE clause means only one concurrent call to
         # this function for the same order can ever see rowcount 1 — closes
@@ -404,13 +488,44 @@ def _finalise_rsvp(*, order_id: str, event_id: str, uid: str, payment_id: str, w
         )
         if cur.rowcount == 0:
             conn.commit()
-            return
+            return _booking_status(event_id, uid)
+        cur.execute("SELECT razorpay_amount_inr FROM payment_orders WHERE razorpay_order_id = %s", (order_id,))
+        paid_externally = (cur.fetchone() or {}).get("razorpay_amount_inr") or 0
 
+    return _complete_paid_booking(event_id=event_id, uid=uid, payment_id=payment_id,
+                                  wallet_amount=wallet_amount, paid_externally=paid_externally,
+                                  wallet_note="Wallet used for ticket")
+
+
+def _complete_paid_booking(*, event_id: str, uid: str, payment_id: str, wallet_amount: int,
+                           paid_externally: int, wallet_note: str) -> str:
+    """Shared tail of both Razorpay finalisers once the order is claimed:
+    claim the seat under lock, or — if it's gone (sold out / crowd mix full
+    since checkout started) — refund what was paid to the Gorave Wallet.
+    Returns 'going' or 'refunded'."""
+    from utils.push import send_push, get_event_image_url
+    from routes.notifications import notify_payment_confirmed, notify_event_sold_out, notify_ticket_sold
+
+    with get_db() as (cur, conn):
+        got_seat, held_offer = _claim_paid_seat(cur, event_id, uid)
         cur.execute("SELECT title, host_id::text, spots_left FROM events WHERE id = %s", (event_id,))
         ev_row = cur.fetchone()
         ev_title = ev_row["title"] if ev_row else ""
         ev_host_id = ev_row["host_id"] if ev_row else None
-        just_sold_out = bool(ev_row) and ev_row["spots_left"] == 1
+
+        if not got_seat:
+            # The wallet portion was never debited; refund the UPI/card part.
+            _refund_to_wallet(cur, uid, event_id, paid_externally, ev_title)
+            conn.commit()
+            try:
+                send_push(uid, "Refund in your Gorave Wallet 💰",
+                          f"The last spot at {ev_title} went just before your payment. ₹{paid_externally} is in your wallet.",
+                          {"type": "wallet", "event_id": event_id}, category="payments")
+            except Exception:
+                pass
+            return "refunded"
+
+        just_sold_out = not held_offer and bool(ev_row) and ev_row["spots_left"] == 1
 
         cur.execute("SELECT name FROM users WHERE id = %s::uuid", (uid,))
         buyer_row = cur.fetchone()
@@ -425,9 +540,9 @@ def _finalise_rsvp(*, order_id: str, event_id: str, uid: str, payment_id: str, w
                 """
                 INSERT INTO wallet_transactions
                     (user_id, amount_inr, type, source, reference_id, description)
-                VALUES (%s::uuid, %s, 'debit', 'ticket_purchase', %s::uuid, 'Wallet used for ticket')
+                VALUES (%s::uuid, %s, 'debit', 'ticket_purchase', %s::uuid, %s)
                 """,
-                (uid, wallet_amount, event_id),
+                (uid, wallet_amount, event_id, wallet_note),
             )
         cur.execute(
             """
@@ -438,12 +553,9 @@ def _finalise_rsvp(*, order_id: str, event_id: str, uid: str, payment_id: str, w
             """,
             (event_id, uid, payment_id, payment_id),
         )
-        cur.execute(
-            "UPDATE events SET spots_left = GREATEST(0, spots_left - 1) WHERE id = %s::uuid",
-            (event_id,),
-        )
+        if not held_offer:
+            cur.execute("UPDATE events SET spots_left = spots_left - 1 WHERE id = %s::uuid", (event_id,))
 
-        from routes.notifications import notify_event_sold_out, notify_ticket_sold
         notify_payment_confirmed(cur, uid, event_id, ev_title)
         if ev_host_id:
             notify_ticket_sold(cur, ev_host_id, event_id, ev_title, uid, buyer_name)
@@ -452,15 +564,13 @@ def _finalise_rsvp(*, order_id: str, event_id: str, uid: str, payment_id: str, w
 
         cover_url_pre = None
         try:
-            from utils.push import get_event_image_url as _cover
-            cover_url_pre = _cover(event_id)
+            cover_url_pre = get_event_image_url(event_id)
         except Exception:
             pass
         _notify_paid_rsvp_extras(cur, uid, buyer_name, event_id, ev_title, ev_host_id, just_sold_out, cover_url_pre)
 
         conn.commit()
 
-    from utils.push import get_event_image_url
     cover_url = get_event_image_url(event_id)
 
     try:
@@ -483,6 +593,7 @@ def _finalise_rsvp(*, order_id: str, event_id: str, uid: str, payment_id: str, w
                       {"type": "event", "event_id": event_id}, image_url=cover_url, category="hosting")
         except Exception:
             pass
+    return "going"
 
 
 # ── GET /payments/saved-upi-id ────────────────────────────────────────────────
@@ -527,15 +638,7 @@ def create_qr(body: CreateQrBody, current_user: dict = Depends(get_current_user)
     enforce_rate_limit(f"payments:create-qr:user:{uid}", max_events=20, window_seconds=3600)
 
     with get_db() as (cur, _):
-        cur.execute(
-            "SELECT price_inr, platform_fee_inr, title, spots_left FROM events WHERE id = %s AND is_cancelled = FALSE",
-            (body.event_id,),
-        )
-        ev = cur.fetchone()
-        if not ev:
-            raise HTTPException(status_code=404, detail="Event not found")
-        if ev["spots_left"] <= 0:
-            raise HTTPException(status_code=409, detail="No spots left for this event")
+        ev = _precheck_paid_seat(cur, body.event_id, uid)
 
         cur.execute("SELECT wallet_balance FROM users WHERE id = %s::uuid", (uid,))
         user = cur.fetchone()
@@ -642,7 +745,7 @@ def get_qr_status(qr_id: str, current_user: dict = Depends(get_current_user)):
         raise HTTPException(status_code=404, detail="QR not found")
 
     if row["status"] == "paid":
-        return {"status": "paid"}
+        return {"status": "paid" if _booking_status(row["event_id"], uid) == "going" else "refunded"}
 
     now = datetime.now(timezone.utc)
     expires_at = row["qr_expires_at"]
@@ -668,7 +771,7 @@ def get_qr_status(qr_id: str, current_user: dict = Depends(get_current_user)):
     if not captured:
         return {"status": "pending"}
 
-    _finalise_qr_rsvp(
+    status = _finalise_qr_rsvp(
         order_db_id=row["id"],
         qr_code_id=qr_id,
         event_id=row["event_id"],
@@ -676,101 +779,27 @@ def get_qr_status(qr_id: str, current_user: dict = Depends(get_current_user)):
         payment_id=captured["id"],
         wallet_amount=row["wallet_amount_inr"],
     )
-    return {"status": "paid"}
+    return {"status": "paid" if status == "going" else "refunded"}
 
 
 # ── Internal helper — QR finalise ─────────────────────────────────────────────
 
 def _finalise_qr_rsvp(*, order_db_id: str, qr_code_id: str, event_id: str,
-                       uid: str, payment_id: str, wallet_amount: int):
-    from utils.push import send_push  # local import to avoid circular
-    from routes.notifications import notify_payment_confirmed
-
+                       uid: str, payment_id: str, wallet_amount: int) -> str:
     with get_db() as (cur, conn):
         # Same atomic-claim pattern as _finalise_rsvp above.
         cur.execute(
             "UPDATE payment_orders SET status = 'paid', razorpay_payment_id = %s "
-            "WHERE id = %s::uuid AND status != 'paid'",
+            "WHERE id = %s::uuid AND status != 'paid' "
+            "RETURNING razorpay_amount_inr",
             (payment_id, order_db_id),
         )
-        if cur.rowcount == 0:
+        claimed = cur.fetchone()
+        if not claimed:
             conn.commit()
-            return
+            return _booking_status(event_id, uid)
 
-        cur.execute("SELECT title, host_id::text, spots_left FROM events WHERE id = %s", (event_id,))
-        ev_row = cur.fetchone()
-        ev_title = ev_row["title"] if ev_row else ""
-        ev_host_id = ev_row["host_id"] if ev_row else None
-        just_sold_out = bool(ev_row) and ev_row["spots_left"] == 1
-
-        cur.execute("SELECT name FROM users WHERE id = %s::uuid", (uid,))
-        buyer_row = cur.fetchone()
-        buyer_name = buyer_row["name"] if buyer_row else "Someone"
-
-        if wallet_amount > 0:
-            cur.execute(
-                "UPDATE users SET wallet_balance = wallet_balance - %s WHERE id = %s::uuid AND wallet_balance >= %s",
-                (wallet_amount, uid, wallet_amount),
-            )
-            cur.execute(
-                """
-                INSERT INTO wallet_transactions
-                    (user_id, amount_inr, type, source, reference_id, description)
-                VALUES (%s::uuid, %s, 'debit', 'ticket_purchase', %s::uuid, 'Wallet used for QR ticket')
-                """,
-                (uid, wallet_amount, event_id),
-            )
-        cur.execute(
-            """
-            INSERT INTO event_attendees (event_id, user_id, status, payment_id)
-            VALUES (%s::uuid, %s::uuid, 'going', %s)
-            ON CONFLICT (event_id, user_id)
-            DO UPDATE SET status = 'going', payment_id = %s, offer_expires_at = NULL
-            """,
-            (event_id, uid, payment_id, payment_id),
-        )
-        cur.execute(
-            "UPDATE events SET spots_left = GREATEST(0, spots_left - 1) WHERE id = %s::uuid",
-            (event_id,),
-        )
-
-        from routes.notifications import notify_event_sold_out, notify_ticket_sold
-        notify_payment_confirmed(cur, uid, event_id, ev_title)
-        if ev_host_id:
-            notify_ticket_sold(cur, ev_host_id, event_id, ev_title, uid, buyer_name)
-        if just_sold_out and ev_host_id:
-            notify_event_sold_out(cur, ev_host_id, event_id, ev_title)
-
-        cover_url_pre = None
-        try:
-            from utils.push import get_event_image_url as _cover
-            cover_url_pre = _cover(event_id)
-        except Exception:
-            pass
-        _notify_paid_rsvp_extras(cur, uid, buyer_name, event_id, ev_title, ev_host_id, just_sold_out, cover_url_pre)
-
-        conn.commit()
-
-    from utils.push import get_event_image_url
-    cover_url = get_event_image_url(event_id)
-
-    try:
-        send_push(uid, "Payment confirmed!", "Your ticket is ready. 🎉",
-                  {"type": "payment_success", "event_id": event_id}, image_url=cover_url, category="payments")
-    except Exception:
-        pass
-
-    if ev_host_id:
-        try:
-            send_push(ev_host_id, f"{buyer_name} bought a ticket!",
-                      f"Someone's going to {ev_title}.",
-                      {"type": "event", "event_id": event_id}, image_url=cover_url, category="hosting")
-        except Exception:
-            pass
-
-    if just_sold_out and ev_host_id:
-        try:
-            send_push(ev_host_id, "Your event sold out!", f"{ev_title} has no spots left.",
-                      {"type": "event", "event_id": event_id}, image_url=cover_url, category="hosting")
-        except Exception:
-            pass
+    return _complete_paid_booking(event_id=event_id, uid=uid, payment_id=payment_id,
+                                  wallet_amount=wallet_amount or 0,
+                                  paid_externally=claimed["razorpay_amount_inr"] or 0,
+                                  wallet_note="Wallet used for QR ticket")

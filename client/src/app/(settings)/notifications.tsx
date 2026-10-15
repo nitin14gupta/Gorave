@@ -175,16 +175,43 @@ export default function NotificationsScreen() {
       router.push('/(tabs)/events' as any)
       return
     }
+    // Join requests (free events) — hosts land on the review screen, guests
+    // on their ticket once accepted.
+    if ((item.type === 'join_request' || item.type === 'spot_opened') && item.entity_id) {
+      router.push(`/(events)/${item.entity_id}/requests` as any)
+      return
+    }
+    if (item.type === 'request_accepted' && item.entity_id) {
+      router.push(`/(events)/${item.entity_id}/ticket` as any)
+      return
+    }
     const target = notifEntityToTarget(item.entity_type, item.entity_id)
     if (target) router.push(targetToHref(target, useAuthStore.getState().userId) as any)
   }
 
-  const handleAction = async (item: AppNotification) => {
+  const handleAction = async (item: AppNotification, secondary?: boolean) => {
     hTap()
     await markRead(item)
     if (!item.action_target_id) return
 
-    if (item.action === 'follow') {
+    if (item.action === 'join_request' && item.entity_id) {
+      // Optimistic — the buttons disappear once decided either way
+      setNotifs(prev => prev.map(n => n.id === item.id ? { ...n, action: null, action_label: null } : n))
+      try {
+        if (secondary) {
+          await ApiService.declineJoinRequest(item.entity_id, item.action_target_id)
+          showPill('Request declined', 'default')
+        } else {
+          await ApiService.acceptJoinRequest(item.entity_id, item.action_target_id)
+          showPill("Accepted — they're in 🎉", 'default')
+        }
+      } catch (e: any) {
+        setNotifs(prev => prev.map(n => n.id === item.id
+          ? { ...n, action: item.action, action_label: item.action_label }
+          : n))
+        showPill(e?.message || "Couldn't update that request", 'error')
+      }
+    } else if (item.action === 'follow') {
       // Optimistic — hide the button immediately, revert if the request fails
       setNotifs(prev => prev.map(n => n.id === item.id ? { ...n, action: null, action_label: null } : n))
       try {

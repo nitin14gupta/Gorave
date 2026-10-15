@@ -9,7 +9,8 @@ import { hTap, hSelection } from '@/lib/haptics'
 import { EventCard } from '@/components/events/EventCard'
 import { StaticEventMap } from '@/components/maps'
 import ApiService, { type EventSummary } from '@/api/apiService'
-import type { CreateEventForm } from '@/hooks/useCreateEvent'
+import { composeLocationName, type CreateEventForm } from '@/hooks/useCreateEvent'
+import { crowdLabel } from '@/lib/crowdMix'
 
 const { width: W } = Dimensions.get('window')
 
@@ -62,7 +63,11 @@ export function EventPreviewOverlay({ visible, form, onClose }: Props) {
     event_type: form.eventType || 'other',
     date_time: form.dateTime ? form.dateTime.toISOString() : '',
     end_time: form.endTime ? form.endTime.toISOString() : null,
-    location_name: form.locationName || null,
+    location_name: composeLocationName(form) || null,
+    city: form.city || null,
+    area: form.area || null,
+    women_pct: form.womenPct,
+    join_mode: form.isFree ? 'request' : 'instant',
     location_lat: form.locationLat,
     location_lng: form.locationLng,
     price_inr: form.priceInr,
@@ -155,6 +160,11 @@ export function EventPreviewOverlay({ visible, form, onClose }: Props) {
                   <Text style={s.ageBadgeText}>{form.ageRestriction}+</Text>
                 </View>
               )}
+              {crowdLabel(form.womenPct) && (
+                <View style={s.ageBadge}>
+                  <Text style={s.ageBadgeText}>{crowdLabel(form.womenPct)}</Text>
+                </View>
+              )}
             </View>
 
             <Text style={s.title}>{form.title || 'Untitled Event'}</Text>
@@ -173,12 +183,12 @@ export function EventPreviewOverlay({ visible, form, onClose }: Props) {
                   </View>
                 </>
               )}
-              {form.locationName ? (
+              {composeLocationName(form) ? (
                 <>
                   <View style={s.infoDivider} />
                   <View style={s.infoRow}>
                     <MapPin size={16} color={Colors.inkSecondary} />
-                    <Text style={s.infoText}>{form.locationName}</Text>
+                    <Text style={s.infoText}>{composeLocationName(form)}</Text>
                   </View>
                 </>
               ) : null}

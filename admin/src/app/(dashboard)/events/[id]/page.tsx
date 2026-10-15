@@ -97,6 +97,15 @@ export default function EventDetailPage() {
                   return <Badge variant="warning">Active now</Badge>
                 })()}
                 <Badge variant="neutral" className="capitalize">{event.event_type}</Badge>
+                <Badge variant="neutral">{event.age_restriction}+</Badge>
+                {event.women_pct != null && (
+                  <Badge variant="neutral">
+                    {event.women_pct >= 100 ? 'Women only' : event.women_pct <= 0 ? 'Men only' : `${event.women_pct}% women`}
+                  </Badge>
+                )}
+                {event.join_mode === 'request' && (
+                  <Badge variant="warning">Request to join · {event.pending_requests} pending</Badge>
+                )}
               </div>
               <p className="flex items-center gap-1.5 text-sm text-ink-secondary">
                 <Calendar className="h-4 w-4" /> {formatDate(event.date_time)}
@@ -123,7 +132,16 @@ export default function EventDetailPage() {
       </div>
 
       <DetailStatsRow>
-        <DetailStat label="Attendees" value={`${data.attendees.length}/${event.capacity}`} icon={Users} />
+        <DetailStat
+          label="Attendees"
+          value={`${data.attendees.length}/${event.capacity}`}
+          icon={Users}
+        />
+        <DetailStat
+          label="Women / Men / Other"
+          value={`${data.attendees.filter(a => a.gender === 'Female').length} / ${data.attendees.filter(a => a.gender === 'Male').length} / ${data.attendees.filter(a => a.gender !== 'Female' && a.gender !== 'Male').length}`}
+          icon={Users}
+        />
         <DetailStat label="Waitlist" value={String(data.waitlist.length)} icon={Clock} />
         <DetailStat label="Avg rating" value={event.avg_rating ? `${event.avg_rating} ★` : '—'} icon={Star} />
         <DetailStat label="Reports" value={String(data.reports.length)} icon={ShieldAlert} />
@@ -153,11 +171,12 @@ export default function EventDetailPage() {
           <Card>
             <CardContent className="p-0">
               <Table>
-                <THead><TR><TH>Name</TH><TH>Phone</TH><TH>Joined</TH><TH>Checked in</TH></TR></THead>
+                <THead><TR><TH>Name</TH><TH>Gender</TH><TH>Phone</TH><TH>Joined</TH><TH>Checked in</TH></TR></THead>
                 <TBody>
                   {data.attendees.map((a) => (
                     <TR key={a.id}>
                       <TD><Link href={`/users/${a.user_id}`} className="hover:underline">{a.name ?? 'Unnamed'}</Link></TD>
+                      <TD>{a.gender ?? '—'}</TD>
                       <TD>{a.phone}</TD>
                       <TD>{formatDate(a.joined_at)}</TD>
                       <TD>{a.checked_in_at ? formatDate(a.checked_in_at) : '—'}</TD>

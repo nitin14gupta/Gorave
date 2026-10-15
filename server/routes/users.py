@@ -201,7 +201,7 @@ def create_profile(body: ProfileCreate, current_user: dict = Depends(get_current
 @router.patch("/profile", response_model=UserResponse)
 def update_profile(body: ProfileUpdate, current_user: dict = Depends(get_current_user)):
     uid = current_user["id"]
-    updates = {k: v for k, v in body.model_dump().items() if v is not None}
+    updates = {k: v for k, v in body.model_dump().items() if v is not None and k != "gender"}
     if not updates:
         raise HTTPException(status_code=400, detail="No fields to update")
 
@@ -1185,21 +1185,25 @@ def delete_account(current_user: dict = Depends(get_current_user)):
             )
 
         # ── Cancel this user's own RSVPs and free up spots ────────────────────
+        # Only rows that actually held a seat give one back: 'going', or a
+        # waitlist row with a live promotion offer. Plain waitlist rows and
+        # pending requests never took a spot.
         cur.execute(
             """
-            UPDATE event_attendees
-            SET status = 'cancelled'
-            WHERE user_id = %s::uuid AND status IN ('going', 'waitlist')
-            """,
-            (uid,),
-        )
-        cur.execute(
-            """
-            UPDATE events SET spots_left = spots_left + 1
-            WHERE id IN (
-                SELECT event_id FROM event_attendees
-                WHERE user_id = %s::uuid AND status = 'cancelled'
+            WITH released AS (
+                UPDATE event_attendees ea
+                SET status = 'cancelled', offer_expires_at = NULL
+                FROM (
+                    SELECT id, (status = 'going' OR (status = 'waitlist' AND offer_expires_at > NOW())) AS held_seat
+                    FROM event_attendees
+                    WHERE user_id = %s::uuid AND status IN ('going', 'waitlist', 'requested')
+                ) prev
+                WHERE ea.id = prev.id
+                RETURNING ea.event_id, prev.held_seat
             )
+            UPDATE events e SET spots_left = LEAST(e.capacity, e.spots_left + r.n)
+            FROM (SELECT event_id, COUNT(*) AS n FROM released WHERE held_seat GROUP BY event_id) r
+            WHERE e.id = r.event_id
             """,
             (uid,),
         )

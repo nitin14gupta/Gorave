@@ -138,6 +138,12 @@ export default function QrPaymentScreen() {
           return
         }
         if (res.status === 'expired') { setStatus('expired'); return }
+        if (res.status === 'refunded') {
+          setStatus('error')
+          showPill('That spot was just taken — your payment is back in your Gorave Wallet', 'error')
+          router.replace(`/(events)/${id}` as any)
+          return
+        }
         delay = 8000
       } catch {
         delay = Math.min(delay * 2, 30000)
@@ -188,6 +194,9 @@ export default function QrPaymentScreen() {
         setTimeout(() => router.replace(`/(events)/${id}/ticket` as any), 1600)
       } else if (res.status === 'expired') {
         setStatus('expired')
+      } else if (res.status === 'refunded') {
+        showPill('That spot was just taken — your payment is back in your Gorave Wallet', 'error')
+        router.replace(`/(events)/${id}` as any)
       } else {
         showPill('Payment not received yet. Please complete the payment first.', 'default')
       }

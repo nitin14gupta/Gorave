@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, Text, View, type StyleProp, type TextStyle, type
 import { LinearGradient } from 'expo-linear-gradient'
 import { Image } from 'expo-image'
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withDelay, withSpring, withTiming } from 'react-native-reanimated'
-import { MapPin, Flame } from 'lucide-react-native'
+import { MapPin, Flame, Hourglass } from 'lucide-react-native'
 import { useRouter } from 'expo-router'
 import { AutoSkeletonView } from 'react-native-auto-skeleton'
 import { Colors, FontFamily, EVENT_ICONS, EVENT_ICON_FALLBACK, withOpacity } from '@/constants'
@@ -325,7 +325,12 @@ export const EventCard = memo(function EventCard({ event, onPress, showHost, isP
         </View>
       </View>
 
-      {spotsLow && !isPast && !isCancelled && (
+      {event.my_rsvp_status === 'requested' && !isPast && !isCancelled ? (
+        <View style={s.spotsBar}>
+          <Hourglass size={13} color={Colors.inkPrimary} strokeWidth={2} />
+          <Text style={s.spotsText}>Requested · waiting for host</Text>
+        </View>
+      ) : spotsLow && !isPast && !isCancelled && (
         <View style={s.spotsBar}>
           <Flame size={13} color={Colors.inkPrimary} strokeWidth={2} />
           <Text style={s.spotsText}>Only {event.spots_left} spots left</Text>

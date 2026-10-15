@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { View, Text, StyleSheet, Keyboard } from 'react-native'
 import { router } from 'expo-router'
-import { BackButton, PhoneInput, PrimaryButton, KeyboardAvoidingWrapper, InAppBrowserModal, LogoMark } from '@/components/ui'
+import { BackButton, PhoneInput, PrimaryButton, KeyboardAvoidingWrapper, InAppBrowserModal, LogoMark, GlowLinesBackground } from '@/components/ui'
 import { useAuth } from '@/hooks/useAuth'
 import { Colors, FontFamily, Spacing, TERMS_URL, PRIVACY_URL, SUPPORT_EMAIL } from '@/constants'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -32,6 +32,8 @@ export default function PhoneScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
+      {/* Same glow backdrop as onboarding, so sign-in → onboarding feels like one flow */}
+      <GlowLinesBackground />
       <View style={styles.topRow}>
         <BackButton transparent onPress={() => router.back()} />
         <LogoMark size={20} opacity={0.7} style={styles.topLogo} />

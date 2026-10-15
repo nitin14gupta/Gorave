@@ -1,3 +1,4 @@
+import { SectionHeader } from '@/components/ui/SectionHeader'
 import { memo, useCallback, useState } from 'react'
 import { View, Text, StyleSheet, Pressable, FlatList, type ListRenderItemInfo } from 'react-native'
 import { router } from 'expo-router'
@@ -74,7 +75,7 @@ export function UpNextSection({ events }: { events: EventSummary[] }) {
 
   return (
     <View style={s.wrap}>
-      <Text style={s.title}>You're Going</Text>
+      <SectionHeader title="You're Going" actionLabel="See all" onAction={() => router.push('/(settings)/joined-events' as any)} />
       <FlatList
         data={visible}
         horizontal
@@ -96,7 +97,6 @@ export function UpNextSection({ events }: { events: EventSummary[] }) {
 
 const s = StyleSheet.create({
   wrap: { gap: 10 },
-  title: { fontFamily: FontFamily.headingBold, fontSize: 18, color: Colors.inkPrimary },
   list: { gap: 12, paddingRight: 4 },
   card: { width: CARD_WIDTH },
   ticketFooter: {

@@ -66,10 +66,10 @@ export default function CreateScreen() {
   useEffect(() => {
     setErrors(prev => {
       if (pinOutsideIndia) {
-        return prev.locationName ? prev : { ...prev, locationName: 'Pin must be inside India' }
+        return prev.pin ? prev : { ...prev, pin: 'Pin must be inside India' }
       }
-      if (prev.locationName === 'Pin must be inside India') {
-        const { locationName, ...rest } = prev
+      if (prev.pin === 'Pin must be inside India') {
+        const { pin, ...rest } = prev
         return rest
       }
       return prev

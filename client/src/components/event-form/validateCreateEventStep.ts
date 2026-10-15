@@ -2,7 +2,7 @@ import type { CreateEventForm } from '@/hooks/useCreateEvent'
 
 // Rough India bounding box — Gorave only operates in India, so a pin dropped
 // outside it (map panned/dragged too far) shouldn't be publishable.
-const INDIA_BOUNDS = { minLat: 6.0, maxLat: 37.6, minLng: 68.0, maxLng: 97.5 }
+export const INDIA_BOUNDS = { minLat: 6.0, maxLat: 37.6, minLng: 68.0, maxLng: 97.5 }
 
 export function isWithinIndia(lat: number, lng: number): boolean {
   return lat >= INDIA_BOUNDS.minLat && lat <= INDIA_BOUNDS.maxLat &&
@@ -52,12 +52,13 @@ export function validateCreateEventStep(
     if (form.capacity > 200) flag('capacity', 'Maximum 200 guests allowed', 'Capacity must be between 5 and 200')
   }
   if (step === 3) {
-    if (!form.locationName.trim()) flag('locationName', 'Location is required', 'Please add a venue or address')
-    else if (
-      form.locationLat != null && form.locationLng != null &&
-      !isWithinIndia(form.locationLat, form.locationLng)
-    ) {
-      flag('locationName', 'Pin must be inside India', 'Move the map pin to a location inside India')
+    if (!form.city) flag('city', 'Pick a city', 'Pick the city your event is in')
+    if (!form.addressLine1.trim()) flag('addressLine1', 'Add the flat, house or building', 'Add the flat, house or building for your event')
+    if (form.pincode.trim() && !/^\d{6}$/.test(form.pincode.trim())) flag('pincode', 'Pincode must be 6 digits', 'Pincode must be 6 digits')
+    if (form.locationLat == null || form.locationLng == null) {
+      flag('pin', 'Drop the pin at the entrance', 'Drop a pin on the map at the entrance')
+    } else if (!isWithinIndia(form.locationLat, form.locationLng)) {
+      flag('pin', 'Pin must be inside India', 'Move the map pin to a location inside India')
     }
   }
   if (step === 4) {

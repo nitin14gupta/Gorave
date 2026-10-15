@@ -26,7 +26,6 @@ CITIES = [
     {"name": "Ludhiana", "state": "Punjab", "lat": 30.9010, "lng": 75.8573},
     {"name": "Chandigarh", "state": "Punjab", "lat": 30.7333, "lng": 76.7794},
     {"name": "Jalandhar", "state": "Punjab", "lat": 31.3260, "lng": 75.5762},
-    {"name": "Gurgaon", "state": "Haryana", "lat": 28.4595, "lng": 77.0266},
     {"name": "Faridabad", "state": "Haryana", "lat": 28.4089, "lng": 77.3178},
     {"name": "Jodhpur", "state": "Rajasthan", "lat": 26.2389, "lng": 73.0243},
     {"name": "Kota", "state": "Rajasthan", "lat": 25.2138, "lng": 75.8648},
@@ -95,6 +94,28 @@ for city in CITIES:
         _seen.add(city["name"])
         _unique.append(city)
 CITIES = _unique
+
+CITY_BY_NAME = {c["name"].lower(): c for c in CITIES}
+
+
+def find_city(name: str | None) -> dict | None:
+    """Case-insensitive lookup against the canonical CITIES list."""
+    if not name:
+        return None
+    return CITY_BY_NAME.get(name.strip().lower())
+
+
+def distance_km(lat1: float, lng1: float, lat2: float, lng2: float) -> float:
+    from math import radians, sin, cos, asin, sqrt
+    dlat, dlng = radians(lat2 - lat1), radians(lng2 - lng1)
+    a = sin(dlat / 2) ** 2 + cos(radians(lat1)) * cos(radians(lat2)) * sin(dlng / 2) ** 2
+    return 6371.0 * 2 * asin(sqrt(a))
+
+
+def nearest_city(lat: float | None, lng: float | None) -> dict | None:
+    if lat is None or lng is None:
+        return None
+    return min(CITIES, key=lambda c: distance_km(lat, lng, c["lat"], c["lng"]))
 
 
 INTERESTS = [

@@ -70,6 +70,11 @@ export const ENDPOINTS = {
   EVENT_WAITLIST: '/events/:id/waitlist',
   EVENT_WAITLIST_ADMIT: '/events/:id/waitlist/admit',
   EVENT_FREE_SLOTS: '/events/free-slots',
+  EVENT_REQUEST: '/events/:id/request',
+  EVENT_REQUESTS: '/events/:id/requests',
+  EVENT_REQUEST_ACCEPT: '/events/:id/requests/:userId/accept',
+  EVENT_REQUEST_DECLINE: '/events/:id/requests/:userId/decline',
+  EVENT_REQUESTS_ACCEPT_BULK: '/events/:id/requests/accept-bulk',
 
   // Chat
   CONVERSATIONS: '/chat/conversations',

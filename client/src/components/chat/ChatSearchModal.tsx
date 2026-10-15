@@ -1,3 +1,4 @@
+import { ShimmerText } from '@/components/ui/ShimmerText'
 import { useState } from 'react'
 import { View, Text, StyleSheet, Modal, FlatList, Pressable } from 'react-native'
 import { Image } from 'expo-image'
@@ -175,7 +176,7 @@ export function ChatSearchModal({ visible, onClose, conversations, onSelectConve
                       }}
                       hitSlop={8}
                     >
-                      <Text style={s.sectionAction}>{expanded ? 'Clear all' : 'See all'}</Text>
+                      <ShimmerText style={s.sectionAction}>{expanded ? 'Clear all' : 'See all'}</ShimmerText>
                     </Pressable>
                   </View>
                   {recentToShow.map(item => (

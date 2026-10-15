@@ -34,6 +34,8 @@ class ProfileCreate(BaseModel):
 class ProfileUpdate(BaseModel):
     name: Optional[str] = None
     username: Optional[str] = None
+    # Accepted for backwards compatibility but ignored — gender is set once at
+    # onboarding because crowd-mix quotas (events.women_pct) depend on it.
     gender: Optional[str] = None
     bio: Optional[str] = None
     badges: Optional[List[str]] = None

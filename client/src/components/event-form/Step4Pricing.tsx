@@ -88,6 +88,15 @@ function Inner({ form, set, errors, setErrors, submitError, priceLocked, priceLo
         )}
         {errors.priceInr ? <Text style={ef.errorText}>{errors.priceInr}</Text> : null}
 
+        {form.isFree ? (
+          <View style={s.feeBreakdown}>
+            <Text style={s.feeBreakdownText}>
+              Free events are request-to-join — guests ask, you accept or decline each one,
+              so free spots can't all get grabbed at once.
+            </Text>
+          </View>
+        ) : null}
+
         {!form.isFree && form.priceInr > 0 ? (
           <View style={s.feeBreakdown}>
             <Text style={s.feeBreakdownText}>

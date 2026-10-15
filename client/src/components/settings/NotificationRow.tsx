@@ -5,7 +5,7 @@ import { Swipeable } from 'react-native-gesture-handler'
 import { Image } from 'expo-image'
 import { AutoSkeletonView } from 'react-native-auto-skeleton'
 import { hTap, hMedium } from '@/lib/haptics'
-import { Bell, UserPlus, Flame, MessageCircle, PartyPopper, ShieldCheck, Trophy, Trash2, Star, Frown } from 'lucide-react-native'
+import { Bell, UserPlus, Flame, MessageCircle, PartyPopper, ShieldCheck, Trophy, Trash2, Star, Frown, Check, X, Inbox } from 'lucide-react-native'
 import type { AppNotification } from '@/api/apiService'
 import { Colors, FontFamily, withOpacity } from '@/constants'
 import { OutlineButton, PrimaryButton } from '@/components/ui'
@@ -29,6 +29,7 @@ const ACTION_ICON: Record<string, any> = {
   follow: UserPlus,
   send_vibe: Flame,
   message: MessageCircle,
+  join_request: Check,
 }
 
 const AnimatedPressable = ReanimatedView.createAnimatedComponent(Pressable)
@@ -42,12 +43,16 @@ const TYPE_FALLBACK: Record<string, { Icon: any; bg: string; color: string }> = 
   // already-given rating rather than a prompt to go leave one.
   event_review_prompt: { Icon: Star, bg: Colors.surface, color: Colors.inkDisabled },
   event_missed: { Icon: Frown, bg: Colors.surface, color: Colors.inkDisabled },
+  spot_opened: { Icon: Inbox, bg: withOpacity(Colors.brandOrange, 0.16), color: Colors.brandOrange },
+  request_expired: { Icon: Frown, bg: Colors.surface, color: Colors.inkDisabled },
+  request_declined: { Icon: Frown, bg: Colors.surface, color: Colors.inkDisabled },
 }
 
 export const NotificationRow = React.memo(function NotificationRow({ item, onPress, onAction, onDismiss }: {
   item: AppNotification
   onPress: () => void
-  onAction: (item: AppNotification) => void
+  /** secondary = the Decline half of a two-button action (join_request) */
+  onAction: (item: AppNotification, secondary?: boolean) => void
   onDismiss: () => void
 }) {
   const unread = !item.read_at
@@ -125,7 +130,22 @@ export const NotificationRow = React.memo(function NotificationRow({ item, onPre
         </View>
       </AnimatedPressable>
 
-      {item.action && item.action_label && ActionIcon ? (
+      {item.action === 'join_request' ? (
+        <View style={[s.actionBtnWrap, s.dualActions]}>
+          <OutlineButton
+            label="Decline"
+            onPress={() => onAction(item, true)}
+            icon={<X size={14} color={Colors.inkPrimary} strokeWidth={2} />}
+            size="small"
+          />
+          <PrimaryButton
+            label="Accept"
+            onPress={() => onAction(item)}
+            icon={<Check size={14} color={Colors.background} strokeWidth={2.4} />}
+            size="small"
+          />
+        </View>
+      ) : item.action && item.action_label && ActionIcon ? (
         <View style={s.actionBtnWrap}>
           {isPrimary ? (
             <PrimaryButton
@@ -209,6 +229,7 @@ const s = StyleSheet.create({
   actionBtnWrap: {
     marginLeft: 'auto',
   },
+  dualActions: { flexDirection: 'row', gap: 6 },
   skRow: {
     flexDirection: 'row', alignItems: 'flex-start',
     paddingHorizontal: 20, paddingVertical: 14, gap: 14,

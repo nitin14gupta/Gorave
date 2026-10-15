@@ -1,5 +1,6 @@
+import { SectionHeader } from '@/components/ui/SectionHeader'
 import { forwardRef, memo, useCallback, useImperativeHandle, useRef, useState } from 'react'
-import { View, Text, StyleSheet, FlatList } from 'react-native'
+import { View, StyleSheet, FlatList } from 'react-native'
 import { router, useFocusEffect } from 'expo-router'
 import ApiService, { type EventSummary } from '@/api/apiService'
 import { getOrFetch, invalidate } from '@/lib/queryCache'
@@ -68,10 +69,7 @@ export const ActiveEventsSection = forwardRef<ActiveEventsSectionHandle, Props>(
 
   return (
     <View style={s.wrap}>
-      <View style={s.titleRow}>
-        <View style={s.liveDot} />
-        <Text style={s.title}>Happening Now</Text>
-      </View>
+      <SectionHeader title="Happening Now" leading={<View style={s.liveDot} />} />
       <FlatList
         data={events}
         horizontal
@@ -86,9 +84,7 @@ export const ActiveEventsSection = forwardRef<ActiveEventsSectionHandle, Props>(
 
 const s = StyleSheet.create({
   wrap: { gap: 10 },
-  titleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   liveDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: Colors.destructive },
-  title: { fontFamily: FontFamily.headingBold, fontSize: 18, color: Colors.inkPrimary },
   list: { gap: 12, paddingRight: 4 },
   card: { width: CARD_WIDTH },
   sosBadge: {

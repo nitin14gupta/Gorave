@@ -27,12 +27,35 @@ interface ViewStateChangeEvent {
   userInteraction: boolean
 }
 
+export interface DetectedAddress {
+  /** Locality, e.g. "Bandra West" */
+  area: string
+  pincode: string
+  city: string
+}
+
 export interface LocationPickerMapProps {
   lat?: number
   lng?: number
   provider?: 'maplibre' | 'google'
   onChange: (lat: number, lng: number) => void
-  onAddressDetected?: (address: string) => void
+  /** Reverse-geocoded locality under the pin. Callers decide what to fill —
+   * it never overwrites address lines the host typed. */
+  onAddressDetected?: (address: DetectedAddress) => void
+  /** Where to look when there's no pin yet and the device isn't near it
+   * (e.g. the chosen city's centre). Changing it re-centres the map. */
+  focus?: { lat: number; lng: number } | null
+}
+
+// Further than this from `focus`, the device location isn't a useful
+// starting point (host is planning an event in another city).
+const NEAR_FOCUS_KM = 60
+
+function kmBetween(aLat: number, aLng: number, bLat: number, bLng: number) {
+  const r = (d: number) => (d * Math.PI) / 180
+  const dLat = r(bLat - aLat), dLng = r(bLng - aLng)
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(r(aLat)) * Math.cos(r(bLat)) * Math.sin(dLng / 2) ** 2
+  return 6371 * 2 * Math.asin(Math.sqrt(h))
 }
 
 export function LocationPickerMap({
@@ -41,6 +64,7 @@ export function LocationPickerMap({
   provider = MAP_PROVIDER,
   onChange,
   onAddressDetected,
+  focus,
 }: LocationPickerMapProps) {
   const googleMapRef = useRef<MapView>(null)
   const cameraRef = useRef<CameraRef>(null)
@@ -56,18 +80,19 @@ export function LocationPickerMap({
   // several. Only used when no coords were already supplied.
   const live = useLiveLocation()
 
-  const flyToCoords = (latitude: number, longitude: number) => {
+  const flyToCoords = (latitude: number, longitude: number, zoom = 15) => {
     // Short delay to ensure the map's tile loading has started
     setTimeout(() => {
       if (provider === 'google') {
+        const delta = zoom >= 15 ? 0.004 : 0.12
         googleMapRef.current?.animateToRegion(
-          { latitude, longitude, latitudeDelta: 0.004, longitudeDelta: 0.004 },
+          { latitude, longitude, latitudeDelta: delta, longitudeDelta: delta },
           1000,
         )
       } else {
         cameraRef.current?.flyTo({
           center: [longitude, latitude],
-          zoom: 15,
+          zoom,
           duration: 1800,
         })
       }
@@ -79,9 +104,11 @@ export function LocationPickerMap({
     try {
       const [place] = await Location.reverseGeocodeAsync({ latitude, longitude })
       if (place) {
-        const parts = [place.name, place.street, place.district, place.city].filter(Boolean)
-        const address = parts.join(', ')
-        if (address) onAddressDetected(address)
+        onAddressDetected({
+          area: place.district || place.subregion || '',
+          pincode: /^\d{6}$/.test(place.postalCode ?? '') ? place.postalCode! : '',
+          city: place.city || '',
+        })
       }
     } catch {
       // Reverse geocoding failed — address input just stays as-is
@@ -104,12 +131,27 @@ export function LocationPickerMap({
   useEffect(() => {
     if (flownRef.current || hasCoords) return
     if (live.lat == null || live.lng == null) return
+    if (focus && kmBetween(live.lat, live.lng, focus.lat, focus.lng) > NEAR_FOCUS_KM) return
     flownRef.current = true
     onChange(live.lat, live.lng)
     flyToCoords(live.lat, live.lng)
     reverseGeocode(live.lat, live.lng)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [live.lat, live.lng])
+
+  // The chosen city changed (or arrived) — if the pin isn't already in it,
+  // move the map there so the host drops the pin in the right place.
+  const focusKey = focus ? `${focus.lat},${focus.lng}` : ''
+  useEffect(() => {
+    if (!focus) return
+    if (hasCoords && kmBetween(lat!, lng!, focus.lat, focus.lng) <= NEAR_FOCUS_KM) return
+    if (!hasCoords && live.lat != null && live.lng != null &&
+        kmBetween(live.lat, live.lng, focus.lat, focus.lng) <= NEAR_FOCUS_KM) return
+    flownRef.current = true
+    onChange(focus.lat, focus.lng)
+    flyToCoords(focus.lat, focus.lng, 12)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusKey])
 
   useEffect(() => () => {
     if (geocodeTimerRef.current) clearTimeout(geocodeTimerRef.current)

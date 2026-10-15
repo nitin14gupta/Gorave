@@ -38,11 +38,22 @@ import type {
   EmergencyContact,
   AppNotification,
   NotificationPrefs,
+  RsvpStatus,
+  JoinRequestsResponse,
+  BulkAcceptResponse,
+  GenderCounts,
 } from '@/types/api'
 
 // Response/request shapes live in '@/types/api' — re-exported here so
 // existing `import { X } from '@/api/apiService'` call sites keep working.
 export type {
+  JoinMode,
+  RsvpStatus,
+  CrowdRatio,
+  JoinRequest,
+  JoinRequestsResponse,
+  BulkAcceptResponse,
+  GenderCounts,
   TokenResponse,
   UserResponse,
   PayoutDetailsResponse,
@@ -636,6 +647,8 @@ class ApiService {
     lat?: number
     lng?: number
     radius_km?: number
+    /** Canonical city name — restricts to that city; lat/lng then only sort by distance */
+    city?: string
     category?: string
     is_free?: boolean
     date_range?: string
@@ -654,6 +667,7 @@ class ApiService {
     if (filters.lat != null) params.set('lat', String(filters.lat))
     if (filters.lng != null) params.set('lng', String(filters.lng))
     if (filters.radius_km != null) params.set('radius_km', String(filters.radius_km))
+    if (filters.city) params.set('city', filters.city)
     if (filters.category) params.set('category', filters.category)
     if (filters.is_free != null) params.set('is_free', String(filters.is_free))
     if (filters.date_range) params.set('date_range', filters.date_range)
@@ -685,6 +699,32 @@ class ApiService {
     return this.post<{ status: string; position?: number }>(ENDPOINTS.EVENT_RSVP.replace(':id', id), { action })
   }
 
+  // ── Join requests (free events are host-approved) ──────────────────────────
+
+  static async requestToJoin(id: string): Promise<{ ok: boolean; status: RsvpStatus }> {
+    return this.post(ENDPOINTS.EVENT_REQUEST.replace(':id', id), {})
+  }
+
+  static async withdrawJoinRequest(id: string): Promise<{ ok: boolean; status: RsvpStatus }> {
+    return this.delete(ENDPOINTS.EVENT_REQUEST.replace(':id', id))
+  }
+
+  static async getJoinRequests(id: string): Promise<JoinRequestsResponse> {
+    return this.get<JoinRequestsResponse>(ENDPOINTS.EVENT_REQUESTS.replace(':id', id))
+  }
+
+  static async acceptJoinRequest(id: string, userId: string): Promise<{ ok: boolean; status: RsvpStatus; spots_left: number }> {
+    return this.post(ENDPOINTS.EVENT_REQUEST_ACCEPT.replace(':id', id).replace(':userId', userId), {})
+  }
+
+  static async declineJoinRequest(id: string, userId: string): Promise<{ ok: boolean; status: RsvpStatus }> {
+    return this.post(ENDPOINTS.EVENT_REQUEST_DECLINE.replace(':id', id).replace(':userId', userId), {})
+  }
+
+  static async acceptJoinRequestsBulk(id: string, userIds: string[]): Promise<BulkAcceptResponse> {
+    return this.post<BulkAcceptResponse>(ENDPOINTS.EVENT_REQUESTS_ACCEPT_BULK.replace(':id', id), { user_ids: userIds })
+  }
+
   static async cancelEvent(id: string): Promise<void> {
     await this.delete<{ ok: boolean }>(ENDPOINTS.EVENT_DETAIL.replace(':id', id))
   }
@@ -697,8 +737,8 @@ class ApiService {
     return this.post(ENDPOINTS.EVENT_WAITLIST_ADMIT.replace(':id', id), {})
   }
 
-  static async getEventAttendees(id: string): Promise<{ attendees: EventAttendee[]; total: number }> {
-    return this.get<{ attendees: EventAttendee[]; total: number }>(
+  static async getEventAttendees(id: string): Promise<{ attendees: EventAttendee[]; total: number; gender_counts?: GenderCounts }> {
+    return this.get<{ attendees: EventAttendee[]; total: number; gender_counts?: GenderCounts }>(
       ENDPOINTS.EVENT_ATTENDEES.replace(':id', id),
     )
   }
@@ -819,7 +859,7 @@ class ApiService {
     return this.post(ENDPOINTS.PAYMENT_CREATE_QR, { event_id: eventId, wallet_amount: walletAmount })
   }
 
-  static async getQrStatus(qrId: string): Promise<{ status: 'pending' | 'paid' | 'expired' }> {
+  static async getQrStatus(qrId: string): Promise<{ status: 'pending' | 'paid' | 'expired' | 'refunded' }> {
     return this.get(ENDPOINTS.PAYMENT_QR_STATUS.replace(':id', qrId))
   }
 
@@ -869,15 +909,17 @@ class ApiService {
   // Calendar screen — month-scoped summary (dates + booleans, no event
   // payload) drives the grid dots; full details for one day are fetched
   // lazily via getCalendarDay, only when that day is actually selected.
-  static async getCalendarSummary(startDate: string, endDate: string, lat?: number | null, lng?: number | null): Promise<CalendarDaySummary[]> {
+  static async getCalendarSummary(startDate: string, endDate: string, lat?: number | null, lng?: number | null, city?: string | null): Promise<CalendarDaySummary[]> {
     const params = new URLSearchParams({ start_date: startDate, end_date: endDate })
     if (lat != null && lng != null) { params.set('lat', String(lat)); params.set('lng', String(lng)) }
+    if (city) params.set('city', city)
     return this.get<CalendarDaySummary[]>(`/events/calendar/summary?${params.toString()}`)
   }
 
-  static async getCalendarDay(date: string, lat?: number | null, lng?: number | null): Promise<CalendarDayEvents> {
+  static async getCalendarDay(date: string, lat?: number | null, lng?: number | null, city?: string | null): Promise<CalendarDayEvents> {
     const params = new URLSearchParams({ date })
     if (lat != null && lng != null) { params.set('lat', String(lat)); params.set('lng', String(lng)) }
+    if (city) params.set('city', city)
     return this.get<CalendarDayEvents>(`/events/calendar/day?${params.toString()}`)
   }
 

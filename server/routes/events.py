@@ -8,11 +8,38 @@ from utils.push import send_push
 from routes.payments import PLATFORM_FEE_INR, HOST_COMMISSION_RATE
 from routes.users import compute_host_badges
 from middleware.rate_limit import enforce_rate_limit
+from routes.places import find_city, distance_km
+from utils import seats
 
 router = APIRouter(prefix="/events", tags=["events"])
 
 # Single source of truth for both create and edit, so the two can't drift apart.
 MIN_TICKET_PRICE_INR = 99
+FREE_EVENTS_PER_MONTH = 2
+# A guest can send (or re-send after withdrawing) a join request this many
+# times per event. A host decline is final regardless.
+_MAX_JOIN_REQUESTS = 3
+
+
+def _join_mode_for(price_inr: int) -> str:
+    """Free events are host-approved so free spots can't be swept up in one
+    go; paid events book instantly."""
+    return "request" if price_inr == 0 else "instant"
+
+
+def _free_events_this_month(cur, host_id: str, exclude_event_id: Optional[str] = None) -> int:
+    cur.execute(
+        """
+        SELECT COUNT(*)::int AS count FROM events
+        WHERE host_id = %s::uuid AND price_inr = 0
+          AND DATE_TRUNC('month', created_at AT TIME ZONE 'UTC')
+            = DATE_TRUNC('month', NOW() AT TIME ZONE 'UTC')
+          AND is_cancelled = FALSE
+          AND (%s::uuid IS NULL OR id != %s::uuid)
+        """,
+        (host_id, exclude_event_id, exclude_event_id),
+    )
+    return cur.fetchone()["count"]
 
 
 def _fee_snapshot(price_inr: int) -> tuple[int, int, int]:
@@ -31,19 +58,32 @@ def _calc_age(dob: date) -> int:
 
 
 def _promote_next_waitlist(cur, event_id: str) -> dict | None:
-    """Promote the next user in the waitlist queue. Holds the spot by decrementing spots_left."""
+    """Promote the oldest waitlister whose gender still has room under the
+    event's crowd mix. Holds the spot by decrementing spots_left."""
+    cur.execute("SELECT capacity, spots_left, women_pct FROM events WHERE id = %s", (event_id,))
+    ev = cur.fetchone()
+    if not ev or ev["spots_left"] <= 0:
+        return None
     cur.execute(
         """
-        SELECT ea.id, ea.user_id::text, u.name
+        SELECT ea.id, ea.user_id::text, u.name, u.gender
         FROM event_attendees ea
         JOIN users u ON u.id = ea.user_id
         WHERE ea.event_id = %s AND ea.status = 'waitlist' AND ea.offer_expires_at IS NULL
         ORDER BY ea.joined_at ASC
-        LIMIT 1
+        LIMIT 200
         """,
         (event_id,),
     )
-    next_row = cur.fetchone()
+    candidates = cur.fetchall()
+    if not candidates:
+        return None
+    counts = seats.seat_counts(cur, event_id)
+    next_row = next(
+        (c for c in candidates
+         if seats.bucket_has_room(ev["capacity"], ev["women_pct"], counts, seats.gender_bucket(c["gender"]))),
+        None,
+    )
     if not next_row:
         return None
     cur.execute(
@@ -54,7 +94,7 @@ def _promote_next_waitlist(cur, event_id: str) -> dict | None:
         "UPDATE events SET spots_left = GREATEST(0, spots_left - 1) WHERE id = %s",
         (event_id,),
     )
-    return dict(next_row)
+    return {"id": next_row["id"], "user_id": next_row["user_id"], "name": next_row["name"]}
 
 
 def _expire_stale_offers(cur, event_id: str) -> list:
@@ -106,6 +146,17 @@ class EventSummary(BaseModel):
     end_time: Optional[str] = None
     location_name: Optional[str] = None
     location_lat: Optional[float] = None
+    city: Optional[str] = None
+    area: Optional[str] = None
+    address_line1: Optional[str] = None
+    address_line2: Optional[str] = None
+    pincode: Optional[str] = None
+    # True when the viewer isn't the host or a confirmed guest — the address
+    # lines are withheld and the pin is rounded to ~1km.
+    is_location_masked: bool = False
+    join_mode: str = "instant"                  # 'instant' | 'request'
+    women_pct: Optional[int] = None             # NULL = open crowd
+    my_rsvp_status: Optional[str] = None
     waitlist_count: int = 0
     is_waitlist_full: bool = False
     location_lng: Optional[float] = None
@@ -155,10 +206,14 @@ class EventDetail(EventSummary):
     review_count: int = 0
     host_avg_rating: Optional[float] = None
     host_review_count: int = 0
-    my_rsvp_status: Optional[str] = None        # 'going' | 'waitlist' | 'cancelled' | None
+    # 'going' | 'waitlist' | 'cancelled' | 'requested' | 'declined' | 'expired' | None
+    my_rsvp_status: Optional[str] = None
     my_waitlist_position: Optional[int] = None  # position in queue (1-indexed), None if not on waitlist
     my_offer_expires_at: Optional[str] = None   # ISO string when promoted, else None
     my_review_rating: Optional[int] = None
+    my_can_request_again: bool = True
+    ratio: Optional[dict] = None                # {women_pct, women_left, men_left, open_left}
+    pending_request_count: int = 0              # host only
 
 
 class CheckinBody(BaseModel):
@@ -188,6 +243,12 @@ class CreateEventBody(BaseModel):
     location_name: Optional[str] = None
     location_lat: Optional[float] = None
     location_lng: Optional[float] = None
+    city: Optional[str] = None
+    area: Optional[str] = None
+    address_line1: Optional[str] = None
+    address_line2: Optional[str] = None
+    pincode: Optional[str] = None
+    women_pct: Optional[int] = None
     price_inr: int = 0
     cover_photos: List[str] = []
 
@@ -208,6 +269,93 @@ def _haversine_sql(me_lat, me_lng):
     """
 
 
+# Same box the client validates against (validateCreateEventStep.ts INDIA_BOUNDS).
+_INDIA_BOUNDS = {"min_lat": 6.0, "max_lat": 37.6, "min_lng": 68.0, "max_lng": 97.5}
+# How far the pin may sit from the chosen city's centre — generous enough for
+# metro sprawl (Navi Mumbai, Noida) but catches "picked Mumbai, pinned Delhi".
+_MAX_PIN_DISTANCE_FROM_CITY_KM = 60
+
+
+def _clean(v: Optional[str]) -> Optional[str]:
+    v = (v or "").strip()
+    return v or None
+
+
+def _validate_location(body: "CreateEventBody") -> dict:
+    """Validates the structured address and returns normalised fields plus
+    the composed location_name every existing display site reads."""
+    city = find_city(body.city)
+    if not city:
+        raise HTTPException(status_code=422, detail="Pick the city your event is in")
+    line1 = _clean(body.address_line1)
+    if not line1:
+        raise HTTPException(status_code=422, detail="Add the flat, house or building for your event")
+    lat, lng = body.location_lat, body.location_lng
+    if lat is None or lng is None:
+        raise HTTPException(status_code=422, detail="Drop a pin on the map at the entrance")
+    b = _INDIA_BOUNDS
+    if not (b["min_lat"] <= lat <= b["max_lat"] and b["min_lng"] <= lng <= b["max_lng"]):
+        raise HTTPException(status_code=422, detail="Events must be located in India")
+    if distance_km(lat, lng, city["lat"], city["lng"]) > _MAX_PIN_DISTANCE_FROM_CITY_KM:
+        raise HTTPException(status_code=422, detail=f"The map pin is outside {city['name']} — move it or change the city")
+    pincode = _clean(body.pincode)
+    if pincode and not (len(pincode) == 6 and pincode.isdigit()):
+        raise HTTPException(status_code=422, detail="Pincode must be 6 digits")
+    area = _clean(body.area)
+    line2 = _clean(body.address_line2)
+    location_name = ", ".join(p for p in (line1, line2, area, city["name"]) if p)
+    return {
+        "city": city["name"], "area": area, "address_line1": line1, "address_line2": line2,
+        "pincode": pincode, "location_name": location_name, "location_lat": lat, "location_lng": lng,
+    }
+
+
+def _validate_women_pct(v: Optional[int]) -> Optional[int]:
+    if v is None:
+        return None
+    if not (0 <= v <= 100) or v % 10 != 0:
+        raise HTTPException(status_code=422, detail="Crowd mix must be in steps of 10%")
+    return v
+
+
+def _mask_location(d: dict) -> None:
+    d["is_location_masked"] = True
+    d["location_name"] = ", ".join(p for p in (d.get("area"), d.get("city")) if p) or None
+    d["address_line1"] = d["address_line2"] = d["pincode"] = None
+    if d.get("location_lat") is not None:
+        d["location_lat"] = round(d["location_lat"], 2)
+    if d.get("location_lng") is not None:
+        d["location_lng"] = round(d["location_lng"], 2)
+
+
+def _apply_location_privacy(cur, rows: list, viewer_id: str) -> list:
+    """Exact address is for the host and confirmed guests only — everyone
+    else sees "Area, City" and a ~1km-rounded pin (same idea as Airbnb
+    hiding the exact listing location until booking)."""
+    ids = [d["id"] for d in rows if d.get("host_id") != viewer_id]
+    if not ids:
+        return rows
+    cur.execute(
+        "SELECT event_id::text FROM event_attendees WHERE user_id = %s::uuid AND status = 'going' AND event_id = ANY(%s::uuid[])",
+        (viewer_id, ids),
+    )
+    going = {r["event_id"] for r in cur.fetchall()}
+    for d in rows:
+        if d.get("host_id") != viewer_id and d["id"] not in going:
+            _mask_location(d)
+    return rows
+
+
+def _shape_event_rows(rows) -> list:
+    result = []
+    for row in rows:
+        d = dict(row)
+        photos_raw = d.get("cover_photos") or []
+        d["cover_photos"] = [{"url": p, "position": i} for i, p in enumerate(photos_raw)] if isinstance(photos_raw, list) and photos_raw and isinstance(photos_raw[0], str) else photos_raw
+        result.append(d)
+    return result
+
+
 # ── GET /events ────────────────────────────────────────────────────────────────
 
 @router.get("", response_model=List[EventSummary])
@@ -215,6 +363,7 @@ def list_events(
     lat: Optional[float] = Query(default=None),
     lng: Optional[float] = Query(default=None),
     radius_km: Optional[int] = Query(default=50),
+    city: Optional[str] = Query(default=None),
     category: Optional[str] = Query(default=None),
     is_free: Optional[bool] = Query(default=None),
     date_range: Optional[str] = Query(default=None),  # tonight | weekend | all
@@ -234,10 +383,25 @@ def list_events(
 ):
     viewer_id = current_user["id"]
 
-    dist_sql = _haversine_sql(lat, lng) if lat and lng else "NULL::int"
+    city_row = find_city(city)
+    if city and not city_row:
+        return []
+    # Within a city, "closest first" uses the device location when we have it,
+    # otherwise the city centre — so the feed is always distance-ordered.
+    if lat and lng:
+        sort_lat, sort_lng = lat, lng
+    elif city_row:
+        sort_lat, sort_lng = city_row["lat"], city_row["lng"]
+    else:
+        sort_lat = sort_lng = None
+    dist_sql = _haversine_sql(float(sort_lat), float(sort_lng)) if sort_lat and sort_lng else "NULL::int"
 
     filters = ["e.is_published = TRUE", "e.is_cancelled = FALSE", "e.date_time > NOW()"]
     filter_params: list = []
+
+    if city_row:
+        filters.append("e.city = %s")
+        filter_params.append(city_row["name"])
 
     if category:
         filters.append("e.event_type = %s")
@@ -261,16 +425,18 @@ def list_events(
         filter_params.append(end_date)
 
     if q:
-        filters.append("(e.title ILIKE %s OR e.location_name ILIKE %s)")
+        # Area/city rather than location_name, so search can't be used to
+        # probe for a private street address.
+        filters.append("(e.title ILIKE %s OR e.area ILIKE %s OR e.city ILIKE %s)")
         like = f"%{q}%"
-        filter_params.extend([like, like])
+        filter_params.extend([like, like, like])
 
     # Viewport bounds take priority over radius — used by MapLibre's onRegionDidChange
     if min_lat is not None and max_lat is not None and min_lng is not None and max_lng is not None:
         filters.append("e.location_lat BETWEEN %s AND %s")
         filters.append("e.location_lng BETWEEN %s AND %s")
         filter_params.extend([min_lat, max_lat, min_lng, max_lng])
-    elif lat and lng and radius_km:
+    elif lat and lng and radius_km and not city_row:
         filters.append(f"""
             6371.0 * acos(LEAST(1.0,
                 cos(radians(%s)) * cos(radians(e.location_lat)) *
@@ -307,7 +473,7 @@ def list_events(
     """
     relationship_params = [viewer_id, viewer_id, viewer_id, viewer_id]
 
-    default_order = dist_sql + " ASC NULLS LAST" if lat and lng else "e.date_time ASC"
+    default_order = dist_sql + " ASC NULLS LAST, e.date_time ASC" if sort_lat and sort_lng else "e.date_time ASC"
     # Relationship ranking (paid-attended > attended > following) applies to
     # every listing, not just an active text search — a followed host's event
     # should float up whether you're browsing nearby or typing a query. Text
@@ -328,12 +494,14 @@ def list_events(
             e.title, e.event_type,
             e.date_time::text, e.end_time::text,
             e.location_name, e.location_lat, e.location_lng,
+                e.city, e.area, e.address_line1, e.address_line2, e.pincode, e.join_mode, e.women_pct,
             e.price_inr, (e.price_inr = 0) AS is_free,
             e.platform_fee_inr, e.host_commission_inr, e.platform_profit_inr,
             e.spots_left, e.capacity, e.age_restriction,
             e.cover_photos,
             e.host_id::text,
             {dist_sql} AS distance_km,
+            (SELECT ea.status FROM event_attendees ea WHERE ea.event_id = e.id AND ea.user_id = %s::uuid) AS my_rsvp_status,
             u.name AS host_name,
             (SELECT p.url FROM user_photos p WHERE p.user_id = u.id ORDER BY p.position LIMIT 1) AS host_avatar,
             COALESCE(u.is_deleted, FALSE) AS host_is_deleted,
@@ -353,18 +521,16 @@ def list_events(
         ORDER BY {order_sql}
         LIMIT %s
     """
-    params = [viewer_id] + relationship_params + filter_params + order_params + [limit]
+    params = [viewer_id, viewer_id] + relationship_params + filter_params + order_params + [limit]
 
     with get_db() as (cur, _):
         cur.execute(sql, params)
-        rows = cur.fetchall()
-
-    result = []
-    for row in rows:
-        d = dict(row)
-        photos_raw = d.get("cover_photos") or []
-        d["cover_photos"] = [{"url": p, "position": i} for i, p in enumerate(photos_raw)] if isinstance(photos_raw, list) and photos_raw and isinstance(photos_raw[0], str) else photos_raw
-        result.append(d)
+        result = _apply_location_privacy(cur, _shape_event_rows(cur.fetchall()), viewer_id)
+    # Distance from the city centre isn't "distance from you" — only show
+    # distance when it was measured from the device.
+    if not (lat and lng):
+        for d in result:
+            d["distance_km"] = None
     return result
 
 
@@ -383,6 +549,7 @@ def get_hosted_events(current_user: dict = Depends(get_current_user)):
                 e.title, e.event_type,
                 e.date_time::text, e.end_time::text,
                 e.location_name, e.location_lat, e.location_lng,
+                e.city, e.area, e.address_line1, e.address_line2, e.pincode, e.join_mode, e.women_pct,
                 e.price_inr, (e.price_inr = 0) AS is_free,
             e.platform_fee_inr, e.host_commission_inr, e.platform_profit_inr,
                 e.spots_left, e.capacity, e.age_restriction,
@@ -454,6 +621,7 @@ def get_hosted_events_paged(
                 e.title, e.event_type,
                 e.date_time::text, e.end_time::text,
                 e.location_name, e.location_lat, e.location_lng,
+                e.city, e.area, e.address_line1, e.address_line2, e.pincode, e.join_mode, e.women_pct,
                 e.price_inr, (e.price_inr = 0) AS is_free,
             e.platform_fee_inr, e.host_commission_inr, e.platform_profit_inr,
                 e.spots_left, e.capacity, e.age_restriction,
@@ -509,6 +677,7 @@ def get_joined_events(current_user: dict = Depends(get_current_user)):
                 e.title, e.event_type,
                 e.date_time::text, e.end_time::text,
                 e.location_name, e.location_lat, e.location_lng,
+                e.city, e.area, e.address_line1, e.address_line2, e.pincode, e.join_mode, e.women_pct,
                 e.price_inr, (e.price_inr = 0) AS is_free,
             e.platform_fee_inr, e.host_commission_inr, e.platform_profit_inr,
                 e.spots_left, e.capacity, e.age_restriction,
@@ -581,6 +750,7 @@ def get_joined_events_paged(
                 e.title, e.event_type,
                 e.date_time::text, e.end_time::text,
                 e.location_name, e.location_lat, e.location_lng,
+                e.city, e.area, e.address_line1, e.address_line2, e.pincode, e.join_mode, e.women_pct,
                 e.price_inr, (e.price_inr = 0) AS is_free,
             e.platform_fee_inr, e.host_commission_inr, e.platform_profit_inr,
                 e.spots_left, e.capacity, e.age_restriction,
@@ -636,6 +806,7 @@ def get_waitlisted_events(current_user: dict = Depends(get_current_user)):
                 e.title, e.event_type,
                 e.date_time::text, e.end_time::text,
                 e.location_name, e.location_lat, e.location_lng,
+                e.city, e.area, e.address_line1, e.address_line2, e.pincode, e.join_mode, e.women_pct,
                 e.price_inr, (e.price_inr = 0) AS is_free,
             e.platform_fee_inr, e.host_commission_inr, e.platform_profit_inr,
                 e.spots_left, e.capacity, e.age_restriction,
@@ -660,14 +831,7 @@ def get_waitlisted_events(current_user: dict = Depends(get_current_user)):
             """,
             (uid, uid),
         )
-        rows = cur.fetchall()
-    result = []
-    for row in rows:
-        d = dict(row)
-        photos_raw = d.get("cover_photos") or []
-        d["cover_photos"] = [{"url": p, "position": i} for i, p in enumerate(photos_raw)] if isinstance(photos_raw, list) and photos_raw and isinstance(photos_raw[0], str) else photos_raw
-        result.append(d)
-    return result
+        return _apply_location_privacy(cur, _shape_event_rows(cur.fetchall()), uid)
 
 
 # ── Hotlist — events a user has saved/bookmarked, not necessarily going to ───
@@ -697,6 +861,7 @@ def get_hotlist_events(current_user: dict = Depends(get_current_user)):
                 e.title, e.event_type,
                 e.date_time::text, e.end_time::text,
                 e.location_name, e.location_lat, e.location_lng,
+                e.city, e.area, e.address_line1, e.address_line2, e.pincode, e.join_mode, e.women_pct,
                 e.price_inr, (e.price_inr = 0) AS is_free,
             e.platform_fee_inr, e.host_commission_inr, e.platform_profit_inr,
                 e.spots_left, e.capacity, e.age_restriction,
@@ -721,14 +886,7 @@ def get_hotlist_events(current_user: dict = Depends(get_current_user)):
             """,
             (uid,),
         )
-        rows = cur.fetchall()
-    result = []
-    for row in rows:
-        d = dict(row)
-        photos_raw = d.get("cover_photos") or []
-        d["cover_photos"] = [{"url": p, "position": i} for i, p in enumerate(photos_raw)] if isinstance(photos_raw, list) and photos_raw and isinstance(photos_raw[0], str) else photos_raw
-        result.append(d)
-    return result
+        return _apply_location_privacy(cur, _shape_event_rows(cur.fetchall()), uid)
 
 
 @router.post("/{event_id}/hotlist", status_code=201)
@@ -793,6 +951,7 @@ _EVENT_COLUMNS = """
     e.id::text, e.title, e.event_type,
     e.date_time::text, e.end_time::text,
     e.location_name, e.location_lat, e.location_lng,
+                e.city, e.area, e.address_line1, e.address_line2, e.pincode, e.join_mode, e.women_pct,
     e.price_inr, (e.price_inr = 0) AS is_free,
     e.platform_fee_inr, e.host_commission_inr, e.platform_profit_inr,
     e.spots_left, e.capacity, e.age_restriction,
@@ -813,17 +972,7 @@ _EVENT_COLUMNS = """
 """
 
 
-def _shape_event_rows(rows) -> list:
-    result = []
-    for row in rows:
-        d = dict(row)
-        photos_raw = d.get("cover_photos") or []
-        d["cover_photos"] = [{"url": p, "position": i} for i, p in enumerate(photos_raw)] if isinstance(photos_raw, list) and photos_raw and isinstance(photos_raw[0], str) else photos_raw
-        result.append(d)
-    return result
-
-
-def _other_filter_sql(date_filter: str, params: list, uid: str, lat, lng, radius_km) -> tuple[str, list]:
+def _other_filter_sql(date_filter: str, params: list, uid: str, lat, lng, radius_km, city=None) -> tuple[str, list]:
     """'Other' = published, not cancelled, upcoming events that aren't mine
     (not hosted, not going, not waitlisted) — same definition the client used
     to compute locally, now scoped server-side per day/month instead."""
@@ -834,7 +983,11 @@ def _other_filter_sql(date_filter: str, params: list, uid: str, lat, lng, radius
         "NOT EXISTS (SELECT 1 FROM event_attendees ea WHERE ea.event_id = e.id AND ea.user_id = %s::uuid AND ea.status IN ('going', 'waitlist'))",
     ]
     all_params = params + [uid, uid]
-    if lat is not None and lng is not None and radius_km:
+    city_row = find_city(city)
+    if city_row:
+        filters.append("e.city = %s")
+        all_params.append(city_row["name"])
+    elif lat is not None and lng is not None and radius_km:
         filters.append("""
             6371.0 * acos(LEAST(1.0,
                 cos(radians(%s)) * cos(radians(e.location_lat)) *
@@ -853,6 +1006,7 @@ def get_calendar_summary(
     lat: Optional[float] = Query(default=None),
     lng: Optional[float] = Query(default=None),
     radius_km: Optional[int] = Query(default=50),
+    city: Optional[str] = Query(default=None),
     current_user: dict = Depends(get_current_user),
 ):
     uid = current_user["id"]
@@ -900,7 +1054,7 @@ def get_calendar_summary(
             mark(row["d"], "has_waitlisted")
 
         other_where, other_params = _other_filter_sql(
-            "e.date_time::date BETWEEN %s AND %s", [start_date, end_date], uid, lat, lng, radius_km,
+            "e.date_time::date BETWEEN %s AND %s", [start_date, end_date], uid, lat, lng, radius_km, city,
         )
         cur.execute(f"SELECT DISTINCT e.date_time::date AS d FROM events e WHERE {other_where}", other_params)
         for row in cur.fetchall():
@@ -915,6 +1069,7 @@ def get_calendar_day(
     lat: Optional[float] = Query(default=None),
     lng: Optional[float] = Query(default=None),
     radius_km: Optional[int] = Query(default=50),
+    city: Optional[str] = Query(default=None),
     current_user: dict = Depends(get_current_user),
 ):
     uid = current_user["id"]
@@ -952,9 +1107,9 @@ def get_calendar_day(
             """,
             (uid, uid, date_),
         )
-        waitlisted = _shape_event_rows(cur.fetchall())
+        waitlisted = _apply_location_privacy(cur, _shape_event_rows(cur.fetchall()), uid)
 
-        other_where, other_params = _other_filter_sql("e.date_time::date = %s", [date_], uid, lat, lng, radius_km)
+        other_where, other_params = _other_filter_sql("e.date_time::date = %s", [date_], uid, lat, lng, radius_km, city)
         cur.execute(
             f"""
             SELECT {_EVENT_COLUMNS}
@@ -965,7 +1120,7 @@ def get_calendar_day(
             """,
             [uid] + other_params,
         )
-        other = _shape_event_rows(cur.fetchall())
+        other = _apply_location_privacy(cur, _shape_event_rows(cur.fetchall()), uid)
 
     return {"joined": joined, "hosted": hosted, "waitlisted": waitlisted, "other": other}
 
@@ -993,7 +1148,7 @@ def get_free_slots(current_user: dict = Depends(get_current_user)):
         resets_on = date(today.year + 1, 1, 1).isoformat()
     else:
         resets_on = date(today.year, today.month + 1, 1).isoformat()
-    return {"used": used, "limit": 2, "resets_on": resets_on}
+    return {"used": used, "limit": FREE_EVENTS_PER_MONTH, "resets_on": resets_on}
 
 
 # ── GET /events/{id} ──────────────────────────────────────────────────────────
@@ -1009,6 +1164,7 @@ def get_event(event_id: str, current_user: dict = Depends(get_current_user)):
                 e.date_time::text, e.end_time::text,
                 e.description, e.rules,
                 e.location_name, e.location_lat, e.location_lng,
+                e.city, e.area, e.address_line1, e.address_line2, e.pincode, e.join_mode, e.women_pct,
                 e.price_inr, (e.price_inr = 0) AS is_free,
             e.platform_fee_inr, e.host_commission_inr, e.platform_profit_inr,
                 e.spots_left, e.capacity, e.age_restriction,
@@ -1080,13 +1236,29 @@ def get_event(event_id: str, current_user: dict = Depends(get_current_user)):
             (uid, uid, uid, uid, uid, uid, uid, event_id),
         )
         row = cur.fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="Event not found")
 
-    if not row:
-        raise HTTPException(status_code=404, detail="Event not found")
+        d = _shape_event_rows([row])[0]
+        d["ratio"] = seats.ratio_left(d["capacity"], d["women_pct"], seats.seat_counts(cur, event_id))
+        if d["host_id"] == uid:
+            cur.execute(
+                "SELECT COUNT(*)::int AS n FROM event_attendees WHERE event_id = %s AND status = 'requested'",
+                (event_id,),
+            )
+            d["pending_request_count"] = cur.fetchone()["n"]
+        else:
+            cur.execute(
+                "SELECT request_count FROM event_attendees WHERE event_id = %s AND user_id = %s::uuid",
+                (event_id, uid),
+            )
+            mine = cur.fetchone()
+            d["my_can_request_again"] = (
+                d.get("my_rsvp_status") not in ("declined",)
+                and (mine["request_count"] if mine else 0) < _MAX_JOIN_REQUESTS
+            )
+        _apply_location_privacy(cur, [d], uid)
 
-    d = dict(row)
-    photos_raw = d.get("cover_photos") or []
-    d["cover_photos"] = [{"url": p, "position": i} for i, p in enumerate(photos_raw)] if isinstance(photos_raw, list) and photos_raw and isinstance(photos_raw[0], str) else photos_raw
     # 0 position means not in regular queue (promoted or not on waitlist)
     if not d.get("my_waitlist_position"):
         d["my_waitlist_position"] = None
@@ -1122,27 +1294,20 @@ def create_event(body: CreateEventBody, background_tasks: BackgroundTasks, curre
     if not (5 <= body.capacity <= 200):
         raise HTTPException(status_code=422, detail="Capacity must be between 5 and 200")
 
+    loc = _validate_location(body)
+    women_pct = _validate_women_pct(body.women_pct)
+
     # Check monthly free event limit
     uid = current_user["id"]
     enforce_rate_limit(f"events:create:user:{uid}", max_events=10, window_seconds=86400,
                         message="You're creating events too quickly, try again later.")
     with get_db() as (cur, _):
-        cur.execute(
-            """
-            SELECT COUNT(*)::int AS count FROM events
-            WHERE host_id = %s::uuid AND price_inr = 0
-              AND DATE_TRUNC('month', created_at AT TIME ZONE 'UTC')
-                = DATE_TRUNC('month', NOW() AT TIME ZONE 'UTC')
-              AND is_cancelled = FALSE
-            """,
-            (uid,),
-        )
-        free_this_month = cur.fetchone()["count"]
+        free_this_month = _free_events_this_month(cur, uid)
 
-    slots_exhausted = free_this_month >= 2
+    slots_exhausted = free_this_month >= FREE_EVENTS_PER_MONTH
 
     if body.price_inr == 0 and slots_exhausted:
-        raise HTTPException(status_code=422, detail=f"You've used your 2 free events this month. Set a ticket price (minimum ₹{MIN_TICKET_PRICE_INR}).")
+        raise HTTPException(status_code=422, detail=f"You've used your {FREE_EVENTS_PER_MONTH} free events this month. Set a ticket price (minimum ₹{MIN_TICKET_PRICE_INR}).")
     if body.price_inr != 0 and body.price_inr < MIN_TICKET_PRICE_INR:
         raise HTTPException(status_code=422, detail=f"Minimum ticket price is ₹{MIN_TICKET_PRICE_INR}")
 
@@ -1169,12 +1334,16 @@ def create_event(body: CreateEventBody, background_tasks: BackgroundTasks, curre
                 host_id, title, description, rules, event_type,
                 date_time, end_time, capacity, spots_left, age_restriction,
                 location_name, location_lat, location_lng,
+                city, area, address_line1, address_line2, pincode,
+                join_mode, women_pct,
                 price_inr, cover_photos, is_published,
                 platform_fee_inr, host_commission_inr, platform_profit_inr
             ) VALUES (
                 %s, %s, %s, %s, %s,
                 %s, %s, %s, %s, %s,
                 %s, %s, %s,
+                %s, %s, %s, %s, %s,
+                %s, %s,
                 %s, %s::jsonb, TRUE,
                 %s, %s, %s
             )
@@ -1183,7 +1352,9 @@ def create_event(body: CreateEventBody, background_tasks: BackgroundTasks, curre
             (
                 current_user["id"], body.title, body.description, body.rules, body.event_type,
                 body.date_time, body.end_time, body.capacity, body.capacity, body.age_restriction,
-                body.location_name, body.location_lat, body.location_lng,
+                loc["location_name"], loc["location_lat"], loc["location_lng"],
+                loc["city"], loc["area"], loc["address_line1"], loc["address_line2"], loc["pincode"],
+                _join_mode_for(body.price_inr), women_pct,
                 body.price_inr, __import__('json').dumps(cover_photos),
                 fee_inr, commission_inr, profit_inr,
             ),
@@ -1264,17 +1435,40 @@ def update_event(event_id: str, body: CreateEventBody, background_tasks: Backgro
             """
             SELECT host_id::text, date_time, capacity, title, description, rules,
                 event_type, end_time, age_restriction, location_name, location_lat,
-                location_lng, price_inr,
-                (SELECT COUNT(*) FROM event_attendees WHERE event_id = %s AND status = 'going')::int AS attendee_count
+                location_lng, price_inr, women_pct,
+                city, area, address_line1, address_line2, pincode,
+                (SELECT COUNT(*) FROM event_attendees WHERE event_id = %s AND status = 'going')::int AS attendee_count,
+                (SELECT COUNT(*) FROM event_attendees WHERE event_id = %s AND status IN ('going', 'requested', 'waitlist'))::int AS engaged_count
             FROM events WHERE id = %s
             """,
-            (event_id, event_id),
+            (event_id, event_id, event_id),
         )
         ev = cur.fetchone()
-    if not ev:
-        raise HTTPException(status_code=404, detail="Event not found")
-    if ev["host_id"] != current_user["id"]:
-        raise HTTPException(status_code=403, detail="Not your event")
+        if not ev:
+            raise HTTPException(status_code=404, detail="Event not found")
+        if ev["host_id"] != current_user["id"]:
+            raise HTTPException(status_code=403, detail="Not your event")
+        free_this_month = _free_events_this_month(cur, current_user["id"], exclude_event_id=event_id)
+
+    loc = _validate_location(body)
+    women_pct = _validate_women_pct(body.women_pct)
+    if not (5 <= body.capacity <= 200):
+        raise HTTPException(status_code=422, detail="Capacity must be between 5 and 200")
+    if body.age_restriction not in (18, 21, 25):
+        raise HTTPException(status_code=422, detail="Age restriction must be 18, 21, or 25")
+
+    has_guests = ev["attendee_count"] > 0
+    if has_guests and body.age_restriction != ev["age_restriction"]:
+        raise HTTPException(status_code=400, detail="Age limit can't change once guests have joined")
+    if has_guests and women_pct != ev["women_pct"]:
+        raise HTTPException(status_code=400, detail="Crowd mix can't change once guests have joined")
+    # Free ↔ paid flips change how people join (request vs instant booking)
+    # and whether anyone owes money — lock it once anyone is involved.
+    if (ev["price_inr"] == 0) != (body.price_inr == 0):
+        if ev["engaged_count"] > 0:
+            raise HTTPException(status_code=400, detail="Can't switch between free and paid once people have joined or requested")
+        if body.price_inr == 0 and free_this_month >= FREE_EVENTS_PER_MONTH:
+            raise HTTPException(status_code=422, detail=f"You've used your {FREE_EVENTS_PER_MONTH} free events this month")
 
     now = datetime.now(timezone.utc)
     dt = ev["date_time"]
@@ -1303,9 +1497,9 @@ def update_event(event_id: str, body: CreateEventBody, background_tasks: Backgro
         (body_dt and body_dt != ev_dt) or
         (body_end != ev_end) or
         body.age_restriction != ev["age_restriction"] or
-        (body.location_name or "") != (ev["location_name"] or "") or
-        body.location_lat != ev["location_lat"] or
-        body.location_lng != ev["location_lng"] or
+        women_pct != ev["women_pct"] or
+        any(loc[k] != ev[k] for k in ("location_name", "location_lat", "location_lng", "city", "area",
+                                       "address_line1", "address_line2", "pincode")) or
         body.price_inr != ev["price_inr"]
     )
 
@@ -1346,8 +1540,13 @@ def update_event(event_id: str, body: CreateEventBody, background_tasks: Backgro
                 spots_left = GREATEST(0, spots_left + (%s - capacity)),
                 age_restriction=%s,
                 location_name=%s, location_lat=%s, location_lng=%s,
+                city=%s, area=%s, address_line1=%s, address_line2=%s, pincode=%s,
+                women_pct=%s, join_mode=%s,
                 price_inr=%s,
                 platform_fee_inr=%s, host_commission_inr=%s, platform_profit_inr=%s,
+                -- An empty list means "unchanged" (older clients don't send
+                -- photos on edit) — a cover is mandatory, so never wipe it.
+                cover_photos = COALESCE(NULLIF(%s::jsonb, '[]'::jsonb), cover_photos),
                 updated_at=NOW()
             WHERE id=%s
             """,
@@ -1356,9 +1555,12 @@ def update_event(event_id: str, body: CreateEventBody, background_tasks: Backgro
                 body.date_time, body.end_time,
                 body.capacity, body.capacity,
                 body.age_restriction,
-                body.location_name, body.location_lat, body.location_lng,
+                loc["location_name"], loc["location_lat"], loc["location_lng"],
+                loc["city"], loc["area"], loc["address_line1"], loc["address_line2"], loc["pincode"],
+                women_pct, _join_mode_for(body.price_inr),
                 body.price_inr,
                 fee_inr, commission_inr, profit_inr,
+                __import__('json').dumps([p for p in (body.cover_photos or []) if p]),
                 event_id,
             ),
         )
@@ -1372,7 +1574,7 @@ def update_event(event_id: str, body: CreateEventBody, background_tasks: Backgro
         if non_capacity_changed:
             from routes.notifications import notify_event_updated
             cur.execute(
-                "SELECT user_id::text FROM event_attendees WHERE event_id = %s AND status IN ('going', 'waitlist')",
+                "SELECT user_id::text FROM event_attendees WHERE event_id = %s AND status IN ('going', 'waitlist', 'requested')",
                 (event_id,),
             )
             affected_user_ids = [r["user_id"] for r in cur.fetchall()]
@@ -1419,18 +1621,20 @@ def rsvp_event(event_id: str, body: RsvpBody, background_tasks: BackgroundTasks,
         raise HTTPException(status_code=400, detail="action must be 'going' or 'cancel'")
 
     with get_db() as (cur, conn):
+        # Serialise every booking on this event behind a row lock — without it
+        # two people can both see the last spot free and both take it.
+        ev = seats.lock_event(cur, event_id)
+        if not ev or ev["is_cancelled"]:
+            raise HTTPException(status_code=404, detail="Event not found")
+
         # Lazy expiry: expire stale promotion offers before any logic
         expired_user_ids = _expire_stale_offers(cur, event_id)
+        if expired_user_ids:
+            ev = seats.lock_event(cur, event_id)
 
-        # Fetch event + user dob for age check
-        cur.execute(
-            "SELECT capacity, spots_left, age_restriction, date_time, end_time, title, price_inr FROM events WHERE id = %s AND is_cancelled = FALSE",
-            (event_id,),
-        )
-        ev = cur.fetchone()
-        if not ev:
+        if body.action == "going" and ev["join_mode"] == "request":
             conn.commit()
-            raise HTTPException(status_code=404, detail="Event not found")
+            raise HTTPException(status_code=409, detail="This event needs host approval — send a request to join")
 
         if body.action == "going":
             # Prevent RSVP after event has ended
@@ -1461,15 +1665,34 @@ def rsvp_event(event_id: str, body: RsvpBody, background_tasks: BackgroundTasks,
             )
             promoted_row = cur.fetchone()
 
-            # Count non-promoted waitlist members — they have priority over new bookings
+            bucket = seats.user_bucket(cur, current_user["id"])
+            if not seats.bucket_eligible(ev["women_pct"], bucket):
+                conn.commit()
+                raise HTTPException(status_code=403, detail=seats.ineligible_message(ev["women_pct"]))
+            counts = seats.seat_counts(cur, event_id)
+            bucket_has_room = seats.bucket_has_room(ev["capacity"], ev["women_pct"], counts, bucket)
+
+            # Waitlisters who could take this same seat have priority over a
+            # new booking (someone waiting for a men's spot doesn't block a
+            # woman from booking a women's spot).
             cur.execute(
                 """
-                SELECT COUNT(*) AS cnt FROM event_attendees
-                WHERE event_id = %s AND status = 'waitlist' AND offer_expires_at IS NULL
+                SELECT u.gender FROM event_attendees ea JOIN users u ON u.id = ea.user_id
+                WHERE ea.event_id = %s AND ea.status = 'waitlist' AND ea.offer_expires_at IS NULL
                 """,
                 (event_id,),
             )
-            active_waitlist_count = cur.fetchone()["cnt"]
+            active_waitlist_count = sum(
+                1 for w in cur.fetchall()
+                if seats.bucket_has_room(ev["capacity"], ev["women_pct"], counts, seats.gender_bucket(w["gender"]))
+            )
+
+            seat_free = ev["spots_left"] > 0 and bucket_has_room and active_waitlist_count == 0
+            # Paid seats are only handed out by the payment finalisers — this
+            # route may only put a paid-event guest on the waitlist.
+            if ev["price_inr"] > 0 and (promoted_row or seat_free):
+                conn.commit()
+                raise HTTPException(status_code=402, detail="Payment required for this ticket")
 
             just_sold_out = False
             if promoted_row:
@@ -1479,8 +1702,9 @@ def rsvp_event(event_id: str, body: RsvpBody, background_tasks: BackgroundTasks,
                     (promoted_row["id"],),
                 )
                 status = "going"
-            elif ev["spots_left"] > 0 and active_waitlist_count == 0:
-                # Normal RSVP — spots available AND no one in the queue waiting
+            elif seat_free:
+                # Normal RSVP — a spot for this guest's crowd-mix share AND no
+                # one in the queue waiting for it
                 cur.execute(
                     """
                     INSERT INTO event_attendees (event_id, user_id, status)
@@ -1665,6 +1889,10 @@ def rsvp_event(event_id: str, body: RsvpBody, background_tasks: BackgroundTasks,
             prev_status = existing["status"]
             had_offer = existing["offer_expires_at"] is not None
 
+            if prev_status in ("declined", "expired", "cancelled"):
+                conn.commit()
+                raise HTTPException(status_code=404, detail="Not attending this event")
+
             if prev_status == "going" and ev["price_inr"] > 0:
                 conn.commit()
                 raise HTTPException(status_code=400, detail="Tickets for paid events cannot be cancelled.")
@@ -1737,10 +1965,341 @@ def rsvp_event(event_id: str, body: RsvpBody, background_tasks: BackgroundTasks,
                     {"type": "event", "event_id": event_id}, cover_url, category="attending",
                 )
 
+    if status == "cancelled" and prev_status == "going" and ev["join_mode"] == "request":
+        _notify_spot_opened(event_id, ev["host_id"], ev["title"], background_tasks)
+
     result = {"ok": True, "status": status}
     if status == "waitlist":
         result["position"] = position
     return result
+
+
+# ── Join requests (free events) ───────────────────────────────────────────────
+# Free events are host-approved: guests send a request, the host accepts
+# (seat + ticket issued, crowd-mix permitting) or declines (final).
+
+def _notify_spot_opened(event_id: str, host_id: str, title: str, background_tasks: BackgroundTasks):
+    from routes.notifications import notify_spot_opened_for_requests
+    from utils.push import get_event_image_url
+    with get_db() as (cur, _):
+        cur.execute(
+            "SELECT COUNT(*)::int AS n FROM event_attendees WHERE event_id = %s AND status = 'requested'",
+            (event_id,),
+        )
+        pending = cur.fetchone()["n"]
+        if not pending:
+            return
+        notify_spot_opened_for_requests(cur, host_id, event_id, title, pending)
+    background_tasks.add_task(
+        send_push, host_id, f"A spot opened at {title}",
+        f"{pending} pending request{'s' if pending != 1 else ''} — tap to review.",
+        {"type": "event_requests", "event_id": event_id}, get_event_image_url(event_id), category="hosting",
+    )
+
+
+def _event_ended(ev: dict) -> bool:
+    end = ev["end_time"] or ev["date_time"] + timedelta(hours=6)
+    return datetime.now(timezone.utc) > end
+
+
+def _event_started(ev: dict) -> bool:
+    return datetime.now(timezone.utc) >= ev["date_time"]
+
+
+@router.post("/{event_id}/request")
+def request_to_join(event_id: str, background_tasks: BackgroundTasks, current_user: dict = Depends(get_current_user)):
+    uid = current_user["id"]
+    enforce_rate_limit(f"events:request:user:{uid}", max_events=30, window_seconds=3600,
+                        message="You're sending requests too quickly, try again later.")
+    with get_db() as (cur, conn):
+        ev = seats.lock_event(cur, event_id)
+        if not ev or ev["is_cancelled"]:
+            raise HTTPException(status_code=404, detail="Event not found")
+        if ev["join_mode"] != "request":
+            raise HTTPException(status_code=409, detail="This event doesn't need a request — book directly")
+        if ev["host_id"] == uid:
+            raise HTTPException(status_code=400, detail="You're hosting this event")
+        if _event_started(ev):
+            raise HTTPException(status_code=400, detail="This event has already started")
+
+        cur.execute("SELECT name, dob, gender FROM users WHERE id = %s::uuid", (uid,))
+        me = cur.fetchone()
+        if me and me.get("dob") and _calc_age(me["dob"]) < ev["age_restriction"]:
+            raise HTTPException(status_code=403, detail=f"You must be {ev['age_restriction']}+ to attend this event")
+        if not seats.bucket_eligible(ev["women_pct"], seats.gender_bucket(me["gender"] if me else None)):
+            raise HTTPException(status_code=403, detail=seats.ineligible_message(ev["women_pct"]))
+
+        cur.execute(
+            "SELECT 1 FROM user_blocks WHERE (blocker_id=%s::uuid AND blocked_id=%s::uuid) OR (blocker_id=%s::uuid AND blocked_id=%s::uuid)",
+            (ev["host_id"], uid, uid, ev["host_id"]),
+        )
+        if cur.fetchone():
+            raise HTTPException(status_code=403, detail="You can't join this event")
+
+        cur.execute(
+            "SELECT status, request_count FROM event_attendees WHERE event_id = %s AND user_id = %s::uuid",
+            (event_id, uid),
+        )
+        existing = cur.fetchone()
+        if existing:
+            if existing["status"] == "requested":
+                return {"ok": True, "status": "requested"}
+            if existing["status"] == "going":
+                raise HTTPException(status_code=409, detail="You're already going")
+            if existing["status"] == "declined":
+                raise HTTPException(status_code=403, detail="The host declined your request for this event")
+            if existing["request_count"] >= _MAX_JOIN_REQUESTS:
+                raise HTTPException(status_code=403, detail="You've reached the request limit for this event")
+
+        cur.execute(
+            """
+            INSERT INTO event_attendees (event_id, user_id, status, requested_at, request_count)
+            VALUES (%s, %s::uuid, 'requested', NOW(), 1)
+            ON CONFLICT (event_id, user_id) DO UPDATE
+                SET status = 'requested', requested_at = NOW(), decided_at = NULL,
+                    offer_expires_at = NULL, request_count = event_attendees.request_count + 1
+            """,
+            (event_id, uid),
+        )
+        from routes.notifications import notify_join_request
+        requester_name = me["name"] if me else "Someone"
+        notify_join_request(cur, ev["host_id"], uid, requester_name, event_id, ev["title"])
+        conn.commit()
+
+    from utils.push import get_event_image_url
+    background_tasks.add_task(
+        send_push, ev["host_id"], "New request to join",
+        f"{requester_name} wants to join {ev['title']}",
+        {"type": "event_requests", "event_id": event_id}, get_event_image_url(event_id), category="hosting",
+    )
+    return {"ok": True, "status": "requested"}
+
+
+@router.delete("/{event_id}/request")
+def withdraw_request(event_id: str, current_user: dict = Depends(get_current_user)):
+    with get_db() as (cur, _):
+        cur.execute(
+            """
+            UPDATE event_attendees SET status = 'cancelled', decided_at = NOW()
+            WHERE event_id = %s AND user_id = %s::uuid AND status = 'requested'
+            """,
+            (event_id, current_user["id"]),
+        )
+        if not cur.rowcount:
+            raise HTTPException(status_code=404, detail="No pending request for this event")
+    return {"ok": True, "status": "cancelled"}
+
+
+@router.get("/{event_id}/requests")
+def list_join_requests(event_id: str, current_user: dict = Depends(get_current_user)):
+    uid = current_user["id"]
+    with get_db() as (cur, _):
+        cur.execute("SELECT host_id::text, capacity, spots_left, women_pct FROM events WHERE id = %s", (event_id,))
+        ev = cur.fetchone()
+        if not ev:
+            raise HTTPException(status_code=404, detail="Event not found")
+        if ev["host_id"] != uid:
+            raise HTTPException(status_code=403, detail="Only the host can see requests")
+
+        counts = seats.seat_counts(cur, event_id)
+        cur.execute(
+            """
+            SELECT
+                u.id::text, u.name, u.username, u.gender, u.dob, u.city,
+                ea.requested_at::text,
+                (SELECT url FROM user_photos WHERE user_id = u.id ORDER BY position LIMIT 1) AS avatar,
+                EXISTS(SELECT 1 FROM follows f WHERE f.follower_id = %s::uuid AND f.following_id = u.id) AS is_following,
+                (SELECT COUNT(*) FROM follows f1
+                   JOIN follows f2 ON f2.following_id = f1.following_id AND f2.follower_id = u.id
+                  WHERE f1.follower_id = %s::uuid)::int AS mutual_count,
+                (SELECT COUNT(*) FROM event_attendees past
+                   JOIN events pe ON pe.id = past.event_id
+                  WHERE past.user_id = u.id AND past.status = 'going' AND past.checked_in_at IS NOT NULL)::int AS events_attended,
+                EXISTS(SELECT 1 FROM event_attendees prev
+                   JOIN events pe ON pe.id = prev.event_id
+                  WHERE prev.user_id = u.id AND prev.status = 'going' AND pe.host_id = %s::uuid
+                    AND pe.id != %s::uuid) AS attended_your_events
+            FROM event_attendees ea
+            JOIN users u ON u.id = ea.user_id
+            WHERE ea.event_id = %s AND ea.status = 'requested'
+            ORDER BY ea.requested_at ASC
+            """,
+            (uid, uid, uid, event_id, event_id),
+        )
+        rows = []
+        for r in cur.fetchall():
+            d = dict(r)
+            dob = d.pop("dob", None)
+            d["age"] = _calc_age(dob) if dob else None
+            bucket = seats.gender_bucket(d["gender"])
+            d["can_accept"] = ev["spots_left"] > 0 and seats.bucket_has_room(ev["capacity"], ev["women_pct"], counts, bucket)
+            rows.append(d)
+    return {
+        "requests": rows,
+        "total": len(rows),
+        "spots_left": ev["spots_left"],
+        "capacity": ev["capacity"],
+        "counts": counts,
+        "ratio": seats.ratio_left(ev["capacity"], ev["women_pct"], counts),
+    }
+
+
+def _accept_one(cur, ev: dict, event_id: str, user_id: str) -> Optional[str]:
+    """Accepts a single pending request on a locked event. Returns None on
+    success or the reason it couldn't be accepted."""
+    cur.execute(
+        "SELECT status FROM event_attendees WHERE event_id = %s AND user_id = %s::uuid FOR UPDATE",
+        (event_id, user_id),
+    )
+    row = cur.fetchone()
+    if not row or row["status"] != "requested":
+        return "This request is no longer pending"
+    bucket = seats.user_bucket(cur, user_id)
+    if ev["spots_left"] <= 0:
+        return "Event is full — raise capacity to accept more"
+    if not seats.bucket_has_room(ev["capacity"], ev["women_pct"], seats.seat_counts(cur, event_id), bucket):
+        return seats.full_message(bucket)
+    cur.execute(
+        """
+        UPDATE event_attendees
+        SET status = 'going', decided_at = NOW(), joined_at = NOW()
+        WHERE event_id = %s AND user_id = %s::uuid
+        """,
+        (event_id, user_id),
+    )
+    cur.execute("UPDATE events SET spots_left = spots_left - 1 WHERE id = %s", (event_id,))
+    ev["spots_left"] -= 1
+    from routes.notifications import notify_request_accepted
+    notify_request_accepted(cur, user_id, ev["host_id"], event_id, ev["title"])
+    return None
+
+
+def _push_accepted(background_tasks: BackgroundTasks, event_id: str, title: str, user_ids: list, sold_out: bool, host_id: str):
+    from utils.push import get_event_image_url
+    cover_url = get_event_image_url(event_id)
+    for u in user_ids:
+        background_tasks.add_task(
+            send_push, u, "You're in! \U0001f389",
+            f"Your request for {title} was accepted — tap to view your ticket.",
+            {"type": "ticket_ready", "event_id": event_id}, cover_url, category="attending",
+        )
+    if sold_out:
+        background_tasks.add_task(
+            send_push, host_id, "Your event is full!",
+            f"{title} has no spots left.",
+            {"type": "event", "event_id": event_id}, cover_url, category="hosting",
+        )
+
+
+def _lock_hosted_open_event(cur, event_id: str, host_id: str) -> dict:
+    ev = seats.lock_event(cur, event_id)
+    if not ev or ev["is_cancelled"]:
+        raise HTTPException(status_code=404, detail="Event not found")
+    if ev["host_id"] != host_id:
+        raise HTTPException(status_code=403, detail="Only the host can manage requests")
+    if _event_ended(ev):
+        raise HTTPException(status_code=400, detail="This event has ended")
+    return ev
+
+
+@router.post("/{event_id}/requests/{user_id}/accept")
+def accept_join_request(event_id: str, user_id: str, background_tasks: BackgroundTasks, current_user: dict = Depends(get_current_user)):
+    with get_db() as (cur, conn):
+        ev = _lock_hosted_open_event(cur, event_id, current_user["id"])
+        error = _accept_one(cur, ev, event_id, user_id)
+        if error:
+            conn.rollback()
+            raise HTTPException(status_code=409, detail=error)
+        sold_out = ev["spots_left"] == 0
+        if sold_out:
+            from routes.notifications import notify_event_sold_out
+            notify_event_sold_out(cur, ev["host_id"], event_id, ev["title"])
+        conn.commit()
+    _push_accepted(background_tasks, event_id, ev["title"], [user_id], sold_out, ev["host_id"])
+    return {"ok": True, "status": "going", "spots_left": ev["spots_left"]}
+
+
+class BulkAcceptBody(BaseModel):
+    user_ids: List[str]
+
+
+@router.post("/{event_id}/requests/accept-bulk")
+def accept_join_requests_bulk(event_id: str, body: BulkAcceptBody, background_tasks: BackgroundTasks, current_user: dict = Depends(get_current_user)):
+    """Accepts in the given order until spots or the crowd mix run out —
+    the rest stay pending and are reported back."""
+    accepted, skipped = [], []
+    with get_db() as (cur, conn):
+        ev = _lock_hosted_open_event(cur, event_id, current_user["id"])
+        for u in body.user_ids[:200]:
+            cur.execute("SAVEPOINT accept_one")
+            error = _accept_one(cur, ev, event_id, u)
+            if error:
+                cur.execute("ROLLBACK TO SAVEPOINT accept_one")
+                skipped.append({"user_id": u, "reason": error})
+            else:
+                cur.execute("RELEASE SAVEPOINT accept_one")
+                accepted.append(u)
+        sold_out = bool(accepted) and ev["spots_left"] == 0
+        if sold_out:
+            from routes.notifications import notify_event_sold_out
+            notify_event_sold_out(cur, ev["host_id"], event_id, ev["title"])
+        conn.commit()
+    _push_accepted(background_tasks, event_id, ev["title"], accepted, sold_out, ev["host_id"])
+    return {"ok": True, "accepted": accepted, "skipped": skipped, "spots_left": ev["spots_left"]}
+
+
+@router.post("/{event_id}/requests/{user_id}/decline")
+def decline_join_request(event_id: str, user_id: str, background_tasks: BackgroundTasks, current_user: dict = Depends(get_current_user)):
+    with get_db() as (cur, conn):
+        ev = _lock_hosted_open_event(cur, event_id, current_user["id"])
+        cur.execute(
+            """
+            UPDATE event_attendees SET status = 'declined', decided_at = NOW()
+            WHERE event_id = %s AND user_id = %s::uuid AND status = 'requested'
+            """,
+            (event_id, user_id),
+        )
+        if not cur.rowcount:
+            raise HTTPException(status_code=409, detail="This request is no longer pending")
+        from routes.notifications import notify_request_declined
+        notify_request_declined(cur, user_id, event_id, ev["title"])
+        conn.commit()
+
+    from utils.push import get_event_image_url
+    background_tasks.add_task(
+        send_push, user_id, "Not this time",
+        f"The host couldn't fit you in at {ev['title']}. Plenty more events this week.",
+        {"type": "event", "event_id": event_id}, get_event_image_url(event_id), category="attending",
+    )
+    return {"ok": True, "status": "declined"}
+
+
+def expire_pending_requests() -> int:
+    """Pending requests die when the event starts. Called from the wrap-up
+    scheduler; returns how many were expired."""
+    from routes.notifications import notify_request_expired
+    from utils.push import get_event_image_url
+    with get_db() as (cur, _):
+        cur.execute(
+            """
+            UPDATE event_attendees ea SET status = 'expired', decided_at = NOW()
+            FROM events e
+            WHERE ea.event_id = e.id AND ea.status = 'requested' AND e.date_time <= NOW()
+            RETURNING ea.user_id::text, e.id::text AS event_id, e.title
+            """
+        )
+        expired = cur.fetchall()
+        for r in expired:
+            notify_request_expired(cur, r["user_id"], r["event_id"], r["title"])
+    for r in expired:
+        try:
+            send_push(r["user_id"], "Request expired",
+                      f"{r['title']} has started and your request wasn't answered.",
+                      {"type": "event", "event_id": r["event_id"]}, get_event_image_url(r["event_id"]),
+                      category="attending")
+        except Exception:
+            pass
+    return len(expired)
 
 
 # ── DELETE /events/{id} ───────────────────────────────────────────────────────
@@ -1782,6 +2341,19 @@ def _cancel_event_and_refund(event_id: str, background_tasks: BackgroundTasks, c
         going_user_ids = [r["user_id"] for r in cur.fetchall()]
         for going_uid in going_user_ids:
             notify_event_cancelled_attendee(cur, going_uid, event_id, ev_title)
+
+        # Pending join requests die with the event — tell them too.
+        cur.execute(
+            """
+            UPDATE event_attendees SET status = 'expired', decided_at = NOW()
+            WHERE event_id = %s AND status = 'requested'
+            RETURNING user_id::text
+            """,
+            (event_id,),
+        )
+        requested_user_ids = [r["user_id"] for r in cur.fetchall()]
+        for req_uid in requested_user_ids:
+            notify_event_cancelled_attendee(cur, req_uid, event_id, ev_title)
 
         # Refund paid attendees to Gorave Wallet
         paid_user_ids = []
@@ -1826,7 +2398,7 @@ def _cancel_event_and_refund(event_id: str, background_tasks: BackgroundTasks, c
             {"type": "event", "event_id": event_id}, cover_url, category="attending",
         )
 
-    for going_uid in going_user_ids:
+    for going_uid in going_user_ids + requested_user_ids:
         background_tasks.add_task(
             send_push, going_uid, "Event cancelled",
             f"{ev_title} was cancelled by the host.",
@@ -1891,6 +2463,10 @@ def admit_from_waitlist(event_id: str, background_tasks: BackgroundTasks, curren
             (event_id,),
         )
         promoted = _promote_next_waitlist(cur, event_id)
+        if not promoted:
+            # Nobody waiting fits the crowd mix — don't leave a phantom seat.
+            conn.rollback()
+            raise HTTPException(status_code=409, detail="No one on the waitlist fits the crowd mix")
 
         cur.execute(
             "SELECT COUNT(*) AS cnt FROM event_attendees WHERE event_id = %s AND status = 'waitlist' AND offer_expires_at IS NULL",
@@ -1937,6 +2513,7 @@ def get_waitlist(event_id: str, current_user: dict = Depends(get_current_user)):
                 u.id::text,
                 u.name,
                 u.username,
+                u.gender,
                 ea.joined_at::text,
                 ea.offer_expires_at::text,
                 ROW_NUMBER() OVER (
@@ -1975,6 +2552,7 @@ def get_attendees(event_id: str, current_user: dict = Depends(get_current_user))
                 u.name,
                 u.username,
                 u.city,
+                u.gender,
                 ea.status,
                 ea.joined_at::text,
                 ea.checked_in_at::text,
@@ -1982,13 +2560,17 @@ def get_attendees(event_id: str, current_user: dict = Depends(get_current_user))
                 (SELECT url FROM user_photos WHERE user_id = u.id ORDER BY position LIMIT 1) AS avatar
             FROM event_attendees ea
             JOIN users u ON u.id = ea.user_id
-            WHERE ea.event_id = %s
+            WHERE ea.event_id = %s AND ea.status IN ('going', 'waitlist', 'cancelled')
             ORDER BY ea.joined_at ASC
             """,
             (event_id,),
         )
         rows = [dict(r) for r in cur.fetchall()]
-    return {"attendees": rows, "total": len(rows)}
+        gender_counts = {seats.WOMEN: 0, seats.MEN: 0, seats.OTHER: 0}
+        for r in rows:
+            if r["status"] == "going":
+                gender_counts[seats.gender_bucket(r["gender"])] += 1
+    return {"attendees": rows, "total": len(rows), "gender_counts": gender_counts}
 
 
 # ── GET /events/{id}/guests ───────────────────────────────────────────────────

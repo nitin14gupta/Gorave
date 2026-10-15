@@ -63,13 +63,13 @@ export function useCalendarEvents(visibleMonth: Date, selectedDate: Date, filter
   // Only the city matters for refetching — the Hosted/Going/Waitlisted
   // toggles are applied client-side below, so flipping them is instant and
   // never re-hits the network.
-  const cityLat = filters.city?.lat
-  const cityLng = filters.city?.lng
+  // Filtered by the events.city column server-side, not a radius around it
+  const cityName = filters.city?.name ?? null
 
   const loadMonth = useCallback(async () => {
     setMonthLoading(true)
     try {
-      const rows = await ApiService.getCalendarSummary(monthStart, monthEnd, cityLat, cityLng)
+      const rows = await ApiService.getCalendarSummary(monthStart, monthEnd, null, null, cityName)
       setSummary(new Map(rows.map(r => [r.date, r])))
       setMonthError(false)
     } catch (e: any) {
@@ -78,7 +78,7 @@ export function useCalendarEvents(visibleMonth: Date, selectedDate: Date, filter
     } finally {
       setMonthLoading(false)
     }
-  }, [monthStart, monthEnd, cityLat, cityLng, showPill])
+  }, [monthStart, monthEnd, cityName, showPill])
 
   useFocusEffect(useCallback(() => { loadMonth() }, [loadMonth]))
 
@@ -91,7 +91,7 @@ export function useCalendarEvents(visibleMonth: Date, selectedDate: Date, filter
     }
     setDayLoading(true)
     try {
-      const data = await ApiService.getCalendarDay(selKey, cityLat, cityLng)
+      const data = await ApiService.getCalendarDay(selKey, null, null, cityName)
       setDayRaw(data)
       setDayError(false)
     } catch (e: any) {
@@ -101,7 +101,7 @@ export function useCalendarEvents(visibleMonth: Date, selectedDate: Date, filter
     } finally {
       setDayLoading(false)
     }
-  }, [selKey, selectedIsPast, cityLat, cityLng, showPill])
+  }, [selKey, selectedIsPast, cityName, showPill])
 
   useEffect(() => { loadDay() }, [loadDay])
 

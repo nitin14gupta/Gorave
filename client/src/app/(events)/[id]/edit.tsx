@@ -16,8 +16,8 @@ import { ArrowLeft } from 'lucide-react-native'
 import { hSuccess } from '@/lib/haptics'
 import { Colors, FontFamily, withOpacity } from '@/constants'
 import { DateTimePickerSheet, BrandedLoader } from '@/components/ui'
-import { Step1Basics, Step2When, Step3Where, Step4Pricing, Step5Photos, LockedBanner, DateShiftBanner } from '@/components/event-form'
-import { useCreateEvent, type CreateEventForm } from '@/hooks/useCreateEvent'
+import { Step1Basics, Step2When, Step3Where, Step4Pricing, Step5Photos, LockedBanner, DateShiftBanner, validateCreateEventStep } from '@/components/event-form'
+import { useCreateEvent, locationPayload } from '@/hooks/useCreateEvent'
 import { useEventDateTimePickers } from '@/hooks/useEventDateTimePickers'
 import ApiService, { type EventDetail } from '@/api/apiService'
 import { usePillStore } from '@/store/pillStore'
@@ -36,13 +36,16 @@ export default function EditEventScreen() {
   const [locked, setLocked] = useState(false)
   const [capacityLocked, setCapacityLocked] = useState(false)
   const [hasAttendees, setHasAttendees] = useState(false)
+  // Pending join requests also lock free↔paid (it changes how they'd join)
+  const [hasRequests, setHasRequests] = useState(false)
   const [bookedCount, setBookedCount] = useState(0)
   const [largeDateShiftPending, setLargeDateShiftPending] = useState(false)
   const showPill = usePillStore(s => s.show)
 
   type Snapshot = {
     title: string; eventType: string; description: string; rules: string
-    capacity: number; ageRestriction: number; locationName: string
+    capacity: number; ageRestriction: number; womenPct: number | null
+    city: string; area: string; addressLine1: string; addressLine2: string; pincode: string
     locationLat: number | null; locationLng: number | null
     isFree: boolean; priceInr: number; coverPhotos: string
     dateTime: number | null; endTime: number | null
@@ -60,7 +63,14 @@ export default function EditEventScreen() {
         set('rules', ev.rules ?? '')
         set('capacity', ev.capacity)
         set('ageRestriction', (ev.age_restriction as 18 | 21 | 25) ?? 18)
-        set('locationName', ev.location_name ?? '')
+        set('womenPct', ev.women_pct ?? null)
+        set('city', ev.city ?? '')
+        set('area', ev.area ?? '')
+        // Events from before structured addresses only have location_name —
+        // seed line 1 with it so the host just tidies it up.
+        set('addressLine1', ev.address_line1 ?? (ev.city ? '' : ev.location_name ?? ''))
+        set('addressLine2', ev.address_line2 ?? '')
+        set('pincode', ev.pincode ?? '')
         set('locationLat', ev.location_lat)
         set('locationLng', ev.location_lng)
         set('isFree', ev.is_free)
@@ -77,6 +87,7 @@ export default function EditEventScreen() {
         const capDeadline = new Date(parseTs(ev.date_time).getTime() - 2 * 60 * 60 * 1000)
         if (new Date() > capDeadline) setCapacityLocked(true)
         if (ev.attendee_count > 0) setHasAttendees(true)
+        if ((ev.pending_request_count ?? 0) > 0) setHasRequests(true)
         setBookedCount(ev.attendee_count)
 
         originalRef.current = {
@@ -86,7 +97,12 @@ export default function EditEventScreen() {
           rules: ev.rules ?? '',
           capacity: ev.capacity,
           ageRestriction: (ev.age_restriction as number) ?? 18,
-          locationName: ev.location_name ?? '',
+          womenPct: ev.women_pct ?? null,
+          city: ev.city ?? '',
+          area: ev.area ?? '',
+          addressLine1: ev.address_line1 ?? (ev.city ? '' : ev.location_name ?? ''),
+          addressLine2: ev.address_line2 ?? '',
+          pincode: ev.pincode ?? '',
           locationLat: ev.location_lat,
           locationLng: ev.location_lng,
           isFree: ev.is_free,
@@ -115,6 +131,10 @@ export default function EditEventScreen() {
       showPill('Cover photo is required', 'error')
       return
     }
+
+    const where = validateCreateEventStep(3, form, 0)
+    setErrors(where.errors)
+    if (where.pillMessage) { showPill(where.pillMessage, 'error'); return }
 
     const start = form.dateTime ? new Date(form.dateTime) : new Date()
     const end = form.endTime ? new Date(form.endTime) : null
@@ -166,9 +186,8 @@ export default function EditEventScreen() {
         end_time: end ? end.toISOString() : undefined,
         capacity: form.capacity,
         age_restriction: form.ageRestriction,
-        location_name: form.locationName.trim() || undefined,
-        location_lat: form.locationLat ?? undefined,
-        location_lng: form.locationLng ?? undefined,
+        women_pct: form.womenPct,
+        ...locationPayload(form),
         price_inr: form.isFree ? 0 : form.priceInr,
         cover_photos: uploadedUrls,
       })
@@ -177,6 +196,8 @@ export default function EditEventScreen() {
     } catch (e: any) {
       if (e?.status === 403) {
         showPill('Editing window has passed — event starts too soon', 'error')
+      } else if ((e?.status === 400 || e?.status === 422) && e?.message) {
+        showPill(e.message, 'error')
       } else {
         showPill("Couldn't save your changes, try again", 'error')
       }
@@ -192,7 +213,12 @@ export default function EditEventScreen() {
     form.rules !== o.rules ||
     form.capacity !== o.capacity ||
     form.ageRestriction !== o.ageRestriction ||
-    form.locationName !== o.locationName ||
+    form.womenPct !== o.womenPct ||
+    form.city !== o.city ||
+    form.area !== o.area ||
+    form.addressLine1 !== o.addressLine1 ||
+    form.addressLine2 !== o.addressLine2 ||
+    form.pincode !== o.pincode ||
     form.locationLat !== o.locationLat ||
     form.locationLng !== o.locationLng ||
     form.isFree !== o.isFree ||
@@ -252,6 +278,7 @@ export default function EditEventScreen() {
           scrollable={false} disabled={locked}
           capacityUnlocked={locked && !capacityLocked}
           ageLocked={hasAttendees}
+          ratioLocked={hasAttendees}
           ageLockNote="Locked — attendees already joined"
           minCapacity={Math.max(5, bookedCount)}
           capacityNote={bookedCount > 0 ? `${bookedCount} spot${bookedCount === 1 ? '' : 's'} already booked — can't reduce below this` : undefined}
@@ -267,8 +294,8 @@ export default function EditEventScreen() {
         <Step4Pricing
           form={form} set={set} errors={errors} setErrors={setErrors}
           scrollable={false} disabled={locked}
-          priceLocked={hasAttendees}
-          priceLockNote="Locked — attendees already booked"
+          priceLocked={hasAttendees || hasRequests}
+          priceLockNote={hasAttendees ? 'Locked — attendees already booked' : 'Locked — people have requested to join'}
         />
 
         {/* Step 5 — Photos */}

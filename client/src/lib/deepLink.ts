@@ -8,6 +8,7 @@ export type DeepLinkTarget =
   | { screen: 'event'; id: string }
   | { screen: 'ticket'; id: string }
   | { screen: 'review'; id: string }
+  | { screen: 'eventRequests'; id: string }
   | { screen: 'wallet' }
   | { screen: 'profile'; id: string }
   | { screen: 'chat'; id: string }
@@ -21,6 +22,7 @@ export function targetToHref(t: DeepLinkTarget, currentUserId?: string | null): 
     case 'event': return `/(events)/${t.id}`
     case 'ticket': return `/(events)/${t.id}/ticket`
     case 'review': return `/(events)/${t.id}/review`
+    case 'eventRequests': return `/(events)/${t.id}/requests`
     case 'wallet': return '/(settings)/wallet'
     case 'profile': return t.id === currentUserId ? '/(tabs)/profile' : `/(profile)/${t.id}`
     case 'chat': return `/(chat)/${t.id}`
@@ -49,6 +51,8 @@ export function pushDataToTarget(data: any): DeepLinkTarget | null {
       return data.event_id ? { screen: 'ticket', id: data.event_id } : null
     case 'event_review_prompt':
       return data.event_id ? { screen: 'review', id: data.event_id } : null
+    case 'event_requests':
+      return data.event_id ? { screen: 'eventRequests', id: data.event_id } : null
     case 'event_missed':
       return { screen: 'browseEvents' }
     case 'wallet':

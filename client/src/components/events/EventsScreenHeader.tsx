@@ -1,6 +1,6 @@
 import React from "react";
 import { Animated, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { List, Map, Plus, Search } from "lucide-react-native";
+import { ChevronDown, List, Map, MapPin, Plus, Search } from "lucide-react-native";
 import { Colors, FontFamily, FILTER_CHIPS, withOpacity } from '@/constants';
 import { hSelection, hTap } from "@/lib/haptics";
 import { TabSwitcher } from "@/components/ui";
@@ -25,20 +25,40 @@ export function ViewModeTogglePill({
   );
 }
 
+// "Events" with the browsed city underneath — tapping the city opens the picker.
+function EventsTitle({ city, onPickCity }: { city?: string | null; onPickCity?: () => void }) {
+  return (
+    <View>
+      <Text style={styles.floatTitle}>Events</Text>
+      {onPickCity ? (
+        <Pressable style={styles.cityRow} onPress={() => { hTap(); onPickCity() }} hitSlop={8}>
+          <MapPin size={12} color={Colors.inkSecondary} strokeWidth={2.2} />
+          <Text style={styles.cityText} numberOfLines={1}>{city || "Pick a city"}</Text>
+          <ChevronDown size={13} color={Colors.inkSecondary} strokeWidth={2.2} />
+        </Pressable>
+      ) : null}
+    </View>
+  );
+}
+
 export function MapFloatingHeader({
   paddingTop,
   togglePill,
   onSearch,
   onCreate,
+  city,
+  onPickCity,
 }: {
   paddingTop: number;
   togglePill: React.ReactNode;
   onSearch: () => void;
   onCreate: () => void;
+  city?: string | null;
+  onPickCity?: () => void;
 }) {
   return (
     <View style={[styles.floatHeader, { paddingTop }]} pointerEvents="box-none">
-      <Text style={styles.floatTitle}>Events</Text>
+      <EventsTitle city={city} onPickCity={onPickCity} />
       <View style={styles.floatActions}>
         {togglePill}
         <Pressable
@@ -63,7 +83,7 @@ export function MapFloatingHeader({
 // Height of ListModeHeader's own content (title row + its padding),
 // excluding the safe-area top inset — used by the list screen to pad its
 // content below the floating header.
-export const LIST_HEADER_CONTENT_HEIGHT = 50;
+export const LIST_HEADER_CONTENT_HEIGHT = 62;
 
 export function ListModeHeader({
   paddingTop,
@@ -71,11 +91,15 @@ export function ListModeHeader({
   onSearch,
   onCreate,
   hideProgress,
+  city,
+  onPickCity,
 }: {
   paddingTop: number;
   togglePill: React.ReactNode;
   onSearch: () => void;
   onCreate: () => void;
+  city?: string | null;
+  onPickCity?: () => void;
   // Pass useHeaderAndTabBarScroll()'s `hideProgress` to make this header
   // float over the list and fade/slide away on scroll-down, same as
   // AppHeader elsewhere. Omit for the default static, in-flow header.
@@ -103,7 +127,7 @@ export function ListModeHeader({
       ]}
       pointerEvents={hideProgress ? "box-none" : "auto"}
     >
-      <Text style={styles.listHeaderTitle}>Events</Text>
+      <EventsTitle city={city} onPickCity={onPickCity} />
       <View style={styles.floatActions}>
         {togglePill}
         <Pressable
@@ -175,6 +199,8 @@ const styles = StyleSheet.create({
     letterSpacing: -0.3,
   },
   floatActions: { flexDirection: "row", alignItems: "center", gap: 8 },
+  cityRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 1, maxWidth: 170 },
+  cityText: { fontFamily: FontFamily.bodySemiBold, fontSize: 13, color: Colors.inkSecondary },
   addBtn: {
     width: 34,
     height: 34,

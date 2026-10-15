@@ -76,7 +76,7 @@ export default function PaymentScreen() {
         router.replace(`/(events)/${id}/ticket` as any)
       }
     } catch (err: any) {
-      showPill(err?.detail ?? 'Payment failed. Try again.', 'error')
+      showPill(err?.message || 'Payment failed. Try again.', 'error')
       setPaying(false)
     }
   }
@@ -88,13 +88,21 @@ export default function PaymentScreen() {
   // ── Shared post-payment verification ─────────────────────────────────────
 
   const finalise = async (data: any) => {
-    await ApiService.verifyPayment({
+    const res = await ApiService.verifyPayment({
       event_id: id!,
       razorpay_order_id: data.razorpay_order_id,
       razorpay_payment_id: data.razorpay_payment_id,
       razorpay_signature: data.razorpay_signature,
       wallet_amount: walletApplied,
     })
+    if (res?.status === 'refunded') {
+      // Spot went to someone else between checkout and payment — the server
+      // already refunded what was paid to the Gorave Wallet.
+      setPaying(false)
+      showPill('That spot was just taken — your payment is back in your Gorave Wallet', 'error')
+      router.replace(`/(events)/${id}` as any)
+      return
+    }
     hSuccess()
     if (walletApplied > 0) {
       setPaying(false)

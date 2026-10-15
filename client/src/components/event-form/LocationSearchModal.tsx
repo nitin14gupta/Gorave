@@ -4,15 +4,16 @@ import { MapPin, X, Search } from 'lucide-react-native'
 import { AutoSkeletonView } from 'react-native-auto-skeleton'
 import { Colors, FontFamily } from '@/constants'
 import { Screen, GlassInput } from '@/components/ui'
+import type { PlaceResult } from '@/hooks/useLocationSearch'
 
 interface LocationSearchModalProps {
   visible: boolean
   onClose: () => void
   query: string
   setQuery: (q: string) => void
-  results: any[]
+  results: PlaceResult[]
   loading: boolean
-  onSelect: (item: any) => void
+  onSelect: (item: PlaceResult) => void
 }
 
 export function LocationSearchModal({
@@ -38,7 +39,7 @@ export function LocationSearchModal({
         <GlassInput
           style={s.searchWrap}
           leftIcon={<Search size={18} color={Colors.glassTextDisabled} />}
-          placeholder="Place name, address, or link"
+          placeholder="Building, street or area"
           value={query}
           onChangeText={setQuery}
           autoFocus
@@ -81,7 +82,7 @@ export function LocationSearchModal({
               >
                 <Search size={20} color={Colors.inkPrimary} style={{ marginTop: 2, marginRight: 12 }} />
                 <View style={{ flex: 1 }}>
-                  <Text style={s.customRowTitle} numberOfLines={2}>Use "{query.trim()}" as my address</Text>
+                  <Text style={s.customRowTitle} numberOfLines={2}>Use "{query.trim()}" as the building</Text>
                   <Text style={s.customRowSub}>Not in the list? Type it out, then drop the pin on the map yourself</Text>
                 </View>
               </Pressable>

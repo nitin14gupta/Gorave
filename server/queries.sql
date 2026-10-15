@@ -107,6 +107,10 @@ CREATE TABLE IF NOT EXISTS public.event_attendees (
   reminded_1h_at timestamp with time zone,
   review_prompt_sent_at timestamp with time zone,
   missed_event_notice_sent_at timestamp with time zone,
+  requested_at timestamp with time zone,
+  decided_at timestamp with time zone,
+  request_count smallint DEFAULT 0 NOT NULL,
+  CONSTRAINT event_attendees_status_chk CHECK (status = ANY (ARRAY['going'::text, 'waitlist'::text, 'cancelled'::text, 'requested'::text, 'declined'::text, 'expired'::text])),
   CONSTRAINT event_attendees_pkey PRIMARY KEY (id),
   CONSTRAINT event_attendees_ticket_token_key UNIQUE (ticket_token),
   CONSTRAINT event_attendees_unique UNIQUE (event_id, user_id)
@@ -170,6 +174,15 @@ CREATE TABLE IF NOT EXISTS public.events (
   platform_profit_inr integer DEFAULT 0 NOT NULL,
   payout_notice_sent_at timestamp with time zone,
   low_capacity_notice_sent_at timestamp with time zone,
+  city character varying(100),
+  area character varying(120),
+  address_line1 text,
+  address_line2 text,
+  pincode character varying(6),
+  join_mode character varying(10) DEFAULT 'instant'::character varying NOT NULL,
+  women_pct smallint,
+  CONSTRAINT events_join_mode_chk CHECK (join_mode::text = ANY (ARRAY['instant'::character varying, 'request'::character varying]::text[])),
+  CONSTRAINT events_women_pct_chk CHECK (women_pct IS NULL OR women_pct >= 0 AND women_pct <= 100),
   CONSTRAINT events_pkey PRIMARY KEY (id)
 );
 
@@ -445,8 +458,10 @@ CREATE INDEX idx_admin_audit_log_created_at ON public.admin_audit_log USING btre
 CREATE INDEX idx_admin_refresh_tokens_admin_id ON public.admin_refresh_tokens USING btree (admin_id);
 CREATE INDEX idx_device_tokens_user ON public.device_tokens USING btree (user_id);
 CREATE INDEX idx_event_attendees_going_reminders ON public.event_attendees USING btree (event_id) WHERE (status = 'going'::text);
+CREATE INDEX idx_event_attendees_requested ON public.event_attendees USING btree (event_id, requested_at) WHERE (status = 'requested'::text);
 CREATE INDEX idx_event_hotlist_event ON public.event_hotlist USING btree (event_id);
 CREATE INDEX idx_event_hotlist_user ON public.event_hotlist USING btree (user_id, created_at DESC);
+CREATE INDEX events_city_time_idx ON public.events USING btree (city, date_time) WHERE (is_cancelled = false);
 CREATE INDEX events_location_idx ON public.events USING btree (location_lat, location_lng) WHERE (location_lat IS NOT NULL);
 CREATE INDEX idx_events_date_time_active ON public.events USING btree (date_time) WHERE (is_cancelled = false);
 CREATE INDEX idx_follows_follower ON public.follows USING btree (follower_id);

@@ -1,3 +1,4 @@
+import { ShimmerText } from '@/components/ui/ShimmerText'
 import React, { useState } from 'react'
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native'
 import { Image } from 'expo-image'
@@ -31,7 +32,7 @@ export function SearchHistoryList({ history, onTap, onRemove, onClear }: Props) 
           <Text style={s.historyTitle}>Recent</Text>
           {canExpand ? (
             <Pressable onPress={() => { hTap(); setExpanded(true) }} hitSlop={8}>
-              <Text style={s.clearAll}>See all</Text>
+              <ShimmerText style={s.clearAll}>See all</ShimmerText>
             </Pressable>
           ) : (
             <Pressable onPress={onClear} hitSlop={8}>

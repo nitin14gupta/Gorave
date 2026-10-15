@@ -121,6 +121,12 @@ export default function EventDetailScreen() {
         onScanner={d.handleScanner}
         onRsvp={() => runGated(d.handleRsvp)}
         onJoinWaitlist={() => runGated(d.handleJoinWaitlist)}
+        isRequestMode={d.isRequestMode}
+        crowdIneligible={d.crowdIneligible}
+        crowdFull={d.crowdFull}
+        myBucket={d.myBucket}
+        requestBusy={d.requestBusy}
+        onWithdrawRequest={d.withdrawRequest}
       />
 
       <EventOptionsSheet

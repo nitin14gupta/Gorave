@@ -1,3 +1,4 @@
+import { ShimmerText } from '@/components/ui/ShimmerText'
 import React from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { Image } from 'expo-image'
@@ -20,7 +21,7 @@ export function EventGuestListPreview({ guests, guestTotal, onPress }: Props) {
       <View style={styles.guestCardTop}>
         <Text style={styles.guestCardTitle}>Guest List</Text>
         <View style={styles.viewAllPill}>
-          <Text style={styles.viewAllText}>View all</Text>
+          <ShimmerText style={styles.viewAllText}>View all</ShimmerText>
           <ChevronRight size={14} color={Colors.inkPrimary} strokeWidth={2} />
         </View>
       </View>

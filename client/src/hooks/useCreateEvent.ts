@@ -1,5 +1,6 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import ApiService, { type EventDetail } from '@/api/apiService'
+import { useHomeCity } from '@/hooks/useHomeCity'
 
 export interface CreateEventForm {
   title: string
@@ -10,7 +11,13 @@ export interface CreateEventForm {
   endTime: Date | null
   capacity: number
   ageRestriction: 18 | 21 | 25
-  locationName: string
+  /** Crowd mix — % of spots for women. null = open to everyone. */
+  womenPct: number | null
+  city: string
+  area: string
+  addressLine1: string
+  addressLine2: string
+  pincode: string
   locationLat: number | null
   locationLng: number | null
   priceInr: number
@@ -27,7 +34,12 @@ const INITIAL: CreateEventForm = {
   endTime: null,
   capacity: 20,
   ageRestriction: 18,
-  locationName: '',
+  womenPct: null,
+  city: '',
+  area: '',
+  addressLine1: '',
+  addressLine2: '',
+  pincode: '',
   locationLat: null,
   locationLng: null,
   priceInr: 0,
@@ -35,8 +47,34 @@ const INITIAL: CreateEventForm = {
   coverPhotos: [],
 }
 
+/** "Flat 42, Test Towers, Lokhandwala, Andheri West, Mumbai" — mirrors how
+ * the server composes location_name, for previews before publishing. */
+export function composeLocationName(f: Pick<CreateEventForm, 'addressLine1' | 'addressLine2' | 'area' | 'city'>): string {
+  return [f.addressLine1, f.addressLine2, f.area, f.city].map(p => p.trim()).filter(Boolean).join(', ')
+}
+
+export function locationPayload(f: CreateEventForm) {
+  return {
+    city: f.city,
+    area: f.area.trim() || undefined,
+    address_line1: f.addressLine1.trim(),
+    address_line2: f.addressLine2.trim() || undefined,
+    pincode: f.pincode.trim() || undefined,
+    location_lat: f.locationLat ?? undefined,
+    location_lng: f.locationLng ?? undefined,
+  }
+}
+
 export function useCreateEvent() {
-  const [form, setFormState] = useState<CreateEventForm>(INITIAL)
+  // New events start in the host's own city — they can switch it in step 3.
+  const homeCity = useHomeCity()
+  const initial = useCallback((): CreateEventForm => ({ ...INITIAL, city: homeCity ?? '' }), [homeCity])
+  const [form, setFormState] = useState<CreateEventForm>(initial)
+  // The cached profile may arrive after mount — fill the city once it does,
+  // without overriding a city the host already picked.
+  useEffect(() => {
+    if (homeCity) setFormState(prev => (prev.city ? prev : { ...prev, city: homeCity }))
+  }, [homeCity])
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
 
@@ -45,9 +83,9 @@ export function useCreateEvent() {
   }, [])
 
   const reset = useCallback(() => {
-    setFormState(INITIAL)
+    setFormState(initial())
     setSubmitError(null)
-  }, [])
+  }, [initial])
 
   const submit = useCallback(async (): Promise<EventDetail | null> => {
     setSubmitting(true)
@@ -72,9 +110,8 @@ export function useCreateEvent() {
         end_time: form.endTime ? form.endTime.toISOString() : undefined,
         capacity: form.capacity,
         age_restriction: form.ageRestriction,
-        location_name: form.locationName || undefined,
-        location_lat: form.locationLat ?? undefined,
-        location_lng: form.locationLng ?? undefined,
+        women_pct: form.womenPct,
+        ...locationPayload(form),
         price_inr: form.isFree ? 0 : form.priceInr,
         cover_photos: uploadedUrls,
       })

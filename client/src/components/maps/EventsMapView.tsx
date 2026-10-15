@@ -1,4 +1,4 @@
-import React, { useMemo, useEffect, useState } from 'react'
+import React, { useMemo, useEffect, useRef, useState } from 'react'
 import { StyleSheet, View } from 'react-native'
 import { Image } from 'expo-image'
 import Animated, { useSharedValue, useAnimatedStyle, withRepeat, withTiming, Easing } from 'react-native-reanimated'
@@ -11,6 +11,7 @@ import {
   Marker as LibreMarker,
   GeoJSONSource,
   Layer,
+  type CameraRef,
 } from '@maplibre/maplibre-react-native'
 import { Colors, EVENT_ICONS, EVENT_ICON_FALLBACK, withOpacity } from '@/constants'
 import { MAP_PROVIDER, TILE_STYLE, DEFAULT_MAP_CENTER, type MapBounds } from '@/constants/mapConfig'
@@ -49,6 +50,33 @@ const HEATMAP_PAINT = {
   'heatmap-opacity': 0.7,
 }
 
+type MapFocus = { lat: number; lng: number } | null | undefined
+
+// Within this distance of the focused city we start on the user instead —
+// they're browsing their own city, so "around me" is the better first view.
+const NEAR_FOCUS_KM = 60
+
+function kmBetween(aLat: number, aLng: number, bLat: number, bLng: number) {
+  const r = (d: number) => (d * Math.PI) / 180
+  const dLat = r(bLat - aLat), dLng = r(bLng - aLng)
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(r(aLat)) * Math.cos(r(bLat)) * Math.sin(dLng / 2) ** 2
+  return 6371 * 2 * Math.asin(Math.sqrt(h))
+}
+
+function initialCenter(focus: MapFocus, userLat?: number, userLng?: number) {
+  const hasUser = userLat != null && userLng != null
+  if (focus && !(hasUser && kmBetween(userLat!, userLng!, focus.lat, focus.lng) <= NEAR_FOCUS_KM)) return focus
+  if (hasUser) return { lat: userLat!, lng: userLng! }
+  return DEFAULT_MAP_CENTER
+}
+
+function shouldFlyToFocus(prevKey: string, focus: MapFocus, userLat?: number, userLng?: number) {
+  if (!focus) return false
+  if (prevKey) return true
+  const hasUser = userLat != null && userLng != null
+  return !(hasUser && kmBetween(userLat!, userLng!, focus.lat, focus.lng) <= NEAR_FOCUS_KM)
+}
+
 // ── Google Maps implementation ────────────────────────────────────────────────
 
 interface GoogleProps {
@@ -58,10 +86,24 @@ interface GoogleProps {
   userHeading?: number
   activeEventId: string | null
   onEventSelect: (ev: EventSummary, idx: number) => void
+  focus?: MapFocus
 }
 
-function EventsMapGoogle({ events, userLat, userLng, userHeading, activeEventId, onEventSelect }: GoogleProps) {
+function EventsMapGoogle({ events, userLat, userLng, userHeading, activeEventId, onEventSelect, focus }: GoogleProps) {
   const { mapRef } = useGoogleMaps()
+  const start = initialCenter(focus, userLat, userLng)
+  const focusKey = focus ? `${focus.lat},${focus.lng}` : ''
+  const prevFocusKey = useRef(focusKey)
+  useEffect(() => {
+    const prev = prevFocusKey.current
+    prevFocusKey.current = focusKey
+    if (prev === focusKey || !shouldFlyToFocus(prev, focus, userLat, userLng)) return
+    mapRef.current?.animateToRegion(
+      { latitude: focus!.lat, longitude: focus!.lng, latitudeDelta: 0.15, longitudeDelta: 0.15 },
+      1000,
+    )
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusKey])
   const [zoom, setZoom] = useState(DEFAULT_ZOOM)
   const pinScale = pinScaleForZoom(zoom)
 
@@ -81,8 +123,8 @@ function EventsMapGoogle({ events, userLat, userLng, userHeading, activeEventId,
       ref={mapRef}
       style={{ flex: 1 }}
       initialRegion={{
-        latitude: userLat ?? DEFAULT_MAP_CENTER.lat,
-        longitude: userLng ?? DEFAULT_MAP_CENTER.lng,
+        latitude: start.lat,
+        longitude: start.lng,
         latitudeDelta: 0.15,
         longitudeDelta: 0.15,
       }}
@@ -126,10 +168,24 @@ interface LibreProps {
   activeEventId: string | null
   onEventSelect: (ev: EventSummary, idx: number) => void
   onBoundsChange?: (bounds: MapBounds) => void
+  focus?: MapFocus
 }
 
-function EventsMapLibre({ events, userLat, userLng, userHeading, activeEventId, onEventSelect, onBoundsChange }: LibreProps) {
+function EventsMapLibre({ events, userLat, userLng, userHeading, activeEventId, onEventSelect, onBoundsChange, focus }: LibreProps) {
   const { mapRef, handleRegionIsChanging, handleRegionDidChange, zoom } = useMapLibre(onBoundsChange)
+  const cameraRef = useRef<CameraRef>(null)
+  const start = initialCenter(focus, userLat, userLng)
+  // Browsed city changed — fly there; the resulting region change reloads
+  // the viewport's events through onBoundsChange.
+  const focusKey = focus ? `${focus.lat},${focus.lng}` : ''
+  const prevFocusKey = useRef(focusKey)
+  useEffect(() => {
+    const prev = prevFocusKey.current
+    prevFocusKey.current = focusKey
+    if (prev === focusKey || !shouldFlyToFocus(prev, focus, userLat, userLng)) return
+    cameraRef.current?.flyTo({ center: [focus!.lng, focus!.lat], zoom: 11, duration: 1200 })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusKey])
   const geojson = useMemo(() => eventsToGeoJSON(events), [events])
   const pinScale = pinScaleForZoom(zoom)
 
@@ -155,8 +211,9 @@ function EventsMapLibre({ events, userLat, userLng, userHeading, activeEventId, 
       attribution={false}
     >
       <Camera
+        ref={cameraRef}
         initialViewState={{
-          center: [userLng ?? DEFAULT_MAP_CENTER.lng, userLat ?? DEFAULT_MAP_CENTER.lat],
+          center: [start.lng, start.lat],
           zoom: 11,
         }}
       />
@@ -201,6 +258,8 @@ export interface EventsMapViewProps {
   provider?: 'maplibre' | 'google'
   onEventSelect: (ev: EventSummary, idx: number) => void
   onBoundsChange?: (bounds: MapBounds) => void
+  /** Centre of the city being browsed — changing it moves the map there */
+  focus?: MapFocus
   style?: ViewStyle
 }
 
@@ -213,6 +272,7 @@ export function EventsMapView({
   provider = MAP_PROVIDER,
   onEventSelect,
   onBoundsChange,
+  focus,
   style,
 }: EventsMapViewProps) {
   return (
@@ -225,6 +285,7 @@ export function EventsMapView({
           userHeading={userHeading}
           activeEventId={activeEventId}
           onEventSelect={onEventSelect}
+          focus={focus}
         />
       ) : (
         <EventsMapLibre
@@ -235,6 +296,7 @@ export function EventsMapView({
           activeEventId={activeEventId}
           onEventSelect={onEventSelect}
           onBoundsChange={onBoundsChange}
+          focus={focus}
         />
       )}
     </View>

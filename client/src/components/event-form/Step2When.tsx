@@ -4,6 +4,7 @@ import { Calendar, ChevronRight, Clock, Minus, Plus } from 'lucide-react-native'
 import { Colors } from '@/constants'
 import type { CreateEventForm } from '@/hooks/useCreateEvent'
 import { ef, AGE_OPTIONS, fmt, fmtTime } from './styles'
+import { CrowdMixPicker } from './CrowdMixPicker'
 
 interface Props {
   form: CreateEventForm
@@ -17,6 +18,8 @@ interface Props {
   /** Lock age restriction (e.g. attendees already joined) */
   ageLocked?: boolean
   ageLockNote?: string
+  /** Lock crowd mix (guests already joined) */
+  ratioLocked?: boolean
   /** Hard floor for capacity stepper (confirmed bookings count) */
   minCapacity?: number
   capacityNote?: string
@@ -49,7 +52,7 @@ function PickerRow({
   )
 }
 
-function Inner({ form, set, errors, setErrors, openDate, openStartTime, openEndDate, openEndTime, ageLocked, ageLockNote, minCapacity = 5, capacityNote, disabled, capacityUnlocked }: Omit<Props, 'scrollable'>) {
+function Inner({ form, set, errors, setErrors, openDate, openStartTime, openEndDate, openEndTime, ageLocked, ageLockNote, ratioLocked, minCapacity = 5, capacityNote, disabled, capacityUnlocked }: Omit<Props, 'scrollable'>) {
   return (
     <>
       <Text style={ef.fieldLabel}>Starts</Text>
@@ -117,6 +120,15 @@ function Inner({ form, set, errors, setErrors, openDate, openStartTime, openEndD
           </Pressable>
         ))}
       </View>
+
+      <CrowdMixPicker
+        womenPct={form.womenPct}
+        capacity={form.capacity}
+        onChange={v => set('womenPct', v)}
+        locked={ratioLocked}
+        lockNote={ratioLocked ? ageLockNote : undefined}
+        disabled={disabled}
+      />
     </>
   )
 }
@@ -128,7 +140,7 @@ export function Step2When({ scrollable = true, ...props }: Props) {
   return (
     <ScrollView style={ef.stepScroll} contentContainerStyle={ef.stepContent} keyboardShouldPersistTaps="handled">
       <Text style={ef.stepTitle}>When is it happening?</Text>
-      <Text style={ef.stepSub}>Set the start date, end date, and capacity</Text>
+      <Text style={ef.stepSub}>Set the time, capacity and who it's for</Text>
       <Inner {...props} />
     </ScrollView>
   )

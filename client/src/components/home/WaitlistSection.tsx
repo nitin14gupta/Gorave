@@ -1,3 +1,4 @@
+import { SectionHeader } from '@/components/ui/SectionHeader'
 import { forwardRef, useCallback, useImperativeHandle, useRef, useState } from 'react'
 import { View, Text, StyleSheet, Pressable, FlatList, type ListRenderItemInfo } from 'react-native'
 import { router, useFocusEffect } from 'expo-router'
@@ -95,7 +96,7 @@ export const WaitlistSection = forwardRef<WaitlistSectionHandle, Props>(function
 
   return (
     <View style={s.wrap}>
-      <Text style={s.title}>On the Waitlist</Text>
+      <SectionHeader title="On the Waitlist" />
       <FlatList
         data={visible}
         horizontal
@@ -117,7 +118,6 @@ export const WaitlistSection = forwardRef<WaitlistSectionHandle, Props>(function
 
 const s = StyleSheet.create({
   wrap: { gap: 10 },
-  title: { fontFamily: FontFamily.headingBold, fontSize: 18, color: Colors.inkPrimary },
   list: { gap: 12, paddingRight: 4 },
   card: { width: CARD_WIDTH },
   footer: {

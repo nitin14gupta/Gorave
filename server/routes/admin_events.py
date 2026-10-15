@@ -102,6 +102,8 @@ def get_event_detail(event_id: str, current_admin: dict = Depends(get_current_ad
                 e.id::text, e.title, e.description, e.rules, e.event_type,
                 e.date_time, e.end_time, e.capacity, e.spots_left, e.age_restriction,
                 e.location_name, e.location_lat, e.location_lng,
+                e.city, e.area, e.join_mode, e.women_pct,
+                (SELECT COUNT(*) FROM event_attendees r WHERE r.event_id = e.id AND r.status = 'requested')::int AS pending_requests,
                 e.price_inr, (e.price_inr = 0) AS is_free,
                 e.platform_fee_inr, e.host_commission_inr, e.platform_profit_inr,
                 COALESCE(e.cover_photos, '[]'::jsonb) AS cover_photos,
@@ -122,7 +124,7 @@ def get_event_detail(event_id: str, current_admin: dict = Depends(get_current_ad
         cur.execute(
             """
             SELECT ea.id::text, ea.status, ea.joined_at, ea.checked_in_at, ea.payment_id,
-                   ea.offer_expires_at, u.id::text AS user_id, u.name, u.phone
+                   ea.offer_expires_at, u.id::text AS user_id, u.name, u.phone, u.gender
             FROM event_attendees ea
             JOIN users u ON u.id = ea.user_id
             WHERE ea.event_id = %s::uuid AND ea.status = 'going'

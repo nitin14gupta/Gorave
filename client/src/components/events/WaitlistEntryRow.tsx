@@ -11,6 +11,8 @@ function fmtCountdown(expiresAt: string) {
   return h > 0 ? `${h}h ${m}m left` : `${m}m left`
 }
 
+const GENDER_TAG: Record<string, string> = { Female: 'Woman', Male: 'Man', 'Non-binary': 'Non-binary' }
+
 function fmtJoinedAt(iso: string) {
   const d = new Date(iso)
   return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
@@ -39,7 +41,12 @@ export const WaitlistEntryRow = memo(function WaitlistEntryRow({ entry, isOffere
       )}
 
       <View style={s.rowInfo}>
-        <Text style={s.rowName}>{entry.name ?? 'Unknown'}</Text>
+        <View style={s.nameRow}>
+          <Text style={s.rowName}>{entry.name ?? 'Unknown'}</Text>
+          {entry.gender && GENDER_TAG[entry.gender] ? (
+            <View style={s.genderTag}><Text style={s.genderTagText}>{GENDER_TAG[entry.gender]}</Text></View>
+          ) : null}
+        </View>
         {entry.username && <Text style={s.rowUsername}>@{entry.username}</Text>}
         {isOffered && entry.offer_expires_at ? (
           <Text style={s.offerText}>Awaiting confirmation — {fmtCountdown(entry.offer_expires_at)}</Text>
@@ -84,7 +91,10 @@ const s = StyleSheet.create({
   avatarInitial: { fontFamily: FontFamily.headingBold, fontSize: 18, color: Colors.inkPrimary },
 
   rowInfo: { flex: 1 },
+  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   rowName: { fontFamily: FontFamily.bodySemiBold, fontSize: 15, color: Colors.inkPrimary },
+  genderTag: { paddingHorizontal: 6, paddingVertical: 1, borderRadius: 6, backgroundColor: withOpacity(Colors.inkPrimary, 0.08) },
+  genderTagText: { fontFamily: FontFamily.bodyMedium, fontSize: 10, color: Colors.inkSecondary },
   rowUsername: { fontFamily: FontFamily.bodyRegular, fontSize: 12, color: Colors.inkSecondary, marginTop: 1 },
   offerText: { fontFamily: FontFamily.bodyRegular, fontSize: 12, color: Colors.offerGreen, marginTop: 3 },
   joinedText: { fontFamily: FontFamily.bodyRegular, fontSize: 12, color: Colors.inkDisabled, marginTop: 3 },

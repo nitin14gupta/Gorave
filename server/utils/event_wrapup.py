@@ -11,9 +11,11 @@ def send_event_wrapup_notifications() -> dict:
     in. Each attendee row is only ever notified once per kind —
     review_prompt_sent_at / missed_event_notice_sent_at gate re-sends across
     ticks and restarts, so this is safe to call on a plain interval."""
+    from routes.events import expire_pending_requests
     return {
         "review_prompts": _send_review_prompts(),
         "missed_notices": _send_missed_notices(),
+        "expired_requests": expire_pending_requests(),
     }
 
 

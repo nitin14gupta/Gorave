@@ -1,5 +1,6 @@
+import { SectionHeader } from '@/components/ui/SectionHeader'
 import { forwardRef, memo, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react'
-import { View, Text, StyleSheet, FlatList, type ListRenderItemInfo } from 'react-native'
+import { View, StyleSheet, FlatList, type ListRenderItemInfo } from 'react-native'
 import { router } from 'expo-router'
 import ApiService, { type EventSummary } from '@/api/apiService'
 import { EventCard } from '@/components/events/EventCard'
@@ -38,7 +39,7 @@ interface Props {
   onEmptyChange?: (empty: boolean) => void
 }
 
-// "Trending" has no dedicated backend signal yet — nearby events ranked by
+// "Trending" has no dedicated backend signal yet — events in your city ranked by
 // current attendee_count is a reasonable stand-in and needs no new endpoint.
 // The API has no offset/page param, so we over-fetch once (FETCH_LIMIT) and
 // reveal more of the already-sorted batch as the user scrolls — simple lazy
@@ -59,42 +60,25 @@ export const TrendingSection = forwardRef<TrendingSectionHandle, Props>(function
         getOrFetch(CacheKeys.homeHostedEvents, () => ApiService.getMyHostedEvents(), { ttlMs: 5 * 60_000, persist: false }).catch(() => []),
       ]).then(([joined, hosted]) => new Set([...joined, ...hosted].map(e => e.id)))
 
-    const loadTrending = (lat: number, lng: number) =>
-      Promise.all([
-        ApiService.getEvents({ lat, lng, radius_km: 40, limit: FETCH_LIMIT }),
-        ownEventIds(),
-      ])
-        .then(([result, ownIds]) => {
-          if (!mountedRef.current) return
-          const sorted = result
-            .filter(e => !ownIds.has(e.id))
-            .sort((a, b) => b.attendee_count - a.attendee_count)
-          setAllEvents(sorted)
-          setVisibleCount(INITIAL_COUNT)
-          onEmptyChange?.(sorted.length === 0)
-        })
-        .catch(() => {})
-
-    const { lat, lng, city } = profile ?? {}
-    // 0,0 isn't a real location — it's what a manually-picked city used to
-    // save before city coordinates existed. Treat it the same as "unset".
-    const hasRealCoords = lat != null && lng != null && (lat !== 0 || lng !== 0)
-    if (hasRealCoords) return loadTrending(lat!, lng!)
+    // City-scoped like the Events tab — the profile's lat/lng get
+    // overwritten by live GPS pings, so the city is the stable signal.
+    const city = profile?.city
     if (!city) return Promise.resolve()
-
-    // Self-heal: this profile has a city name but no real coordinates behind
-    // it — look up the city's known lat/lng and backfill the profile so this
-    // repair only has to happen once.
-    return ApiService.getCities()
-      .then(cities => {
+    return Promise.all([
+      ApiService.getEvents({ city, limit: FETCH_LIMIT }),
+      ownEventIds(),
+    ])
+      .then(([result, ownIds]) => {
         if (!mountedRef.current) return
-        const match = cities.find(c => c.name === city)
-        if (!match) return
-        ApiService.setLocation(city, match.lat, match.lng).catch(() => {})
-        return loadTrending(match.lat, match.lng)
+        const sorted = result
+          .filter(e => !ownIds.has(e.id))
+          .sort((a, b) => b.attendee_count - a.attendee_count)
+        setAllEvents(sorted)
+        setVisibleCount(INITIAL_COUNT)
+        onEmptyChange?.(sorted.length === 0)
       })
       .catch(() => {})
-  }, [profile?.lat, profile?.lng, profile?.city, onEmptyChange])
+  }, [profile?.city, onEmptyChange])
 
   useImperativeHandle(ref, () => ({ refresh: load }), [load])
 
@@ -124,7 +108,11 @@ export const TrendingSection = forwardRef<TrendingSectionHandle, Props>(function
 
   return (
     <View style={s.wrap}>
-      <Text style={s.title}>Trending in {profile?.city ?? 'your city'}</Text>
+      <SectionHeader
+        title={`Trending in ${profile?.city ?? 'your city'}`}
+        actionLabel="See all"
+        onAction={() => router.push('/(tabs)/events' as any)}
+      />
       <FlatList
         data={events}
         horizontal
@@ -146,7 +134,6 @@ export const TrendingSection = forwardRef<TrendingSectionHandle, Props>(function
 
 const s = StyleSheet.create({
   wrap: { gap: 10 },
-  title: { fontFamily: FontFamily.headingBold, fontSize: 18, color: Colors.inkPrimary },
   list: { gap: 12, paddingRight: 4 },
   card: { width: CARD_WIDTH },
 })
