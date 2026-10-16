@@ -4,6 +4,11 @@ import { BRAND } from '@/constants'
 // free-event limit, crowd-mix quotas and badge tiers. Names in the demos are
 // illustrative UI, never presented as real hosts or real numbers.
 
+export const HOST_CRUMBS = [
+  { label: 'Home', href: '/' },
+  { label: 'Host', href: '/host' },
+]
+
 export const HOST_FEES = {
   /** Lowest ticket price on a paid event */
   minTicket: 99,

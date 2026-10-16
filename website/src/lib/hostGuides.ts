@@ -412,3 +412,9 @@ export const GUIDES_FAQ = [
   { q: 'How do guests get in on the night?', a: 'Each confirmed guest gets a QR ticket in the app, and you scan it at the door. Every guest is phone-verified and 18+.' },
   { q: 'Can I control the crowd mix?', a: 'Yes. Choose Open, 50:50, 60:40, women-only, men-only, or a custom split in 10% steps. 10% of seats always stay open, and you can add an age gate.' },
 ]
+
+export const GUIDES_CRUMBS = [
+  { label: 'Home', href: '/' },
+  { label: 'Host', href: '/host' },
+  { label: 'Guides', href: '/host/guides' },
+]

@@ -57,7 +57,7 @@ function CreateScreen({ t }: { t: number }) {
           <div className="text-[10px] font-bold uppercase tracking-[0.12em] text-noir-ink-2">Name</div>
           <div className="mt-0.5 min-h-[18px] text-[15px] font-bold">
             {typed}
-            <span className="ml-px inline-block h-[14px] w-[2px] translate-y-[2px] bg-orange" style={{ animation: 'twinkle 1s steps(2) infinite' }} />
+            <span className="ml-px inline-block h-[14px] w-[2px] translate-y-[2px] bg-orange" />
           </div>
         </div>
         <Field label="Date" value="Sat, 18 Oct · 6 PM" on={t > 0.5} />

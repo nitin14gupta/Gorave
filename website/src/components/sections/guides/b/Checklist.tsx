@@ -72,6 +72,7 @@ function Item({ i, n, text, href, guide, progress }: { i: number; n: number; tex
   const border = useTransform(lit, v => (v > 0.5 ? '#00C48C' : 'rgba(245,240,235,0.3)'))
   const textOpacity = useTransform(lit, [0, 1], [1, 0.5])
   const pop = useTransform(lit, [0, 0.6, 1], [1, 1.18, 1])
+  const strike = useTransform(lit, v => `${v * 100}% 2px`)
 
   return (
     <li className="flex items-start gap-4 border-b border-noir-ink/10 px-3 py-5 last:border-b-0 md:gap-5 md:px-4">
@@ -81,10 +82,15 @@ function Item({ i, n, text, href, guide, progress }: { i: number; n: number; tex
         </svg>
       </motion.span>
       <div className="min-w-0 flex-1">
-        <motion.div style={{ opacity: textOpacity }} className="relative inline font-display text-[clamp(20px,2vw,26px)] font-extrabold leading-tight tracking-[-0.03em]">
-          {text}
-          <motion.span aria-hidden style={{ scaleX: lit }} className="absolute left-0 right-0 top-1/2 h-[2px] origin-left bg-noir-ink/70" />
-        </motion.div>
+        <div className="font-display text-[clamp(20px,2vw,26px)] font-extrabold leading-tight tracking-[-0.03em]">
+          {/* The strike is a background line, so it follows the text across wrapped lines */}
+          <motion.span
+            style={{ opacity: textOpacity, backgroundSize: strike }}
+            className="bg-[linear-gradient(currentColor,currentColor)] bg-[position:0_58%] bg-no-repeat [box-decoration-break:clone] [-webkit-box-decoration-break:clone]"
+          >
+            {text}
+          </motion.span>
+        </div>
         <Link href={href} className="mt-1.5 block font-sans text-sm font-bold text-noir-ink-2 transition-colors hover:text-orange">
           → {guide}
         </Link>

@@ -38,13 +38,12 @@ export function MixDial() {
     setMix(customMix(Math.round((frac / 0.9) * 10)))
   }
 
-  let offset = 0
-  const arcs = SEG.map(s => {
-    const share = mix[s.k] / 100
-    const arc = { ...s, len: share * C, start: offset }
-    offset += share * C
-    return arc
-  })
+  // Each arc starts where the previous ones end.
+  const arcs = SEG.map((s, i) => ({
+    ...s,
+    len: (mix[s.k] / 100) * C,
+    start: SEG.slice(0, i).reduce((sum, prev) => sum + (mix[prev.k] / 100) * C, 0),
+  }))
 
   return (
     <section className="overflow-hidden bg-blush px-6 py-24 text-blush-ink md:px-20 md:py-32">

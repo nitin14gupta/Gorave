@@ -1,4 +1,4 @@
-import { HOST_FAQ } from '@/lib/host'
+import { HOST_CRUMBS, HOST_FAQ } from '@/lib/host'
 import { Faq } from '@/components/sections/shared/Faq'
 import { SiteFooter } from '@/components/layout/SiteFooter'
 import { FloatingDock } from '@/components/layout/FloatingDock'
@@ -10,11 +10,6 @@ import { Address } from './a/Address'
 import { BadgeLadder } from './a/BadgeLadder'
 import { ControlRoom } from './a/ControlRoom'
 import { HostCtaA } from './a/HostCtaA'
-
-export const HOST_CRUMBS = [
-  { label: 'Home', href: '/' },
-  { label: 'Host', href: '/host' },
-]
 
 /**
  * Host page, variant A — "Your first party, start to finish". Daylight

@@ -1,4 +1,4 @@
-import { GUIDES_FAQ, HOST_GUIDES, guideHref } from '@/lib/hostGuides'
+import { GUIDES_CRUMBS, GUIDES_FAQ, HOST_GUIDES, guideHref } from '@/lib/hostGuides'
 import { Faq } from '@/components/sections/shared/Faq'
 import { SiteFooter } from '@/components/layout/SiteFooter'
 import { FloatingDock } from '@/components/layout/FloatingDock'
@@ -8,12 +8,6 @@ import { GuideIndex } from './a/GuideIndex'
 import { ReadingPath } from './a/ReadingPath'
 import { FinePrint } from './a/FinePrint'
 import { HostCtaA } from './a/HostCtaA'
-
-export const GUIDES_CRUMBS = [
-  { label: 'Home', href: '/' },
-  { label: 'Host', href: '/host' },
-  { label: 'Guides', href: '/host/guides' },
-]
 
 /**
  * Hosting guides, variant A — "the magazine". Cream paper, a nameplate that

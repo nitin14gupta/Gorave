@@ -147,7 +147,6 @@ function Meter({ level, color }: { level: number; color: string }) {
     <div className="flex w-3 flex-col-reverse gap-1 md:w-4">
       {Array.from({ length: LEDS }, (_, i) => {
         const on = i < lit
-        const peak = on && i >= lit - 2
         const hot = i >= LEDS - 3
         return (
           <span
@@ -156,7 +155,6 @@ function Meter({ level, color }: { level: number; color: string }) {
             style={{
               background: on ? (hot ? '#FF3864' : color) : 'rgb(255 255 255 / 0.06)',
               boxShadow: on ? `0 0 8px ${hot ? '#FF3864' : color}` : 'none',
-              animation: peak ? `twinkle ${0.6 + (i % 3) * 0.25}s ease-in-out infinite` : undefined,
             }}
           />
         )
