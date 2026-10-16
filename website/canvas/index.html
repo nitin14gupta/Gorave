@@ -31,6 +31,7 @@
   <script type="text/babel" src="frames/v3-noir.jsx?v=1"></script>
   <script type="text/babel" src="frames/v4-shout.jsx?v=1"></script>
   <script type="text/babel" src="frames/final.jsx?v=1"></script>
+  <script type="text/babel" src="frames/city.jsx?v=1"></script>
 
   <script type="text/babel">
     const { DesignCanvas, DCSection, DCArtboard } = window;
@@ -38,6 +39,12 @@
 
     const App = () => (
       <DesignCanvas title="Gorave — website" subtitle="Landing lab · 4 directions · open any artboard → 'Preview as page' to scroll it like a real site">
+        <DCSection id="city" title="00 · City page template" subtitle="One template, every city — same structure, data swaps. Open → 'Preview as page' to scroll + hover">
+          <DCArtboard id="city-mumbai" label="City · Mumbai" width={W} height={6900}><CityPageX city={CITY_PAGES.mumbai} /></DCArtboard>
+          <DCArtboard id="city-bangalore" label="City · Bangalore" width={W} height={6900}><CityPageX city={CITY_PAGES.bangalore} /></DCArtboard>
+          <DCArtboard id="city-delhi" label="City · Delhi" width={W} height={6900}><CityPageX city={CITY_PAGES.delhi} /></DCArtboard>
+        </DCSection>
+
         <DCSection id="final" title="00 · Final landing — pick one" subtitle="V1 base + your picks from V3/V4 · 10 sections · only difference: section-heading font">
           <DCArtboard id="final-a" label="Final A · Editorial (Cabinet only)" width={W} height={8200}><LandingFinal /></DCArtboard>
           <DCArtboard id="final-b" label="Final B · Editorial + Shout (Anton headings)" width={W} height={8300}><LandingFinal shout /></DCArtboard>

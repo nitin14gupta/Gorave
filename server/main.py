@@ -21,6 +21,7 @@ from routes.payments import router as payments_router
 from routes.misc import router as misc_router
 from routes.safety import router as safety_router
 from routes.wellknown import router as wellknown_router
+from routes.public import router as public_router
 from routes.admin_auth import router as admin_auth_router
 from routes.admin_users import router as admin_users_router
 from routes.admin_feedback import router as admin_feedback_router
@@ -35,6 +36,8 @@ from utils.account_purge import purge_expired_deleted_accounts
 # Comma-separated list of extra origins allowed to call this API — the admin
 # web panel's dev/prod origin(s), e.g. "http://localhost:3000,https://admin.gorave.in"
 ADMIN_ORIGINS = [o.strip() for o in os.getenv("ADMIN_ORIGINS", "").split(",") if o.strip()]
+# Marketing site (gorave.in). Dev default covers `npm run dev` in website/.
+WEBSITE_ORIGINS = [o.strip() for o in os.getenv("WEBSITE_ORIGINS", "http://localhost:3001").split(",") if o.strip()]
 
 PURGE_INTERVAL_SECONDS = 24 * 60 * 60
 EVENT_WRAPUP_INTERVAL_SECONDS = 15 * 60
@@ -116,7 +119,7 @@ app = FastAPI(title="Gorave API", version="1.0.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:8081", "http://localhost:19006", *ADMIN_ORIGINS],
+    allow_origins=["http://localhost:8081", "http://localhost:19006", *ADMIN_ORIGINS, *WEBSITE_ORIGINS],
     allow_credentials=True,
     allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["Authorization", "Content-Type"],
@@ -162,6 +165,7 @@ async def maintenance_mode(request: Request, call_next):
     return await call_next(request)
 
 app.include_router(auth_router)
+app.include_router(public_router)
 app.include_router(users_router)
 app.include_router(upload_router)
 app.include_router(places_router)

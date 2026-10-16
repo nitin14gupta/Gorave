@@ -26,19 +26,22 @@ export const EVENT_TYPES: EventType[] = [
 export interface City {
   name: string
   slug: string
+  state: string
+  /** Shown in the city hero, e.g. "19.07° N, 72.87° E" */
+  coords: string
   areas: string[]
   photo: PhotoKey
 }
 
 export const CITIES: City[] = [
-  { name: 'Mumbai', slug: 'mumbai', areas: ['Bandra', 'Khar', 'Andheri', 'Lower Parel', 'Powai'], photo: 'roof2' },
-  { name: 'Bangalore', slug: 'bangalore', areas: ['Indiranagar', 'Koramangala', 'HSR'], photo: 'gig2' },
-  { name: 'Delhi', slug: 'delhi', areas: ['Hauz Khas', 'CP', 'GK'], photo: 'neon' },
-  { name: 'Pune', slug: 'pune', areas: ['Koregaon Park', 'Baner', 'Viman Nagar'], photo: 'party3' },
-  { name: 'Hyderabad', slug: 'hyderabad', areas: ['Jubilee Hills', 'Banjara Hills'], photo: 'fest' },
-  { name: 'Goa', slug: 'goa', areas: ['Anjuna', 'Assagao', 'Panjim'], photo: 'roof4' },
-  { name: 'Chennai', slug: 'chennai', areas: ['Adyar', 'Besant Nagar'], photo: 'dine3' },
-  { name: 'Kolkata', slug: 'kolkata', areas: ['Park Street', 'Salt Lake'], photo: 'gig4' },
+  { name: 'Mumbai', slug: 'mumbai', coords: '19.07° N, 72.87° E', state: 'Maharashtra', areas: ['Bandra', 'Khar', 'Andheri', 'Lower Parel', 'Powai', 'Juhu', 'Worli', 'Versova'], photo: 'roof2' },
+  { name: 'Bangalore', slug: 'bangalore', coords: '12.97° N, 77.59° E', state: 'Karnataka', areas: ['Indiranagar', 'Koramangala', 'HSR Layout', 'Whitefield', 'Jayanagar'], photo: 'gig2' },
+  { name: 'Delhi', slug: 'delhi', coords: '28.70° N, 77.10° E', state: 'Delhi NCR', areas: ['Hauz Khas', 'Connaught Place', 'GK', 'Saket', 'Vasant Kunj'], photo: 'neon' },
+  { name: 'Pune', slug: 'pune', coords: '18.52° N, 73.85° E', state: 'Maharashtra', areas: ['Koregaon Park', 'Baner', 'Viman Nagar'], photo: 'party3' },
+  { name: 'Hyderabad', slug: 'hyderabad', coords: '17.38° N, 78.48° E', state: 'Telangana', areas: ['Jubilee Hills', 'Banjara Hills'], photo: 'fest' },
+  { name: 'Goa', slug: 'goa', coords: '15.29° N, 74.12° E', state: 'Goa', areas: ['Anjuna', 'Assagao', 'Panjim'], photo: 'roof4' },
+  { name: 'Chennai', slug: 'chennai', coords: '13.08° N, 80.27° E', state: 'Tamil Nadu', areas: ['Adyar', 'Besant Nagar'], photo: 'dine3' },
+  { name: 'Kolkata', slug: 'kolkata', coords: '22.57° N, 88.36° E', state: 'West Bengal', areas: ['Park Street', 'Salt Lake'], photo: 'gig4' },
 ]
 
 export interface SampleEvent {
@@ -53,6 +56,8 @@ export interface SampleEvent {
   going: number
   mix?: string
   request?: boolean
+  /** Real cover photo URL (from the API); falls back to `photo` */
+  image?: string
 }
 
 export const SAMPLE_EVENTS: SampleEvent[] = [
@@ -82,3 +87,41 @@ export const TESTIMONIALS = [
 ]
 
 export const APP_RATING = { score: '4.9', count: '12k+ ratings' }
+
+// ── City-page posters ─────────────────────────────────────────────────
+// City-agnostic flyer set; the area line is filled per city at render time,
+// so every city page shows "its own" posters from the same artwork.
+export type PosterDef =
+  | { kind: 'template'; name: string }
+  | { kind: 'photo'; photo: PhotoKey; title: string; when: string; big?: boolean }
+  | { kind: 'type'; bg: string; ink: string; title: string; when: string }
+
+export const POSTERS: PosterDef[] = [
+  { kind: 'template', name: 'retro' },
+  { kind: 'photo', photo: 'party1', title: 'house party', when: 'Sat 9 PM' },
+  { kind: 'type', bg: '#C8F25C', ink: '#171310', title: 'game|night', when: 'Fri 8 PM' },
+  { kind: 'template', name: 'nightout' },
+  { kind: 'photo', photo: 'roof1', title: 'ROOFTOP', when: 'Sat sunset', big: true },
+  { kind: 'type', bg: '#FF3864', ink: '#FFF1E6', title: 'retro|bolly|wood', when: 'Sun 9 PM' },
+  { kind: 'template', name: 'houseparty' },
+  { kind: 'photo', photo: 'dine2', title: 'supper club', when: 'Tue 8 PM' },
+  { kind: 'type', bg: '#171310', ink: '#FF6B35', title: 'silent|disco', when: 'Sat 10 PM' },
+  { kind: 'template', name: 'beack' },
+  { kind: 'photo', photo: 'gig3', title: 'LOFT GIG', when: 'Thu 8 PM', big: true },
+  { kind: 'type', bg: '#DCE6F2', ink: '#131E2A', title: 'mafia &|momos', when: 'Fri 9 PM' },
+  { kind: 'template', name: 'halloween' },
+  { kind: 'photo', photo: 'drinks', title: "girls' night", when: 'Women only' },
+  { kind: 'type', bg: '#FFB830', ink: '#2B1418', title: 'garba|night', when: 'Sat 7 PM' },
+  { kind: 'template', name: 'christmas' },
+]
+
+/** A night's timeline — areas are filled per city. Drives "After dark" + "Now boarding". */
+export const NIGHT_SLOTS = [
+  { hour: 18, title: 'Sunset Rooftop Sessions', vibe: 'Rooftop', price: '₹799', status: 'Book', poster: 4 },
+  { hour: 19, title: "Girls' Night: Wine & Paint", vibe: 'Women only', price: 'Free', status: 'Request', poster: 13 },
+  { hour: 20, title: 'Midnight Board Game Café', vibe: 'Game night', price: 'Free', status: 'Request', poster: 2 },
+  { hour: 21, title: 'Indie Gig at the Loft', vibe: 'Gig', price: '₹499', status: 'Few left', poster: 10 },
+  { hour: 22, title: 'Bollywood Retro Night', vibe: 'House party', price: 'Free', status: 'Request', poster: 5 },
+  { hour: 23, title: 'Silent Disco on the Terrace', vibe: 'Rooftop', price: '₹599', status: 'Book', poster: 8 },
+  { hour: 25, title: 'After-party Jam Circle', vibe: 'Gig', price: 'Free', status: 'Request', poster: 0 },
+]

@@ -68,7 +68,15 @@ export function SmartNavbar() {
                 className={cn('flex items-center gap-1 font-sans text-sm font-bold transition-colors', open === m.key ? 'text-ink' : 'text-ink-2 hover:text-ink')}
               >
                 {m.label}
-                <motion.span animate={{ rotate: open === m.key ? 180 : 0 }} className="text-[9px] opacity-60">▼</motion.span>
+                <motion.svg
+                  aria-hidden
+                  viewBox="0 0 12 12"
+                  className="size-3"
+                  animate={{ rotate: open === m.key ? 180 : 0 }}
+                  transition={{ duration: 0.3, ease: EASE }}
+                >
+                  <path d="M2.5 4.5 6 8l3.5-3.5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                </motion.svg>
               </button>
             </li>
           ))}

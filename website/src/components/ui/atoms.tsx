@@ -69,3 +69,14 @@ export function H2({ children, className, dark }: { children: ReactNode; classNa
 export function Lede({ children, className }: { children: ReactNode; className?: string }) {
   return <p className={cn('font-sans text-lg leading-relaxed text-ink-2', className)}>{children}</p>
 }
+
+/** "01 — The reasons": opens each city-page section like a chapter of one night out. */
+export function Chapter({ n, title, dark, className }: { n: string; title: string; dark?: boolean; className?: string }) {
+  return (
+    <div className={cn('flex items-center gap-3 font-sans text-xs font-bold uppercase tracking-[0.18em]', dark ? 'text-noir-ink-2' : 'text-ink-3', className)}>
+      <span className="font-serif text-xl normal-case italic tracking-normal text-orange">{n}</span>
+      <span className={cn('h-px w-10', dark ? 'bg-noir-ink/25' : 'bg-ink/25')} />
+      {title}
+    </div>
+  )
+}

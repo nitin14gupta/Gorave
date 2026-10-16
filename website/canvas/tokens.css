@@ -85,3 +85,8 @@
 .gr-underline { background: linear-gradient(currentColor,currentColor) 0 100% / 0 1.5px no-repeat; transition: background-size .35s; }
 .gr-underline:hover { background-size: 100% 1.5px; }
 .gr-noscroll::-webkit-scrollbar { display: none; }
+
+/* City page motion */
+@keyframes gr-spin-ccw { to { transform: rotate(-360deg); } }
+@keyframes gr-twinkle { 0%,100% { opacity: .2; } 50% { opacity: 1; } }
+@keyframes gr-ping { 0% { transform: scale(1); opacity: .7; } 100% { transform: scale(3.2); opacity: 0; } }

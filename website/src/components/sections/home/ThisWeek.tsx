@@ -69,7 +69,7 @@ export function ThisWeek() {
             transition={{ duration: 0.45, ease: EASE }}
             className="flex w-max cursor-grab gap-5 active:cursor-grabbing"
           >
-            {events.map(e => <EventCard key={e.id} event={e} />)}
+            {events.map(e => <EventCard key={e.id} event={e} width={300} />)}
           </motion.div>
         </AnimatePresence>
       </div>

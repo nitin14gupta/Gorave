@@ -46,7 +46,7 @@ export function Hero() {
       <div className="mx-auto grid max-w-[1280px] items-center gap-10 lg:grid-cols-[1.35fr_1fr]">
         <div>
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, ease: EASE }}>
-            <Eyebrow>Live in Mumbai, Bangalore, Delhi + 5 more</Eyebrow>
+            {/* <Eyebrow>Live in Mumbai, Bangalore, Delhi + 5 more</Eyebrow> */}
           </motion.div>
 
           <h1 className="mt-6 font-display text-[clamp(52px,6.6vw,100px)] font-extrabold leading-[0.98] tracking-[-0.055em] text-ink">

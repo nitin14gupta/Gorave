@@ -7,7 +7,7 @@ export function InviteCard({ event, width = 270, tilt = 0 }: { event: SampleEven
   return (
     <div className="overflow-hidden rounded-3xl bg-white shadow-pop" style={{ width, rotate: `${tilt}deg` }}>
       <div className="relative" style={{ height: width * 0.62 }}>
-        <Image src={PHOTOS[event.photo]} alt={event.title} fill sizes={`${width * 2}px`} className="object-cover" />
+        <Image src={event.image ?? PHOTOS[event.photo]} alt={event.title} fill sizes={`${width * 2}px`} className="object-cover" />
         <div className="absolute left-3 top-3 flex gap-1.5">
           <Chip className="bg-white/90 text-ink">{event.when}</Chip>
           {event.mix && <Chip className="bg-white/90 text-ink">{event.mix}</Chip>}

@@ -27,6 +27,10 @@ export const PHOTOS = {
 
 export type PhotoKey = keyof typeof PHOTOS
 
+/** The app's real invite templates (Cloudflare R2). */
+export const templateImage = (name: string) =>
+  `https://pub-f5cb81cf85a5471d9abf932f74d1ae0e.r2.dev/housepartyshowcase/${name}.webp`
+
 export const AVATARS = [
   'photo-1494790108377-be9c29b29330',
   'photo-1507003211169-0a1dd7228f2d',
