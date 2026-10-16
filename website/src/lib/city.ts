@@ -51,7 +51,7 @@ export function cityFaq(city: City) {
     },
     {
       q: `How do I host an event in ${city.name}?`,
-      a: 'Download the app, create your event in a few minutes and share the link. Your first 2 events each month are free; for paid events you keep 90% of every ticket, paid out to your UPI or bank after the event.',
+      a: 'Download the app, create your event in a few minutes and share the link. Listing is free and you can run 2 free-entry events a month; for paid events (from ₹99) you keep 90% of every ticket, paid out to your UPI or bank after the event.',
     },
   ]
 }

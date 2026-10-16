@@ -49,6 +49,7 @@ invented stats, ratings or reviews on public pages (placeholders are marked
 | Floating dock + footer | all pages | Dock appears after hero, hides at footer |
 | **City** | `/[city]` → all 8 cities | Told as one night out, 11 chapters: Hero · 01 The reasons (3D poster stack) · 02 The night (pinned 6 PM→3 AM scroll) · 03 The plan (departure board) · 04 The dare (spin your Saturday) · 05 The vibe (expanding panels) · 06 The neighbourhood (area reveal) · 07 The budget (price slider) · 08 The people (cursor-repel crowd) · 09 Your turn (host) · 10 FAQ · 11 See you out there (poster vortex). Same layout for every city — only data changes |
 | City lab | `/lab/city?hero=letters\|map\|flap\|deck&city=<slug>` | Compare the 4 heroes; lock the winner with `CITY_HERO` in `components/sections/city/CityPageView.tsx`. noindex |
+| **City × type** | `/[city]/[facet]` → 8 cities × 6 types = 48 | Ten chapters about one kind of night: Hero (cursor spotlight) · 01 On the list (live events from `/public/events`, sample fallback) · 02 The anatomy (scroll-drawn callouts) · 03 The guest list (seats fill, requests get accepted) · 04 The flyers (poster stack) · 05 The night (pinned horizontal timeline, dusk → midnight) · 06 The neighbourhood · 07 Your turn (live invite builder, 3D tilt) · 08 FAQ · 09 Something else · 10 Vortex. Copy per type in `lib/eventType.ts`; revalidates every 60s |
 
 ### ⏳ To build — page templates (each template renders many URLs from data)
 | # | Screen | Route(s) | Generates |
@@ -90,7 +91,7 @@ halloween, valentines-day, independence-day, eid, ganesh-chaturthi ·
 | Family | URL pattern | Example | Count now (8 cities) | Data source |
 |---|---|---|---|---|
 | City | `/[city]` | `/mumbai` | 8 | ✅ built |
-| City × type | `/[city]/[type]` | `/mumbai/house-parties` | 48 | API `type` |
+| City × type | `/[city]/[type]` | `/mumbai/house-parties` | 48 | ✅ built (`/[city]/[facet]`) |
 | City × time | `/[city]/[time]` | `/mumbai/this-weekend` | 48 | API `when` |
 | City × occasion | `/[city]/[occasion]` | `/mumbai/new-years-eve` | 80 | date window |
 | City × price | `/[city]/[price]` | `/mumbai/free-events` | 24 | API `free` / `max_price` |

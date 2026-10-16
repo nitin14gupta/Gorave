@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useRef, useState, type ReactNode } from 'react'
 import { motion, useScroll, useSpring, useTransform } from 'motion/react'
 import { POSTERS, type City } from '@/constants'
 import { Chapter } from '@/components/ui/atoms'
@@ -15,7 +15,15 @@ const H = 300
  * Chapter 01 — the reasons. Flyers stand in a 3D perspective line that slides
  * as you scroll; hovering one lifts it out to face you and spreads the rest.
  */
-export function PosterStack({ city }: { city: City }) {
+interface Props {
+  city: City
+  chapter?: string
+  chapterTitle?: string
+  title?: ReactNode
+  subtitle?: string
+}
+
+export function PosterStack({ city, chapter = '01', chapterTitle = 'The reasons', title, subtitle }: Props) {
   const ref = useRef<HTMLElement>(null)
   const [hover, setHover] = useState<number | null>(null)
   const { scrollYProgress } = useScroll({ target: ref, offset: ['start end', 'end start'] })
@@ -24,11 +32,11 @@ export function PosterStack({ city }: { city: City }) {
   return (
     <section ref={ref} className="relative h-[860px] overflow-hidden bg-paper">
       <div className="pointer-events-none absolute left-6 top-24 z-40 max-w-[540px] md:left-20 md:top-32">
-        <Chapter n="01" title="The reasons" />
+        <Chapter n={chapter} title={chapterTitle} />
         <h2 className="mt-4 font-display text-[clamp(48px,6vw,84px)] font-extrabold leading-[0.92] tracking-[-0.055em]">
-          A million reasons<br />to go out.
+          {title ?? <>A million reasons<br />to go out.</>}
         </h2>
-        <p className="mt-3.5 font-sans text-[19px] text-ink-2">Hover a flyer. Every one is a night in {city.name}.</p>
+        <p className="mt-3.5 font-sans text-[19px] text-ink-2">{subtitle ?? `Hover a flyer. Every one is a night in ${city.name}.`}</p>
       </div>
 
       <div className="absolute inset-0" style={{ perspective: 1500, perspectiveOrigin: '30% 40%' }}>

@@ -13,16 +13,25 @@ const EASE = 'cubic-bezier(.2,.8,.2,1)'
  * Chapter 06 — the neighbourhood. Huge centred area names; hover one and
  * flyers slide out from behind it to both sides, leave and they tuck away.
  */
-export function AreaReveal({ city }: { city: City }) {
+interface Props {
+  city: City
+  chapter?: string
+  title?: string
+  subtitle?: string
+  /** Links each area to /city/area/<typeSlug> instead of /city/area */
+  typeSlug?: string
+}
+
+export function AreaReveal({ city, chapter = '06', title = 'Closer to home.', subtitle, typeSlug }: Props) {
   const [active, setActive] = useState<number | null>(null)
   const areas = city.areas.slice(0, 6)
 
   return (
     <section className="overflow-hidden bg-paper pb-36 pt-28">
       <div className="mb-12 px-6 text-center">
-        <Chapter n="06" title="The neighbourhood" className="justify-center" />
-        <h2 className="mt-4 font-display text-[clamp(48px,6vw,84px)] font-extrabold leading-[0.92] tracking-[-0.055em]">Closer to home.</h2>
-        <p className="mt-3 font-sans text-[19px] text-ink-2">See what&apos;s happening in your part of {city.name}.</p>
+        <Chapter n={chapter} title="The neighbourhood" className="justify-center" />
+        <h2 className="mt-4 font-display text-[clamp(48px,6vw,84px)] font-extrabold leading-[0.92] tracking-[-0.055em]">{title}</h2>
+        <p className="mt-3 font-sans text-[19px] text-ink-2">{subtitle ?? `See what's happening in your part of ${city.name}.`}</p>
       </div>
       <div onMouseLeave={() => setActive(null)}>
         {areas.map((a, i) => {
@@ -31,7 +40,7 @@ export function AreaReveal({ city }: { city: City }) {
           return (
             <Link
               key={a}
-              href={`/${city.slug}/${areaSlug(a)}`}
+              href={`/${city.slug}/${areaSlug(a)}${typeSlug ? `/${typeSlug}` : ''}`}
               onMouseEnter={() => setActive(i)}
               onFocus={() => setActive(i)}
               className="relative flex items-center justify-center"

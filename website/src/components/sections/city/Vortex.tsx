@@ -16,7 +16,7 @@ const RINGS = [
  * Chapter 11 — see you out there. Rings of flyers rotate slowly
  * counter-clockwise around the call to action, smaller towards the centre.
  */
-export function Vortex({ city }: { city: City }) {
+export function Vortex({ city, chapter = '11' }: { city: City; chapter?: string }) {
   return (
     <section className="relative h-[920px] overflow-hidden bg-paper">
       <div className="absolute left-1/2 top-1/2" aria-hidden>
@@ -43,7 +43,7 @@ export function Vortex({ city }: { city: City }) {
 
       <div className="pointer-events-none relative z-10 flex h-full flex-col items-center justify-center px-6 text-center [&_a]:pointer-events-auto">
         <div className="mb-5 font-sans text-xs font-bold uppercase tracking-[0.18em] text-ink-3">
-          <span className="font-serif text-xl normal-case italic tracking-normal text-orange">11</span> · See you out there
+          <span className="font-serif text-xl normal-case italic tracking-normal text-orange">{chapter}</span> · See you out there
         </div>
         <Link
           href="/app"
