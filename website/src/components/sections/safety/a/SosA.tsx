@@ -52,17 +52,17 @@ export function SosA() {
   const label = sent ? 'Sent' : holding ? 'Keep holding' : 'Hold for SOS'
 
   return (
-    <section className="relative overflow-hidden bg-noir px-6 py-24 text-noir-ink md:px-20 md:py-32">
+    <section className="relative overflow-hidden bg-paper px-6 py-24 text-ink md:px-20 md:py-32">
       <div className="mx-auto grid max-w-[1280px] items-center gap-14 lg:grid-cols-[1fr_1.15fr]">
         <div>
-          <Chapter n="03" title="The SOS" dark />
+          <Chapter n="03" title="The SOS" />
           <h2 className="mt-4 font-display text-[clamp(44px,5.6vw,84px)] font-extrabold leading-[0.92] tracking-[-0.055em]">
             One tap.<br />Five people <span className="font-serif font-normal italic tracking-[-0.03em] text-brand">know where you are.</span>
           </h2>
-          <p className="mt-5 max-w-[460px] font-sans text-lg leading-relaxed text-noir-ink-2">
+          <p className="mt-5 max-w-[460px] font-sans text-lg leading-relaxed text-ink-2">
             Add up to five emergency contacts in the app. If you need them, one tap shares your live location with all of them, and it keeps sharing even with the app in the background.
           </p>
-          <ul className="mt-7 grid max-w-[460px] gap-2.5 font-sans text-[15px] text-noir-ink-2">
+          <ul className="mt-7 grid max-w-[460px] gap-2.5 font-sans text-[15px] text-ink-2">
             <li className="flex gap-3"><span className="text-green">●</span>Set your contacts before your first event.</li>
             <li className="flex gap-3"><span className="text-green">●</span>Works in the background while you&apos;re on another app.</li>
             <li className="flex gap-3"><span className="text-green">●</span>For emergencies, still call 112 as well.</li>
@@ -70,12 +70,12 @@ export function SosA() {
         </div>
 
         <div className="relative mx-auto aspect-square w-full max-w-[560px] select-none">
-          <div className="absolute left-0 top-0 z-20 rounded-full bg-noir-3 px-3 py-1.5 font-sans text-[11px] font-bold uppercase tracking-[0.16em] text-noir-ink-2">
+          <div className="absolute left-0 top-0 z-20 rounded-full bg-cream-deep px-3 py-1.5 font-sans text-[11px] font-bold uppercase tracking-[0.16em] text-ink-2">
             Demo · nothing is sent
           </div>
 
           <svg viewBox="0 0 100 100" className="pointer-events-none absolute inset-0 size-full" aria-hidden>
-            <circle cx={50} cy={50} r={R} fill="none" stroke="#F5F0EB" strokeOpacity={0.08} strokeWidth={0.3} strokeDasharray="0.8 1.6" />
+            <circle cx={50} cy={50} r={R} fill="none" stroke="#171310" strokeOpacity={0.08} strokeWidth={0.3} strokeDasharray="0.8 1.6" />
             {ANGLES.map((a, i) => {
               const rad = (a * Math.PI) / 180
               return (
@@ -110,15 +110,15 @@ export function SosA() {
                   )}
                   <motion.div
                     initial={false}
-                    animate={{ backgroundColor: sent ? '#00C48C' : '#222222', scale: sent ? [1, 1.25, 1] : 1 }}
+                    animate={{ backgroundColor: sent ? '#00C48C' : '#e4d5b8', scale: sent ? [1, 1.25, 1] : 1 }}
                     transition={{ duration: 0.5, delay: sent ? 0.4 + i * 0.18 : 0 }}
-                    className="relative grid size-12 place-items-center rounded-full font-display text-lg font-extrabold text-noir-ink md:size-14"
+                    className="relative grid size-12 place-items-center rounded-full font-display text-lg font-extrabold text-ink md:size-14"
                   >
                     {c.name[0]}
                   </motion.div>
                 </div>
                 <div className="mt-1.5 font-sans text-[13px] font-bold">{c.name}</div>
-                <div className="h-4 font-sans text-[11px] text-noir-ink-2">
+                <div className="h-4 font-sans text-[11px] text-ink-2">
                   <AnimatePresence mode="wait" initial={false}>
                     <motion.span
                       key={String(sent)}
@@ -140,7 +140,7 @@ export function SosA() {
           <div className="absolute left-1/2 top-1/2 size-[42%] -translate-x-1/2 -translate-y-1/2">
             <motion.div aria-hidden className="absolute -inset-6 rounded-full bg-coral blur-2xl" style={{ opacity: glow }} />
             <svg viewBox="0 0 100 100" className="absolute inset-0 size-full -rotate-90" aria-hidden>
-              <circle cx={50} cy={50} r={47} fill="none" stroke="#F5F0EB" strokeOpacity={0.12} strokeWidth={3} />
+              <circle cx={50} cy={50} r={47} fill="none" stroke="#171310" strokeOpacity={0.12} strokeWidth={3} />
               <motion.circle cx={50} cy={50} r={47} fill="none" stroke="#FF3864" strokeWidth={3} strokeLinecap="round" style={{ pathLength: p }} />
             </svg>
             <motion.button
@@ -174,7 +174,7 @@ export function SosA() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 10 }}
                 transition={{ delay: 1.4 }}
-                className="absolute bottom-0 left-1/2 z-20 -translate-x-1/2 whitespace-nowrap rounded-full bg-noir-3 px-4 py-2 font-sans text-xs font-bold text-noir-ink transition-colors hover:bg-noir-2"
+                className="absolute bottom-0 left-1/2 z-20 -translate-x-1/2 whitespace-nowrap rounded-full bg-cream-deep px-4 py-2 font-sans text-xs font-bold text-ink transition-colors hover:bg-white"
               >
                 ↺ Run the demo again
               </motion.button>

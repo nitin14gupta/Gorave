@@ -103,14 +103,14 @@ export function EventsRail({ crowd, place, events, total, chapter = '02' }: Prop
             ))}
             <Link
               href={browse}
-              className="group flex h-[388px] w-[260px] shrink-0 flex-col justify-between rounded-[28px] bg-ink p-7 text-cream transition-transform duration-500 ease-out-expo hover:-translate-y-1.5"
+              className="group flex h-[388px] w-[260px] shrink-0 flex-col justify-between rounded-[28px] bg-brand p-7 text-white transition-transform duration-500 ease-out-expo hover:-translate-y-1.5"
             >
-              <span className="font-serif text-3xl italic text-orange">{more ? `+${total - list.length}` : 'More'}</span>
+              <span className="font-serif text-3xl italic text-white">{more ? `+${total - list.length}` : 'More'}</span>
               <span>
                 <span className="block font-display text-[34px] font-extrabold leading-[0.95] tracking-[-0.045em]">
                   {more ? 'And more coming up.' : `Browse ${place.name}.`}
                 </span>
-                <span className="mt-3 inline-block font-sans text-sm font-bold text-noir-ink-2 transition-transform duration-300 group-hover:translate-x-1">
+                <span className="mt-3 inline-block font-sans text-sm font-bold text-white/85 transition-transform duration-300 group-hover:translate-x-1">
                   {place.citySlug ? `Everything in ${place.name}` : 'All cities'} →
                 </span>
               </span>

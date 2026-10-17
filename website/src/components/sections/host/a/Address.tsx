@@ -38,23 +38,23 @@ export function Address() {
   const tick = Math.floor(p * 60)
 
   return (
-    <section ref={ref} className="relative bg-noir text-noir-ink md:h-[230vh]">
+    <section ref={ref} className="relative bg-paper text-ink md:h-[230vh]">
       <div className="grid items-center gap-14 px-6 py-24 md:sticky md:top-0 md:h-screen md:grid-cols-[1fr_1fr] md:px-20 md:py-0">
         <div className="mx-auto w-full max-w-[560px]">
-          <Chapter n="04" title="The address" dark />
+          <Chapter n="04" title="The address" />
           <h2 className="mt-4 font-display text-[clamp(44px,5.6vw,84px)] font-extrabold leading-[0.92] tracking-[-0.055em]">
             Your address<br /><span className="font-serif font-normal italic tracking-[-0.03em] text-brand">stays yours.</span>
           </h2>
-          <p className="mt-4 max-w-[440px] font-sans text-lg leading-relaxed text-noir-ink-2">
+          <p className="mt-4 max-w-[440px] font-sans text-lg leading-relaxed text-ink-2">
             Anyone browsing sees the area. Only guests you&apos;ve confirmed get the exact address, and every one of them is phone-verified and 18+.
           </p>
           <div className="mt-8 flex gap-2 font-sans text-sm font-bold">
-            <span className={cn('rounded-full px-4 py-2 transition-colors duration-500', !confirmed ? 'bg-noir-ink text-ink' : 'bg-noir-3 text-noir-ink-2')}>Browsing</span>
-            <span className={cn('rounded-full px-4 py-2 transition-colors duration-500', confirmed ? 'bg-green text-noir' : 'bg-noir-3 text-noir-ink-2')}>Confirmed guest</span>
+            <span className={cn('rounded-full px-4 py-2 transition-colors duration-500', !confirmed ? 'bg-ink text-cream' : 'bg-cream-deep text-ink-2')}>Browsing</span>
+            <span className={cn('rounded-full px-4 py-2 transition-colors duration-500', confirmed ? 'bg-green text-noir' : 'bg-cream-deep text-ink-2')}>Confirmed guest</span>
           </div>
         </div>
 
-        <div className="mx-auto w-full max-w-[520px] overflow-hidden rounded-[32px] bg-noir-2 shadow-[0_0_0_1px_rgb(255_255_255/0.06)]">
+        <div className="mx-auto w-full max-w-[520px] overflow-hidden rounded-[32px] bg-white shadow-soft">
           <div className="relative h-[300px] overflow-hidden md:h-[340px]">
             <motion.div className="absolute inset-0" style={{ filter }}>
               <Image src={PHOTOS.roof2} alt="" fill sizes="520px" className="scale-110 object-cover opacity-60" />
@@ -86,12 +86,12 @@ export function Address() {
             </AnimatePresence>
           </div>
           <div className="p-6 font-sans">
-            <div className="text-[11px] font-bold uppercase tracking-[0.16em] text-noir-ink-2">Where</div>
+            <div className="text-[11px] font-bold uppercase tracking-[0.16em] text-ink-2">Where</div>
             <div className="mt-1 font-display text-2xl font-extrabold">Bandra West, Mumbai</div>
-            <div className={cn('mt-2 font-mono text-[15px] transition-colors', confirmed ? 'text-noir-ink' : 'text-noir-ink-2')} aria-label={confirmed ? EXACT : 'Exact address hidden until you are confirmed'}>
+            <div className={cn('mt-2 font-mono text-[15px] transition-colors', confirmed ? 'text-ink' : 'text-ink-2')} aria-label={confirmed ? EXACT : 'Exact address hidden until you are confirmed'}>
               {scramble(EXACT, reveal, tick)}
             </div>
-            <div className="mt-4 rounded-2xl bg-noir-3 px-4 py-3 text-[13px] text-noir-ink-2">
+            <div className="mt-4 rounded-2xl bg-cream-deep px-4 py-3 text-[13px] text-ink-2">
               {confirmed ? 'Unlocked with the QR ticket. Scan in at the door.' : 'Exact address after the host confirms you.'}
             </div>
           </div>

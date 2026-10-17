@@ -59,14 +59,14 @@ export function GuestList({ city, story }: { city: City; story: TypeContent }) {
   const cols = cap <= 16 ? 4 : cap <= 30 ? 6 : 10
 
   return (
-    <section ref={ref} className="relative bg-noir text-noir-ink md:h-[260vh]">
+    <section ref={ref} className="relative bg-paper text-ink md:h-[260vh]">
       <div className="grid items-center gap-14 px-6 py-24 md:sticky md:top-0 md:h-screen md:grid-cols-[1fr_1.1fr] md:px-20 md:py-0">
         <div>
-          <Chapter n="03" title="The guest list" dark />
+          <Chapter n="03" title="The guest list" />
           <h2 className="mt-4 font-display text-[clamp(44px,5.6vw,80px)] font-extrabold leading-[0.92] tracking-[-0.055em]">
             The host picks<br />the room.
           </h2>
-          <p className="mt-4 max-w-[440px] font-sans text-lg leading-relaxed text-noir-ink-2">
+          <p className="mt-4 max-w-[440px] font-sans text-lg leading-relaxed text-ink-2">
             Free {story.plural.toLowerCase()} in {city.name} are request-to-join. Hosts see who&apos;s asking, accept who fits, and can hold a crowd mix like 50:50.
           </p>
 
@@ -74,11 +74,11 @@ export function GuestList({ city, story }: { city: City; story: TypeContent }) {
             {REQUESTS.map(r => {
               const ok = p >= r.at
               return (
-                <div key={r.name} className="flex items-center gap-3 rounded-2xl bg-noir-3 px-4 py-3" style={{ opacity: p >= r.at - 0.12 ? 1 : 0.25, transition: 'opacity .4s' }}>
-                  <span className="grid size-9 place-items-center rounded-full bg-noir-2 font-display text-sm font-extrabold">{r.name[0]}</span>
+                <div key={r.name} className="flex items-center gap-3 rounded-2xl bg-cream-deep px-4 py-3" style={{ opacity: p >= r.at - 0.12 ? 1 : 0.25, transition: 'opacity .4s' }}>
+                  <span className="grid size-9 place-items-center rounded-full bg-white font-display text-sm font-extrabold">{r.name[0]}</span>
                   <div className="flex-1">
                     <div className="font-sans text-[15px] font-bold">{r.name} wants to join</div>
-                    <div className="font-sans text-xs text-noir-ink-2">{r.meta}</div>
+                    <div className="font-sans text-xs text-ink-2">{r.meta}</div>
                   </div>
                   <AnimatePresence mode="wait" initial={false}>
                     <motion.span
@@ -86,7 +86,7 @@ export function GuestList({ city, story }: { city: City; story: TypeContent }) {
                       initial={{ opacity: 0, scale: 0.6 }}
                       animate={{ opacity: 1, scale: 1 }}
                       exit={{ opacity: 0, scale: 0.6 }}
-                      className={cn('rounded-full px-3 py-1.5 font-sans text-xs font-bold', ok ? 'bg-green text-noir' : 'bg-noir-2 text-noir-ink-2')}
+                      className={cn('rounded-full px-3 py-1.5 font-sans text-xs font-bold', ok ? 'bg-green text-noir' : 'bg-white text-ink-2')}
                     >
                       {ok ? 'Accepted ✓' : 'Pending'}
                     </motion.span>
@@ -100,13 +100,13 @@ export function GuestList({ city, story }: { city: City; story: TypeContent }) {
         <div>
           <div className="flex items-baseline justify-between">
             <div className="font-display text-[clamp(56px,7vw,104px)] font-extrabold leading-none tracking-[-0.06em] tabular-nums">
-              {filled}<span className="text-noir-ink-2">/{cap}</span>
+              {filled}<span className="text-ink-2">/{cap}</span>
             </div>
-            <div className="font-sans text-sm font-bold uppercase tracking-[0.16em] text-noir-ink-2">going</div>
+            <div className="font-sans text-sm font-bold uppercase tracking-[0.16em] text-ink-2">going</div>
           </div>
           <div className="mt-6 grid gap-2.5" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}>
             {seats.map((s, i) => (
-              <div key={i} className="relative aspect-square rounded-xl bg-noir-3">
+              <div key={i} className="relative aspect-square rounded-xl bg-cream-deep">
                 <div
                   className={cn('absolute inset-1 rounded-lg', COLOR[s])}
                   style={{ transform: `scale(${i < filled ? 1 : 0})`, opacity: i < filled ? 1 : 0, transition: 'transform .45s cubic-bezier(.3,1.6,.5,1), opacity .3s' }}
@@ -118,7 +118,7 @@ export function GuestList({ city, story }: { city: City; story: TypeContent }) {
             {LEGEND.map(([k, label]) => (
               <span key={k} className="flex items-center gap-2">
                 <span className={cn('size-3 rounded', COLOR[k])} />
-                {label} <span className="tabular-nums text-noir-ink-2">{count(k)}/{total(k)}</span>
+                {label} <span className="tabular-nums text-ink-2">{count(k)}/{total(k)}</span>
               </span>
             ))}
           </div>

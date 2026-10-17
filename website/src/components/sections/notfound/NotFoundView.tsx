@@ -49,7 +49,7 @@ export function NotFoundView() {
   }
 
   return (
-    <main ref={ref} onPointerMove={onMove} className="relative min-h-[100svh] cursor-crosshair overflow-hidden bg-noir text-noir-ink">
+    <main ref={ref} onPointerMove={onMove} className="relative min-h-[100svh] cursor-crosshair overflow-hidden bg-paper text-ink">
       {/* The dark room: just the outline of a giant 404 */}
       <Giant404 className="text-transparent [-webkit-text-stroke:1.5px_rgb(245_240_235/0.1)]" />
 
@@ -70,30 +70,30 @@ export function NotFoundView() {
 
       <div className="relative z-10 mx-auto grid min-h-[100svh] max-w-[1280px] items-end gap-12 px-6 pb-16 pt-32 md:px-20 lg:grid-cols-[1.25fr_1fr] lg:items-center">
         <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.9, ease: EASE, delay: 0.2 }}>
-          <div className="flex items-center gap-3 font-sans text-xs font-bold uppercase tracking-[0.18em] text-noir-ink-2">
+          <div className="flex items-center gap-3 font-sans text-xs font-bold uppercase tracking-[0.18em] text-ink-2">
             <span className="font-serif text-xl normal-case italic tracking-normal text-orange">404</span>
-            <span className="h-px w-10 bg-noir-ink/25" />
+            <span className="h-px w-10 bg-ink/25" />
             Wrong address
           </div>
           <h1 className="mt-5 font-display text-[clamp(52px,7.6vw,116px)] font-extrabold leading-[0.88] tracking-[-0.06em]">
             Your name&apos;s<br />not on <span className="font-serif font-normal italic tracking-[-0.03em] text-brand">the list.</span>
           </h1>
-          <p className="mt-6 max-w-[460px] font-sans text-xl leading-relaxed text-noir-ink-2">
+          <p className="mt-6 max-w-[460px] font-sans text-xl leading-relaxed text-ink-2">
             This page doesn&apos;t exist, or the host moved the party. The lights are off in here, but the night is still on somewhere.
           </p>
 
           <div className="mt-9 flex flex-wrap gap-2.5">
             <Button href="/" size="lg">Take me home</Button>
-            <Button href="/host" kind="ghost" dark size="lg">Throw your own</Button>
+            <Button href="/host" kind="ghost" size="lg">Throw your own</Button>
           </div>
 
-          <div className="mt-10 font-sans text-xs font-bold uppercase tracking-[0.18em] text-noir-ink-2">Or find the party in</div>
+          <div className="mt-10 font-sans text-xs font-bold uppercase tracking-[0.18em] text-ink-2">Or find the party in</div>
           <div className="mt-3 flex max-w-[560px] flex-wrap gap-2">
             {CITIES.map((c, i) => (
               <motion.div key={c.slug} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease: EASE, delay: 0.6 + i * 0.05 }}>
                 <Link
                   href={`/${c.slug}`}
-                  className="block rounded-full bg-white/[0.06] px-4 py-2 font-sans text-sm font-bold text-noir-ink transition-[background-color,transform] duration-300 ease-out-expo hover:-translate-y-0.5 hover:bg-brand"
+                  className="block rounded-full bg-white px-4 py-2 font-sans text-sm font-bold text-ink transition-[background-color,transform] duration-300 ease-out-expo hover:-translate-y-0.5 hover:bg-brand"
                 >
                   {c.name}
                 </Link>
@@ -105,7 +105,7 @@ export function NotFoundView() {
         <ScanDesk />
       </div>
 
-      <div className="pointer-events-none absolute inset-x-0 bottom-5 z-10 hidden text-center font-sans text-xs font-bold uppercase tracking-[0.2em] text-noir-ink-2/60 md:block">
+      <div className="pointer-events-none absolute inset-x-0 bottom-5 z-10 hidden text-center font-sans text-xs font-bold uppercase tracking-[0.2em] text-ink-2/60 md:block">
         Lights are off. Move your torch around
       </div>
     </main>
@@ -133,7 +133,7 @@ function ScanDesk() {
         transition={{ opacity: { duration: 0.8, delay: 0.3 }, rotateX: { duration: 0.9, ease: EASE, delay: 0.3 }, y: { duration: 0.9, ease: EASE, delay: 0.3 }, rotate: { duration: 0.5, delay: 2.6 } }}
         className="absolute left-1/2 top-4 -translate-x-1/2"
       >
-        <TicketCard title="The Party You Were Looking For" admission="Guest list · 1" date="Tonight, somewhere" time="404 PM IST" width={280} backdrop="var(--color-noir)" />
+        <TicketCard title="The Party You Were Looking For" admission="Guest list · 1" date="Tonight, somewhere" time="404 PM IST" width={280} backdrop="var(--color-paper)" />
 
         {/* Laser sweeps the ticket three times */}
         <motion.div
@@ -160,7 +160,7 @@ function ScanDesk() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 3.1, duration: 0.6 }}
-        className="absolute inset-x-0 bottom-0 text-center font-sans text-sm font-bold text-noir-ink-2"
+        className="absolute inset-x-0 bottom-0 text-center font-sans text-sm font-bold text-ink-2"
       >
         Scan failed: ticket not found
       </motion.div>

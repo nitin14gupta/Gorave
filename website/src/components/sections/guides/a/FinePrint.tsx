@@ -24,9 +24,9 @@ export function FinePrint() {
   const n = WORDS.length
 
   return (
-    <section className="bg-noir px-6 py-24 text-noir-ink md:px-20 md:py-36">
+    <section className="bg-paper px-6 py-24 text-ink md:px-20 md:py-36">
       <div className="mx-auto max-w-[1180px]">
-        <Chapter n="04" title="The fine print, in plain words" dark />
+        <Chapter n="04" title="The fine print, in plain words" />
         <p ref={ref} className="mt-8 font-display text-[clamp(32px,4.6vw,68px)] font-extrabold leading-[1.02] tracking-[-0.045em]">
           {WORDS.map((w, i) => (
             <Word key={i} word={w} range={[i / (n + 1), (i + 1.5) / (n + 1)]} progress={scrollYProgress} />
@@ -34,7 +34,7 @@ export function FinePrint() {
         </p>
 
         <motion.ul
-          className="mt-20 grid gap-x-8 gap-y-10 border-t-[1.5px] border-noir-ink/20 pt-10 sm:grid-cols-2 lg:grid-cols-4"
+          className="mt-20 grid gap-x-8 gap-y-10 border-t-[1.5px] border-ink/20 pt-10 sm:grid-cols-2 lg:grid-cols-4"
           initial="hidden"
           whileInView="show"
           viewport={{ once: true, margin: '-80px' }}
@@ -47,9 +47,9 @@ export function FinePrint() {
               transition={{ duration: 0.7, ease: EASE }}
               className="group"
             >
-              <div className="font-serif text-[52px] italic leading-none text-noir-ink transition-transform duration-500 ease-out-expo group-hover:-translate-y-1">{f.big}</div>
+              <div className="font-serif text-[52px] italic leading-none text-ink transition-transform duration-500 ease-out-expo group-hover:-translate-y-1">{f.big}</div>
               <div className="mt-2 font-sans text-xs font-bold uppercase tracking-[0.16em] text-orange">{f.label}</div>
-              <p className="mt-2 font-sans text-[15px] leading-relaxed text-noir-ink-2">{f.detail}</p>
+              <p className="mt-2 font-sans text-[15px] leading-relaxed text-ink-2">{f.detail}</p>
             </motion.li>
           ))}
         </motion.ul>

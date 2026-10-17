@@ -37,17 +37,17 @@ export function TypeHero({ city, story, crumbs }: { city: City; story: TypeConte
   }
 
   return (
-    <section ref={ref} onPointerMove={onMove} className="relative min-h-[100svh] overflow-hidden bg-noir text-noir-ink">
+    <section ref={ref} onPointerMove={onMove} className="relative min-h-[100svh] overflow-hidden bg-paper text-ink">
       <div aria-hidden className="absolute inset-0 bg-cover bg-center opacity-[0.13] grayscale" style={{ backgroundImage: `url(${src})` }} />
       <motion.div
         aria-hidden
         className="absolute inset-0 bg-cover bg-center"
         style={{ backgroundImage: `url(${src})`, maskImage: mask, WebkitMaskImage: mask }}
       />
-      <div aria-hidden className="absolute inset-0 bg-gradient-to-t from-noir via-noir/30 to-noir/60" />
+      <div aria-hidden className="absolute inset-0 bg-gradient-to-t from-paper via-paper/30 to-paper/60" />
 
       <div className="relative z-10 flex min-h-[100svh] flex-col px-6 pb-14 pt-28 md:px-20">
-        <Breadcrumbs crumbs={crumbs} className="text-noir-ink-2 [&_[aria-current]]:text-noir-ink [&_a:hover]:text-noir-ink" />
+        <Breadcrumbs crumbs={crumbs} className="text-ink-2 [&_[aria-current]]:text-ink [&_a:hover]:text-ink" />
 
         <div className="mt-auto">
           <h1 className="font-display text-[clamp(64px,11vw,184px)] font-extrabold leading-[0.84] tracking-[-0.065em]">
@@ -56,13 +56,13 @@ export function TypeHero({ city, story, crumbs }: { city: City; story: TypeConte
             <span className="font-serif font-normal italic tracking-[-0.03em] text-brand">in {city.name}.</span>
           </h1>
           <div className="mt-9 flex flex-wrap items-end justify-between gap-8">
-            <p className="max-w-[460px] font-sans text-xl leading-relaxed text-noir-ink-2">{story.heroLine}</p>
+            <p className="max-w-[460px] font-sans text-xl leading-relaxed text-ink-2">{story.heroLine}</p>
             <div className="flex flex-wrap gap-2.5">
               <Button href="#events" size="lg">See what&apos;s on</Button>
-              <Button href="/host" kind="ghost" dark size="lg">Host one</Button>
+              <Button href="/host" kind="ghost" size="lg">Host one</Button>
             </div>
           </div>
-          <div className="mt-10 hidden font-sans text-xs font-bold uppercase tracking-[0.18em] text-noir-ink-2/70 md:block">Move your cursor to find the party</div>
+          <div className="mt-10 hidden font-sans text-xs font-bold uppercase tracking-[0.18em] text-ink-2/70 md:block">Move your cursor to find the party</div>
         </div>
       </div>
     </section>

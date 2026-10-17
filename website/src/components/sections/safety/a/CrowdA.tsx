@@ -98,17 +98,17 @@ export function CrowdA() {
             </AnimatePresence>
           </div>
 
-          <div className="rounded-[32px] bg-ink p-6 text-cream shadow-pop md:p-8">
+          <div className="rounded-[32px] bg-white p-6 text-ink shadow-soft shadow-pop md:p-8">
             <div className="flex items-center justify-between">
-              <div className="font-sans text-xs font-bold uppercase tracking-[0.16em] text-noir-ink-2">Age gate</div>
-              <div className="flex gap-1 rounded-full bg-white/8 p-1">
+              <div className="font-sans text-xs font-bold uppercase tracking-[0.16em] text-ink-2">Age gate</div>
+              <div className="flex gap-1 rounded-full bg-cream p-1">
                 {AGE_GATES.map(g => (
                   <button
                     key={g}
                     type="button"
                     aria-pressed={g === gate}
                     onClick={() => setGate(g)}
-                    className={cn('rounded-full px-3.5 py-1.5 font-sans text-sm font-bold transition-colors', g === gate ? 'bg-cream text-ink' : 'text-noir-ink-2 hover:text-cream')}
+                    className={cn('rounded-full px-3.5 py-1.5 font-sans text-sm font-bold transition-colors', g === gate ? 'bg-cream text-ink' : 'text-ink-2 hover:text-cream')}
                   >
                     {g}
                   </button>
@@ -138,18 +138,18 @@ export function CrowdA() {
                     layout
                     animate={{ opacity: ok ? 1 : 0.32, scale: ok ? 1 : 0.94 }}
                     transition={{ duration: 0.35, ease: EASE }}
-                    className={cn('rounded-2xl px-3 py-2.5 font-sans', ok ? 'bg-white/10' : 'bg-white/[0.03]')}
+                    className={cn('rounded-2xl px-3 py-2.5 font-sans', ok ? 'bg-cream' : 'bg-paper opacity-60')}
                   >
-                    <div className="text-[11px] text-noir-ink-2">Guest {i + 1}</div>
+                    <div className="text-[11px] text-ink-2">Guest {i + 1}</div>
                     <div className="flex items-baseline justify-between">
                       <span className="font-display text-xl font-extrabold tabular-nums">{age}</span>
-                      <span className={cn('text-[11px] font-bold', ok ? 'text-green' : 'text-noir-ink-2')}>{ok ? 'Can ask' : 'Under'}</span>
+                      <span className={cn('text-[11px] font-bold', ok ? 'text-green' : 'text-ink-2')}>{ok ? 'Can ask' : 'Under'}</span>
                     </div>
                   </motion.div>
                 )
               })}
             </div>
-            <p className="mt-5 font-sans text-sm text-noir-ink-2">Gorave is 18+ for everyone. Hosts can raise the bar for their event.</p>
+            <p className="mt-5 font-sans text-sm text-ink-2">Gorave is 18+ for everyone. Hosts can raise the bar for their event.</p>
           </div>
         </div>
       </div>

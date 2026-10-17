@@ -47,16 +47,16 @@ export function HostProfileView({ host, events, crumbs, places }: { host: HostHe
 
         <BadgeLadder name={first} hosted={host.hosted} />
 
-        <section className="bg-noir px-6 py-24 text-noir-ink md:px-20 md:py-28">
+        <section className="bg-paper px-6 py-24 text-ink md:px-20 md:py-28">
           <div className="mx-auto max-w-[1280px]">
-            <Chapter n="04" title="Going to one" dark />
+            <Chapter n="04" title="Going to one" />
             <h2 className="mt-4 font-display text-[clamp(40px,5vw,72px)] font-extrabold leading-[0.92] tracking-[-0.055em]">How it works.</h2>
             <div className="mt-12 grid gap-4 md:grid-cols-3">
               {TRUST.map(([t, d], i) => (
-                <div key={t} className="rounded-[28px] bg-noir-2 p-7 shadow-[0_0_0_1px_rgb(255_255_255/0.06)]">
+                <div key={t} className="rounded-[28px] bg-white p-7 shadow-soft">
                   <div className="font-serif text-3xl italic text-orange">0{i + 1}</div>
                   <div className="mt-6 font-display text-2xl font-extrabold tracking-[-0.03em]">{t}</div>
-                  <p className="mt-2 font-sans text-noir-ink-2">{d}</p>
+                  <p className="mt-2 font-sans text-ink-2">{d}</p>
                 </div>
               ))}
             </div>

@@ -41,6 +41,8 @@ invented stats, ratings or reviews on public pages (placeholders are marked
 
 ## Status
 
+**Palette rule:** pages sit on cream / paper. Black (`bg-noir`) is only for small elements (buttons, pills, phone screens, the app's ticket) and two deliberate night moments: the city page's after-dark sky and the footer. Live sections that were black (home safety + CTA, testimonials, city crowd + departure board, type hero / guest list / night, guides fine print + article, host profile, host address, safety SOS, 404) were converted to cream.
+
 ### ✅ Done
 | Screen | Route | Notes |
 |---|---|---|
@@ -60,7 +62,7 @@ invented stats, ratings or reviews on public pages (placeholders are marked
 | **Event detail** | `/e/[id]` (any event, on demand) | Simple: photo gallery · sticky decision card (when, area, price + fee, spots bar, crowd mix, age, request/book in app) · host card → profile · about + house rules · before you go · more nights. Event JSON-LD (area-level location only), OG image = cover. Past/cancelled → noindex |
 | **Host profile** | `/h/[username]` (any host, on demand) | Polaroid photo + badge stamp, counting stats (nights hosted, coming up, rating or "New") · upcoming nights · badge ladder (Rising→Legend progress) · how it works · host-your-own CTA. ProfilePage JSON-LD; thin profiles noindex; members who never hosted 404 |
 | **Hosts in a city / neighbourhood** | `/[city]/hosts` (8), `/[city]/[area]/hosts` (33) | Real hosts who've hosted there, most active first (`/public/hosts`), host cards → profiles, area chips, CTA. Thin pages (<2 hosts) noindex. City and neighbourhood pages get a "Hosts near you" strip linking here; host profiles link back to their areas/cities/types; event pages link to their neighbourhood |
-| **Crowd pages** (🧪 in lab) | `/women-only`, `/balanced-crowd`, `/21-plus`, `/25-plus` (India hubs, root segment) + `/[city]/[crowd]` (32) | Real filters on `/public/events` (`women_only`, `balanced` = 40–60% women quota, `min_age`), live per-city / per-area counts, generated crowd photos in `public/img/crowd`. Copy in `lib/crowd.ts` (only rules the app enforces). 3 template variants: compare at `/lab/crowd?v=a\|b\|c&crowd=<slug>&city=<slug>`, lock with `CROWD_VARIANT`. City pages with <3 events noindex. No `/singles`: the app has no singles data, so it would be an empty, thin page |
+| **Crowd pages** | `/women-only`, `/balanced-crowd`, `/21-plus`, `/25-plus` (India hubs, root segment) + `/[city]/[crowd]` (32) | One cream-palette page built from the best of 3 lab variants (`components/sections/crowd/parts`): editorial cover whose photo opens to full bleed · the promise lit word by word · pinned rail of real events · "Pull up a chair" seat fill · sticky split-screen "why" · pinned "how the app makes it true" steps · huge place names with photos flying out on hover · host one-setting card · FAQ · other crowds · sign-off. Real filters on `/public/events` (`women_only`, `balanced` = 40–60% women, `min_age`), live per-city / per-area counts, generated photos in `public/img/crowd`. Copy in `lib/crowd.ts`. City pages with <3 events noindex. No `/singles` (no such data in the app) |
 
 ### ⏳ To build — page templates (each template renders many URLs from data)
 | # | Screen | Route(s) | Generates |

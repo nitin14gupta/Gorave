@@ -75,12 +75,12 @@ export function GuideArticle({ guide }: { guide: HostGuide }) {
                   </div>
                   {s.tips && (
                     <Reveal y={20} className="mt-8">
-                      <aside className="relative overflow-hidden rounded-[24px] bg-ink p-6 text-noir-ink md:p-7">
+                      <aside className="relative overflow-hidden rounded-[24px] bg-white p-6 text-ink shadow-soft md:p-7">
                         <span aria-hidden className="absolute inset-y-0 left-0 w-[5px] bg-brand" />
-                        <div className="font-sans text-xs font-bold uppercase tracking-[0.18em] text-gold">Host tip{s.tips.length > 1 ? 's' : ''}</div>
+                        <div className="font-sans text-xs font-bold uppercase tracking-[0.18em] text-orange">Host tip{s.tips.length > 1 ? 's' : ''}</div>
                         <ul className="mt-3 grid gap-3">
                           {s.tips.map(t => (
-                            <li key={t.slice(0, 40)} className="flex gap-3 font-sans text-[16px] leading-relaxed text-noir-ink">
+                            <li key={t.slice(0, 40)} className="flex gap-3 font-sans text-[16px] leading-relaxed text-ink">
                               <span aria-hidden className="mt-[9px] size-[7px] shrink-0 rounded-full bg-brand" />
                               {t}
                             </li>
@@ -101,22 +101,22 @@ export function GuideArticle({ guide }: { guide: HostGuide }) {
           </div>
         </section>
 
-        <section className="bg-noir px-6 py-24 text-noir-ink md:px-20 md:py-28">
+        <section className="bg-paper px-6 py-24 text-ink md:px-20 md:py-28">
           <div className="mx-auto flex max-w-[1180px] flex-wrap items-end justify-between gap-10">
             <div>
-              <Chapter n="→" title="Your turn" dark />
+              <Chapter n="→" title="Your turn" />
               <h2 className="mt-4 font-display text-[clamp(44px,6vw,92px)] font-extrabold leading-[0.88] tracking-[-0.06em]">
                 Ready to host<br />
                 <span className="font-serif font-normal italic tracking-[-0.02em] text-brand">your own?</span>
               </h2>
-              <p className="mt-5 max-w-[460px] font-sans text-lg leading-relaxed text-noir-ink-2">
+              <p className="mt-5 max-w-[460px] font-sans text-lg leading-relaxed text-ink-2">
                 Listing is free. Run two free-entry events a month, or sell tickets from ₹99 and keep 90%.
               </p>
             </div>
             <div className="flex flex-col items-start gap-5">
               <div className="flex flex-wrap gap-2.5">
                 <Button href="/host" size="lg">Start hosting</Button>
-                <Button href="/host/guides" kind="ghost" dark size="lg">All guides</Button>
+                <Button href="/host/guides" kind="ghost" size="lg">All guides</Button>
               </div>
               <StoreBadges height={44} />
             </div>

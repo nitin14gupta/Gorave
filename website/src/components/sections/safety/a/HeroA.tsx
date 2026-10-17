@@ -146,8 +146,8 @@ export function HeroA({ crumbs }: { crumbs: Crumb[] }) {
 
               {ORBIT.map((o, i) => {
                 const rad = (o.a * Math.PI) / 180
-                const left = 50 + Math.sin(rad) * 44.5
-                const top = 50 - Math.cos(rad) * 44.5
+                const left = Math.round((50 + Math.sin(rad) * 44.5) * 100) / 100
+                const top = Math.round((50 - Math.cos(rad) * 44.5) * 100) / 100
                 return (
                   <motion.div
                     key={o.label}

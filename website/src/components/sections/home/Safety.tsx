@@ -14,27 +14,27 @@ const CARDS = [
  */
 export function Safety() {
   return (
-    <section className="bg-noir px-6 py-28 text-noir-ink md:px-20 md:py-32">
+    <section className="bg-paper px-6 py-28 text-ink md:px-20 md:py-32">
       <div className="mx-auto grid max-w-[1280px] items-start gap-16 lg:grid-cols-2">
         <div className="lg:sticky lg:top-32">
-          <Eyebrow dark>Safety, built in</Eyebrow>
-          <H2 dark className="mb-5 mt-3.5 !text-[clamp(48px,5.6vw,80px)]">Go out.<br /><span className="text-brand">Feel safe.</span></H2>
-          <p className="max-w-[440px] font-sans text-lg leading-relaxed text-noir-ink-2">
+          <Eyebrow>Safety, built in</Eyebrow>
+          <H2 className="mb-5 mt-3.5 !text-[clamp(48px,5.6vw,80px)]">Go out.<br /><span className="text-brand">Feel safe.</span></H2>
+          <p className="max-w-[440px] font-sans text-lg leading-relaxed text-ink-2">
             Strangers become friends faster when everyone&apos;s real. That&apos;s the point of Gorave.
           </p>
-          <div className="mt-8"><Button href="/safety" kind="ghost" dark>How we keep events safe</Button></div>
+          <div className="mt-8"><Button href="/safety" kind="ghost">How we keep events safe</Button></div>
         </div>
         <div className="flex flex-col gap-4">
           {CARDS.map(([title, body], i) => (
             <div
               key={title}
-              className="flex gap-5 rounded-[28px] bg-noir-2 p-7 shadow-[0_0_0_1px_rgb(255_255_255/0.06)] lg:sticky"
+              className="flex gap-5 rounded-[28px] bg-white p-7 shadow-soft lg:sticky"
               style={{ top: `${128 + i * 22}px`, marginLeft: `${i * 18}px` }}
             >
               <div className="font-serif text-[34px] italic leading-none text-orange">0{i + 1}</div>
               <div>
                 <h3 className="font-display text-2xl font-extrabold">{title}</h3>
-                <p className="mt-1.5 font-sans text-base leading-relaxed text-noir-ink-2">{body}</p>
+                <p className="mt-1.5 font-sans text-base leading-relaxed text-ink-2">{body}</p>
               </div>
             </div>
           ))}

@@ -29,7 +29,7 @@ export function ArticleHero({ guide, crumbs }: { guide: HostGuide; crumbs: Crumb
   const fade = useTransform(scrollYProgress, [0, 0.7], [1, 0])
 
   return (
-    <section ref={ref} className="relative flex min-h-[88svh] flex-col overflow-hidden bg-noir text-white">
+    <section ref={ref} className="relative flex min-h-[88svh] flex-col overflow-hidden bg-paper text-white">
       <motion.div style={{ y: imgY, scale: imgScale }} className="absolute inset-0">
         <Image src={PHOTOS[guide.hero]} alt="" fill preload sizes="100vw" className="object-cover" />
       </motion.div>

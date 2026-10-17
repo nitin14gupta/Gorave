@@ -40,22 +40,22 @@ export function Earnings() {
           </p>
         </div>
 
-        <div className="rounded-[36px] bg-ink p-7 text-cream shadow-pop md:p-10">
+        <div className="rounded-[36px] bg-white p-7 text-ink shadow-soft shadow-pop md:p-10">
           <div className="flex items-center justify-between">
             <span className="rounded-full bg-gold px-3 py-1 font-sans text-[11px] font-bold uppercase tracking-[0.14em] text-ink">Example</span>
-            <span className="font-sans text-xs text-noir-ink-2">Illustration only, not a forecast</span>
+            <span className="font-sans text-xs text-ink-2">Illustration only, not a forecast</span>
           </div>
-          <div className="mt-6 font-sans text-sm font-bold uppercase tracking-[0.16em] text-noir-ink-2">You&apos;d keep</div>
+          <div className="mt-6 font-sans text-sm font-bold uppercase tracking-[0.16em] text-ink-2">You&apos;d keep</div>
           <Rolling value={take} />
-          <div className="mt-1 font-sans text-sm text-noir-ink-2">
+          <div className="mt-1 font-sans text-sm text-ink-2">
             {inr(ticket)} × {guests} {guests === 1 ? 'guest' : 'guests'} × 90%
           </div>
 
-          <div className="mt-7 flex h-3 overflow-hidden rounded-full bg-noir-3">
+          <div className="mt-7 flex h-3 overflow-hidden rounded-full bg-cream-deep">
             <div className="h-full w-[90%] bg-brand" />
-            <div className="h-full flex-1 bg-noir-ink-2/50" />
+            <div className="h-full flex-1 bg-ink-2/50" />
           </div>
-          <div className="mt-2 flex justify-between font-sans text-xs text-noir-ink-2">
+          <div className="mt-2 flex justify-between font-sans text-xs text-ink-2">
             <span>You · {inr(take)}</span>
             <span>Gorave 10% · {inr(gross - take)}</span>
           </div>
@@ -72,13 +72,13 @@ export function Earnings() {
                   className="relative flex h-6 overflow-hidden rounded-[5px]"
                 >
                   <span className="h-full w-[90%] bg-brand" />
-                  <span className="h-full flex-1 bg-noir-ink-2/60" />
+                  <span className="h-full flex-1 bg-ink-2/60" />
                 </motion.div>
               ))}
             </AnimatePresence>
           </div>
 
-          <div className="mt-8 grid gap-1.5 border-t border-white/10 pt-5 font-sans text-sm">
+          <div className="mt-8 grid gap-1.5 border-t border-ink/10 pt-5 font-sans text-sm">
             <Row k="Each guest pays" v={`${inr(ticket)} + ${inr(HOST_FEES.platformFee)} fee`} />
             <Row k="Your share per ticket" v={inr(Math.round(ticket * HOST_FEES.hostShare))} />
             <Row k="Paid out to" v="Your UPI ID or bank" />
@@ -92,7 +92,7 @@ export function Earnings() {
 function Row({ k, v }: { k: string; v: string }) {
   return (
     <div className="flex justify-between gap-4">
-      <span className="text-noir-ink-2">{k}</span>
+      <span className="text-ink-2">{k}</span>
       <span className="font-bold">{v}</span>
     </div>
   )

@@ -34,7 +34,7 @@ export function Crowd({ city }: { city: City }) {
   }), [])
 
   return (
-    <section className="relative overflow-hidden bg-noir text-noir-ink">
+    <section className="relative overflow-hidden bg-paper text-ink">
       <div
         ref={ref}
         className="relative mx-auto max-w-[1440px]"
@@ -71,15 +71,15 @@ export function Crowd({ city }: { city: City }) {
         })}
 
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-          <div className="pointer-events-auto max-w-[520px] rounded-[36px] bg-noir/85 p-10 text-center backdrop-blur-md">
-            <Chapter n="08" title="The people" dark className="justify-center" />
+          <div className="pointer-events-auto max-w-[520px] rounded-[36px] bg-paper/85 p-10 text-center backdrop-blur-md">
+            <Chapter n="08" title="The people" className="justify-center" />
             <h2 className="mt-4 font-display text-[clamp(40px,4.6vw,64px)] font-extrabold leading-[0.95] tracking-[-0.05em]">
               Every face here<br />is <span className="text-brand">real.</span>
             </h2>
-            <p className="mt-4 font-sans text-lg text-noir-ink-2">
+            <p className="mt-4 font-sans text-lg text-ink-2">
               Phone-verified, 18+ only, reviewed after every night. The exact address only goes to confirmed guests in {city.name}.
             </p>
-            <div className="mt-7 flex justify-center"><Button href="/safety" kind="ghost" dark>How we keep it safe</Button></div>
+            <div className="mt-7 flex justify-center"><Button href="/safety" kind="ghost">How we keep it safe</Button></div>
           </div>
         </div>
       </div>

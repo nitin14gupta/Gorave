@@ -6,7 +6,7 @@ import { Reveal } from '@/components/motion/Reveal'
 
 export function SaturdayCta() {
   return (
-    <section className="bg-noir px-6 py-24 md:px-20 md:py-32">
+    <section className="bg-paper px-6 py-24 md:px-20 md:py-32">
       <div className="relative mx-auto flex max-w-[1280px] flex-col justify-between gap-10 overflow-hidden rounded-[44px] bg-cream px-8 py-16 md:px-20 md:py-24 lg:h-[560px] lg:flex-row lg:items-center">
         <Reveal>
           <H2 className="!text-[clamp(52px,6.6vw,96px)]">Your Saturday<br />is waiting.</H2>
