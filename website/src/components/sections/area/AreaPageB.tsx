@@ -13,6 +13,7 @@ import { NeighbourDeck } from './b/NeighbourDeck'
 import { SendPostcard } from './b/SendPostcard'
 import { HostPostcard } from './b/HostPostcard'
 import { FaqPostcard } from './b/FaqPostcard'
+import { HostsStrip } from '@/components/sections/hosts/HostsStrip'
 import { SignOff } from './b/SignOff'
 
 /**
@@ -21,7 +22,7 @@ import { SignOff } from './b/SignOff'
  * luggage tags on layered, deckle-edged sheets, moved by slow springs and
  * the scroll.
  */
-export function AreaPageB({ area, events, crumbs, faq }: AreaViewProps) {
+export function AreaPageB({ area, events, crumbs, faq, hosts, hostTotal }: AreaViewProps) {
   return (
     <>
       <main className="bg-paper">
@@ -35,6 +36,7 @@ export function AreaPageB({ area, events, crumbs, faq }: AreaViewProps) {
         <NeighbourDeck area={area} />
         <SendPostcard area={area} />
         <HostPostcard area={area} />
+        <HostsStrip hosts={hosts} total={hostTotal} place={area.name} href={`/${area.city.slug}/${area.slug}/hosts`} />
         <FaqPostcard area={area}>
           <Faq chapter="10" title={`Good to know in ${area.name}.`} items={faq} />
         </FaqPostcard>

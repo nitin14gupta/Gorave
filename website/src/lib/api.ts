@@ -86,7 +86,20 @@ export interface PublicHostProfile {
   avg_rating: number | null
   review_count: number
   upcoming: PublicEvent[]
+  places: { city: string; area: string | null; count: number }[]
+  types: string[]
 }
+
+export interface PublicHostCard extends PublicHost {
+  username: string
+  city: string | null
+  hosted_count: number
+  upcoming_count: number
+  areas: string[]
+}
+
+export const fetchHosts = (city: string, area?: string, limit = 24) =>
+  get<{ hosts: PublicHostCard[]; total: number }>(`/public/hosts?${new URLSearchParams({ city, limit: String(limit), ...(area ? { area } : {}) })}`)
 
 export interface PublicCity {
   name: string

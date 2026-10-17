@@ -46,13 +46,15 @@ Working list for review. Tick items off (or strike them) as they're fixed.
 
 `server/scripts/seed_website_demo.py` seeds ~90 upcoming events over all 33 neighbourhoods + hosts, guests, past events and reviews (local DB only; `--clean` removes everything it made — usernames end `_gx`).
 
-## 3. Backlinks to add
+## 3. Backlinks
 
-| Page | Should link to | Status |
+| Page | Links to | Status |
 |---|---|---|
-| Host profile | their city + neighbourhood + types they host | ⏳ |
-| **Hosts in a city** `/mumbai/hosts` | every host in the city | ⏳ needs API |
-| **Hosts in a neighbourhood** `/mumbai/bandra/hosts` | hosts in that area | ⏳ needs API |
-| City / neighbourhood pages | "hosts near you" strip → the pages above | ⏳ |
-| Event page | neighbourhood page (API "Andheri West" → our "Andheri") | ⏳ (city, type, host ✅) |
+| Host profile | "Where they host": their neighbourhoods, cities (+ that city's hosts), kinds of night; breadcrumbs Home / City / Hosts / Name | ✅ |
+| **Hosts in a city** `/mumbai/hosts` | every host who has hosted there, most active first → profiles; neighbourhood chips → area hosts pages | ✅ (`/public/hosts?city=`) |
+| **Hosts in a neighbourhood** `/mumbai/bandra/hosts` | hosts in that area → profiles; other areas + "All of Mumbai" | ✅ (`/public/hosts?city=&area=`) |
+| City / neighbourhood pages | "Hosts near you" strip (real faces → profiles, "Meet all N hosts" → hosts page) | ✅ |
+| Event page | neighbourhood page in breadcrumbs + place line ("Andheri West" → `/mumbai/andheri`), city, type, host | ✅ |
 | Event cards | `/e/[id]` | ✅ |
+
+Also: avatars that fail to load (e.g. a photo missing from storage) fall back to the person's initial (`components/ui/AvatarImage.tsx`).

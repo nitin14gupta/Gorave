@@ -87,10 +87,28 @@ class PublicCity(BaseModel):
     upcoming_events: int
 
 
+class PublicHostPlace(BaseModel):
+    city: str
+    area: Optional[str] = None
+    count: int = 0
+
 class PublicHostProfile(PublicHost):
     city: Optional[str] = None
     hosted_count: int = 0
     upcoming: List[PublicEvent] = []
+    # Where and what they host (published, non-cancelled events), for linking to city/area/type pages.
+    places: List[PublicHostPlace] = []
+    types: List[str] = []
+
+class PublicHostCard(PublicHost):
+    city: Optional[str] = None
+    hosted_count: int = 0
+    upcoming_count: int = 0
+    areas: List[str] = []
+
+class PublicHostsPage(BaseModel):
+    hosts: List[PublicHostCard]
+    total: int
 
 
 # ── Shared SQL ────────────────────────────────────────────────────────────────
@@ -283,7 +301,27 @@ def public_host(username: str, request: Request, response: Response):
             (host["id"],),
         )
         upcoming = [_shape(r) for r in cur.fetchall()]
+        cur.execute(
+            """
+            SELECT e.city, e.area, COUNT(*)::int AS count
+            FROM events e
+            WHERE e.host_id = %s::uuid AND e.is_published = TRUE AND e.is_cancelled = FALSE AND e.city IS NOT NULL
+            GROUP BY e.city, e.area ORDER BY count DESC LIMIT 8
+            """,
+            (host["id"],),
+        )
+        places = [dict(r) for r in cur.fetchall()]
+        cur.execute(
+            """
+            SELECT e.event_type FROM events e
+            WHERE e.host_id = %s::uuid AND e.is_published = TRUE AND e.is_cancelled = FALSE
+            GROUP BY e.event_type ORDER BY COUNT(*) DESC
+            """,
+            (host["id"],),
+        )
+        types = [r["event_type"] for r in cur.fetchall()]
     return {
+        "places": places, "types": types,
         "name": host["name"], "username": host["username"], "avatar": host["avatar"], "city": host["city"],
         "badges": compute_host_badges(host["hosted_count"]), "hosted_count": host["hosted_count"],
         "avg_rating": host["avg_rating"], "review_count": host["review_count"] or 0, "upcoming": upcoming,
@@ -334,6 +372,60 @@ def public_reviews(request: Request, response: Response, limit: int = Query(defa
         "reviews": [
             {"rating": r["rating"], "body": r["body"].strip(), "name": short(r["reviewer"]), "city": r["city"],
              "event_type": r["event_type"], "event_title": r["event_title"]}
+            for r in rows
+        ],
+    }
+
+
+@router.get("/hosts", response_model=PublicHostsPage)
+def public_hosts(
+    request: Request,
+    response: Response,
+    city: str = Query(..., max_length=100),
+    area: Optional[str] = Query(default=None, max_length=120),
+    limit: int = Query(default=24, ge=1, le=60),
+):
+    """Hosts who have hosted (published, non-cancelled) events in a city, or in
+    one neighbourhood of it. Most active first: upcoming nights, then history."""
+    _guard(request, response)
+    where = ["e.is_published = TRUE", "e.is_cancelled = FALSE", "LOWER(e.city) = LOWER(%s)"]
+    params: list = [city]
+    if area:
+        where.append("e.area ILIKE %s")
+        params.append(f"{area}%")
+    w = " AND ".join(where)
+    with get_db() as (cur, _):
+        cur.execute(
+            f"""
+            WITH hosted AS (
+                SELECT e.host_id,
+                       COUNT(*) FILTER (WHERE e.date_time > NOW())::int AS upcoming_count,
+                       ARRAY_AGG(DISTINCT e.area) FILTER (WHERE e.area IS NOT NULL) AS areas
+                FROM events e WHERE {w} GROUP BY e.host_id
+            )
+            SELECT u.name, u.username, u.city, h.upcoming_count, h.areas,
+                (SELECT p.url FROM user_photos p WHERE p.user_id = u.id ORDER BY p.position LIMIT 1) AS avatar,
+                (SELECT COUNT(*) FROM events he WHERE he.host_id = u.id AND he.is_cancelled = FALSE)::int AS hosted_count,
+                (SELECT ROUND(AVG(er.rating)::numeric, 1)::float FROM event_reviews er JOIN events he2 ON he2.id = er.event_id WHERE he2.host_id = u.id) AS avg_rating,
+                (SELECT COUNT(*) FROM event_reviews er2 JOIN events he3 ON he3.id = er2.event_id WHERE he3.host_id = u.id)::int AS review_count,
+                COUNT(*) OVER()::int AS total
+            FROM hosted h JOIN users u ON u.id = h.host_id
+            WHERE COALESCE(u.is_deleted, FALSE) = FALSE AND COALESCE(u.is_locked, FALSE) = FALSE AND u.username IS NOT NULL
+            ORDER BY h.upcoming_count DESC, hosted_count DESC, u.name
+            LIMIT %s
+            """,
+            (*params, limit),
+        )
+        rows = cur.fetchall()
+    return {
+        "total": rows[0]["total"] if rows else 0,
+        "hosts": [
+            {
+                "name": r["name"], "username": r["username"], "avatar": r["avatar"], "city": r["city"],
+                "badges": compute_host_badges(r["hosted_count"]), "avg_rating": r["avg_rating"],
+                "review_count": r["review_count"] or 0, "hosted_count": r["hosted_count"],
+                "upcoming_count": r["upcoming_count"], "areas": (r["areas"] or [])[:4],
+            }
             for r in rows
         ],
     }

@@ -1,6 +1,6 @@
 @import "tailwindcss";
 
-/* Gorave website design system — one brand with the app: same fonts, same
+/* Gorave website design system: one brand with the app: same fonts, same
    orange→coral gradient, the app's "Cream" flyer paper as the daytime base,
    and its Noir surfaces for the sections that feel like the app itself. */
 @theme {
@@ -75,7 +75,7 @@
   }
 }
 
-/* One-shot shine on hover for the primary CTA — never loops on its own */
+/* One-shot shine on hover for the primary CTA; never loops on its own */
 @keyframes shine {
   from { background-position: -200% 0, 0 0; }
   to { background-position: 200% 0, 0 0; }

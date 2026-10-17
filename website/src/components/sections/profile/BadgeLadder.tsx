@@ -29,7 +29,7 @@ export function BadgeLadder({ name, hosted }: { name: string; hosted: number }) 
   return (
     <section className="bg-paper px-6 py-24 md:px-20 md:py-28">
       <div className="mx-auto max-w-[1100px]">
-        <Chapter n="02" title="The climb" />
+        <Chapter n="03" title="The climb" />
         <h2 className="mt-4 font-display text-[clamp(40px,5vw,72px)] font-extrabold leading-[0.92] tracking-[-0.055em]">
           {next ? <>{next.at - hosted} more {next.at - hosted === 1 ? 'night' : 'nights'} to <span className="font-serif font-normal italic tracking-[-0.03em] text-orange">{next.name}.</span></> : <>{name} is a <span className="font-serif font-normal italic tracking-[-0.03em] text-orange">Legend.</span></>}
         </h2>

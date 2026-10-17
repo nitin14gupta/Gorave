@@ -1,4 +1,5 @@
 import type { SampleEvent } from '@/constants'
+import type { PublicHostCard } from '@/lib/api'
 import type { Area } from '@/lib/area'
 import type { Crumb } from '@/lib/seo'
 
@@ -8,4 +9,6 @@ export interface AreaViewProps {
   events: SampleEvent[]
   crumbs: Crumb[]
   faq: { q: string; a: string }[]
+  hosts: PublicHostCard[]
+  hostTotal: number
 }

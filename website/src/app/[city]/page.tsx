@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation'
 import { CITIES, EVENT_TYPES } from '@/constants'
 import { cityMetaDescription, getCity } from '@/lib/city'
 import { getTypeStory } from '@/lib/eventType'
-import { cardEvents, fetchEvents, TYPE_LABEL } from '@/lib/api'
+import { cardEvents, fetchEvents, fetchHosts, TYPE_LABEL } from '@/lib/api'
 import { absoluteUrl } from '@/lib/seo'
 import { CityPageView } from '@/components/sections/city/CityPageView'
 import { TypeHubView } from '@/components/sections/type/TypeHubView'
@@ -46,6 +46,9 @@ export default async function CityOrHubPage({ params }: PageProps<'/[city]'>) {
   }
   const city = getCity(slug)
   if (!city) notFound()
-  const { events } = await cardEvents({ city: city.name, limit: 24 }, e => e.city === city.name)
-  return <CityPageView city={city} events={events} />
+  const [{ events }, hostList] = await Promise.all([
+    cardEvents({ city: city.name, limit: 24 }, e => e.city === city.name),
+    fetchHosts(city.name, undefined, 6),
+  ])
+  return <CityPageView city={city} events={events} hosts={hostList?.hosts ?? []} hostTotal={hostList?.total ?? 0} />
 }

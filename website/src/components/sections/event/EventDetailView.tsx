@@ -1,4 +1,3 @@
-import Image from 'next/image'
 import Link from 'next/link'
 import { EVENT_TYPES, PHOTOS, type SampleEvent } from '@/constants'
 import { longWhen, type PublicEventDetail } from '@/lib/api'
@@ -12,6 +11,7 @@ import { SiteFooter } from '@/components/layout/SiteFooter'
 import { FloatingDock } from '@/components/layout/FloatingDock'
 import { Stagger } from '@/components/sections/type/Stagger'
 import { EventGallery } from './EventGallery'
+import { AvatarImage } from '@/components/ui/AvatarImage'
 
 const mixLabel = (p: number | null) => (p == null ? null : p >= 100 ? 'Women only' : p <= 0 ? 'Men only' : `${p}:${100 - p} crowd`)
 
@@ -19,7 +19,7 @@ const mixLabel = (p: number | null) => (p == null ? null : p >= 100 ? 'Women onl
  * Event page (/e/id), what a shared link opens. Everything a guest needs to
  * decide, with the request/booking itself handed to the app.
  */
-export function EventDetailView({ event: e, more, crumbs }: { event: PublicEventDetail; more: SampleEvent[]; crumbs: Crumb[] }) {
+export function EventDetailView({ event: e, more, crumbs, areaHref }: { event: PublicEventDetail; more: SampleEvent[]; crumbs: Crumb[]; areaHref?: string }) {
   const type = EVENT_TYPES.find(t => t.key === e.event_type)
   const photos = e.cover_photos.length ? e.cover_photos : [PHOTOS[type?.photo ?? 'party1']]
   const city = e.city ? getCity(slugify(e.city)) : undefined
@@ -58,7 +58,11 @@ export function EventDetailView({ event: e, more, crumbs }: { event: PublicEvent
               <h1 className="mt-4 font-display text-[clamp(34px,3.6vw,52px)] font-extrabold leading-[0.95] tracking-[-0.05em]">{e.title}</h1>
               <div className="mt-5 space-y-1.5 font-sans text-[15px] font-bold text-ink-2">
                 <div>{longWhen(e.date_time)}</div>
-                <div>{[e.area, e.city].filter(Boolean).join(', ')}</div>
+                <div>
+                  {areaHref ? <Link href={areaHref} className="underline-offset-4 hover:underline">{e.area}</Link> : e.area}
+                  {e.area && e.city ? ', ' : ''}
+                  {city ? <Link href={`/${city.slug}`} className="underline-offset-4 hover:underline">{e.city}</Link> : e.city}
+                </div>
               </div>
 
               <div className="mt-6 flex items-end justify-between border-t border-line pt-5">
@@ -84,7 +88,7 @@ export function EventDetailView({ event: e, more, crumbs }: { event: PublicEvent
             {e.host.username && (
               <Link href={`/h/${e.host.username}`} className="group mt-4 flex items-center gap-4 rounded-[24px] bg-white p-4 shadow-soft transition-transform duration-500 ease-out-expo hover:-translate-y-1">
                 <div className="relative size-14 shrink-0 overflow-hidden rounded-full bg-tile">
-                  {e.host.avatar && <Image src={e.host.avatar} alt={e.host.name ?? ''} fill sizes="56px" className="object-cover" />}
+                  <AvatarImage src={e.host.avatar} name={e.host.name ?? e.host.username ?? '?'} sizes="56px" />
                 </div>
                 <div className="flex-1">
                   <div className="font-sans text-xs font-bold uppercase tracking-[0.14em] text-ink-3">Hosted by</div>

@@ -81,6 +81,14 @@ export function getArea(citySlug: string, slug: string): Area | undefined {
   return { name, slug, city, profile, neighbours: city.areas.filter(a => a !== name) }
 }
 
+/** Map an API area ("Bandra West") in a city to our neighbourhood page ("Bandra"), if we have one. */
+export function findArea(cityName: string | null | undefined, apiArea: string | null | undefined): Area | undefined {
+  if (!cityName || !apiArea) return undefined
+  const city = CITIES.find(c => c.name.toLowerCase() === cityName.toLowerCase())
+  const name = city?.areas.find(a => apiArea.toLowerCase().startsWith(a.toLowerCase()))
+  return city && name ? getArea(city.slug, areaSlug(name)) : undefined
+}
+
 export const allAreaParams = () => CITIES.flatMap(c => c.areas.map(a => ({ city: c.slug, facet: areaSlug(a) })))
 
 export function areaFaq(area: Area) {

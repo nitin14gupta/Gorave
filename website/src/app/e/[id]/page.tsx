@@ -4,6 +4,7 @@ import { cache } from 'react'
 import { EVENT_TYPES } from '@/constants'
 import { fetchEvent, fetchEvents, longWhen, parseApiDate, toCardEvent } from '@/lib/api'
 import { getCity } from '@/lib/city'
+import { findArea } from '@/lib/area'
 import { absoluteUrl, slugify } from '@/lib/seo'
 import { JsonLd } from '@/components/ui/JsonLd'
 import { EventDetailView } from '@/components/sections/event/EventDetailView'
@@ -42,9 +43,11 @@ export default async function EventPage({ params }: PageProps<'/e/[id]'>) {
   const related = e.city ? await fetchEvents({ city: e.city, type: e.event_type, limit: 4 }) : null
   const more = (related?.events ?? []).filter(m => m.id !== e.id).slice(0, 3).map(toCardEvent)
 
+  const area = findArea(e.city, e.area)
   const crumbs = [
     { label: 'Home', href: '/' },
     ...(city ? [{ label: city.name, href: `/${city.slug}` }] : []),
+    ...(city && area ? [{ label: area.name, href: `/${city.slug}/${area.slug}` }] : []),
     ...(city && type ? [{ label: type.label, href: `/${city.slug}/${type.slug}` }] : []),
     { label: e.title, href: `/e/${e.id}` },
   ]
@@ -68,7 +71,7 @@ export default async function EventPage({ params }: PageProps<'/e/[id]'>) {
           organizer: { '@type': 'Person', name: e.host.name ?? e.host.username, url: e.host.username ? absoluteUrl(`/h/${e.host.username}`) : undefined },
         }}
       />
-      <EventDetailView event={e} more={more} crumbs={crumbs} />
+      <EventDetailView event={e} more={more} crumbs={crumbs} areaHref={city && area ? `/${city.slug}/${area.slug}` : undefined} />
     </>
   )
 }

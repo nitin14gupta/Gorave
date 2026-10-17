@@ -8,6 +8,7 @@ import { FloatingDock } from '@/components/layout/FloatingDock'
 import { Stagger } from '@/components/sections/type/Stagger'
 import { HostHero, type HostHeroData } from './HostHero'
 import { BadgeLadder } from './BadgeLadder'
+import { HostPlaces, type PlaceLink } from './HostPlaces'
 
 const TRUST = [
   ['Verified guests only', 'Everyone who requests is phone-verified and 18+. The host sees who’s asking before they accept.'],
@@ -16,7 +17,7 @@ const TRUST = [
 ] as const
 
 /** Public host profile (/h/username), who they are, what they're hosting next, how far they've climbed. */
-export function HostProfileView({ host, events, crumbs }: { host: HostHeroData; events: SampleEvent[]; crumbs: Crumb[] }) {
+export function HostProfileView({ host, events, crumbs, places }: { host: HostHeroData; events: SampleEvent[]; crumbs: Crumb[]; places: { areas: PlaceLink[]; cities: PlaceLink[]; types: PlaceLink[] } }) {
   const first = host.name.split(' ')[0]
   return (
     <>
@@ -42,11 +43,13 @@ export function HostProfileView({ host, events, crumbs }: { host: HostHeroData; 
           </div>
         </section>
 
+        <HostPlaces first={first} {...places} />
+
         <BadgeLadder name={first} hosted={host.hosted} />
 
         <section className="bg-noir px-6 py-24 text-noir-ink md:px-20 md:py-28">
           <div className="mx-auto max-w-[1280px]">
-            <Chapter n="03" title="Going to one" dark />
+            <Chapter n="04" title="Going to one" dark />
             <h2 className="mt-4 font-display text-[clamp(40px,5vw,72px)] font-extrabold leading-[0.92] tracking-[-0.055em]">How it works.</h2>
             <div className="mt-12 grid gap-4 md:grid-cols-3">
               {TRUST.map(([t, d], i) => (
@@ -61,7 +64,7 @@ export function HostProfileView({ host, events, crumbs }: { host: HostHeroData; 
         </section>
 
         <section className="bg-cream px-6 py-24 text-center md:px-20 md:py-28">
-          <Chapter n="04" title="Your turn" className="justify-center" />
+          <Chapter n="05" title="Your turn" className="justify-center" />
           <h2 className="mx-auto mt-4 max-w-[900px] font-display text-[clamp(44px,6vw,92px)] font-extrabold leading-[0.9] tracking-[-0.06em]">
             Throw your own, <span className="font-serif font-normal italic tracking-[-0.03em] text-orange">like {first}.</span>
           </h2>

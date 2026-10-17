@@ -59,6 +59,7 @@ invented stats, ratings or reviews on public pages (placeholders are marked
 | **All cities** | `/cities` | Postcard grid of the 8 cities (generated street photos, live upcoming counts from `/public/cities`) · full neighbourhood index (all 33 area links) · type hubs · FAQ |
 | **Event detail** | `/e/[id]` (any event, on demand) | Simple: photo gallery · sticky decision card (when, area, price + fee, spots bar, crowd mix, age, request/book in app) · host card → profile · about + house rules · before you go · more nights. Event JSON-LD (area-level location only), OG image = cover. Past/cancelled → noindex |
 | **Host profile** | `/h/[username]` (any host, on demand) | Polaroid photo + badge stamp, counting stats (nights hosted, coming up, rating or "New") · upcoming nights · badge ladder (Rising→Legend progress) · how it works · host-your-own CTA. ProfilePage JSON-LD; thin profiles noindex; members who never hosted 404 |
+| **Hosts in a city / neighbourhood** | `/[city]/hosts` (8), `/[city]/[area]/hosts` (33) | Real hosts who've hosted there, most active first (`/public/hosts`), host cards → profiles, area chips, CTA. Thin pages (<2 hosts) noindex. City and neighbourhood pages get a "Hosts near you" strip linking here; host profiles link back to their areas/cities/types; event pages link to their neighbourhood |
 
 ### ⏳ To build — page templates (each template renders many URLs from data)
 | # | Screen | Route(s) | Generates |
@@ -123,6 +124,7 @@ facets ≈ **2–3 lakh** URLs. Rules that keep this from becoming spam:
 ### ⏳ Platform / backend work the pages depend on
 - ✅ Public read-only API (`server/routes/public.py`): `/public/events`, `/public/events/{id}`, `/public/hosts/{username}`, `/public/cities` — area-level location only, rate-limited, cached. Pages fall back to sample data from `constants/content.ts` if the API is down.
 - ✅ Website origin in server CORS (`WEBSITE_ORIGINS`).
+- ✅ `/public/hosts?city=&area=` (hosts list) and `places`/`types` on `/public/hosts/{username}` (for backlinks).
 - ✅ `/public/reviews` — platform rating + latest written reviews (reviewer as first name + last initial) for the homepage.
 - ✅ Live data everywhere: city/type flyers + night timeline from real events (`lib/cityKit.ts`), homepage rails, invite cards and phone mock-ups (`components/ui/LiveEvents.tsx`). No placeholder testimonials/ratings left.
 - Dev seed: `server/scripts/seed_website_demo.py` (~90 upcoming events across all 33 neighbourhoods; `--clean` to remove). Review list: `website/AUDIT.md`.
