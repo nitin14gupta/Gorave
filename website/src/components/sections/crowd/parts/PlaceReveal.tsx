@@ -29,7 +29,7 @@ export function PlaceReveal({ crowd, place, places }: Pick<CrowdViewProps, 'crow
       <div className="mb-10 px-6 md:mb-14">
         <Head
           center
-          n="04"
+          n="06"
           label={hub ? 'Pick your city' : 'Pick your area'}
           title={hub ? 'Pick your city.' : `Around ${place.name}.`}
           serif={hub ? `${crowd.label}, city by city.` : 'Closer to home.'}

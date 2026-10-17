@@ -5,7 +5,7 @@ import { motion, useScroll, useTransform, type MotionValue } from 'motion/react'
 import { Chapter } from '@/components/ui/atoms'
 
 /**
- * The promise, read in the dark. Each word of the hero line lights up as it
+ * The promise, read slowly. Each word of the hero line lights up as it
  * crosses the middle of the screen, like subtitles coming on.
  */
 export function Statement({ line, label, chapter = '01' }: { line: string; label: string; chapter?: string }) {
@@ -14,9 +14,9 @@ export function Statement({ line, label, chapter = '01' }: { line: string; label
   const words = line.split(' ')
 
   return (
-    <section className="relative bg-noir px-6 py-28 text-noir-ink md:px-20 md:py-44">
+    <section className="relative bg-paper px-6 py-28 text-ink md:px-20 md:py-44">
       <div className="mx-auto max-w-[1180px]">
-        <Chapter n={chapter} title={`The ${label.toLowerCase()} promise`} dark />
+        <Chapter n={chapter} title={`The ${label.toLowerCase()} promise`} />
         <p ref={ref} className="mt-10 font-display text-[clamp(34px,5.4vw,84px)] font-extrabold leading-[1.02] tracking-[-0.045em]">
           {words.map((w, i) => (
             <Word key={i} p={scrollYProgress} from={i / words.length} to={(i + 1) / words.length}>

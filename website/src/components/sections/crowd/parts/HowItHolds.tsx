@@ -35,17 +35,17 @@ export function HowItHolds({ crowd }: Pick<CrowdViewProps, 'crowd'>) {
 
   return (
     <>
-      <section ref={ref} className="relative hidden bg-noir text-noir-ink md:block md:h-[420vh]">
+      <section ref={ref} className="relative hidden bg-paper text-ink md:block md:h-[420vh]">
         <div className="sticky top-0 flex h-screen items-center px-20">
           <div className="mx-auto grid w-full max-w-[1280px] grid-cols-[1fr_minmax(0,0.9fr)] items-center gap-16">
             <div>
-              <Head n="03" label="How it holds" title="How the app" serif="makes it true." dark />
+              <Head n="05" label="How it holds" title="How the app" serif="makes it true." />
               <ol className="mt-12 grid gap-1">
                 {steps.map((s, i) => {
                   const on = i === step
                   return (
                     <li key={s.title} className="relative grid grid-cols-[56px_1fr] gap-x-4 py-4">
-                      <span className="absolute inset-y-0 left-[18px] w-px bg-noir-ink/15" />
+                      <span className="absolute inset-y-0 left-[18px] w-px bg-ink/15" />
                       <span
                         className="absolute left-[18px] top-0 w-px origin-top bg-brand"
                         style={{ height: '100%', transform: `scaleY(${i < step ? 1 : on ? 0.5 : 0})`, transition: 'transform .6s cubic-bezier(.2,.8,.2,1)' }}
@@ -53,7 +53,7 @@ export function HowItHolds({ crowd }: Pick<CrowdViewProps, 'crowd'>) {
                       <span
                         className={cn(
                           'relative z-[1] grid size-9 place-items-center rounded-full font-serif text-lg italic transition-all duration-500',
-                          on ? 'bg-brand text-white' : i < step ? 'bg-noir-ink text-ink' : 'bg-noir-3 text-noir-ink-2',
+                          on ? 'bg-brand text-white' : i < step ? 'bg-ink text-cream' : 'bg-cream-deep text-ink-3',
                         )}
                       >
                         {i + 1}
@@ -64,7 +64,7 @@ export function HowItHolds({ crowd }: Pick<CrowdViewProps, 'crowd'>) {
                           className="grid transition-[grid-template-rows] duration-500"
                           style={{ gridTemplateRows: on ? '1fr' : '0fr' }}
                         >
-                          <p className="overflow-hidden font-sans text-lg leading-relaxed text-noir-ink-2">
+                          <p className="overflow-hidden font-sans text-lg leading-relaxed text-ink-2">
                             <span className="block pt-1.5">{s.body}</span>
                           </p>
                         </div>
@@ -106,8 +106,8 @@ export function HowItHolds({ crowd }: Pick<CrowdViewProps, 'crowd'>) {
       </section>
 
       {/* Phones: the same four steps, stacked */}
-      <section className="bg-noir px-6 py-24 text-noir-ink md:hidden">
-        <Head n="03" label="How it holds" title="How the app" serif="makes it true." dark />
+      <section className="bg-paper px-6 py-24 text-ink md:hidden">
+        <Head n="05" label="How it holds" title="How the app" serif="makes it true." />
         <ol className="mt-10 grid gap-5">
           {steps.map((s, i) => (
             <motion.li
@@ -116,13 +116,13 @@ export function HowItHolds({ crowd }: Pick<CrowdViewProps, 'crowd'>) {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: '-60px' }}
               transition={{ duration: 0.7, ease: EASE }}
-              className="rounded-[24px] bg-noir-2 p-5"
+              className="rounded-[24px] bg-white shadow-soft p-5"
             >
               <div className="flex items-center gap-3">
                 <span className="grid size-8 place-items-center rounded-full bg-brand font-serif text-base italic text-white">{i + 1}</span>
                 <div className="font-display text-2xl font-extrabold tracking-[-0.035em]">{s.title}</div>
               </div>
-              <p className="mt-2 font-sans text-base leading-relaxed text-noir-ink-2">{s.body}</p>
+              <p className="mt-2 font-sans text-base leading-relaxed text-ink-2">{s.body}</p>
               <div className="mt-4"><AppCard i={i} crowd={crowd} /></div>
             </motion.li>
           ))}

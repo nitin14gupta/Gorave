@@ -3,7 +3,7 @@ import { Chapter } from '@/components/ui/atoms'
 import { cn } from '@/lib/cn'
 import type { CrowdContent } from '@/lib/crowd'
 
-// Shared bits for variant A ("Inside the room").
+// Shared bits for the crowd page sections.
 
 export const EASE = [0.2, 0.8, 0.2, 1] as const
 export const EASE_CSS = 'cubic-bezier(.2,.8,.2,1)'
@@ -43,3 +43,9 @@ export function Head({ n, label, title, serif, aside, dark, center, className }:
     </div>
   )
 }
+
+/** "01", "02"... for editorial numbering. */
+export const pad = (n: number) => String(n).padStart(2, '0')
+
+/** Display-safe rounding for any number that ends up in an SSR'd inline style. */
+export const r2 = (n: number) => Math.round(n * 100) / 100

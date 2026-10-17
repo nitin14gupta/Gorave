@@ -13,7 +13,7 @@ export function OtherCrowds({ place, others }: Pick<CrowdViewProps, 'place' | 'o
   return (
     <section className="bg-paper px-6 py-24 md:px-20 md:py-28">
       <div className="mx-auto max-w-[1280px]">
-        <Head n="08" label="Other rooms" title="A different" serif={`crowd in ${place.name}?`} />
+        <Head n="09" label="Other rooms" title="A different" serif={`crowd in ${place.name}?`} />
         <Stagger className="mt-12 grid gap-4 sm:grid-cols-3">
           {others.map(o => (
             <Link key={o.slug} href={o.href} className="group relative block h-[380px] overflow-hidden rounded-[28px] bg-noir text-white md:h-[460px]">

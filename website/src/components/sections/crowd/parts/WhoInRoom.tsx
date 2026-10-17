@@ -77,7 +77,7 @@ export function WhoInRoom({ crowd }: Pick<CrowdViewProps, 'crowd'>) {
       <div className="px-6 py-24 md:sticky md:top-0 md:flex md:h-screen md:flex-col md:justify-center md:px-20 md:py-0">
         <div className="mx-auto grid w-full max-w-[1280px] items-center gap-12 lg:grid-cols-[minmax(0,400px)_1fr] lg:gap-16">
           <div>
-            <Head n="02" label="Who's in the room" title="Pull up a chair." serif={serif} />
+            <Head n="03" label="Who's in the room" title="Pull up a chair." serif={serif} />
             <p className="mt-6 max-w-[400px] font-sans text-lg leading-relaxed text-ink-2">{aside}</p>
 
             {kind === 'balanced' && (

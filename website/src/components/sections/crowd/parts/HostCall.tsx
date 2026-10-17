@@ -32,12 +32,12 @@ export function HostCall({ crowd, place, others }: Pick<CrowdViewProps, 'crowd' 
     .sort((a, b) => ORDER.indexOf(a.slug) - ORDER.indexOf(b.slug))
 
   return (
-    <section ref={ref} className="overflow-hidden bg-noir px-6 py-24 text-noir-ink md:px-20 md:py-32">
+    <section ref={ref} className="overflow-hidden bg-paper px-6 py-24 text-ink md:px-20 md:py-32">
       <div className="mx-auto grid max-w-[1280px] items-center gap-16 lg:grid-cols-[1fr_1fr]">
         <div>
-          <Head n="06" label="Host one" title="Hosting one?" serif="It’s one setting." dark />
-          <p className="mt-6 max-w-[460px] font-sans text-xl leading-relaxed text-noir-ink-2">{crowd.hostLine}</p>
-          <p className="mt-4 max-w-[460px] font-sans text-base leading-relaxed text-noir-ink-2/80">
+          <Head n="07" label="Host one" title="Hosting one?" serif="It’s one setting." />
+          <p className="mt-6 max-w-[460px] font-sans text-xl leading-relaxed text-ink-2">{crowd.hostLine}</p>
+          <p className="mt-4 max-w-[460px] font-sans text-base leading-relaxed text-ink-2/80">
             List it from your home in {place.name === 'India' ? 'any of our cities' : place.name}. You approve who comes on free nights, and the address stays private until guests are confirmed.
           </p>
           <div className="mt-9 flex flex-wrap items-center gap-4">

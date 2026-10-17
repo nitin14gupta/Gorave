@@ -17,7 +17,3 @@ export interface CrowdViewProps {
   faq: { q: string; a: string }[]
   crumbs: Crumb[]
 }
-
-export const CROWD_VARIANTS = ['a', 'b', 'c'] as const
-export type CrowdVariant = (typeof CROWD_VARIANTS)[number]
-export const CROWD_VARIANT_LABELS: Record<CrowdVariant, string> = { a: 'A', b: 'B', c: 'C' }
