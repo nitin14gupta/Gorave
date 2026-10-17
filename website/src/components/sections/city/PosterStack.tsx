@@ -13,7 +13,7 @@ const W = 230
 const H = 300
 
 /**
- * Chapter 01 — the reasons. Flyers stand in a 3D perspective line that slides
+ * Chapter 01, the reasons. Flyers stand in a 3D perspective line that slides
  * as you scroll; hovering one lifts it out to face you and spreads the rest.
  */
 interface Props {

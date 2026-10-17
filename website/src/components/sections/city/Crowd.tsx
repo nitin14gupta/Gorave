@@ -12,7 +12,7 @@ const TINTS = ['#FF6B35', '#FF3864', '#FFB830', '#00C48C', '#DCE6F2', '#F4D9DF']
 const INITIALS = ['RS', 'AK', 'DP', 'NM', 'KJ', 'TV', 'SG', 'AR']
 
 /**
- * Chapter 08 — the people. A crowd of faces that drifts away from your
+ * Chapter 08, the people. A crowd of faces that drifts away from your
  * cursor, with the safety promise at its centre.
  */
 export function Crowd({ city }: { city: City }) {

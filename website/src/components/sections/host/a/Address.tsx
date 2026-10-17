@@ -10,7 +10,7 @@ import { cn } from '@/lib/cn'
 const EXACT = 'Terrace, Sea Breeze Apts, Carter Rd'
 const GLYPHS = '#%&@$*+=?/<>{}[]'
 
-/** Deterministic scramble — characters past the reveal point cycle through glyphs. */
+/** Deterministic scramble, characters past the reveal point cycle through glyphs. */
 function scramble(text: string, reveal: number, tick: number) {
   const cut = Math.floor(reveal * text.length)
   return text
@@ -20,7 +20,7 @@ function scramble(text: string, reveal: number, tick: number) {
 }
 
 /**
- * Chapter 04 — the address. Everyone browsing sees the area; scroll to
+ * Chapter 04, the address. Everyone browsing sees the area; scroll to
  * "confirm" a guest and the exact address decodes letter by letter while the
  * map's blurry circle tightens into a pin.
  */
@@ -46,7 +46,7 @@ export function Address() {
             Your address<br /><span className="font-serif font-normal italic tracking-[-0.03em] text-brand">stays yours.</span>
           </h2>
           <p className="mt-4 max-w-[440px] font-sans text-lg leading-relaxed text-noir-ink-2">
-            Anyone browsing sees the area. Only guests you&apos;ve confirmed get the exact address — and every one of them is phone-verified and 18+.
+            Anyone browsing sees the area. Only guests you&apos;ve confirmed get the exact address, and every one of them is phone-verified and 18+.
           </p>
           <div className="mt-8 flex gap-2 font-sans text-sm font-bold">
             <span className={cn('rounded-full px-4 py-2 transition-colors duration-500', !confirmed ? 'bg-noir-ink text-ink' : 'bg-noir-3 text-noir-ink-2')}>Browsing</span>
@@ -92,7 +92,7 @@ export function Address() {
               {scramble(EXACT, reveal, tick)}
             </div>
             <div className="mt-4 rounded-2xl bg-noir-3 px-4 py-3 text-[13px] text-noir-ink-2">
-              {confirmed ? 'Unlocked with the QR ticket — scan in at the door.' : 'Exact address after the host confirms you.'}
+              {confirmed ? 'Unlocked with the QR ticket, scan in at the door.' : 'Exact address after the host confirms you.'}
             </div>
           </div>
         </div>

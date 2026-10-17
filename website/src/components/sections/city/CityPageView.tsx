@@ -22,7 +22,7 @@ import { FloatingDock } from '@/components/layout/FloatingDock'
 export const CITY_HERO: HeroKind = 'letters'
 
 /**
- * The city page, told as one night out — eleven chapters from "the reasons"
+ * The city page, told as one night out, eleven chapters from "the reasons"
  * to "see you out there". Identical for every city; only `city` data changes.
  */
 export function CityPageView({ city, hero = CITY_HERO, events = [] }: { city: City; hero?: HeroKind; events?: SampleEvent[] }) {

@@ -10,7 +10,7 @@ const EASE = [0.2, 0.8, 0.2, 1] as const
 const TEMPLATES = ['houseparty', 'retro', 'nightout', 'beack', 'halloween', 'christmas'] as const
 
 /**
- * Chapter 06 — your turn. The app's real invite templates sit in a closed
+ * Chapter 06, your turn. The app's real invite templates sit in a closed
  * hand; scroll lifts it into view, and hovering (or tapping) fans the cards
  * out so you can pick which night you'd throw first.
  */

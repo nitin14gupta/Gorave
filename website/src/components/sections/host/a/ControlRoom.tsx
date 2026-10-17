@@ -10,11 +10,11 @@ import { Phone } from '@/components/ui/Phone'
 const CARDS = [
   { n: 'Edit', title: 'Plans change', body: 'Move the time, swap the venue details, change capacity. Everyone going and everyone who requested is notified.' },
   { n: 'Push', title: 'Requests reach you', body: 'Each join request lands as a push. Tap it, see the profile, decide.' },
-  { n: 'Cancel', title: 'Calling it off', body: 'Cancel the event and everyone is told straight away — nobody turns up to a locked door.' },
+  { n: 'Cancel', title: 'Calling it off', body: 'Cancel the event and everyone is told straight away, nobody turns up to a locked door.' },
 ]
 
 /**
- * Chapter 06 — after you hit publish. The phone rises out of the page and
+ * Chapter 06, after you hit publish. The phone rises out of the page and
  * stands up as you scroll, lock screen full of host pushes; the three
  * controls slide in from the right, one per beat.
  */

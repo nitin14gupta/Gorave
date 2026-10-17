@@ -5,14 +5,14 @@ import { EVENT_TYPES, type City, type EventType, type PhotoKey } from '@/constan
 // from /mumbai/dinner-parties.
 
 export interface TypeStory {
-  /** "House parties" — used in headings: "House parties in Mumbai" */
+  /** "House parties"used in headings: "House parties in Mumbai" */
   plural: string
-  /** "house party" — "What makes a good house party" */
+  /** "house party""What makes a good house party" */
   singular: string
   apiType: string
   heroPhoto: PhotoKey
   heroLine: string
-  /** Anatomy callouts — what makes this kind of night work */
+  /** Anatomy callouts, what makes this kind of night work */
   anatomy: { label: string; detail: string }[]
   /** A typical night, hour by hour */
   night: { time: string; title: string; detail: string; photo: PhotoKey }[]
@@ -21,7 +21,7 @@ export interface TypeStory {
   faq: (city: City) => { q: string; a: string }[]
 }
 
-/** The serialisable part — what client sections receive (no functions). */
+/** The serialisable part, what client sections receive (no functions). */
 export type TypeContent = Omit<TypeStory, 'faq'>
 
 const commonFaq = (plural: string, city: City) => [
@@ -31,7 +31,7 @@ const commonFaq = (plural: string, city: City) => [
   },
   {
     q: `When do I get the address?`,
-    a: "As soon as you're confirmed. Until then you see the area only — the exact address is never shown publicly.",
+    a: "As soon as you're confirmed. Until then you see the area only, the exact address is never shown publicly.",
   },
   {
     q: `Can I host ${plural.toLowerCase()} in ${city.name}?`,
@@ -69,7 +69,7 @@ export const TYPE_STORIES: Record<string, TypeStory> = {
       { label: 'Golden hour start', detail: 'Most kick off around sunset' },
       { label: 'Live DJ or playlist', detail: 'Listed on the event page' },
       { label: '30–80 people', detail: 'Terraces hold a crowd' },
-      { label: 'Ticketed', detail: 'Usually paid — book with UPI' },
+      { label: 'Ticketed', detail: 'Usually paid, book with UPI' },
       { label: 'Weather notes', detail: 'Hosts update you if plans change' },
     ],
     night: [
@@ -88,7 +88,7 @@ export const TYPE_STORIES: Record<string, TypeStory> = {
     plural: 'Game nights', singular: 'game night',  apiType: 'game_night', heroPhoto: 'game1',
     heroLine: 'Catan, Mafia and friendly betrayal. The easiest way to meet strangers.',
     anatomy: [
-      { label: 'The games', detail: 'Listed upfront — board, card or party games' },
+      { label: 'The games', detail: 'Listed upfront, board, card or party games' },
       { label: 'Snacks', detail: 'Usually covered, sometimes potluck' },
       { label: '8–20 people', detail: 'Enough for two tables' },
       { label: 'Beginner friendly', detail: 'Hosts teach the rules' },
@@ -102,7 +102,7 @@ export const TYPE_STORIES: Record<string, TypeStory> = {
     ],
     capacity: 16,
     faq: city => [
-      { q: 'Do I need to know the games?', a: 'No — hosts explain the rules and most tables mix regulars with first-timers.' },
+      { q: 'Do I need to know the games?', a: 'No, hosts explain the rules and most tables mix regulars with first-timers.' },
       ...commonFaq('Game nights', city),
     ],
   },
@@ -130,7 +130,7 @@ export const TYPE_STORIES: Record<string, TypeStory> = {
   },
   'music-nights': {
     plural: 'Music nights', singular: 'music night',  apiType: 'music', heroPhoto: 'gig1',
-    heroLine: 'Living-room gigs, open mics and jam circles — music up close.',
+    heroLine: 'Living-room gigs, open mics and jam circles, music up close.',
     anatomy: [
       { label: 'The line-up', detail: 'Artists listed on the event page' },
       { label: 'Unplugged, often', detail: 'Small rooms, real sound' },
@@ -146,13 +146,13 @@ export const TYPE_STORIES: Record<string, TypeStory> = {
     ],
     capacity: 40,
     faq: city => [
-      { q: 'Can I perform?', a: 'Open mics and jams list a sign-up in the event description — message the host.' },
+      { q: 'Can I perform?', a: 'Open mics and jams list a sign-up in the event description, message the host.' },
       ...commonFaq('Music nights', city),
     ],
   },
   events: {
     plural: 'Events', singular: 'night',  apiType: 'other', heroPhoto: 'fr2',
-    heroLine: 'Potlucks, swaps, garba nights, karaoke — everything that isn’t a category yet.',
+    heroLine: 'Potlucks, swaps, garba nights, karaoke, everything that isn’t a category yet.',
     anatomy: [
       { label: 'Anything goes', detail: 'Read the description' },
       { label: 'Small groups', detail: 'Usually under 30' },

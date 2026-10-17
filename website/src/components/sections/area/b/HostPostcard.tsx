@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/Button'
 import { CARD_SHADOW, Deckle, Grain, Postmark, SectionHead, Stamp, Tape } from './kit'
 
 /**
- * Chapter 09 — host from here. The doorway scene as one big postcard that
+ * Chapter 09, host from here. The doorway scene as one big postcard that
  * straightens up as it scrolls in; the door opens from a thin strip of warm
  * light to the full frame, and the note on the back writes itself.
  */

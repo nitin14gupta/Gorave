@@ -8,7 +8,7 @@ import { Chapter } from '@/components/ui/atoms'
 
 const EASE = [0.2, 0.8, 0.2, 1] as const
 
-/** Moves the card's spotlight to the cursor via CSS variables — no re-render. */
+/** Moves the card's spotlight to the cursor via CSS variables, no re-render. */
 function spot(e: React.PointerEvent<HTMLElement>) {
   const r = e.currentTarget.getBoundingClientRect()
   e.currentTarget.style.setProperty('--x', `${e.clientX - r.left}px`)
@@ -16,7 +16,7 @@ function spot(e: React.PointerEvent<HTMLElement>) {
 }
 
 /**
- * Chapter 06 — your part. Two columns of habits, guests and hosts, on dark
+ * Chapter 06, your part. Two columns of habits, guests and hosts, on dark
  * cards that a soft torch follows under the cursor. Above them, the host
  * badges you can check before you go; each lifts and spins a little on hover.
  */

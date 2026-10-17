@@ -8,7 +8,7 @@ import type { TypeContent } from '@/lib/eventType'
 import { Chapter } from '@/components/ui/atoms'
 
 /**
- * Chapter 05 — one night, hour by hour. The section pins and the evening
+ * Chapter 05, one night, hour by hour. The section pins and the evening
  * slides past sideways; the sky behind it goes from dusk to midnight.
  * Small screens get the same night as a vertical list.
  */

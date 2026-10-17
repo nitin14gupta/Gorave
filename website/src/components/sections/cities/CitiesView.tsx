@@ -12,12 +12,12 @@ import { FloatingDock } from '@/components/layout/FloatingDock'
 import { CityPostcards } from './CityPostcards'
 
 const FAQ = [
-  { q: 'Which cities is Gorave in?', a: 'Mumbai, Bangalore, Delhi, Pune, Hyderabad, Goa, Chennai and Kolkata — with more on the way. Anyone in these cities can host or join.' },
-  { q: 'My city isn’t listed. Can I still host?', a: 'Not yet on the map, but the app is where new cities open first — the more people host in a place, the sooner it gets its own page.' },
+  { q: 'Which cities is Gorave in?', a: 'Mumbai, Bangalore, Delhi, Pune, Hyderabad, Goa, Chennai and Kolkata, with more on the way. Anyone in these cities can host or join.' },
+  { q: 'My city isn’t listed. Can I still host?', a: 'Not yet on the map, but the app is where new cities open first, the more people host in a place, the sooner it gets its own page.' },
   { q: 'How do I find events near me?', a: 'Open your city, then pick a neighbourhood or a kind of night. In the app you see events closest to you first.' },
 ]
 
-/** /cities — every city as a postcard, then every neighbourhood as a plain index (good for people and for search). */
+/** /cities, every city as a postcard, then every neighbourhood as a plain index (good for people and for search). */
 export function CitiesView({ cities, crumbs }: { cities: { city: City; count: number }[]; crumbs: Crumb[] }) {
   return (
     <>
@@ -28,7 +28,7 @@ export function CitiesView({ cities, crumbs }: { cities: { city: City; count: nu
             Eight cities.<br /><span className="font-serif font-normal italic tracking-[-0.03em] text-orange">One Saturday.</span>
           </h1>
           <p className="mt-6 max-w-[520px] font-sans text-xl leading-relaxed text-ink-2">
-            House parties, rooftops, game nights and dinner parties — hosted in homes across India. Pick yours.
+            House parties, rooftops, game nights and dinner parties, hosted in homes across India. Pick yours.
           </p>
         </section>
 

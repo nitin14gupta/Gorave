@@ -23,8 +23,8 @@ const STREETS = [
 const STEPS = ['Someone opens the listing', 'They see a ~1 km circle', 'The host accepts them', 'Now they get the door']
 
 /**
- * Chapter 03 — the circle. A dark street map; as you scroll, a wide circle
- * draws itself over the neighbourhood — that's all the public gets. Then the
+ * Chapter 03, the circle. A dark street map; as you scroll, a wide circle
+ * draws itself over the neighbourhood, that's all the public gets. Then the
  * request is accepted, the circle closes onto one building and a route draws in.
  */
 export function MapB() {

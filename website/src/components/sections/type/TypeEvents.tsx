@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/Button'
 import { EventCard } from '@/components/ui/EventCard'
 import { Stagger } from './Stagger'
 
-/** Chapter 01 — the actual listings. Real events from the public API, samples if it's down. */
+/** Chapter 01, the actual listings. Real events from the public API, samples if it's down. */
 export function TypeEvents({ city, events }: { city: City; events: SampleEvent[] }) {
   return (
     <section id="events" className="scroll-mt-24 bg-cream px-6 py-24 md:px-20 md:py-32">

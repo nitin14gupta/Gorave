@@ -39,7 +39,7 @@ export function AvatarStack({ n = 4, size = 28, ringClass = 'ring-cream' }: { n?
   )
 }
 
-// Official badges (public/img/stores) — Apple and Google require the
+// Official badges (public/img/stores), Apple and Google require the
 // artwork unmodified, so they're images, not recreated in CSS.
 export function StoreBadges({ height = 48 }: { dark?: boolean; height?: number }) {
   const badges = [
@@ -57,7 +57,7 @@ export function StoreBadges({ height = 48 }: { dark?: boolean; height?: number }
   )
 }
 
-/** Section heading — one size scale for the whole site. */
+/** Section heading, one size scale for the whole site. */
 export function H2({ children, className, dark }: { children: ReactNode; className?: string; dark?: boolean }) {
   return (
     <h2 className={cn('font-display text-[clamp(44px,6vw,84px)] font-extrabold leading-[0.95] tracking-display', dark ? 'text-noir-ink' : 'text-ink', className)}>
@@ -70,7 +70,7 @@ export function Lede({ children, className }: { children: ReactNode; className?:
   return <p className={cn('font-sans text-lg leading-relaxed text-ink-2', className)}>{children}</p>
 }
 
-/** "01 — The reasons": opens each city-page section like a chapter of one night out. */
+/** "01, The reasons": opens each city-page section like a chapter of one night out. */
 export function Chapter({ n, title, dark, className }: { n: string; title: string; dark?: boolean; className?: string }) {
   return (
     <div className={cn('flex items-center gap-3 font-sans text-xs font-bold uppercase tracking-[0.18em]', dark ? 'text-noir-ink-2' : 'text-ink-3', className)}>

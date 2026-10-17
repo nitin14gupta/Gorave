@@ -95,7 +95,7 @@ export const SPRING = { type: 'spring', stiffness: 60, damping: 16, mass: 1 } as
 /** The one postcard shadow used everywhere on this page. */
 export const CARD_SHADOW = 'shadow-[0_1px_0_rgb(23_19_16/0.05),0_30px_60px_-30px_rgb(23_19_16/0.42)]'
 
-/** Chapter opener + heading — one rhythm for every section. */
+/** Chapter opener + heading, one rhythm for every section. */
 export function SectionHead({ n, label, title, serif, aside, className }: { n: string; label: string; title: ReactNode; serif?: ReactNode; aside?: ReactNode; className?: string }) {
   return (
     <div className={cn('flex flex-wrap items-end justify-between gap-x-10 gap-y-5', className)}>
@@ -111,7 +111,7 @@ export function SectionHead({ n, label, title, serif, aside, className }: { n: s
   )
 }
 
-// Deckled paper edges — precomputed, deterministic jagged lines (viewBox 1440×24).
+// Deckled paper edges, precomputed, deterministic jagged lines (viewBox 1440×24).
 function edgePath(seed: number, amp: number) {
   let s = seed * 7919
   const rnd = () => (s = (s * 9301 + 49297) % 233280) / 233280

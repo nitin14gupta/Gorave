@@ -8,7 +8,7 @@ import { Chapter } from '@/components/ui/atoms'
 
 const EASE = 'cubic-bezier(.2,.8,.2,1)'
 
-/** Chapter 05 — the vibe. Six panels; the one you hover stretches open. */
+/** Chapter 05, the vibe. Six panels; the one you hover stretches open. */
 export function VibePanels({ city }: { city: City }) {
   const [open, setOpen] = useState(0)
   return (

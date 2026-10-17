@@ -13,7 +13,7 @@ const STOPS = [0.05, 0.22, 0.45, 0.68, 0.9]
 const COUNTS = [0, BADGE_TIERS[0].at, BADGE_TIERS[1].at, BADGE_TIERS[2].at, BADGE_TIERS[3].at]
 
 /**
- * Chapter 05 — the climb. A counter of events hosted ticks up as you scroll
+ * Chapter 05, the climb. A counter of events hosted ticks up as you scroll
  * and the ladder lights rung by rung; each real badge stamps itself in when
  * the count reaches its tier.
  */
@@ -44,7 +44,7 @@ function LadderPinned() {
               Every night<br />counts.
             </h2>
             <p className="mt-4 max-w-[420px] font-sans text-lg leading-relaxed text-sage-ink/80">
-              Guests review every event. Keep hosting and your badge levels up — guests see it on your profile and your invites.
+              Guests review every event. Keep hosting and your badge levels up, guests see it on your profile and your invites.
             </p>
             <div className="mt-10">
               <div className="font-display text-[clamp(96px,11vw,180px)] font-extrabold leading-[0.8] tracking-[-0.07em] tabular-nums">

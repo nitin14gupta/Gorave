@@ -19,7 +19,7 @@ interface Props {
 }
 
 /**
- * The masthead — the type arrives in pieces. On desktop the section pins and
+ * The masthead, the type arrives in pieces. On desktop the section pins and
  * each letter of the nameplate slides into place as you scroll, like a
  * compositor setting a cover. Phones get the same letters dropping in on load.
  */
@@ -40,7 +40,7 @@ export function Masthead({ crumbs, count, minutes }: Props) {
 
         <div className="mt-6 flex items-center justify-between gap-4 border-y-[1.5px] border-ink py-2.5 font-sans text-[11px] font-bold uppercase tracking-[0.18em] text-ink-2">
           <span>Gorave for hosts</span>
-          <span className="hidden sm:inline">Issue 01 — The hosting guides</span>
+          <span className="hidden sm:inline">Issue 01, The hosting guides</span>
           <span>{count} guides · {minutes} min</span>
         </div>
 

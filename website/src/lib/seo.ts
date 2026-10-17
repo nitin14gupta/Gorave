@@ -1,4 +1,4 @@
-// Shared SEO helpers — every page builds its URLs, breadcrumbs and JSON-LD
+// Shared SEO helpers, every page builds its URLs, breadcrumbs and JSON-LD
 // through these so canonical URLs and structured data stay consistent.
 
 export const SITE_URL = 'https://gorave.in'

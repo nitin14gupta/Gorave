@@ -10,7 +10,7 @@ import { EventCard } from '@/components/ui/EventCard'
 
 const EASE = [0.2, 0.8, 0.2, 1] as const
 
-/** Real events by city in a draggable rail — replaces a decorative marquee. */
+/** Real events by city in a draggable rail, replaces a decorative marquee. */
 export function ThisWeek({ byCity }: { byCity: Record<string, SampleEvent[]> }) {
   const [city, setCity] = useState<string>(BROWSE_CITIES[0])
   const constraintsRef = useRef<HTMLDivElement>(null)

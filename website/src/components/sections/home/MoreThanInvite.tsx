@@ -15,7 +15,7 @@ const TILES: { caption: string; href?: string; art: ReactNode }[] = [
   {
     caption: 'Sell tickets.',
     href: '/host/payouts',
-    // Two fanned tickets — a hint that it's a guest list, not one invite
+    // Two fanned tickets, a hint that it's a guest list, not one invite
     art: (
       <div className="relative h-[330px] w-[230px]">
         <TicketCard width={190} backdrop="var(--color-tile)" title="Indie Gig at the Loft" date="Thursday, 16 October" time="8:00 PM IST" className="absolute left-0 top-4 rotate-[-12deg] opacity-90" />

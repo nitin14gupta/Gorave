@@ -34,11 +34,11 @@ const instrument = Instrument_Serif({
 export const metadata: Metadata = {
   metadataBase: new URL("https://gorave.in"),
   title: {
-    default: "Gorave — House parties, rooftops & game nights near you",
+    default: "Gorave, House parties, rooftops & game nights near you",
     template: "%s · Gorave",
   },
   description:
-    "Find house parties, rooftops, game nights and dinner parties hosted by real people in your city — or host your own. Verified 18+ guests, private addresses, UPI tickets.",
+    "Find house parties, rooftops, game nights and dinner parties hosted by real people in your city, or host your own. Verified 18+ guests, private addresses, UPI tickets.",
   openGraph: { siteName: "Gorave", type: "website", locale: "en_IN" },
 };
 

@@ -45,7 +45,7 @@ export function TypingDots({ delay = 0 }: { delay?: number }) {
   )
 }
 
-/** The hero's group-chat story — a plan forming, then the invite drops in. */
+/** The hero's group-chat story, a plan forming, then the invite drops in. */
 export function ChatThread() {
   const event = useLiveEvent(0)
   return (

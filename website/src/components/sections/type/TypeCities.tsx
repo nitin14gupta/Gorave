@@ -11,7 +11,7 @@ import { Chapter } from '@/components/ui/atoms'
 const TILT = [-3, 2, -1.5, 3, -2.5, 1.5, -2, 2.5]
 
 /**
- * Chapter 03 — pick your city. Every city is a postcard of its own street at
+ * Chapter 03, pick your city. Every city is a postcard of its own street at
  * blue hour; hover one and it lifts off the table and straightens.
  */
 export function TypeCities({ story, slug, cities }: { story: TypeContent; slug: string; cities: { city: City; count: number }[] }) {
@@ -25,7 +25,7 @@ export function TypeCities({ story, slug, cities }: { story: TypeContent; slug: 
               {story.plural}<br /><span className="font-serif font-normal italic tracking-[-0.03em] text-orange">near you.</span>
             </h2>
           </div>
-          <p className="max-w-[340px] font-sans text-lg text-ink-2">Hosted in homes across eight cities — pick yours to see what’s on.</p>
+          <p className="max-w-[340px] font-sans text-lg text-ink-2">Hosted in homes across eight cities, pick yours to see what’s on.</p>
         </div>
 
         <div className="mt-14 grid grid-cols-2 gap-x-5 gap-y-8 md:grid-cols-4">

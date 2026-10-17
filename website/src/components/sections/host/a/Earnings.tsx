@@ -8,7 +8,7 @@ import { Chapter } from '@/components/ui/atoms'
 const MAX_GUESTS = 60
 
 /**
- * Chapter 02 — the maths. Two sliders, one number. Every guest becomes a
+ * Chapter 02, the maths. Two sliders, one number. Every guest becomes a
  * little ticket that drops into the grid; the total rolls like a meter.
  * It's an example, not a forecast.
  */
@@ -36,14 +36,14 @@ export function Earnings() {
           </div>
 
           <p className="mt-8 max-w-[460px] rounded-2xl bg-white/60 p-4 font-sans text-sm leading-relaxed text-ink-2">
-            Rather keep it free? You can run up to {HOST_FEES.freePerMonth} free-entry events a month — request-to-join, no ticketing.
+            Rather keep it free? You can run up to {HOST_FEES.freePerMonth} free-entry events a month, request-to-join, no ticketing.
           </p>
         </div>
 
         <div className="rounded-[36px] bg-ink p-7 text-cream shadow-pop md:p-10">
           <div className="flex items-center justify-between">
             <span className="rounded-full bg-gold px-3 py-1 font-sans text-[11px] font-bold uppercase tracking-[0.14em] text-ink">Example</span>
-            <span className="font-sans text-xs text-noir-ink-2">Illustration only — not a forecast</span>
+            <span className="font-sans text-xs text-noir-ink-2">Illustration only, not a forecast</span>
           </div>
           <div className="mt-6 font-sans text-sm font-bold uppercase tracking-[0.16em] text-noir-ink-2">You&apos;d keep</div>
           <Rolling value={take} />

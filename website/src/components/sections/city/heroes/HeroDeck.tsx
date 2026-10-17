@@ -13,7 +13,7 @@ const EASE = [0.2, 0.8, 0.2, 1] as const
 const SWIPE_MS = 2600
 const DEPTH = 4
 
-/** A deck of tonight's flyers that swipes itself — tap to swipe faster. */
+/** A deck of tonight's flyers that swipes itself, tap to swipe faster. */
 export function HeroDeck({ city, crumbs }: HeroProps) {
   const { posters } = useCityKit()
   const [top, setTop] = useState(0)

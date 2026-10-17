@@ -65,7 +65,7 @@ function CreateScreen({ t }: { t: number }) {
         <div className="flex items-center justify-between rounded-2xl bg-noir-2 px-3.5 py-2.5">
           <div>
             <div className="text-[10px] font-bold uppercase tracking-[0.12em] text-noir-ink-2">Capacity</div>
-            <div className="text-[13px] font-bold tabular-nums">{t > 0.74 ? 24 : '—'} guests</div>
+            <div className="text-[13px] font-bold tabular-nums">{t > 0.74 ? 24 : ', '} guests</div>
           </div>
           <div className="flex gap-1.5">
             {['−', '+'].map(s => <span key={s} className="grid size-7 place-items-center rounded-full bg-noir-3 text-sm font-bold">{s}</span>)}
@@ -110,7 +110,7 @@ function InviteScreen({ t }: { t: number }) {
   )
 }
 
-// Which of the sample requests the demo host accepts — one is declined.
+// Which of the sample requests the demo host accepts, one is declined.
 const DECISIONS = [true, true, false, true] as const
 
 function RequestsScreen({ t }: { t: number }) {
@@ -144,7 +144,7 @@ function RequestsScreen({ t }: { t: number }) {
                     animate={{ opacity: 1, y: 0 }}
                     className={cn('grid h-7 place-items-center rounded-xl text-[11px] font-bold', ok ? 'bg-green/20 text-green' : 'bg-white/5 text-noir-ink-2')}
                   >
-                    {ok ? 'Accepted — ticket sent' : 'Declined · can’t re-request'}
+                    {ok ? 'Accepted, ticket sent' : 'Declined · can’t re-request'}
                   </motion.div>
                 ) : (
                   <div className="grid h-7 grid-cols-2 gap-1.5 text-[11px] font-bold">

@@ -14,7 +14,7 @@ const COPY =
 const WORDS = COPY.split(' ').map(w => (w.startsWith('*') ? { text: w.replace(/\*/g, ''), accent: true } : { text: w, accent: false }))
 
 /**
- * Chapter 04 — the fine print, read aloud. One paragraph of what the app does
+ * Chapter 04, the fine print, read aloud. One paragraph of what the app does
  * for you, on a dark spread; it inks itself in word by word as you scroll, the numbers
  * in brand colour. Below, the same facts as margin notes.
  */

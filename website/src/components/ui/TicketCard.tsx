@@ -8,7 +8,7 @@ interface Props {
   date?: string
   time?: string
   width?: number
-  /** Colour behind the card — the notches are cut-outs filled with it */
+  /** Colour behind the card, the notches are cut-outs filled with it */
   backdrop?: string
   className?: string
 }

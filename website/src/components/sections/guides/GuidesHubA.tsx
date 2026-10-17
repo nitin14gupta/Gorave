@@ -10,7 +10,7 @@ import { FinePrint } from './a/FinePrint'
 import { HostCtaA } from './a/HostCtaA'
 
 /**
- * Hosting guides, variant A — "the magazine". Cream paper, a nameplate that
+ * Hosting guides, variant A"the magazine". Cream paper, a nameplate that
  * sets itself, a cover story, a contents page you can filter, a reading
  * route, the fine print on a dark spread, then your turn.
  */

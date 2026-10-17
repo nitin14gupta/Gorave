@@ -29,7 +29,7 @@ function pathFor(n: number) {
 }
 
 /**
- * Chapter 03 — the reading path. A route snakes down the page and draws
+ * Chapter 03, the reading path. A route snakes down the page and draws
  * itself as you scroll; each stop lights up when the line reaches it.
  * Phones get a straight line that fills down a simple list.
  */

@@ -21,7 +21,7 @@ function BulbRow({ vertical }: { vertical?: boolean }) {
 }
 
 /**
- * Chapter 08 — curtain call. A marquee sign framed in chasing bulbs; the
+ * Chapter 08, curtain call. A marquee sign framed in chasing bulbs; the
  * headline settles from wide-spaced to tight as it scrolls into place.
  */
 export function CurtainCall() {

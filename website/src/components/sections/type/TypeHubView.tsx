@@ -23,7 +23,7 @@ interface Props {
 }
 
 /**
- * Event-type hub (/house-parties) — one kind of night across India. Same
+ * Event-type hub (/house-parties), one kind of night across India. Same
  * story sections as the city pages, plus a postcard picker for every city.
  */
 export function TypeHubView({ slug, story, events, cities }: Props) {

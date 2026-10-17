@@ -9,7 +9,7 @@ import { Chapter } from '@/components/ui/atoms'
 const STRAPS = ['#FF3864', '#FF6B35', '#FFB830', '#F5F0EB']
 
 /**
- * Chapter 06 — the laminates. Host badges as all-access passes on lanyards.
+ * Chapter 06, the laminates. Host badges as all-access passes on lanyards.
  * They drop in on a spring as the section arrives; brush one with the
  * cursor and it swings from its clip.
  */

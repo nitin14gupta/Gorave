@@ -13,7 +13,7 @@ import { StoreBadges } from '@/components/ui/atoms'
 const FAN = HOST_TEMPLATES.slice(0, 5)
 
 /**
- * Opening shot — a closed deck of the app's invite templates. Scroll and the
+ * Opening shot, a closed deck of the app's invite templates. Scroll and the
  * deck fans open like a hand of cards; the cursor tilts the whole hand.
  */
 export function HeroA({ crumbs }: { crumbs: Crumb[] }) {
@@ -43,7 +43,7 @@ export function HeroA({ crumbs }: { crumbs: Crumb[] }) {
               <span className="font-serif font-normal italic tracking-[-0.03em] text-brand">start to finish.</span>
             </h1>
             <p className="mt-7 max-w-[500px] font-sans text-xl leading-relaxed text-ink-2">
-              Make the event in a few minutes, pick who comes, scan them in at the door. Two free-entry events a month — or sell tickets from ₹99 and keep 90%.
+              Make the event in a few minutes, pick who comes, scan them in at the door. Two free-entry events a month, or sell tickets from ₹99 and keep 90%.
             </p>
             <div className="mt-9 flex flex-wrap items-center gap-4">
               <Button href="#build" size="lg">See how it works</Button>

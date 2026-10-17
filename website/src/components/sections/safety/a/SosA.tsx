@@ -12,9 +12,9 @@ const R = 40 // contact orbit radius, % of the stage
 const ANGLES = [-90, -18, 54, 126, 198]
 
 /**
- * Chapter 03 — SOS. Press and hold: the ring fills, then lines shoot out to
+ * Chapter 03, SOS. Press and hold: the ring fills, then lines shoot out to
  * five contacts and each one pings as it "receives" your live location.
- * It's a demo — nothing leaves this page.
+ * It's a demo, nothing leaves this page.
  */
 export function SosA() {
   const p = useMotionValue(0)
@@ -60,7 +60,7 @@ export function SosA() {
             One tap.<br />Five people <span className="font-serif font-normal italic tracking-[-0.03em] text-brand">know where you are.</span>
           </h2>
           <p className="mt-5 max-w-[460px] font-sans text-lg leading-relaxed text-noir-ink-2">
-            Add up to five emergency contacts in the app. If you need them, one tap shares your live location with all of them — and it keeps sharing even with the app in the background.
+            Add up to five emergency contacts in the app. If you need them, one tap shares your live location with all of them, and it keeps sharing even with the app in the background.
           </p>
           <ul className="mt-7 grid max-w-[460px] gap-2.5 font-sans text-[15px] text-noir-ink-2">
             <li className="flex gap-3"><span className="text-green">●</span>Set your contacts before your first event.</li>

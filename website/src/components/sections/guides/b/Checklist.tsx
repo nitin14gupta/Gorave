@@ -7,7 +7,7 @@ import { HOST_CHECKLIST, guideHref, type HostGuide } from '@/lib/hostGuides'
 import { Chapter } from '@/components/ui/atoms'
 
 /**
- * Chapter 03 — the night before. A checklist on a clipboard; as you scroll
+ * Chapter 03, the night before. A checklist on a clipboard; as you scroll
  * down it, each line gets ticked and struck through, and the counter beside
  * it climbs. Nothing is pinned, so it reads the same on a phone.
  */

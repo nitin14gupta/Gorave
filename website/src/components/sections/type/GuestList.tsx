@@ -19,7 +19,7 @@ const REQUESTS = [
 const LEGEND: [Seat, string][] = [['w', 'Women'], ['m', 'Men'], ['o', 'Open']]
 const COLOR: Record<Seat, string> = { w: 'bg-coral', m: 'bg-orange', o: 'bg-gold' }
 
-/** 50:50 with 10% open — the same quota maths the app uses. Seats fill in an interleaved order. */
+/** 50:50 with 10% open, the same quota maths the app uses. Seats fill in an interleaved order. */
 function seatPlan(cap: number): Seat[] {
   const open = Math.round(cap * 0.1)
   const women = Math.round((cap - open) / 2)
@@ -41,7 +41,7 @@ function seatPlan(cap: number): Seat[] {
 }
 
 /**
- * Chapter 03 — the guest list. Scroll and the room fills seat by seat while
+ * Chapter 03, the guest list. Scroll and the room fills seat by seat while
  * requests come in and get accepted; the crowd mix holds the whole way.
  */
 export function GuestList({ city, story }: { city: City; story: TypeContent }) {

@@ -12,7 +12,7 @@ import { ControlRoom } from './a/ControlRoom'
 import { HostCtaA } from './a/HostCtaA'
 
 /**
- * Host page, variant A — "Your first party, start to finish". Daylight
+ * Host page, variant A"Your first party, start to finish". Daylight
  * palette; one event is built, priced, filled and opened over eight chapters.
  */
 export function HostPageA() {

@@ -8,7 +8,7 @@ import { absoluteUrl, slugify } from '@/lib/seo'
 import { JsonLd } from '@/components/ui/JsonLd'
 import { EventDetailView } from '@/components/sections/event/EventDetailView'
 
-// Event pages are what shared links open — rendered on demand for any id.
+// Event pages are what shared links open, rendered on demand for any id.
 export const revalidate = 60
 
 const getEvent = cache((id: string) => fetchEvent(id))
@@ -18,7 +18,7 @@ export async function generateMetadata({ params }: PageProps<'/e/[id]'>): Promis
   const e = await getEvent(id)
   if (!e) return { title: 'Event not found', robots: { index: false } }
   const place = [e.area, e.city].filter(Boolean).join(', ')
-  const title = `${e.title} — ${place}`
+  const title = `${e.title} · ${place}`
   const description = `${longWhen(e.date_time)} in ${place}. ${e.is_free ? 'Free · request to join' : `₹${e.price_inr}`} · hosted by ${e.host.name ?? e.host.username} on Gorave.`
   const url = absoluteUrl(`/e/${e.id}`)
   // Past or cancelled events stay reachable for people who have the link, but not in search.
@@ -62,7 +62,7 @@ export default async function EventPage({ params }: PageProps<'/e/[id]'>) {
           eventStatus: e.is_cancelled ? 'https://schema.org/EventCancelled' : 'https://schema.org/EventScheduled',
           eventAttendanceMode: 'https://schema.org/OfflineEventAttendanceMode',
           image: e.cover_photos,
-          // Area-level location only — the exact address is never public.
+          // Area-level location only, the exact address is never public.
           location: { '@type': 'Place', name: [e.area, e.city].filter(Boolean).join(', '), address: { '@type': 'PostalAddress', addressLocality: e.area ?? e.city ?? undefined, addressRegion: e.city ?? undefined, addressCountry: 'IN' } },
           offers: { '@type': 'Offer', price: e.price_inr, priceCurrency: 'INR', availability: e.spots_left > 0 ? 'https://schema.org/InStock' : 'https://schema.org/SoldOut', url: absoluteUrl(`/e/${e.id}`) },
           organizer: { '@type': 'Person', name: e.host.name ?? e.host.username, url: e.host.username ? absoluteUrl(`/h/${e.host.username}`) : undefined },

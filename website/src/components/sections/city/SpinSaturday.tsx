@@ -27,7 +27,7 @@ function Reel({ items, index, duration }: { items: string[]; index: number; dura
 }
 
 /**
- * Chapter 04 — the dare. A slot machine for your Saturday: vibe × area ×
+ * Chapter 04, the dare. A slot machine for your Saturday: vibe × area ×
  * time. Spin, reels land one after another, a matching flyer drops in.
  */
 export function SpinSaturday({ city }: { city: City }) {

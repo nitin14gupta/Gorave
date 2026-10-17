@@ -10,7 +10,7 @@ import { absoluteUrl } from '@/lib/seo'
 import { TypePageView } from '@/components/sections/type/TypePageView'
 import { AreaPageView } from '@/components/sections/area/AreaPageView'
 
-// /[city]/[facet] — a facet is an event type (/mumbai/house-parties) or a
+// /[city]/[facet], a facet is an event type (/mumbai/house-parties) or a
 // neighbourhood (/mumbai/bandra). Time, price and crowd facets will resolve
 // here too; anything else is a 404.
 export const dynamicParams = false
@@ -38,12 +38,12 @@ export async function generateMetadata({ params }: PageProps<'/[city]/[facet]'>)
   if (r.kind === 'area') {
     const { name, city, profile } = r.area
     const title = `House parties & things to do in ${name}, ${city.name}`
-    const description = `${name} — ${profile.line}. Find house parties, rooftops, game nights and dinner parties hosted by people in ${name}. Verified 18+ guests, address after you’re in.`
+    const description = `${name}, ${profile.line}. Find house parties, rooftops, game nights and dinner parties hosted by people in ${name}. Verified 18+ guests, address after you’re in.`
     return { title, description, alternates: { canonical: url }, openGraph: { title, description, url, images: [cityStreet(city.slug)] } }
   }
   const { city, story } = r
   const title = `${story.plural} in ${city.name} this week`
-  const description = `${story.heroLine} Find ${story.plural.toLowerCase()} across ${city.areas.slice(0, 3).join(', ')} and more in ${city.name} — request to join free ones, book paid ones with UPI.`
+  const description = `${story.heroLine} Find ${story.plural.toLowerCase()} across ${city.areas.slice(0, 3).join(', ')} and more in ${city.name}, request to join free ones, book paid ones with UPI.`
   return { title, description, alternates: { canonical: url }, openGraph: { title, description, url } }
 }
 

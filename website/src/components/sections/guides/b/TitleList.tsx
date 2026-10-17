@@ -14,7 +14,7 @@ const PW = 300
 const PH = 380
 
 /**
- * Chapter 02 — every play, by name. A tall typographic list; hover a title
+ * Chapter 02, every play, by name. A tall typographic list; hover a title
  * and a photo of that night trails the cursor, swinging with how fast you
  * move, its reel rolling to the right frame. Touch screens see thumbnails.
  */
@@ -73,7 +73,7 @@ export function TitleList({ guides }: { guides: HostGuide[] }) {
         </ul>
       </div>
 
-      {/* The trailing preview — only ever shown for a mouse */}
+      {/* The trailing preview, only ever shown for a mouse */}
       <motion.div
         aria-hidden
         className="pointer-events-none absolute left-0 top-0 z-20 hidden overflow-hidden rounded-[22px] shadow-pop md:block"

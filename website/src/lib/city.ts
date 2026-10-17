@@ -18,7 +18,7 @@ export function cityMetaDescription(city: City) {
   return `Find house parties, rooftop parties, game nights and dinner parties in ${city.name} this week. Request to join free events or book tickets with UPI. Verified 18+ guests and private addresses.`
 }
 
-/** Quick-filter links — each one is its own SEO page under the city. */
+/** Quick-filter links, each one is its own SEO page under the city. */
 export function cityFilters(city: City) {
   return [
     { label: 'Tonight', href: `/${city.slug}/tonight` },

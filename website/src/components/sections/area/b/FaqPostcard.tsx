@@ -7,7 +7,7 @@ import { cn } from '@/lib/cn'
 import { CARD_SHADOW, Deckle, Grain, Postmark, Stamp } from './kit'
 
 /**
- * Chapter 10 — the questions, written on the back of a postcard. The card
+ * Chapter 10, the questions, written on the back of a postcard. The card
  * arrives a little crooked and straightens as it scrolls into place. The
  * shared <Faq> renders inside, unchanged; only its section chrome is reset.
  */
@@ -28,7 +28,7 @@ export function FaqPostcard({ area, children }: { area: Area; children: ReactNod
         <div className="flex items-start justify-between gap-4 border-b border-dashed border-ink/15 pb-5">
           <div>
             <div className="font-sans text-[10px] font-bold uppercase tracking-[0.2em] text-ink-3">Post card · {area.name}</div>
-            <div className="mt-2 font-serif text-[clamp(26px,3vw,40px)] italic leading-none text-ink-2">Questions, answered —</div>
+            <div className="mt-2 font-serif text-[clamp(26px,3vw,40px)] italic leading-none text-ink-2">Questions, answered</div>
           </div>
           <div className="flex shrink-0 items-start gap-1">
             <Postmark top={`${area.name} · ${area.city.name}`} bottom="faq" center="ask away" className="hidden w-[84px] -rotate-12 text-ink/45 sm:block" />

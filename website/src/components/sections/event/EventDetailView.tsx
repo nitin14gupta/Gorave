@@ -16,7 +16,7 @@ import { EventGallery } from './EventGallery'
 const mixLabel = (p: number | null) => (p == null ? null : p >= 100 ? 'Women only' : p <= 0 ? 'Men only' : `${p}:${100 - p} crowd`)
 
 /**
- * Event page (/e/id) — what a shared link opens. Everything a guest needs to
+ * Event page (/e/id), what a shared link opens. Everything a guest needs to
  * decide, with the request/booking itself handed to the app.
  */
 export function EventDetailView({ event: e, more, crumbs }: { event: PublicEventDetail; more: SampleEvent[]; crumbs: Crumb[] }) {
@@ -47,7 +47,7 @@ export function EventDetailView({ event: e, more, crumbs }: { event: PublicEvent
             <EventGallery photos={photos} title={e.title} />
           </div>
 
-          {/* The decision card — sticky on desktop */}
+          {/* The decision card, sticky on desktop */}
           <aside className="lg:sticky lg:top-24 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:self-start">
             <div className="rounded-[32px] bg-white p-7 shadow-pop">
               <div className="flex flex-wrap gap-1.5">
@@ -103,7 +103,7 @@ export function EventDetailView({ event: e, more, crumbs }: { event: PublicEvent
             <section>
               <Chapter n="01" title="About the night" />
               <p className="mt-5 whitespace-pre-line font-sans text-lg leading-relaxed text-ink-2">
-                {e.description || 'The host hasn’t written a description yet — open the event in the app to ask them anything.'}
+                {e.description || 'The host hasn’t written a description yet, open the event in the app to ask them anything.'}
               </p>
               {e.rules && (
                 <div className="mt-8 rounded-[24px] bg-white p-6 shadow-soft">
@@ -119,7 +119,7 @@ export function EventDetailView({ event: e, more, crumbs }: { event: PublicEvent
                 {[
                   ['Address after you’re in', `You see ${e.area ?? 'the area'} now; the exact address unlocks once you’re confirmed.`],
                   ['Verified guests', 'Everyone is phone-verified and 18+. Hosts see who’s asking.'],
-                  ['QR at the door', 'Your ticket lives in the app — the host scans it when you arrive.'],
+                  ['QR at the door', 'Your ticket lives in the app, the host scans it when you arrive.'],
                 ].map(([t, d]) => (
                   <div key={t} className="rounded-[22px] bg-paper p-5">
                     <div className="font-display text-lg font-extrabold tracking-[-0.03em]">{t}</div>

@@ -12,8 +12,8 @@ import { Laminates } from './b/Laminates'
 import { CurtainCall } from './b/CurtainCall'
 
 /**
- * Host page, variant B — "Backstage". Noir throughout: the curtain opens on
- * the room, then the host works through the night like a stage manager —
+ * Host page, variant B"Backstage". Noir throughout: the curtain opens on
+ * the room, then the host works through the night like a stage manager
  * cues, the money, the door list, the rules, the desk, the pass.
  */
 export function HostPageB() {

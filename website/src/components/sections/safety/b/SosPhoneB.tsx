@@ -17,7 +17,7 @@ const STEPS = [
 ]
 
 /**
- * Chapter 04 — the button. A phone plays the SOS flow once as it scrolls
+ * Chapter 04, the button. A phone plays the SOS flow once as it scrolls
  * into view: the party screen, the tap, five contacts ticking in, then live
  * sharing in the background. Tap any step to jump to it, or replay.
  */
@@ -65,7 +65,7 @@ export function SosPhoneB() {
           </ol>
           <div className="mt-6 flex items-center gap-4 font-sans text-sm text-noir-ink-2">
             <button type="button" onClick={() => setStep(0)} className="rounded-full bg-noir-3 px-4 py-2 font-bold text-noir-ink transition-colors hover:bg-noir">↺ Replay</button>
-            A demo of the app — nothing is sent.
+            A demo of the app, nothing is sent.
           </div>
         </div>
 

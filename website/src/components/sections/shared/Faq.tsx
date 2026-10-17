@@ -3,7 +3,7 @@ import { Accordion, type AccordionItem } from '@/components/ui/Accordion'
 import { Chapter, Eyebrow, H2 } from '@/components/ui/atoms'
 import { JsonLd } from '@/components/ui/JsonLd'
 
-/** FAQ section with FAQPage structured data — reused by every page template. */
+/** FAQ section with FAQPage structured data, reused by every page template. */
 export function Faq({ title = 'Questions, answered', items, chapter }: { title?: string; items: AccordionItem[]; chapter?: string }) {
   return (
     <section className="bg-cream px-6 py-24 md:px-20 md:py-28">

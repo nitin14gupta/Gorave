@@ -5,7 +5,7 @@ import { useEffect, useRef } from 'react'
 import { animate, motion, useMotionTemplate, useMotionValue, useSpring, useTransform } from 'motion/react'
 import { CITIES, POSTERS } from '@/constants'
 
-// Only the app's real invite templates hide in the dark — no made-up event flyers.
+// Only the app's real invite templates hide in the dark, no made-up event flyers.
 const FLYERS = POSTERS.filter(p => p.kind === 'template')
 import { Button } from '@/components/ui/Button'
 import { Poster } from '@/components/ui/Poster'
@@ -13,13 +13,13 @@ import { TicketCard } from '@/components/ui/TicketCard'
 
 const EASE = [0.2, 0.8, 0.2, 1] as const
 
-// Flyers hidden in the dark — only the torch finds them. [left %, top %, rotate, poster index]
+// Flyers hidden in the dark, only the torch finds them. [left %, top %, rotate, poster index]
 const HIDDEN: [number, number, number, number][] = [
   [6, 14, -9, 4], [24, 62, 7, 1], [44, 10, -4, 5], [63, 58, 10, 7], [80, 16, -7, 10], [88, 64, 5, 2],
 ]
 
 /**
- * 404 — the lights are off and the bouncer can't find your name. A torch
+ * 404, the lights are off and the bouncer can't find your name. A torch
  * follows the cursor and reveals the party hiding in the dark, while your
  * ticket gets scanned and stamped "not on the list".
  */
@@ -79,7 +79,7 @@ export function NotFoundView() {
             Your name&apos;s<br />not on <span className="font-serif font-normal italic tracking-[-0.03em] text-brand">the list.</span>
           </h1>
           <p className="mt-6 max-w-[460px] font-sans text-xl leading-relaxed text-noir-ink-2">
-            This page doesn&apos;t exist — or the host moved the party. The lights are off in here, but the night is still on somewhere.
+            This page doesn&apos;t exist, or the host moved the party. The lights are off in here, but the night is still on somewhere.
           </p>
 
           <div className="mt-9 flex flex-wrap gap-2.5">
@@ -106,7 +106,7 @@ export function NotFoundView() {
       </div>
 
       <div className="pointer-events-none absolute inset-x-0 bottom-5 z-10 hidden text-center font-sans text-xs font-bold uppercase tracking-[0.2em] text-noir-ink-2/60 md:block">
-        Lights are off — move your torch around
+        Lights are off, move your torch around
       </div>
     </main>
   )
@@ -162,7 +162,7 @@ function ScanDesk() {
         transition={{ delay: 3.1, duration: 0.6 }}
         className="absolute inset-x-0 bottom-0 text-center font-sans text-sm font-bold text-noir-ink-2"
       >
-        Scan failed — ticket not found
+        Scan failed, ticket not found
       </motion.div>
     </div>
   )

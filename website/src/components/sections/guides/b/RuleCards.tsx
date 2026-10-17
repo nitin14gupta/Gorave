@@ -9,7 +9,7 @@ import { cn } from '@/lib/cn'
 const EASE = [0.2, 0.8, 0.2, 1] as const
 
 /**
- * Chapter 04 — the rules of the game. The app's terms, dealt face up from one
+ * Chapter 04, the rules of the game. The app's terms, dealt face up from one
  * pile as the section arrives; hover (or tap) a card to flip it and read the
  * small print on the back.
  */

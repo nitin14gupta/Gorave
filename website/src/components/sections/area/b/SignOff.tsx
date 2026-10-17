@@ -11,7 +11,7 @@ import { CARD_SHADOW, Deckle, Grain, Postmark, Stamp, WAVES } from './kit'
 const FACE = 'absolute inset-0 bg-white p-3 sm:p-4 [backface-visibility:hidden] [-webkit-backface-visibility:hidden]'
 
 /**
- * "Wish you were here." — the last postcard. Its front is the city street;
+ * "Wish you were here."the last postcard. Its front is the city street;
  * as it scrolls to the middle of the screen it turns over in 3D to show the
  * back: the note, the sign-off, the address lines and the way out. Tap (or
  * the button) turns it again.

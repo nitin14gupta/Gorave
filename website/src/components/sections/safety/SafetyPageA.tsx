@@ -12,7 +12,7 @@ import { TipsA } from './a/TipsA'
 import { CtaA } from './a/CtaA'
 
 /**
- * /safety, variant A — "Your night, protected at every step". Daylight and
+ * /safety, variant A"Your night, protected at every step". Daylight and
  * calm: a shield forms, then the page walks one night out from before to
  * after, with a hands-on demo for the address, SOS and crowd mix.
  */

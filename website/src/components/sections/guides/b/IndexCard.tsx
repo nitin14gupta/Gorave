@@ -10,7 +10,7 @@ const RULED = {
     'linear-gradient(to bottom, transparent 0 31px, rgb(255 56 100 / 0.55) 31px 33px, transparent 33px), repeating-linear-gradient(to bottom, transparent 0 25px, rgb(70 110 170 / 0.16) 25px 26px)',
 } as const
 
-/** A guide as a playbook card — photo on top, ruled paper below. Static, so any section can deal it. */
+/** A guide as a playbook card, photo on top, ruled paper below. Static, so any section can deal it. */
 export function IndexCard({ guide, n, className, preload }: { guide: HostGuide; n: number; className?: string; preload?: boolean }) {
   return (
     <div className={cn('relative flex flex-col overflow-hidden rounded-[18px] text-ink shadow-[0_30px_60px_-24px_rgb(0_0_0/0.7)]', className)} style={{ backgroundColor: RULED.backgroundColor }}>

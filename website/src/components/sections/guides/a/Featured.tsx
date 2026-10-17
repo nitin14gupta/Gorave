@@ -9,7 +9,7 @@ import { guideHref, type HostGuide } from '@/lib/hostGuides'
 import { Chapter } from '@/components/ui/atoms'
 
 /**
- * Chapter 01 — the cover story. The photo opens out from a narrow slot as it
+ * Chapter 01, the cover story. The photo opens out from a narrow slot as it
  * reaches you, then drifts slower than the page; the headline slides the
  * other way, so the spread feels printed in two layers.
  */

@@ -13,7 +13,7 @@ const EASE = [0.2, 0.8, 0.2, 1] as const
 type Filter = 'All' | GuideCategory
 
 /**
- * Chapter 02 — the contents page. Pick a section of the magazine and the
+ * Chapter 02, the contents page. Pick a section of the magazine and the
  * grid reshuffles itself (motion layout); every card tilts toward the cursor
  * and slides its standfirst up on hover.
  */

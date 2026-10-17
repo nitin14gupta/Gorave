@@ -13,15 +13,15 @@ type Verdict = 'in' | 'out'
 
 const THRESHOLD = 110
 
-// Exit direction comes from AnimatePresence's `custom` — the verdict just made.
+// Exit direction comes from AnimatePresence's `custom`the verdict just made.
 const EXIT = {
   gone: (dir: Verdict) => ({ x: dir === 'in' ? 420 : -420, rotate: dir === 'in' ? 24 : -24, opacity: 0, transition: { duration: 0.4 } }),
 }
 
 /**
- * Chapter 03 — the door list. A stack of join requests: drag right to let
+ * Chapter 03, the door list. A stack of join requests: drag right to let
  * someone in, left to pass (or use the buttons). Accepted guests land on the
- * list; declined ones are stamped — they can't ask again.
+ * list; declined ones are stamped, they can't ask again.
  */
 export function RequestInbox() {
   const [decided, setDecided] = useState<{ req: Req; v: Verdict }[]>([])
@@ -44,9 +44,9 @@ export function RequestInbox() {
             Who&apos;s on<br />the list?
           </h2>
           <p className="mt-4 max-w-[420px] font-sans text-lg leading-relaxed text-noir-ink-2">
-            Free events are request-to-join. Requests come in as pushes; you see each profile and decide. Paid events book instantly — and when it&apos;s full, there&apos;s a waitlist.
+            Free events are request-to-join. Requests come in as pushes; you see each profile and decide. Paid events book instantly, and when it&apos;s full, there&apos;s a waitlist.
           </p>
-          <p className="mt-6 font-sans text-xs font-bold uppercase tracking-[0.16em] text-noir-ink-2/70">Try it — drag a card, or tap the buttons</p>
+          <p className="mt-6 font-sans text-xs font-bold uppercase tracking-[0.16em] text-noir-ink-2/70">Try it, drag a card, or tap the buttons</p>
         </div>
 
         <div className="relative mx-auto h-[440px] w-[300px]">

@@ -14,7 +14,7 @@ const INKS = [
 ]
 
 /**
- * Chapter 05 — known for. A small sheet of collectible stamps: each a duotone
+ * Chapter 05, known for. A small sheet of collectible stamps: each a duotone
  * print with a denomination corner and a small-caps caption. They press down
  * one by one; hover one and it peels off the sheet, corner curling.
  */
@@ -99,7 +99,7 @@ export function KnownFor({ area }: { area: Area }) {
               )
             })}
           </ul>
-          <p className="mt-10 text-center font-serif text-lg italic text-ink-3">₹0 — listing a night on Gorave is free.</p>
+          <p className="mt-10 text-center font-serif text-lg italic text-ink-3">₹0, listing a night on Gorave is free.</p>
         </div>
       </div>
     </section>

@@ -31,7 +31,7 @@ const DOTS = Array.from({ length: COUNT }, (_, i) => {
 
 /**
  * Noir opener. A crowd of strangers is scattered across the dark; after a
- * beat, most of them dim and a few drift into a lit circle — the guest list.
+ * beat, most of them dim and a few drift into a lit circle, the guest list.
  * The whole field drifts a little with the cursor.
  */
 export function HeroB({ crumbs }: { crumbs: Crumb[] }) {

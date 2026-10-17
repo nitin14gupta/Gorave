@@ -2,7 +2,7 @@ import Image from 'next/image'
 import { PHOTOS, type SampleEvent } from '@/constants'
 import { AvatarStack, Chip } from './atoms'
 
-/** The Gorave link preview — what a shared event looks like in a chat. */
+/** The Gorave link preview, what a shared event looks like in a chat. */
 export function InviteCard({ event, width = 270, tilt = 0 }: { event: SampleEvent; width?: number; tilt?: number }) {
   return (
     <div className="overflow-hidden rounded-3xl bg-white shadow-pop" style={{ width, rotate: `${tilt}deg` }}>

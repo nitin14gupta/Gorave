@@ -1,4 +1,4 @@
-// Photography used across the site. Unsplash for now — swap individual keys
+// Photography used across the site. Unsplash for now, swap individual keys
 // for Gorave's own event photos as they come in; nothing else has to change.
 
 export const unsplash = (id: string) => `https://images.unsplash.com/${id}`
@@ -23,7 +23,7 @@ export const PHOTOS = {
   fest: unsplash('photo-1501281668745-f7f57925c3b4'),
   neon: unsplash('photo-1496024840928-4c417adf211d'),
   drinks: unsplash('photo-1470337458703-46ad1756a187'),
-  // Generated (OpenArt) scenes — local files, so never append ?w= query params to these.
+  // Generated (OpenArt) scenes, local files, so never append ?w= query params to these.
   sceneDoor: '/img/areas/doorway.webp',
   sceneLiving: '/img/areas/livingroom.webp',
   sceneRoof: '/img/areas/rooftop.webp',

@@ -12,7 +12,7 @@ const TAG_SHAPE = 'polygon(22% 0, 78% 0, 100% 14%, 100% 100%, 0 100%, 0 14%)'
 const BARS = [2, 1, 3, 1, 1, 2, 1, 3, 2, 1, 1, 2, 3, 1, 2, 1, 1, 3]
 
 /**
- * Chapter 06 — kinds of nights. Every event type is a luggage tag hanging on
+ * Chapter 06, kinds of nights. Every event type is a luggage tag hanging on
  * a rail by its string. Tags drop in and settle; hover one and it sways.
  */
 export function LuggageTags({ area }: { area: Area }) {

@@ -9,7 +9,7 @@ import { Breadcrumbs } from '@/components/ui/Breadcrumbs'
 import { Button } from '@/components/ui/Button'
 
 /**
- * The lights are off. Move the cursor and a torch finds the party — the photo
+ * The lights are off. Move the cursor and a torch finds the party, the photo
  * is only lit inside a soft spotlight. On touch screens the light wanders by itself.
  */
 export function TypeHero({ city, story, crumbs }: { city: City; story: TypeContent; crumbs: Crumb[] }) {
@@ -62,7 +62,7 @@ export function TypeHero({ city, story, crumbs }: { city: City; story: TypeConte
               <Button href="/host" kind="ghost" dark size="lg">Host one</Button>
             </div>
           </div>
-          <div className="mt-10 hidden font-sans text-xs font-bold uppercase tracking-[0.18em] text-noir-ink-2/70 md:block">Move your cursor — find the party</div>
+          <div className="mt-10 hidden font-sans text-xs font-bold uppercase tracking-[0.18em] text-noir-ink-2/70 md:block">Move your cursor, find the party</div>
         </div>
       </div>
     </section>

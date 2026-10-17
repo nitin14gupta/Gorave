@@ -13,7 +13,7 @@ const RINGS = [
 ]
 
 /**
- * Chapter 11 — see you out there. Rings of flyers rotate slowly
+ * Chapter 11, see you out there. Rings of flyers rotate slowly
  * counter-clockwise around the call to action, smaller towards the centre.
  */
 export function Vortex({ city, chapter = '11', posters = POSTERS.filter(p => p.kind === 'template') }: { city: City; chapter?: string; posters?: PosterDef[] }) {

@@ -13,7 +13,7 @@ import { HabitsB } from './b/HabitsB'
 import { CtaB } from './b/CtaB'
 
 /**
- * /safety, variant B — "Layers of trust". Noir, like the app at night: a
+ * /safety, variant B"Layers of trust". Noir, like the app at night: a
  * crowd thins to a guest list, six glass layers stack up, a torch shows what
  * strangers vs guests see, a circle closes onto a door, SOS plays on a phone,
  * and you play host with the request stack.

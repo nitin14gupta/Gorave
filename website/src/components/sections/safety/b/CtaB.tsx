@@ -11,7 +11,7 @@ const TINTS = ['#00C48C', '#5BC0EB', '#FFB830', '#FF6B35', '#FF3864', '#C77DFF']
 const WORDS = ['See', 'you', 'inside.']
 
 /**
- * Chapter 08 — see you inside. The six layer colours slide in as thin bars
+ * Chapter 08, see you inside. The six layer colours slide in as thin bars
  * and lock together into one line under the headline; every letter of the
  * headline lifts and lights when you run the cursor across it.
  */

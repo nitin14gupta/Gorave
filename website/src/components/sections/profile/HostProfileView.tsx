@@ -15,7 +15,7 @@ const TRUST = [
   ['A QR at the door', 'Confirmed guests get a ticket; the host scans it when you arrive.'],
 ] as const
 
-/** Public host profile (/h/username) — who they are, what they're hosting next, how far they've climbed. */
+/** Public host profile (/h/username), who they are, what they're hosting next, how far they've climbed. */
 export function HostProfileView({ host, events, crumbs }: { host: HostHeroData; events: SampleEvent[]; crumbs: Crumb[] }) {
   const first = host.name.split(' ')[0]
   return (

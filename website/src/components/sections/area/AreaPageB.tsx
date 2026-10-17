@@ -16,7 +16,7 @@ import { FaqPostcard } from './b/FaqPostcard'
 import { SignOff } from './b/SignOff'
 
 /**
- * Variant B — "Postcards". A warm, paper-and-cream neighbourhood page where
+ * Variant B"Postcards". A warm, paper-and-cream neighbourhood page where
  * every section is a piece of stationery: postcards, polaroids, stamps and
  * luggage tags on layered, deckle-edged sheets, moved by slow springs and
  * the scroll.

@@ -1,6 +1,6 @@
 import { BRAND } from '@/constants'
 
-// Host page content. Everything here mirrors the app's real rules — fees,
+// Host page content. Everything here mirrors the app's real rules, fees,
 // free-event limit, crowd-mix quotas and badge tiers. Names in the demos are
 // illustrative UI, never presented as real hosts or real numbers.
 
@@ -22,7 +22,7 @@ export const HOST_FEES = {
   freePerMonth: 2,
 } as const
 
-/** Host's take for an example night — ticket × guests × 90%. */
+/** Host's take for an example night, ticket × guests × 90%. */
 export const hostEarnings = (ticket: number, guests: number) => Math.round(ticket * guests * HOST_FEES.hostShare)
 
 export const inr = (n: number) => `₹${n.toLocaleString('en-IN')}`
@@ -34,7 +34,7 @@ export type BadgeKey = keyof typeof BRAND.badges
 
 export const BADGE_TIERS: { key: BadgeKey; name: string; at: number; line: string }[] = [
   { key: 'rising', name: 'Rising', at: 2, line: 'Two events in. Guests can see you mean it.' },
-  { key: 'established', name: 'Established', at: 10, line: 'Ten nights hosted — a name people look for.' },
+  { key: 'established', name: 'Established', at: 10, line: 'Ten nights hosted, a name people look for.' },
   { key: 'elite', name: 'Elite', at: 25, line: 'Twenty-five events. Your flyers get noticed.' },
   { key: 'legend', name: 'Legend', at: 75, line: 'Seventy-five and counting. The room is yours.' },
 ]
@@ -65,7 +65,7 @@ export function customMix(womenSteps: number): Mix {
   return { key: 'custom', label: `Custom ${w * 10}:${100 - w * 10}`, women: w * 9, men: (10 - w) * 9, open: 10 }
 }
 
-/** Seats per group for a capacity — rounding goes to the open pool. */
+/** Seats per group for a capacity, rounding goes to the open pool. */
 export function mixSeats(mix: Mix, cap: number) {
   const women = Math.floor((cap * mix.women) / 100)
   const men = Math.floor((cap * mix.men) / 100)
@@ -74,19 +74,19 @@ export function mixSeats(mix: Mix, cap: number) {
 
 // ── Story steps ──────────────────────────────────────────────────────────
 
-/** Variant A — the four screens the phone builds as you scroll. */
+/** Variant A, the four screens the phone builds as you scroll. */
 export const BUILD_STEPS = [
   {
     key: 'create',
     n: '01',
     title: 'Create it',
-    body: 'Photos, a name, the date, your area and how many people fit. A few minutes in the app — listing is free.',
+    body: 'Photos, a name, the date, your area and how many people fit. A few minutes in the app, listing is free.',
   },
   {
     key: 'invite',
     n: '02',
     title: 'Dress the invite',
-    body: 'Pick a template — house party, retro, night out, beach, Halloween, Christmas — and share one link.',
+    body: 'Pick a template, house party, retro, night out, beach, Halloween, Christmas, and share one link.',
   },
   {
     key: 'requests',
@@ -104,7 +104,7 @@ export const BUILD_STEPS = [
 
 export type BuildKey = (typeof BUILD_STEPS)[number]['key']
 
-/** Variant B — run of show, from listing to payout. */
+/** Variant B, run of show, from listing to payout. */
 export const RUN_OF_SHOW = [
   { cue: 'T–7', title: 'List the night', body: 'Create the event in the app: photos, a template invite, date, area and capacity. Free to list.' },
   { cue: 'T–6', title: 'Set the door', body: 'Free entry (up to 2 a month) or paid from ₹99. Paid guests book instantly with UPI or wallet.' },
@@ -125,11 +125,11 @@ export const SAMPLE_REQUESTS = [
   { name: 'Dev', age: 31, meta: 'Phone-verified', note: 'Saw the flyer, love the theme.', avatar: 5 },
 ] as const
 
-/** Variant B — house rules the app enforces, written as poster copy. */
+/** Variant B, house rules the app enforces, written as poster copy. */
 export const HOUSE_RULES = [
   { title: 'address|after', bg: '#FF3864', ink: '#FFF1E6', rule: 'Exact address goes to confirmed guests only. Everyone else sees the area.' },
   { title: '18+|verified', bg: '#FFB830', ink: '#2B1418', rule: 'Every guest is phone-verified and 18 or over before they can ask to join.' },
-  { title: 'your|mix', bg: '#DCE6F2', ink: '#131E2A', rule: 'Open, 50:50, 60:40, women-only, men-only or custom — in 10% steps.' },
+  { title: 'your|mix', bg: '#DCE6F2', ink: '#131E2A', rule: 'Open, 50:50, 60:40, women-only, men-only or custom, in 10% steps.' },
   { title: 'age|gate', bg: '#C8F25C', ink: '#171310', rule: 'Need an older crowd? Switch on the age gate for the event.' },
   { title: 'no means|no', bg: '#171310', ink: '#FF6B35', rule: 'Decline a request and that guest can’t re-request the same event.' },
   { title: 'QR at|the door', bg: '#F4D9DF', ink: '#2B1418', rule: 'Each confirmed guest gets a QR ticket. You scan it in at the door.' },

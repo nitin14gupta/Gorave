@@ -10,7 +10,7 @@ import { Chapter } from '@/components/ui/atoms'
 const TILT = [-2.5, 2, -1.5, 3, -2, 1.5, -3, 2.5]
 
 /**
- * Chapter 01 — the cities. Big postcards of each city's street at blue hour,
+ * Chapter 01, the cities. Big postcards of each city's street at blue hour,
  * dealt onto the page; hover one and it lifts and straightens.
  */
 export function CityPostcards({ cities }: { cities: { city: City; count: number }[] }) {

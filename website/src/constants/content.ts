@@ -111,7 +111,7 @@ export const POSTERS: PosterDef[] = [
   { kind: 'template', name: 'christmas' },
 ]
 
-/** A night's timeline — areas are filled per city. Drives "After dark" + "Now boarding". */
+/** A night's timeline, areas are filled per city. Drives "After dark" + "Now boarding". */
 export const NIGHT_SLOTS = [
   { hour: 18, title: 'Sunset Rooftop Sessions', vibe: 'Rooftop', price: '₹799', status: 'Book', poster: 4 },
   { hour: 19, title: "Girls' Night: Wine & Paint", vibe: 'Women only', price: 'Free', status: 'Request', poster: 13 },

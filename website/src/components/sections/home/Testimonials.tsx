@@ -4,7 +4,7 @@ import { Reveal, Stagger, StaggerItem } from '@/components/motion/Reveal'
 
 /**
  * Real reviews from guests (public API): the platform-wide average and the
- * latest written ones. If there are none yet, the section doesn't render —
+ * latest written ones. If there are none yet, the section doesn't render
  * no invented quotes or ratings.
  */
 export function Testimonials({ data }: { data: PublicReviews | null }) {

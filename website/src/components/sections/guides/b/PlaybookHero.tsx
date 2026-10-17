@@ -10,7 +10,7 @@ import { IndexCard } from './IndexCard'
 
 const EASE = [0.2, 0.8, 0.2, 1] as const
 
-// Three cards on the table, at three depths — the nearer the card, the more it follows the cursor.
+// Three cards on the table, at three depths, the nearer the card, the more it follows the cursor.
 const TABLE = [
   { i: 2, x: '8%', y: '18%', rotate: -11, depth: 0.5 },
   { i: 1, x: '40%', y: '4%', rotate: 7, depth: 0.8 },

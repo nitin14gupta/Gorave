@@ -67,7 +67,7 @@ function Dealt({ p, i, stop }: { p: MotionValue<number>; i: number; stop: Stop }
 }
 
 /**
- * Chapter 04 — a night in the area. Four polaroids get dealt onto a table as
+ * Chapter 04, a night in the area. Four polaroids get dealt onto a table as
  * you scroll, in the order the night goes. Hover one
  * and it lifts and straightens. On phones they simply stack.
  */
@@ -105,7 +105,7 @@ export function NightTable({ area }: { area: Area }) {
           <div className="relative mx-auto mt-6 w-full max-w-[1240px] flex-1">
             {NIGHT_WALK.map((stop, i) => <Dealt key={stop.time} p={p} i={i} stop={stop} />)}
             <motion.div style={{ opacity: note, y: noteY }} className="absolute bottom-0 right-2 font-serif text-[26px] italic text-ink-2">
-              — {area.name}, any given Saturday
+              {area.name}, any given Saturday
             </motion.div>
           </div>
         </div>

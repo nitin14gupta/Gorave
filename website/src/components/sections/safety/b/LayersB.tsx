@@ -13,7 +13,7 @@ const seg = (i: number): [number, number] => [0.04 + (i / N) * 0.86, 0.04 + ((i 
 const TINTS = ['#00C48C', '#5BC0EB', '#FFB830', '#FF6B35', '#FF3864', '#C77DFF']
 
 /**
- * Chapter 01 — the stack. The section pins and six translucent glass plates
+ * Chapter 01, the stack. The section pins and six translucent glass plates
  * drop one by one onto an isometric stack, each a layer of protection. The
  * newest plate is lit; the copy on the right follows it. Mobile: a sticky card stack.
  */

@@ -14,7 +14,7 @@ const N = SAFETY_FEATURES.length
 const at = (i: number) => 0.03 + (0.9 * (i + 0.5)) / N
 
 /**
- * Chapter 01 — the journey. The section pins; as you scroll through one
+ * Chapter 01, the journey. The section pins; as you scroll through one
  * night out, each protection switches on in the order you'd meet it,
  * its check mark drawing in. Small screens get the same night as a list.
  */

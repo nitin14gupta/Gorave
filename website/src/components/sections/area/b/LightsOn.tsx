@@ -18,7 +18,7 @@ function Copy({ area, count, counter }: { area: Area; count: number; counter: Re
       <p className="mt-6 max-w-[440px] font-sans text-lg leading-relaxed text-ink-2">
         {count > 0 ? (
           <>
-            <span className="font-bold text-ink">{count} upcoming {count === 1 ? 'night' : 'nights'}</span> listed in and around {area.name} — each one somebody&apos;s living room, roof or dinner table.
+            <span className="font-bold text-ink">{count} upcoming {count === 1 ? 'night' : 'nights'}</span> listed in and around {area.name}, each one somebody&apos;s living room, roof or dinner table.
           </>
         ) : (
           <>
@@ -47,7 +47,7 @@ function Print({ children, className }: { children: ReactNode; className?: strin
 }
 
 /**
- * Chapter 03 — lights on. The building at night as a framed print on the
+ * Chapter 03, lights on. The building at night as a framed print on the
  * paper. The section pins and the windows come on floor by floor from the
  * ground, each step sprung so it feels switched on rather than wiped.
  */

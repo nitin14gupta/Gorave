@@ -24,9 +24,9 @@ function tear(w: number, half: 'top' | 'bottom') {
 }
 
 /**
- * Chapter 02 — the split. One giant ticket. Scroll and it tears along the
+ * Chapter 02, the split. One giant ticket. Scroll and it tears along the
  * perforation: the big half is yours, the stub is Gorave's 10%. The ₹50
- * platform fee arrives separately — it's the guest's, not yours.
+ * platform fee arrives separately, it's the guest's, not yours.
  */
 export function TearTicket() {
   const ref = useRef<HTMLElement>(null)

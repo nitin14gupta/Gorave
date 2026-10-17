@@ -11,7 +11,7 @@ import { CARD_SHADOW, Deckle, Grain, SectionHead, Stamp } from './kit'
 const TILTS = [-3, 4, -6, 5, -2, 6, -4]
 
 /**
- * Chapter 07 — next door. The other neighbourhoods in the city as a deck of
+ * Chapter 07, next door. The other neighbourhoods in the city as a deck of
  * postcards. Drag (or swipe) the top card away to send it to the back, or
  * hover a name in the list to pull its card to the top. Click to visit.
  */

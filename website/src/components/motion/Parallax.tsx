@@ -24,7 +24,7 @@ export function Parallax({ children, className, offset = -80, rotate = 0 }: Prop
   )
 }
 
-/** Gentle idle bob — for polaroids and floating cards. */
+/** Gentle idle bob, for polaroids and floating cards. */
 export function Float({ children, className, delay = 0, rotate = 0 }: { children: ReactNode; className?: string; delay?: number; rotate?: number }) {
   return (
     <motion.div

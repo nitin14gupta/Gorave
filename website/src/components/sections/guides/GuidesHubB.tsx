@@ -10,7 +10,7 @@ import { RuleCards } from './b/RuleCards'
 import { HostCtaB } from './b/HostCtaB'
 
 /**
- * Hosting guides, variant B — "the playbook". Noir, every guide an index
+ * Hosting guides, variant B"the playbook". Noir, every guide an index
  * card: dealt on the table, fanned from a pinned deck, listed by name with a
  * trailing photo, a checklist that ticks itself, the rules as flip cards.
  */

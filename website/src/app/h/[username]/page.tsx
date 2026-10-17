@@ -6,7 +6,7 @@ import { absoluteUrl } from '@/lib/seo'
 import { JsonLd } from '@/components/ui/JsonLd'
 import { HostProfileView, type BadgeKey } from '@/components/sections/profile/HostProfileView'
 
-// Public host profiles — rendered on demand (any username), cached by the API fetch.
+// Public host profiles, rendered on demand (any username), cached by the API fetch.
 export const revalidate = 60
 
 const getHost = cache((username: string) => fetchHost(username))
@@ -16,7 +16,7 @@ export async function generateMetadata({ params }: PageProps<'/h/[username]'>): 
   const host = await getHost(username)
   if (!host) return { title: 'Host not found', robots: { index: false } }
   const name = host.name ?? host.username
-  const title = `${name} (@${host.username}) — hosting on Gorave`
+  const title = `${name} (@${host.username}) · hosting on Gorave`
   const description = `${name} has hosted ${host.hosted_count} ${host.hosted_count === 1 ? 'night' : 'nights'}${host.city ? ` in ${host.city}` : ''} on Gorave. See their upcoming house parties and request to join.`
   const url = absoluteUrl(`/h/${host.username}`)
   return {

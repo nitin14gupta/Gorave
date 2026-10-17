@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/Button'
 import { Chapter, StoreBadges } from '@/components/ui/atoms'
 
 /**
- * Chapter 06 — deal yourself in. The big round "Host a night" chip is
+ * Chapter 06, deal yourself in. The big round "Host a night" chip is
  * magnetic: it leans toward the cursor anywhere in the section, and a warm
  * glow follows underneath. On touch it simply sits there, waiting.
  */

@@ -47,7 +47,7 @@ const STREETS = [
 ]
 
 /**
- * Chapter 02 — the address. A demo event card: to the public the map is a
+ * Chapter 02, the address. A demo event card: to the public the map is a
  * wide circle and the address is noise. Flip it to "confirmed" and the
  * circle closes onto a pin while the address resolves, letter by letter.
  */
@@ -132,7 +132,7 @@ export function AddressA() {
               <Resolve text={DEMO_EVENT.street} open={open} delay={0.55} className="text-[15px] text-ink-2" />
             </div>
             <div className="relative mt-3 h-5 font-sans text-sm font-bold">
-              <motion.span initial={false} animate={{ opacity: open ? 1 : 0 }} className="absolute text-[#00865f]">✓ You&apos;re confirmed — address unlocked</motion.span>
+              <motion.span initial={false} animate={{ opacity: open ? 1 : 0 }} className="absolute text-[#00865f]">✓ You&apos;re confirmed, address unlocked</motion.span>
               <motion.span initial={false} animate={{ opacity: open ? 0 : 1 }} className="text-ink-3">Exact address after you&apos;re in</motion.span>
             </div>
           </div>

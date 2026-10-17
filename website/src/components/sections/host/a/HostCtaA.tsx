@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/Button'
 const ROW = [...HOST_TEMPLATES, ...HOST_TEMPLATES]
 
 /**
- * Chapter 08 — your turn. Two belts of invite templates run in opposite
+ * Chapter 08, your turn. Two belts of invite templates run in opposite
  * directions behind the last line; hovering a belt pauses it.
  */
 export function HostCtaA() {

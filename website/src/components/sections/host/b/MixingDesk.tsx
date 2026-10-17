@@ -14,7 +14,7 @@ const CHANNELS = [
 ] as const
 
 /**
- * Chapter 05 — the mix. The crowd mix as a sound desk: presets are the scene
+ * Chapter 05, the mix. The crowd mix as a sound desk: presets are the scene
  * buttons, the Women fader sets a custom split in 10% steps (Men follows),
  * and the Open channel is locked at 10% on split mixes. Meters bounce to the level.
  */
@@ -37,7 +37,7 @@ export function MixingDesk() {
             </h2>
           </div>
           <p className="max-w-[460px] font-sans text-lg leading-relaxed text-noir-ink-2">
-            Open, 50:50, 60:40, women-only, men-only — or ride the fader for a custom split in 10% steps. On split mixes 10% of seats stay open. Add an age gate if the night needs one.
+            Open, 50:50, 60:40, women-only, men-only, or ride the fader for a custom split in 10% steps. On split mixes 10% of seats stay open. Add an age gate if the night needs one.
           </p>
         </div>
 
@@ -59,7 +59,7 @@ export function MixingDesk() {
               </button>
             ))}
             <span className={cn('rounded-xl px-4 py-2.5 font-sans text-sm font-bold', mix.key === 'custom' ? 'bg-gold text-ink' : 'bg-noir-3/50 text-noir-ink-2/60')}>
-              {mix.key === 'custom' ? mix.label : 'Custom — ride the fader'}
+              {mix.key === 'custom' ? mix.label : 'Custom, ride the fader'}
             </span>
           </div>
 

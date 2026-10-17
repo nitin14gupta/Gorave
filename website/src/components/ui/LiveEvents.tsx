@@ -6,7 +6,7 @@ import { InviteCard } from './InviteCard'
 import { EventDetailScreen } from './AppScreens'
 
 // Real events (from the API, fetched once per page on the server) for the app
-// mock-ups — invite cards, phone screens, chat previews. Sample events are only
+// mock-ups, invite cards, phone screens, chat previews. Sample events are only
 // the offline fallback.
 const Ctx = createContext<SampleEvent[]>(SAMPLE_EVENTS)
 

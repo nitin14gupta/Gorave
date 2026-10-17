@@ -11,8 +11,8 @@ const W = 230
 const H = 300
 
 /**
- * Chapter 04 — house rules. Flyers pasted on the backstage wall. Hover (or
- * tap) one and it peels up from its tape to show the rule underneath —
+ * Chapter 04, house rules. Flyers pasted on the backstage wall. Hover (or
+ * tap) one and it peels up from its tape to show the rule underneath
  * every one is something the app actually enforces.
  */
 export function HouseRules() {
@@ -30,7 +30,7 @@ export function HouseRules() {
             </h2>
           </div>
           <p className="max-w-[440px] font-sans text-lg leading-relaxed text-noir-ink-2">
-            The rules that come with every Gorave event — you don&apos;t have to write them, or enforce them at the door. Lift a flyer to read it.
+            The rules that come with every Gorave event, you don&apos;t have to write them, or enforce them at the door. Lift a flyer to read it.
           </p>
         </div>
 
@@ -55,12 +55,12 @@ export function HouseRules() {
                   <p className="mt-2 font-sans text-[15px] font-bold leading-snug">{r.rule}</p>
                 </div>
 
-                {/* The flyer, taped at the top — peels up on hover */}
+                {/* The flyer, taped at the top, peels up on hover */}
                 <button
                   type="button"
                   onClick={() => setOpen(o => (o === i ? null : i))}
                   aria-expanded={lifted}
-                  aria-label={`${r.title.replace('|', ' ')} — ${r.rule}`}
+                  aria-label={`${r.title.replace('|', ' ')} · ${r.rule}`}
                   className="absolute inset-0 block text-left [perspective:900px]"
                 >
                   <motion.div

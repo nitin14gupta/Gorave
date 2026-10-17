@@ -16,7 +16,7 @@ const clamp01 = (v: number) => Math.min(1, Math.max(0, v))
 const phase = (p: number, from: number, len: number) => clamp01((p - from) / len)
 
 /**
- * Chapter 01 — the deck. The section pins with all six plays squared up in
+ * Chapter 01, the deck. The section pins with all six plays squared up in
  * one pile. Scroll and the pile fans into a hand, the hand is dealt out into
  * a row, and the row slides past so you can read every card.
  * Phones get the row as a swipeable strip.

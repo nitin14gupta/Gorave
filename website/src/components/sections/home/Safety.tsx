@@ -9,7 +9,7 @@ const CARDS = [
 ]
 
 /**
- * Noir section — the one place the site looks like the app. The cards are
+ * Noir section, the one place the site looks like the app. The cards are
  * sticky at stepped offsets, so they stack on top of each other as you scroll.
  */
 export function Safety() {

@@ -22,7 +22,7 @@ export async function generateMetadata({ params }: PageProps<'/[city]'>): Promis
   const url = absoluteUrl(`/${slug}`)
   const story = getTypeStory(slug)
   if (story) {
-    const title = `${story.plural} near you — hosted by real people across India`
+    const title = `${story.plural} near you · hosted by real people across India`
     const description = `${story.heroLine} Find ${story.plural.toLowerCase()} in ${CITIES.slice(0, 4).map(c => c.name).join(', ')} and more. Verified 18+ guests, address after you’re in.`
     return { title, description, alternates: { canonical: url }, openGraph: { title, description, url } }
   }

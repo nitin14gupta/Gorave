@@ -4,7 +4,7 @@ import { EVENT_TYPES, PHOTOS, type City } from '@/constants'
 import { Chapter } from '@/components/ui/atoms'
 import { cn } from '@/lib/cn'
 
-/** Chapter 09 — not feeling it? The other five kinds of night in the same city. */
+/** Chapter 09, not feeling it? The other five kinds of night in the same city. */
 /** `hub` links to the India-wide hubs (/house-parties) instead of this city's pages. */
 export function OtherTypes({ city, current, hub, chapter = '09' }: { city: City; current: string; hub?: boolean; chapter?: string }) {
   const others = EVENT_TYPES.filter(t => t.slug !== current)

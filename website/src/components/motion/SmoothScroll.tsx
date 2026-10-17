@@ -24,7 +24,7 @@ export function SmoothScroll({ children }: { children: ReactNode }) {
 /**
  * Lenis keeps its own scroll position, so Next's "scroll to top on navigation"
  * gets overridden and a new page opens wherever the last one was scrolled to.
- * Reset to the top whenever the path changes — except on browser back/forward,
+ * Reset to the top whenever the path changes, except on browser back/forward,
  * where keeping the previous position is what people expect. Query-only
  * changes (lab switchers) and #anchors don't change the path, so they're untouched.
  */

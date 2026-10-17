@@ -8,7 +8,7 @@ import { StoreBadges } from '@/components/ui/atoms'
 const RINGS = [0, 1, 2, 3]
 
 /**
- * Chapter 07 — go out. Calm rings open out once around the call to action
+ * Chapter 07, go out. Calm rings open out once around the call to action
  * (the shield from the hero, let loose); the big button leans towards the cursor.
  */
 export function CtaA({ chapter = '07' }: { chapter?: string }) {

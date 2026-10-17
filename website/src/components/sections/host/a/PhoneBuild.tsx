@@ -11,7 +11,7 @@ import { BuildScreen } from './BuildScreens'
 const N = BUILD_STEPS.length
 
 /**
- * Chapter 01 — the build. The phone stays put while you scroll and the event
+ * Chapter 01, the build. The phone stays put while you scroll and the event
  * comes together screen by screen: create → invite → requests → the door.
  * Small screens get the four steps as a stack of phones.
  */

@@ -16,7 +16,7 @@ const CLOSE_DELAY_MS = 140
 export function SmartNavbar() {
   const { visible, scrolled } = useNavVisibility()
   const [openKey, setOpen] = useState<MegaMenuDef['key'] | null>(null)
-  // The nav hiding mid-hover would strand the panel — it closes with the nav.
+  // The nav hiding mid-hover would strand the panel, it closes with the nav.
   const open = visible ? openKey : null
   const [mobileOpen, setMobileOpen] = useState(false)
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null)

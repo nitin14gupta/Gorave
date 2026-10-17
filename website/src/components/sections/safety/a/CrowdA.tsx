@@ -12,11 +12,11 @@ const CAP = 24
 const ORDER = [0, 13, 6, 19, 3, 22, 9, 16, 1, 12, 7, 20, 4, 23, 10, 17, 2, 14, 8, 21, 5, 18, 11, 15]
 const RANK = ORDER.reduce<number[]>((acc, seat, i) => { acc[seat] = i; return acc }, [])
 const COLOR = { w: '#FF3864', m: '#FF6B35', o: '#FFB830' }
-// Sample guests asking to come — illustrative ages for the age-gate demo.
+// Sample guests asking to come, illustrative ages for the age-gate demo.
 const AGES = [19, 22, 24, 27, 20, 31]
 
 /**
- * Chapter 04 — the room. Pick a crowd mix and the seats recolour in a wave
+ * Chapter 04, the room. Pick a crowd mix and the seats recolour in a wave
  * to match; pick an age gate and the guests under it drop out of the queue.
  */
 export function CrowdA() {
@@ -38,7 +38,7 @@ export function CrowdA() {
             </h2>
           </div>
           <p className="max-w-[480px] font-sans text-lg leading-relaxed text-ink-2">
-            Hosts choose the room: women-only, 50:50, 60:40 or open, plus an age gate. Gender is set once when you sign up and can&apos;t be changed later — so a women-only night stays that way.
+            Hosts choose the room: women-only, 50:50, 60:40 or open, plus an age gate. Gender is set once when you sign up and can&apos;t be changed later, so a women-only night stays that way.
           </p>
         </div>
 

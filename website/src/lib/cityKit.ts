@@ -1,7 +1,7 @@
 import { NIGHT_SLOTS, POSTERS, type PosterDef, type SampleEvent } from '@/constants'
 
 // The flyers and the night's timeline that the city-page sections animate.
-// Built from real events (API) — photo flyers carry the real title, time and
+// Built from real events (API), photo flyers carry the real title, time and
 // area. With no events (API down) it falls back to the app's invite templates
 // only, so no invented event names ever show up as listings.
 

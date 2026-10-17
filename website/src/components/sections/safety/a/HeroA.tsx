@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/Button'
 
 const EASE = [0.2, 0.8, 0.2, 1] as const
 
-// Labels that settle onto the ring once it has formed — angle in degrees from 12 o'clock.
+// Labels that settle onto the ring once it has formed, angle in degrees from 12 o'clock.
 const ORBIT = [
   { label: 'Verified 18+', a: -58 },
   { label: 'Request to join', a: 12 },

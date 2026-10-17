@@ -27,7 +27,7 @@ const STEPS: { title: string; body: string; screen: ReactNode }[] = [
 
 /**
  * Pinned walkthrough: the section is STEPS.length screens tall, its content
- * sticks to the viewport, and scroll progress picks the active step — the
+ * sticks to the viewport, and scroll progress picks the active step, the
  * phone swaps screens as each step scrolls past.
  */
 export function GroupChat() {

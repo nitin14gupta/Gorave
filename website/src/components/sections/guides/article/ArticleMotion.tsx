@@ -112,7 +112,7 @@ export function Toc({ items }: { items: { id: string; label: string }[] }) {
   )
 }
 
-/** "Read next" — the photo slides in from the side as the card scrolls up, and zooms on hover. */
+/** "Read next"the photo slides in from the side as the card scrolls up, and zooms on hover. */
 export function NextGuideCard({ guide, href }: { guide: HostGuide; href: string }) {
   const ref = useRef<HTMLAnchorElement>(null)
   const { scrollYProgress } = useScroll({ target: ref, offset: ['start end', 'center center'] })

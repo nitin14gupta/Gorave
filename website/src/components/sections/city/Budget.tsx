@@ -11,7 +11,7 @@ import { useCityKit } from './CityKit'
 const MAX = 2000
 const priceOf = (p: string) => (p === 'Free' ? 0 : Number(p.replace(/[^\d]/g, '')))
 
-/** Chapter 07 — the budget. Drag the price; nights in range stay lit. */
+/** Chapter 07, the budget. Drag the price; nights in range stay lit. */
 export function Budget({ city }: { city: City }) {
   const { slots, posters } = useCityKit()
   const [value, setValue] = useState(500)

@@ -15,8 +15,8 @@ const TABS = [
 const TILT = [-2.2, 1.4, -1, 2, -1.6, 1.1]
 
 /**
- * Chapter 05 — the habits. Features do half the job; this is the other half.
- * Tips are pinned up like notes, slightly crooked — hover one and it
+ * Chapter 05, the habits. Features do half the job; this is the other half.
+ * Tips are pinned up like notes, slightly crooked, hover one and it
  * straightens and lifts. Switch tabs and the board deals a new set.
  */
 export function TipsA() {

@@ -4,7 +4,7 @@ import { cn } from '@/lib/cn'
 
 interface Props {
   poster: PosterDef
-  /** Area shown on photo/type flyers — makes the same artwork local to each city */
+  /** Area shown on photo/type flyers, makes the same artwork local to each city */
   area?: string
   width?: number
   height?: number

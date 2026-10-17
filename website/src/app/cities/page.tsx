@@ -6,7 +6,7 @@ import { CitiesView } from '@/components/sections/cities/CitiesView'
 
 export const revalidate = 60
 
-const title = 'Cities — house parties & things to do across India'
+const title = 'Cities, house parties & things to do across India'
 const description = `Find house parties, rooftops, game nights and dinner parties hosted by real people in ${CITIES.map(c => c.name).join(', ')}.`
 
 export const metadata: Metadata = {

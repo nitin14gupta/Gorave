@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/Button'
 import { Breadcrumbs } from '@/components/ui/Breadcrumbs'
 import type { HeroProps } from './types'
 
-/** The city's name IS the image — a party photo pans through the letters as you scroll. */
+/** The city's name IS the image, a party photo pans through the letters as you scroll. */
 export function HeroLetters({ city, crumbs }: HeroProps) {
   const ref = useRef<HTMLElement>(null)
   const time = useIstClock()

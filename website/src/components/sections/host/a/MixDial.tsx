@@ -16,7 +16,7 @@ const SEG = [
 ] as const
 
 /**
- * Chapter 03 — the room. A dial for the crowd mix: tap a preset and the rings
+ * Chapter 03, the room. A dial for the crowd mix: tap a preset and the rings
  * swing round, or grab the knob and turn it to set a custom split in 10% steps.
  */
 export function MixDial() {
@@ -54,7 +54,7 @@ export function MixDial() {
             Dial in<br />the crowd.
           </h2>
           <p className="mt-4 max-w-[460px] font-sans text-lg leading-relaxed text-blush-ink/80">
-            Open, 50:50, 60:40, women-only, men-only — or turn the knob for a custom split in 10% steps. On split mixes 10% of seats stay open.
+            Open, 50:50, 60:40, women-only, men-only, or turn the knob for a custom split in 10% steps. On split mixes 10% of seats stay open.
           </p>
 
           <div className="mt-8 flex flex-wrap gap-2">
@@ -84,7 +84,7 @@ export function MixDial() {
             <span className={cn('relative h-7 w-12 rounded-full transition-colors', ageGate ? 'bg-blush-ink' : 'bg-white/60')}>
               <motion.span layout className={cn('absolute top-1 size-5 rounded-full', ageGate ? 'right-1 bg-blush' : 'left-1 bg-blush-ink')} transition={{ type: 'spring', stiffness: 500, damping: 30 }} />
             </span>
-            Age gate {ageGate ? 'on — you set the minimum age' : 'off'}
+            Age gate {ageGate ? 'on, you set the minimum age' : 'off'}
           </button>
         </div>
 

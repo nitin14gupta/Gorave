@@ -20,7 +20,7 @@ const SPOTS = [
 ] as const
 
 /**
- * Chapter 02 — what's actually in one. A pinned photo; as you scroll, five
+ * Chapter 02, what's actually in one. A pinned photo; as you scroll, five
  * callout lines draw themselves onto it, one ingredient at a time.
  */
 export function Anatomy({ city, story, chapter = '02' }: { city: City; story: TypeContent; chapter?: string }) {

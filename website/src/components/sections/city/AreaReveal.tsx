@@ -11,7 +11,7 @@ import { useCityKit } from './CityKit'
 const EASE = 'cubic-bezier(.2,.8,.2,1)'
 
 /**
- * Chapter 06 — the neighbourhood. Huge centred area names; hover one and
+ * Chapter 06, the neighbourhood. Huge centred area names; hover one and
  * flyers slide out from behind it to both sides, leave and they tuck away.
  */
 interface Props {

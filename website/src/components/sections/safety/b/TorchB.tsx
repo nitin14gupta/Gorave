@@ -8,7 +8,7 @@ import { Chapter } from '@/components/ui/atoms'
 import { cn } from '@/lib/cn'
 
 /**
- * Chapter 02 — two views. One event card, two audiences. The card shows what a
+ * Chapter 02, two views. One event card, two audiences. The card shows what a
  * stranger sees; move the torch over it (or tap, on touch) and the guest's
  * view shows through inside the beam. "Light it all" swaps the whole card.
  */

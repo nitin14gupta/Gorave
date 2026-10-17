@@ -8,7 +8,7 @@ import { cn } from '@/lib/cn'
 import { CARD_SHADOW, Deckle, Grain, Postmark, SectionHead, Stamp } from './kit'
 
 /**
- * Chapter 08 — send a postcard. Write a friend's name, pick a picture and a
+ * Chapter 08, send a postcard. Write a friend's name, pick a picture and a
  * note; the card updates live (the picture flips when it changes) and tilts
  * with the cursor. "Send" uses the share sheet, or copies the link.
  */
@@ -51,7 +51,7 @@ export function SendPostcard({ area }: { area: Area }) {
 
   async function send() {
     const url = `${window.location.origin}/${city.slug}/${area.slug}`
-    const text = `${name.trim() ? `${name.trim()} — ` : ''}${notes[note]}`
+    const text = `${name.trim() ? `${name.trim()}` : ''}${notes[note]}`
     const data = { title: `Postcards from ${area.name}`, text, url }
     try {
       if (typeof navigator.share === 'function' && (!navigator.canShare || navigator.canShare(data))) {
@@ -63,7 +63,7 @@ export function SendPostcard({ area }: { area: Area }) {
       window.clearTimeout(timer.current)
       timer.current = window.setTimeout(() => setCopied(false), 2400)
     } catch {
-      // share sheet dismissed, or clipboard blocked — nothing to do
+      // share sheet dismissed, or clipboard blocked, nothing to do
     }
   }
 

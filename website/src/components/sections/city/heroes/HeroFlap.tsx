@@ -46,7 +46,7 @@ function FlapRow({ text, length, size = 64 }: { text: string; length: number; si
   )
 }
 
-/** Airport departure board — tonight's nights, flipping into place. */
+/** Airport departure board, tonight's nights, flipping into place. */
 export function HeroFlap({ city, crumbs }: HeroProps) {
   const { slots } = useCityKit()
   const [i, setI] = useState(0)

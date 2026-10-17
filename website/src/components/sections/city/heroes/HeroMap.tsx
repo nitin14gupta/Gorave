@@ -18,7 +18,7 @@ const H = 560
 // Deterministic pseudo-random so server and client draw the same map.
 const rand = (n: number) => { const x = Math.sin(n * 9301 + 49297) * 233280; return x - Math.floor(x) }
 
-/** A stylised dot-matrix "city" blob — not geography, a mood. */
+/** A stylised dot-matrix "city" blob, not geography, a mood. */
 function useDots(seed: number) {
   return useMemo(() => {
     const dots: { x: number; y: number; o: number }[] = []

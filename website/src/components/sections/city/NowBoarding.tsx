@@ -32,7 +32,7 @@ function weekDays() {
 }
 
 /**
- * Chapter 03 — the plan. A departure board for the week: pick a day, rows
+ * Chapter 03, the plan. A departure board for the week: pick a day, rows
  * flip in; hover a row and its flyer follows your cursor.
  */
 export function NowBoarding({ city }: { city: City }) {

@@ -19,7 +19,7 @@ const fmtHour = (h: number) => {
 }
 
 /**
- * Chapter 02 — the night. A pinned scroll story: the clock runs from 6 PM to
+ * Chapter 02, the night. A pinned scroll story: the clock runs from 6 PM to
  * 3 AM, the sky goes sunset → night, and that hour's event swaps in.
  */
 export function AfterDark({ city }: { city: City }) {

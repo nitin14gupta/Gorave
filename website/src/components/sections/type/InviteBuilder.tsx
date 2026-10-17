@@ -13,7 +13,7 @@ const TEMPLATES = ['houseparty', 'retro', 'nightout', 'beack', 'halloween', 'chr
 const DAYS = ['Fri 9 PM', 'Sat 9 PM', 'Sun 7 PM']
 
 /**
- * Chapter 07 — make one. A tiny version of the app's invite maker: pick a
+ * Chapter 07, make one. A tiny version of the app's invite maker: pick a
  * template, type a name, and the invite tilts in your hand as the cursor moves.
  */
 export function InviteBuilder({ city, story, chapter = '07' }: { city: City; story: TypeContent; chapter?: string }) {
@@ -43,7 +43,7 @@ export function InviteBuilder({ city, story, chapter = '07' }: { city: City; sto
             Throw one<br />this weekend.
           </h2>
           <p className="mt-4 max-w-[440px] font-sans text-lg text-ink-2">
-            Try it here, then do it for real in the app. Hosting {story.plural.toLowerCase()} in {city.name} costs nothing — run up to two free-entry events a month, or charge from ₹99 and keep 90%.
+            Try it here, then do it for real in the app. Hosting {story.plural.toLowerCase()} in {city.name} costs nothing, run up to two free-entry events a month, or charge from ₹99 and keep 90%.
           </p>
 
           <label className="mt-9 block font-sans text-xs font-bold uppercase tracking-[0.16em] text-ink-3" htmlFor="invite-title">Name it</label>

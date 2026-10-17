@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/Button'
 import { Eyebrow, H2 } from '@/components/ui/atoms'
 import { Reveal, Stagger, StaggerItem } from '@/components/motion/Reveal'
 
-// Facts only — these mirror the app's real rules (client/src/constants/fees.ts,
+// Facts only, these mirror the app's real rules (client/src/constants/fees.ts,
 // server free-event limit, host badge tiers).
 const STATS = [['90%', 'of every ticket is yours'], ['2', 'free events every month'], ['₹0', 'to start hosting']]
 const BADGES = [
