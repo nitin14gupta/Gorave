@@ -48,6 +48,7 @@ export interface PublicEventsQuery {
   free?: boolean
   max_price?: number
   women_only?: boolean
+  balanced?: boolean
   min_age?: number
   limit?: number
 }

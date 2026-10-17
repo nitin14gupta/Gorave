@@ -7,6 +7,9 @@ import { cardEvents, fetchEvents, fetchHosts, TYPE_LABEL } from '@/lib/api'
 import { absoluteUrl } from '@/lib/seo'
 import { CityPageView } from '@/components/sections/city/CityPageView'
 import { TypeHubView } from '@/components/sections/type/TypeHubView'
+import { CROWDS, getCrowd } from '@/lib/crowd'
+import { crowdPageData } from '@/lib/crowdPage'
+import { CrowdPageView } from '@/components/sections/crowd/CrowdPageView'
 
 // One root segment, two page families: a city (/mumbai) or an India-wide
 // event-type hub (/house-parties). Anything else is a 404.
@@ -14,12 +17,18 @@ export const dynamicParams = false
 export const revalidate = 60
 
 export function generateStaticParams() {
-  return [...CITIES.map(c => ({ city: c.slug })), ...EVENT_TYPES.map(t => ({ city: t.slug }))]
+  return [...CITIES.map(c => ({ city: c.slug })), ...EVENT_TYPES.map(t => ({ city: t.slug })), ...CROWDS.map(c => ({ city: c.slug }))]
 }
 
 export async function generateMetadata({ params }: PageProps<'/[city]'>): Promise<Metadata> {
   const { city: slug } = await params
   const url = absoluteUrl(`/${slug}`)
+  const crowd = getCrowd(slug)
+  if (crowd) {
+    const title = `${crowd.label} parties & nights across India`
+    const description = `${crowd.heroLine} Find ${crowd.nights} in ${CITIES.slice(0, 4).map(c => c.name).join(', ')} and more on Gorave.`
+    return { title, description, alternates: { canonical: url }, openGraph: { title, description, url, images: [crowd.image] } }
+  }
   const story = getTypeStory(slug)
   if (story) {
     const title = `${story.plural} near you · hosted by real people across India`
@@ -35,6 +44,8 @@ export async function generateMetadata({ params }: PageProps<'/[city]'>): Promis
 
 export default async function CityOrHubPage({ params }: PageProps<'/[city]'>) {
   const { city: slug } = await params
+  const crowd = getCrowd(slug)
+  if (crowd) return <CrowdPageView {...await crowdPageData(crowd)} />
   const story = getTypeStory(slug)
   if (story) {
     const [{ events }, counts] = await Promise.all([

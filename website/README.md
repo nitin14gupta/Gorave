@@ -60,13 +60,13 @@ invented stats, ratings or reviews on public pages (placeholders are marked
 | **Event detail** | `/e/[id]` (any event, on demand) | Simple: photo gallery · sticky decision card (when, area, price + fee, spots bar, crowd mix, age, request/book in app) · host card → profile · about + house rules · before you go · more nights. Event JSON-LD (area-level location only), OG image = cover. Past/cancelled → noindex |
 | **Host profile** | `/h/[username]` (any host, on demand) | Polaroid photo + badge stamp, counting stats (nights hosted, coming up, rating or "New") · upcoming nights · badge ladder (Rising→Legend progress) · how it works · host-your-own CTA. ProfilePage JSON-LD; thin profiles noindex; members who never hosted 404 |
 | **Hosts in a city / neighbourhood** | `/[city]/hosts` (8), `/[city]/[area]/hosts` (33) | Real hosts who've hosted there, most active first (`/public/hosts`), host cards → profiles, area chips, CTA. Thin pages (<2 hosts) noindex. City and neighbourhood pages get a "Hosts near you" strip linking here; host profiles link back to their areas/cities/types; event pages link to their neighbourhood |
+| **Crowd pages** (🧪 in lab) | `/women-only`, `/balanced-crowd`, `/21-plus`, `/25-plus` (India hubs, root segment) + `/[city]/[crowd]` (32) | Real filters on `/public/events` (`women_only`, `balanced` = 40–60% women quota, `min_age`), live per-city / per-area counts, generated crowd photos in `public/img/crowd`. Copy in `lib/crowd.ts` (only rules the app enforces). 3 template variants: compare at `/lab/crowd?v=a\|b\|c&crowd=<slug>&city=<slug>`, lock with `CROWD_VARIANT`. City pages with <3 events noindex. No `/singles`: the app has no singles data, so it would be an empty, thin page |
 
 ### ⏳ To build — page templates (each template renders many URLs from data)
 | # | Screen | Route(s) | Generates |
 |---|---|---|---|
 | 1 | City × time | `/[city]/tonight`, `/this-weekend`, `/new-years-eve`, `/holi`, `/diwali` | cities × occasions |
 | 2 | City × price | `/[city]/free-events`, `/under-500` | cities × 2 |
-| 3 | City × crowd | `/[city]/women-only`, `/21-plus` | cities × 2 |
 | 4 | Area × type | `/[city]/[area]/[type]` (neighbourhood pages already link here) | ~200 |
 | 5 | Payouts | `/host/payouts` | 1 |
 | 6 | Badges | `/host/badges` | 1 |
@@ -97,14 +97,14 @@ halloween, valentines-day, independence-day, eid, ganesh-chaturthi ·
 | City × time | `/[city]/[time]` | `/mumbai/this-weekend` | 48 | API `when` |
 | City × occasion | `/[city]/[occasion]` | `/mumbai/new-years-eve` | 80 | date window |
 | City × price | `/[city]/[price]` | `/mumbai/free-events` | 24 | API `free` / `max_price` |
-| City × crowd | `/[city]/[crowd]` | `/mumbai/women-only` | 24 | API `women_only` / `min_age` |
+| City × crowd | `/[city]/[crowd]` | `/mumbai/women-only` | 32 | ✅ built (lab variants) |
 | Neighbourhood | `/[city]/[area]` | `/mumbai/bandra` | 33 | ✅ built (`/[city]/[facet]`) |
 | Area × type | `/[city]/[area]/[type]` | `/mumbai/bandra/rooftop-parties` | ~384 | API `area`+`type` |
 | City × type × time | `/[city]/[type]/[time]` | `/mumbai/house-parties/this-weekend` | 288 | API |
 | City × type × price | `/[city]/[type]/[price]` | `/mumbai/house-parties/free-events` | 144 | API |
 | City × type × crowd | `/[city]/[type]/[crowd]` | `/mumbai/house-parties/women-only` | 144 | API |
 | Type hub (India) | `/[type]` | `/house-parties` | 6 | ✅ built (`/[city]` root segment) |
-| Crowd hub (India) | `/[crowd]` | `/women-only` | 3 | API |
+| Crowd hub (India) | `/[crowd]` | `/women-only` | 4 | ✅ built (lab variants) |
 | Price hub (India) | `/[price]` | `/free-events` | 3 | API |
 | Occasion hub (India) | `/[occasion]` | `/new-years-eve` | 10 | API |
 | Going-out guides | `/guides`, `/guides/[slug]` | `/guides/first-house-party` | ~20 | written |
@@ -124,6 +124,7 @@ facets ≈ **2–3 lakh** URLs. Rules that keep this from becoming spam:
 ### ⏳ Platform / backend work the pages depend on
 - ✅ Public read-only API (`server/routes/public.py`): `/public/events`, `/public/events/{id}`, `/public/hosts/{username}`, `/public/cities` — area-level location only, rate-limited, cached. Pages fall back to sample data from `constants/content.ts` if the API is down.
 - ✅ Website origin in server CORS (`WEBSITE_ORIGINS`).
+- ✅ `/public/events?balanced=true` (host-set quota 40–60% women).
 - ✅ `/public/hosts?city=&area=` (hosts list) and `places`/`types` on `/public/hosts/{username}` (for backlinks).
 - ✅ `/public/reviews` — platform rating + latest written reviews (reviewer as first name + last initial) for the homepage.
 - ✅ Live data everywhere: city/type flyers + night timeline from real events (`lib/cityKit.ts`), homepage rails, invite cards and phone mock-ups (`components/ui/LiveEvents.tsx`). No placeholder testimonials/ratings left.

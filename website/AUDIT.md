@@ -42,6 +42,16 @@ Working list for review. Tick items off (or strike them) as they're fixed.
 - [x] Departure-board rows linked to `/[city]/tonight` (not built) — now link to the real event.
 - [x] New pages opened at the previous page's scroll position (Lenis overrode Next's scroll-to-top). Now every route change starts at the top; browser Back keeps its position (`components/motion/SmoothScroll.tsx`).
 
+## ⚠️ Server gap found (needs your OK)
+
+`POST /users/profile` (the onboarding endpoint in `server/routes/users.py`) can be called again later and **overwrites `gender` and `dob`**. Profile *edits* ignore gender, but this path doesn't, so someone could switch gender to join a women-only event, or change their DOB to pass a 21+/25+ gate.
+
+Proposed fix (one line, not applied, blocked pending approval): `SET dob = COALESCE(dob, %s), gender = COALESCE(gender, %s)` so both are set once.
+
+Until it's fixed, these website claims are not fully true:
+- Safety page: "Gender is set once at onboarding and can't be changed later" (`lib/safety.ts` lines ~25 and ~166, `safety/a/CrowdA.tsx`).
+- The new crowd pages were written to avoid that claim.
+
 ## Dev data
 
 `server/scripts/seed_website_demo.py` seeds ~90 upcoming events over all 33 neighbourhoods + hosts, guests, past events and reviews (local DB only; `--clean` removes everything it made — usernames end `_gx`).

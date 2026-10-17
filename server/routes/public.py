@@ -184,6 +184,7 @@ def public_events(
     free: Optional[bool] = Query(default=None),
     max_price: Optional[int] = Query(default=None, ge=0),
     women_only: Optional[bool] = Query(default=None),
+    balanced: Optional[bool] = Query(default=None),
     min_age: Optional[int] = Query(default=None, ge=18, le=25),
     limit: int = Query(default=24, ge=1, le=100),
     offset: int = Query(default=0, ge=0),
@@ -223,6 +224,9 @@ def public_events(
         params.append(max_price)
     if women_only:
         filters.append("e.women_pct = 100")
+    if balanced:
+        # Host-set mixed quotas around even (50:50, 60:40, 40:60).
+        filters.append("e.women_pct BETWEEN 40 AND 60")
     if min_age:
         filters.append("e.age_restriction >= %s")
         params.append(min_age)
