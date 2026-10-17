@@ -30,7 +30,7 @@ export function HouseRules() {
             </h2>
           </div>
           <p className="max-w-[440px] font-sans text-lg leading-relaxed text-noir-ink-2">
-            The rules that come with every Gorave event, you don&apos;t have to write them, or enforce them at the door. Lift a flyer to read it.
+            The rules that come with every Gorave event. You don&apos;t have to write them, or enforce them at the door. Lift a flyer to read it.
           </p>
         </div>
 

@@ -34,7 +34,7 @@ export type BadgeKey = keyof typeof BRAND.badges
 
 export const BADGE_TIERS: { key: BadgeKey; name: string; at: number; line: string }[] = [
   { key: 'rising', name: 'Rising', at: 2, line: 'Two events in. Guests can see you mean it.' },
-  { key: 'established', name: 'Established', at: 10, line: 'Ten nights hosted, a name people look for.' },
+  { key: 'established', name: 'Established', at: 10, line: 'Ten nights hosted. A name people look for.' },
   { key: 'elite', name: 'Elite', at: 25, line: 'Twenty-five events. Your flyers get noticed.' },
   { key: 'legend', name: 'Legend', at: 75, line: 'Seventy-five and counting. The room is yours.' },
 ]
@@ -80,13 +80,13 @@ export const BUILD_STEPS = [
     key: 'create',
     n: '01',
     title: 'Create it',
-    body: 'Photos, a name, the date, your area and how many people fit. A few minutes in the app, listing is free.',
+    body: 'Photos, a name, the date, your area and how many people fit. A few minutes in the app, and listing is free.',
   },
   {
     key: 'invite',
     n: '02',
     title: 'Dress the invite',
-    body: 'Pick a template, house party, retro, night out, beach, Halloween, Christmas, and share one link.',
+    body: 'Pick a template (house party, retro, night out, beach, Halloween, Christmas) and share one link.',
   },
   {
     key: 'requests',
@@ -129,7 +129,7 @@ export const SAMPLE_REQUESTS = [
 export const HOUSE_RULES = [
   { title: 'address|after', bg: '#FF3864', ink: '#FFF1E6', rule: 'Exact address goes to confirmed guests only. Everyone else sees the area.' },
   { title: '18+|verified', bg: '#FFB830', ink: '#2B1418', rule: 'Every guest is phone-verified and 18 or over before they can ask to join.' },
-  { title: 'your|mix', bg: '#DCE6F2', ink: '#131E2A', rule: 'Open, 50:50, 60:40, women-only, men-only or custom, in 10% steps.' },
+  { title: 'your|mix', bg: '#DCE6F2', ink: '#131E2A', rule: 'Open, 50:50, 60:40, women-only, men-only or custom in 10% steps.' },
   { title: 'age|gate', bg: '#C8F25C', ink: '#171310', rule: 'Need an older crowd? Switch on the age gate for the event.' },
   { title: 'no means|no', bg: '#171310', ink: '#FF6B35', rule: 'Decline a request and that guest can’t re-request the same event.' },
   { title: 'QR at|the door', bg: '#F4D9DF', ink: '#2B1418', rule: 'Each confirmed guest gets a QR ticket. You scan it in at the door.' },

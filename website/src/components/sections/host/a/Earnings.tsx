@@ -36,7 +36,7 @@ export function Earnings() {
           </div>
 
           <p className="mt-8 max-w-[460px] rounded-2xl bg-white/60 p-4 font-sans text-sm leading-relaxed text-ink-2">
-            Rather keep it free? You can run up to {HOST_FEES.freePerMonth} free-entry events a month, request-to-join, no ticketing.
+            Rather keep it free? You can run up to {HOST_FEES.freePerMonth} free-entry events a month (request-to-join, no ticketing).
           </p>
         </div>
 

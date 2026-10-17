@@ -10,7 +10,7 @@ import { Phone } from '@/components/ui/Phone'
 const CARDS = [
   { n: 'Edit', title: 'Plans change', body: 'Move the time, swap the venue details, change capacity. Everyone going and everyone who requested is notified.' },
   { n: 'Push', title: 'Requests reach you', body: 'Each join request lands as a push. Tap it, see the profile, decide.' },
-  { n: 'Cancel', title: 'Calling it off', body: 'Cancel the event and everyone is told straight away, nobody turns up to a locked door.' },
+  { n: 'Cancel', title: 'Calling it off', body: 'Cancel the event and everyone is told straight away, so nobody turns up to a locked door.' },
 ]
 
 /**

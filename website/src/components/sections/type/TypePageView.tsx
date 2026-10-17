@@ -51,7 +51,7 @@ export function TypePageView({ city, slug, story, events }: Props) {
           chapter="04"
           chapterTitle="The flyers"
           title={<>Every flyer,<br />a different night.</>}
-          subtitle={`Hover one, ${noun} in ${city.name} come in every flavour.`}
+          subtitle={`Hover one: ${noun} in ${city.name} come in every flavour.`}
         />
         <HourByHour city={city} story={content} />
         <AreaReveal city={city} chapter="06" title={`${story.plural} near you.`} subtitle={`Pick your part of ${city.name}.`} typeSlug={slug} />

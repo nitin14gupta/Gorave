@@ -46,7 +46,7 @@ export function RequestInbox() {
           <p className="mt-4 max-w-[420px] font-sans text-lg leading-relaxed text-noir-ink-2">
             Free events are request-to-join. Requests come in as pushes; you see each profile and decide. Paid events book instantly, and when it&apos;s full, there&apos;s a waitlist.
           </p>
-          <p className="mt-6 font-sans text-xs font-bold uppercase tracking-[0.16em] text-noir-ink-2/70">Try it, drag a card, or tap the buttons</p>
+          <p className="mt-6 font-sans text-xs font-bold uppercase tracking-[0.16em] text-noir-ink-2/70">Try it: drag a card or tap the buttons</p>
         </div>
 
         <div className="relative mx-auto h-[440px] w-[300px]">

@@ -33,7 +33,7 @@ export function BadgeLadder({ name, hosted }: { name: string; hosted: number }) 
         <h2 className="mt-4 font-display text-[clamp(40px,5vw,72px)] font-extrabold leading-[0.92] tracking-[-0.055em]">
           {next ? <>{next.at - hosted} more {next.at - hosted === 1 ? 'night' : 'nights'} to <span className="font-serif font-normal italic tracking-[-0.03em] text-orange">{next.name}.</span></> : <>{name} is a <span className="font-serif font-normal italic tracking-[-0.03em] text-orange">Legend.</span></>}
         </h2>
-        <p className="mt-3 max-w-[520px] font-sans text-lg text-ink-2">Hosts earn badges as they host, guests see them on every event.</p>
+        <p className="mt-3 max-w-[520px] font-sans text-lg text-ink-2">Hosts earn badges as they host, and guests see them on every event.</p>
 
         <div className="relative mt-16">
           <div className="absolute left-[12.5%] right-[12.5%] top-12 h-1 rounded-full bg-ink/10 md:top-16">

@@ -42,7 +42,7 @@ export function Vibe({ area }: { area: Area }) {
           <aside className="font-serif text-xl italic leading-snug text-ink-3 lg:pt-4">
             <span className="block h-px w-12 bg-ink/20" />
             <span className="mt-4 block">Written on the back:</span>
-            <span className="mt-1 block text-ink-2">{area.name}, {profile.line}.</span>
+            <span className="mt-1 block text-ink-2">{area.name}: {profile.line}.</span>
           </aside>
           <div>
             <div aria-hidden className="-mb-6 font-serif text-[120px] leading-none text-orange/70">&ldquo;</div>

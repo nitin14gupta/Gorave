@@ -51,7 +51,7 @@ export function SendPostcard({ area }: { area: Area }) {
 
   async function send() {
     const url = `${window.location.origin}/${city.slug}/${area.slug}`
-    const text = `${name.trim() ? `${name.trim()}` : ''}${notes[note]}`
+    const text = `${name.trim() ? `${name.trim()}, ` : ''}${notes[note]}`
     const data = { title: `Postcards from ${area.name}`, text, url }
     try {
       if (typeof navigator.share === 'function' && (!navigator.canShare || navigator.canShare(data))) {

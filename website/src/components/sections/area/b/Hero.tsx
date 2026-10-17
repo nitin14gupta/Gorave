@@ -71,7 +71,7 @@ export function Hero({ area, crumbs }: { area: Area; crumbs: Crumb[] }) {
               from <span className="font-serif font-normal italic tracking-[-0.03em] text-brand">{area.name}.</span>
             </h1>
             <p className="mt-7 max-w-[470px] font-sans text-xl leading-relaxed text-ink-2">
-              {area.name}, {city.name}, {profile.line}. House parties, rooftops and long dinners, hosted by people who live here.
+              {area.name}, {city.name}: {profile.line}. House parties, rooftops and long dinners, hosted by people who live here.
             </p>
             <div className="mt-9 flex flex-wrap gap-2.5">
               <Button href="#whats-on" size="lg">See what&apos;s on</Button>
@@ -138,7 +138,7 @@ export function Hero({ area, crumbs }: { area: Area; crumbs: Crumb[] }) {
         </motion.div>
       </div>
       {/* <div className="pointer-events-none absolute inset-x-0 bottom-6 hidden text-center font-sans text-[11px] font-bold uppercase tracking-[0.2em] text-ink-3 md:block">
-        Scroll, more postcards inside
+        Scroll for more postcards
       </div> */}
     </section>
   )

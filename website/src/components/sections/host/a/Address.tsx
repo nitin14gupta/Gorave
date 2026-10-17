@@ -92,7 +92,7 @@ export function Address() {
               {scramble(EXACT, reveal, tick)}
             </div>
             <div className="mt-4 rounded-2xl bg-noir-3 px-4 py-3 text-[13px] text-noir-ink-2">
-              {confirmed ? 'Unlocked with the QR ticket, scan in at the door.' : 'Exact address after the host confirms you.'}
+              {confirmed ? 'Unlocked with the QR ticket. Scan in at the door.' : 'Exact address after the host confirms you.'}
             </div>
           </div>
         </div>

@@ -22,7 +22,7 @@ export const SAFETY_FEATURES: SafetyFeature[] = [
     stage: 'before',
     title: 'Verified guests',
     short: 'Phone-verified, 18+ only',
-    body: 'Every account is verified with a phone number, and Gorave is 18+ only. Gender is set once at onboarding and can’t be changed later, that’s what makes a crowd mix mean something.',
+    body: 'Every account is verified with a phone number, and Gorave is 18+ only. Gender is set once at onboarding and can’t be changed later. That’s what makes a crowd mix mean something.',
   },
   {
     key: 'request',
@@ -71,7 +71,7 @@ export const SAFETY_FEATURES: SafetyFeature[] = [
     stage: 'after',
     title: 'Reviews & host badges',
     short: 'Rated by real guests',
-    body: 'Guests rate every event. Before you go, check the host’s rating and badge, Rising, Established, Elite or Legend.',
+    body: 'Guests rate every event. Before you go, check the host’s rating and badge: Rising, Established, Elite or Legend.',
   },
   {
     key: 'report',
@@ -105,7 +105,7 @@ export const CROWD_MIXES: { key: string; label: string; women: number | null; no
   { key: 'women', label: 'Women only', women: 1, note: 'Only women can request or book.' },
   { key: '5050', label: '50:50', women: 0.5, note: 'Half the seats for women, half for men.' },
   { key: '6040', label: '60:40', women: 0.6, note: 'More seats held for women.' },
-  { key: 'open', label: 'Open', women: null, note: 'No quota, the host still approves free requests.' },
+  { key: 'open', label: 'Open', women: null, note: 'No quota. The host still approves free requests.' },
 ]
 
 export const AGE_GATES = ['18+', '21+', '25+'] as const
@@ -144,17 +144,17 @@ export interface Tip {
 
 export const GUEST_TIPS: Tip[] = [
   { title: 'Tell a friend', body: 'Share the event and your plans with someone who isn’t going. Add them as an SOS contact while you’re at it.' },
-  { title: 'Check the host first', body: 'Look at their rating, badge and past events before you request. A new host isn’t a red flag, just read the details.' },
+  { title: 'Check the host first', body: 'Look at their rating, badge and past events before you request. A new host isn’t a red flag. Just read the details.' },
   { title: 'Meet in the area first', body: 'Going with someone new? Meet at a café nearby and walk over together.' },
   { title: 'Keep your own drink', body: 'Pour it yourself, keep it with you, and get a fresh one if you lose track of it.' },
   { title: 'Plan the ride home', body: 'Know how you’re getting back before you go. Keep your phone charged.' },
-  { title: 'Leave when you want', body: 'You never owe anyone a reason. If it feels off, go, and report it in the app.' },
+  { title: 'Leave when you want', body: 'You never owe anyone a reason. If it feels off, leave and report it in the app.' },
 ]
 
 export const HOST_TIPS: Tip[] = [
   { title: 'Write clear house rules', body: 'BYOB or not, smoking, plus-ones, end time. Guests decide better when they know.' },
   { title: 'Read every request', body: 'Free events are request-to-join for a reason. Accept who fits the room you’re making.' },
-  { title: 'Set the mix and age gate', body: 'Women-only, 50:50, 21+, choose what makes your night comfortable.' },
+  { title: 'Set the mix and age gate', body: 'Women-only, 50:50, 21+: choose what makes your night comfortable.' },
   { title: 'Scan every ticket', body: 'Check guests in with their QR at the door, so everyone inside was confirmed.' },
   { title: 'Have a co-host', body: 'Two people running the door and the room is easier than one.' },
   { title: 'Report problems', body: 'If a guest crosses a line, report or block them in the app.' },
@@ -167,7 +167,7 @@ export const SAFETY_FAQ = [
   },
   {
     q: 'When do I see the exact address?',
-    a: 'Once you’re confirmed, when a host accepts your request for a free event, or when you book a paid one. Until then you see the area and an approximate circle on the map, roughly 1 km wide.',
+    a: 'Once you’re confirmed: when a host accepts your request for a free event, or when you book a paid one. Until then you see the area and an approximate circle on the map, roughly 1 km wide.',
   },
   {
     q: 'How does SOS work?',
@@ -179,7 +179,7 @@ export const SAFETY_FAQ = [
   },
   {
     q: 'What happens if a host declines my request?',
-    a: 'Nothing awkward, you just won’t get the address. A declined request can’t be sent again for that event, which keeps hosts from being pestered.',
+    a: 'Nothing awkward. You just won’t get the address. A declined request can’t be sent again for that event, which keeps hosts from being pestered.',
   },
   {
     q: 'How do I report someone?',

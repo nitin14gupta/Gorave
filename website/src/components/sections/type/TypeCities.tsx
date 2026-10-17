@@ -25,7 +25,7 @@ export function TypeCities({ story, slug, cities }: { story: TypeContent; slug: 
               {story.plural}<br /><span className="font-serif font-normal italic tracking-[-0.03em] text-orange">near you.</span>
             </h2>
           </div>
-          <p className="max-w-[340px] font-sans text-lg text-ink-2">Hosted in homes across eight cities, pick yours to see what’s on.</p>
+          <p className="max-w-[340px] font-sans text-lg text-ink-2">Hosted in homes across eight cities. Pick yours to see what’s on.</p>
         </div>
 
         <div className="mt-14 grid grid-cols-2 gap-x-5 gap-y-8 md:grid-cols-4">

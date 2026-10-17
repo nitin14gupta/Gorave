@@ -62,7 +62,7 @@ export function TypeHero({ city, story, crumbs }: { city: City; story: TypeConte
               <Button href="/host" kind="ghost" dark size="lg">Host one</Button>
             </div>
           </div>
-          <div className="mt-10 hidden font-sans text-xs font-bold uppercase tracking-[0.18em] text-noir-ink-2/70 md:block">Move your cursor, find the party</div>
+          <div className="mt-10 hidden font-sans text-xs font-bold uppercase tracking-[0.18em] text-noir-ink-2/70 md:block">Move your cursor to find the party</div>
         </div>
       </div>
     </section>

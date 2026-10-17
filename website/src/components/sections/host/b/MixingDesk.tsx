@@ -59,7 +59,7 @@ export function MixingDesk() {
               </button>
             ))}
             <span className={cn('rounded-xl px-4 py-2.5 font-sans text-sm font-bold', mix.key === 'custom' ? 'bg-gold text-ink' : 'bg-noir-3/50 text-noir-ink-2/60')}>
-              {mix.key === 'custom' ? mix.label : 'Custom, ride the fader'}
+              {mix.key === 'custom' ? mix.label : 'Custom: ride the fader'}
             </span>
           </div>
 

@@ -99,7 +99,7 @@ export function KnownFor({ area }: { area: Area }) {
               )
             })}
           </ul>
-          <p className="mt-10 text-center font-serif text-lg italic text-ink-3">₹0, listing a night on Gorave is free.</p>
+          <p className="mt-10 text-center font-serif text-lg italic text-ink-3">₹0: listing a night on Gorave is free.</p>
         </div>
       </div>
     </section>

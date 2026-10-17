@@ -95,7 +95,7 @@ function RunPinned() {
             <h2 className="mt-4 font-display text-[clamp(48px,5.6vw,88px)] font-extrabold leading-[0.9] tracking-[-0.055em]">
               Seven cues<br />to doors.
             </h2>
-            <p className="mt-4 max-w-[380px] font-sans text-lg text-noir-ink-2">From listing the night to the lights coming up. Keep scrolling, we&apos;ll tick them off.</p>
+            <p className="mt-4 max-w-[380px] font-sans text-lg text-noir-ink-2">From listing the night to the lights coming up. Keep scrolling and we&apos;ll tick them off.</p>
           </div>
           {RUN_OF_SHOW.map((c, i) => (
             <div key={c.cue} className="w-[min(380px,30vw)] shrink-0" style={{ rotate: `${TILT[i]}deg` }}>

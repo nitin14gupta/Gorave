@@ -40,7 +40,7 @@ export function Masthead({ crumbs, count, minutes }: Props) {
 
         <div className="mt-6 flex items-center justify-between gap-4 border-y-[1.5px] border-ink py-2.5 font-sans text-[11px] font-bold uppercase tracking-[0.18em] text-ink-2">
           <span>Gorave for hosts</span>
-          <span className="hidden sm:inline">Issue 01, The hosting guides</span>
+          <span className="hidden sm:inline">Issue 01 · The hosting guides</span>
           <span>{count} guides · {minutes} min</span>
         </div>
 

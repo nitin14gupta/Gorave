@@ -84,7 +84,7 @@ export function MixDial() {
             <span className={cn('relative h-7 w-12 rounded-full transition-colors', ageGate ? 'bg-blush-ink' : 'bg-white/60')}>
               <motion.span layout className={cn('absolute top-1 size-5 rounded-full', ageGate ? 'right-1 bg-blush' : 'left-1 bg-blush-ink')} transition={{ type: 'spring', stiffness: 500, damping: 30 }} />
             </span>
-            Age gate {ageGate ? 'on, you set the minimum age' : 'off'}
+            Age gate {ageGate ? 'on: you set the minimum age' : 'off'}
           </button>
         </div>
 

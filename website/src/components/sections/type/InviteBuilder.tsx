@@ -43,7 +43,7 @@ export function InviteBuilder({ city, story, chapter = '07' }: { city: City; sto
             Throw one<br />this weekend.
           </h2>
           <p className="mt-4 max-w-[440px] font-sans text-lg text-ink-2">
-            Try it here, then do it for real in the app. Hosting {story.plural.toLowerCase()} in {city.name} costs nothing, run up to two free-entry events a month, or charge from ₹99 and keep 90%.
+            Try it here, then do it for real in the app. Hosting {story.plural.toLowerCase()} in {city.name} costs nothing. Run up to two free-entry events a month, or charge from ₹99 and keep 90%.
           </p>
 
           <label className="mt-9 block font-sans text-xs font-bold uppercase tracking-[0.16em] text-ink-3" htmlFor="invite-title">Name it</label>

@@ -18,7 +18,7 @@ function Copy({ area, count, counter }: { area: Area; count: number; counter: Re
       <p className="mt-6 max-w-[440px] font-sans text-lg leading-relaxed text-ink-2">
         {count > 0 ? (
           <>
-            <span className="font-bold text-ink">{count} upcoming {count === 1 ? 'night' : 'nights'}</span> listed in and around {area.name}, each one somebody&apos;s living room, roof or dinner table.
+            <span className="font-bold text-ink">{count} upcoming {count === 1 ? 'night' : 'nights'}</span> listed in and around {area.name}. Each one is somebody&apos;s living room, roof or dinner table.
           </>
         ) : (
           <>

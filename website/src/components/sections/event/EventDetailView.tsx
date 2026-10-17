@@ -103,7 +103,7 @@ export function EventDetailView({ event: e, more, crumbs }: { event: PublicEvent
             <section>
               <Chapter n="01" title="About the night" />
               <p className="mt-5 whitespace-pre-line font-sans text-lg leading-relaxed text-ink-2">
-                {e.description || 'The host hasn’t written a description yet, open the event in the app to ask them anything.'}
+                {e.description || 'The host hasn’t written a description yet. Open the event in the app to ask them anything.'}
               </p>
               {e.rules && (
                 <div className="mt-8 rounded-[24px] bg-white p-6 shadow-soft">
@@ -119,7 +119,7 @@ export function EventDetailView({ event: e, more, crumbs }: { event: PublicEvent
                 {[
                   ['Address after you’re in', `You see ${e.area ?? 'the area'} now; the exact address unlocks once you’re confirmed.`],
                   ['Verified guests', 'Everyone is phone-verified and 18+. Hosts see who’s asking.'],
-                  ['QR at the door', 'Your ticket lives in the app, the host scans it when you arrive.'],
+                  ['QR at the door', 'Your ticket lives in the app and the host scans it when you arrive.'],
                 ].map(([t, d]) => (
                   <div key={t} className="rounded-[22px] bg-paper p-5">
                     <div className="font-display text-lg font-extrabold tracking-[-0.03em]">{t}</div>

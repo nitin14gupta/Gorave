@@ -39,7 +39,7 @@ export function RequestsB() {
             Hosts choose<br /><span className="font-serif font-normal italic tracking-[-0.03em] text-brand">who comes.</span>
           </h2>
           <p className="mt-5 max-w-[460px] font-sans text-lg leading-relaxed text-noir-ink-2">
-            For free events, nobody just turns up. Hosts see each person&apos;s profile before they accept, and a declined request can&apos;t be sent again. Try it, you&apos;re the host.
+            For free events, nobody just turns up. Hosts see each person&apos;s profile before they accept, and a declined request can&apos;t be sent again. Try it: you&apos;re the host.
           </p>
 
           <div className="mt-9 grid max-w-[460px] grid-cols-2 gap-3">
@@ -62,7 +62,7 @@ export function RequestsB() {
               <div>
                 <div className="font-display text-2xl font-extrabold tracking-[-0.03em]">Room sorted.</div>
                 <div className="mt-1 font-sans text-sm text-noir-ink-2">{accepted.length} accepted · {declined.length} declined</div>
-                {declined.length > 0 && <div className="mt-3 font-sans text-xs text-noir-ink-2">Declined: {declined.map(d => d.name).join(', ')}, can&apos;t re-request</div>}
+                {declined.length > 0 && <div className="mt-3 font-sans text-xs text-noir-ink-2">Declined: {declined.map(d => d.name).join(', ')} (can&apos;t re-request)</div>}
                 <button type="button" onClick={() => setVerdicts({})} className="mt-5 rounded-full bg-noir-3 px-4 py-2 font-sans text-sm font-bold transition-colors hover:bg-noir-2">↺ Start over</button>
               </div>
             </motion.div>

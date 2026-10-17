@@ -33,7 +33,7 @@ function EmptyCard({ area }: { area: Area }) {
       <div className="grid gap-8 sm:grid-cols-[1.1fr_1px_0.9fr]">
         <div>
           <p className="font-serif text-[clamp(26px,3vw,38px)] italic leading-[1.15] text-ink">
-            No postcards yet, be the first to host in {area.name}.
+            No postcards yet. Be the first to host in {area.name}.
           </p>
           <p className="mt-4 font-sans text-base leading-relaxed text-ink-2">
             Listing is free and takes a few minutes in the app. Your night becomes the first one people see here.

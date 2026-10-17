@@ -106,7 +106,7 @@ export function NotFoundView() {
       </div>
 
       <div className="pointer-events-none absolute inset-x-0 bottom-5 z-10 hidden text-center font-sans text-xs font-bold uppercase tracking-[0.2em] text-noir-ink-2/60 md:block">
-        Lights are off, move your torch around
+        Lights are off. Move your torch around
       </div>
     </main>
   )
@@ -162,7 +162,7 @@ function ScanDesk() {
         transition={{ delay: 3.1, duration: 0.6 }}
         className="absolute inset-x-0 bottom-0 text-center font-sans text-sm font-bold text-noir-ink-2"
       >
-        Scan failed, ticket not found
+        Scan failed: ticket not found
       </motion.div>
     </div>
   )

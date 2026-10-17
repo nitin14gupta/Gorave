@@ -44,7 +44,7 @@ function LadderPinned() {
               Every night<br />counts.
             </h2>
             <p className="mt-4 max-w-[420px] font-sans text-lg leading-relaxed text-sage-ink/80">
-              Guests review every event. Keep hosting and your badge levels up, guests see it on your profile and your invites.
+              Guests review every event. Keep hosting and your badge levels up. Guests see it on your profile and your invites.
             </p>
             <div className="mt-10">
               <div className="font-display text-[clamp(96px,11vw,180px)] font-extrabold leading-[0.8] tracking-[-0.07em] tabular-nums">

@@ -13,7 +13,7 @@ import { CityPostcards } from './CityPostcards'
 
 const FAQ = [
   { q: 'Which cities is Gorave in?', a: 'Mumbai, Bangalore, Delhi, Pune, Hyderabad, Goa, Chennai and Kolkata, with more on the way. Anyone in these cities can host or join.' },
-  { q: 'My city isn’t listed. Can I still host?', a: 'Not yet on the map, but the app is where new cities open first, the more people host in a place, the sooner it gets its own page.' },
+  { q: 'My city isn’t listed. Can I still host?', a: 'Not yet on the map, but the app is where new cities open first: the more people host in a place, the sooner it gets its own page.' },
   { q: 'How do I find events near me?', a: 'Open your city, then pick a neighbourhood or a kind of night. In the app you see events closest to you first.' },
 ]
 
