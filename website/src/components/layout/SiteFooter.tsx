@@ -11,7 +11,7 @@ export function SiteFooter() {
         <div className="max-w-[340px]">
           <Logo dark size={30} />
           <p className="mt-4 font-sans text-[15px] leading-relaxed text-noir-ink-2">
-            House parties, rooftops, game nights and supper clubs, hosted by real people in your city. Built for Gen-Z India.
+            House parties, rooftops, game nights and dinner parties, hosted by real people in your city. Built for Gen-Z India.
           </p>
           <div className="mt-5"><StoreBadges dark /></div>
         </div>

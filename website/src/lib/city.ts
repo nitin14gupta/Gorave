@@ -11,11 +11,11 @@ export const cityEvents = (city: City) => SAMPLE_EVENTS.filter(e => e.city === c
 export const areaSlug = (area: string) => slugify(area)
 
 export function cityTagline(city: City) {
-  return `House parties, rooftops, game nights and supper clubs in ${city.name}, hosted by real people in ${city.areas.slice(0, 3).join(', ')} and beyond.`
+  return `House parties, rooftops, game nights and dinner parties in ${city.name}, hosted by real people in ${city.areas.slice(0, 3).join(', ')} and beyond.`
 }
 
 export function cityMetaDescription(city: City) {
-  return `Find house parties, rooftop parties, game nights and supper clubs in ${city.name} this week. Request to join free events or book tickets with UPI. Verified 18+ guests and private addresses.`
+  return `Find house parties, rooftop parties, game nights and dinner parties in ${city.name} this week. Request to join free events or book tickets with UPI. Verified 18+ guests and private addresses.`
 }
 
 /** Quick-filter links — each one is its own SEO page under the city. */
@@ -35,7 +35,7 @@ export function cityFaq(city: City) {
   return [
     {
       q: `What kind of events are on Gorave in ${city.name}?`,
-      a: `House parties, rooftop sessions, game nights, supper clubs and living-room gigs, all hosted by people in ${city.name}. Browse by vibe, date or price, closest to you first.`,
+      a: `House parties, rooftop sessions, game nights, dinner parties and living-room gigs, all hosted by people in ${city.name}. Browse by vibe, date or price, closest to you first.`,
     },
     {
       q: `Are events in ${city.name} free?`,

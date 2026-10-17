@@ -12,16 +12,16 @@ import { Chapter } from '@/components/ui/atoms'
  * slides past sideways; the sky behind it goes from dusk to midnight.
  * Small screens get the same night as a vertical list.
  */
-export function HourByHour({ city, story }: { city: City; story: TypeContent }) {
+export function HourByHour({ city, story, chapter = '05' }: { city: City; story: TypeContent; chapter?: string }) {
   return (
     <>
-      <HourByHourPinned city={city} story={story} />
-      <HourByHourList story={story} />
+      <HourByHourPinned city={city} story={story} chapter={chapter} />
+      <HourByHourList story={story} chapter={chapter} />
     </>
   )
 }
 
-function HourByHourPinned({ city, story }: { city: City; story: TypeContent }) {
+function HourByHourPinned({ city, story, chapter }: { city: City; story: TypeContent; chapter: string }) {
   const ref = useRef<HTMLElement>(null)
   const track = useRef<HTMLDivElement>(null)
   const [dist, setDist] = useState(0)
@@ -49,7 +49,7 @@ function HourByHourPinned({ city, story }: { city: City; story: TypeContent }) {
       <div className="sticky top-0 flex h-screen flex-col justify-center overflow-hidden">
         <motion.div ref={track} style={{ x }} className="flex w-max items-center gap-10 pl-20 pr-[12vw]">
           <div className="w-[34vw] shrink-0">
-            <Chapter n="05" title="The night" dark />
+            <Chapter n={chapter} title="The night" dark />
             <h2 className="mt-4 font-display text-[clamp(48px,5.6vw,88px)] font-extrabold leading-[0.9] tracking-[-0.055em]">
               One night,<br />hour by hour.
             </h2>
@@ -96,10 +96,10 @@ function Dot({ at, label, progress }: { at: number; label: string; progress: Mot
   )
 }
 
-function HourByHourList({ story }: { story: TypeContent }) {
+function HourByHourList({ story, chapter }: { story: TypeContent; chapter: string }) {
   return (
     <section className="bg-noir px-6 py-20 text-noir-ink md:hidden">
-      <Chapter n="05" title="The night" dark />
+      <Chapter n={chapter} title="The night" dark />
       <h2 className="mt-4 font-display text-[44px] font-extrabold leading-[0.92] tracking-[-0.055em]">One night,<br />hour by hour.</h2>
       <div className="mt-10 grid gap-5">
         {story.night.map(h => (

@@ -23,17 +23,17 @@ const SPOTS = [
  * Chapter 02 — what's actually in one. A pinned photo; as you scroll, five
  * callout lines draw themselves onto it, one ingredient at a time.
  */
-export function Anatomy({ city, story }: { city: City; story: TypeContent }) {
+export function Anatomy({ city, story, chapter = '02' }: { city: City; story: TypeContent; chapter?: string }) {
   const ref = useRef<HTMLElement>(null)
   const { scrollYProgress } = useScroll({ target: ref, offset: ['start start', 'end end'] })
   const scale = useTransform(scrollYProgress, [0, 1], [0.92, 1.04])
-  const singular = story.plural.replace(/s( &.*)?$/, '').toLowerCase()
+  const singular = story.singular
 
   return (
     <section ref={ref} className="relative bg-paper md:h-[320vh]">
       <div className="flex flex-col justify-center px-6 py-24 md:sticky md:top-0 md:h-screen md:px-20 md:py-0">
         <div className="mx-auto w-full max-w-[1180px]">
-          <Chapter n="02" title="The anatomy" />
+          <Chapter n={chapter} title="The anatomy" />
           <h2 className="mt-4 font-display text-[clamp(40px,5vw,72px)] font-extrabold leading-[0.92] tracking-[-0.055em]">
             What makes a good {singular}.
           </h2>

@@ -123,7 +123,7 @@ const DRAFTS: GuideDraft[] = [
       {
         heading: 'Match the mix to the kind of night',
         paragraphs: [
-          'A dance-floor house party usually works best balanced. A supper club or a board game night cares less about ratio and more about people who will actually talk. A girls’ night is women-only by design, and saying so upfront saves everyone an awkward decline.',
+          'A dance-floor house party usually works best balanced. A dinner party or a board game night cares less about ratio and more about people who will actually talk. A girls’ night is women-only by design, and saying so upfront saves everyone an awkward decline.',
           'Think about who you would feel comfortable having in your home, and who your first few guests will feel comfortable around. That answer usually picks the mix for you.',
         ],
       },
@@ -186,7 +186,7 @@ const DRAFTS: GuideDraft[] = [
       {
         heading: 'Price the night you are promising',
         paragraphs: [
-          'Your price is also a signal. A ₹199 game night and a ₹1,499 eight-course supper club are both fair. They are just different nights. Look at what similar events near you charge, then ask whether yours offers more, less or something different.',
+          'Your price is also a signal. A ₹199 game night and a ₹1,499 eight-course dinner party are both fair. They are just different nights. Look at what similar events near you charge, then ask whether yours offers more, less or something different.',
           'For a first ticketed event, it is fine to price a little lower to fill the room and collect reviews. Raising the price for your next event is easier when you have a full house and a few good reviews behind you.',
         ],
       },

@@ -8,7 +8,7 @@ export const HOST_VARIANT: 'a' | 'b' = 'a'
 
 const title = 'Host a house party on Gorave'
 const description =
-  'Create a house party, rooftop, game night or supper club in a few minutes. Free to list, 2 free-entry events a month, or sell tickets from ₹99 and keep 90%. Approve every guest, set the crowd mix, scan QR tickets at the door.'
+  'Create a house party, rooftop, game night or dinner party in a few minutes. Free to list, 2 free-entry events a month, or sell tickets from ₹99 and keep 90%. Approve every guest, set the crowd mix, scan QR tickets at the door.'
 
 export const metadata: Metadata = {
   title,

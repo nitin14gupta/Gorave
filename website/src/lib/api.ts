@@ -73,7 +73,7 @@ export const fetchEvent = (id: string) => get<PublicEvent & { description: strin
 // ── Adapters ──────────────────────────────────────────────────────────────
 
 export const TYPE_LABEL: Record<string, string> = {
-  house_party: 'House Party', rooftop: 'Rooftop', game_night: 'Game Night', dinner: 'Supper Club', music: 'Gig', other: 'Event',
+  house_party: 'House Party', rooftop: 'Rooftop', game_night: 'Game Night', dinner: 'Dinner Party', music: 'Music Night', other: 'Event',
 }
 
 function whenLabel(iso: string) {

@@ -2,11 +2,13 @@ import { EVENT_TYPES, type City, type EventType, type PhotoKey } from '@/constan
 
 // Story content for each event type. The City × type page structure is the
 // same for all six; this is what makes /mumbai/house-parties read differently
-// from /mumbai/supper-clubs.
+// from /mumbai/dinner-parties.
 
 export interface TypeStory {
   /** "House parties" — used in headings: "House parties in Mumbai" */
   plural: string
+  /** "house party" — "What makes a good house party" */
+  singular: string
   apiType: string
   heroPhoto: PhotoKey
   heroLine: string
@@ -39,7 +41,7 @@ const commonFaq = (plural: string, city: City) => [
 
 export const TYPE_STORIES: Record<string, TypeStory> = {
   'house-parties': {
-    plural: 'House parties', apiType: 'house_party', heroPhoto: 'party1',
+    plural: 'House parties', singular: 'house party',  apiType: 'house_party', heroPhoto: 'party1',
     heroLine: 'Living rooms that turn into dance floors. Hosted by people, not clubs.',
     anatomy: [
       { label: 'The playlist', detail: 'Host-curated, guests add requests' },
@@ -49,10 +51,10 @@ export const TYPE_STORIES: Record<string, TypeStory> = {
       { label: 'Address unlock', detail: 'Only confirmed guests see the flat number' },
     ],
     night: [
-      { time: '8:30 PM', title: 'Doors', detail: 'QR check-in at the door, shoes off', photo: 'fr1' },
+      { time: '8:30 PM', title: 'Doors', detail: 'QR check-in at the door, shoes off', photo: 'sceneDoor' },
       { time: '9:30 PM', title: 'Ice-breakers', detail: 'Someone always brings a card game', photo: 'game1' },
-      { time: '11:00 PM', title: 'Living-room dance floor', detail: 'The coffee table moves to the balcony', photo: 'party2' },
-      { time: '1:00 AM', title: 'Balcony debriefs', detail: 'The best conversations start late', photo: 'roof2' },
+      { time: '11:00 PM', title: 'Living-room dance floor', detail: 'The coffee table moves to the balcony', photo: 'sceneLiving' },
+      { time: '1:00 AM', title: 'Balcony debriefs', detail: 'The best conversations start late', photo: 'sceneRoof' },
     ],
     capacity: 30,
     faq: city => [
@@ -61,7 +63,7 @@ export const TYPE_STORIES: Record<string, TypeStory> = {
     ],
   },
   'rooftop-parties': {
-    plural: 'Rooftop parties', apiType: 'rooftop', heroPhoto: 'roof1',
+    plural: 'Rooftop parties', singular: 'rooftop party',  apiType: 'rooftop', heroPhoto: 'roof1',
     heroLine: 'Sunsets, skylines and one more song on a terrace somewhere in the city.',
     anatomy: [
       { label: 'Golden hour start', detail: 'Most kick off around sunset' },
@@ -83,7 +85,7 @@ export const TYPE_STORIES: Record<string, TypeStory> = {
     ],
   },
   'game-nights': {
-    plural: 'Game nights', apiType: 'game_night', heroPhoto: 'game1',
+    plural: 'Game nights', singular: 'game night',  apiType: 'game_night', heroPhoto: 'game1',
     heroLine: 'Catan, Mafia and friendly betrayal. The easiest way to meet strangers.',
     anatomy: [
       { label: 'The games', detail: 'Listed upfront — board, card or party games' },
@@ -104,8 +106,8 @@ export const TYPE_STORIES: Record<string, TypeStory> = {
       ...commonFaq('Game nights', city),
     ],
   },
-  'supper-clubs': {
-    plural: 'Supper clubs', apiType: 'dinner', heroPhoto: 'dine1',
+  'dinner-parties': {
+    plural: 'Dinner parties', singular: 'dinner party',  apiType: 'dinner', heroPhoto: 'dine1',
     heroLine: 'Long tables, strangers and second helpings, cooked in someone’s home.',
     anatomy: [
       { label: 'The menu', detail: 'Courses listed on the event page' },
@@ -123,11 +125,11 @@ export const TYPE_STORIES: Record<string, TypeStory> = {
     capacity: 12,
     faq: city => [
       { q: 'What about allergies or veg food?', a: 'Hosts list the menu upfront. Message them after booking with any dietary needs.' },
-      ...commonFaq('Supper clubs', city),
+      ...commonFaq('Dinner parties', city),
     ],
   },
-  gigs: {
-    plural: 'Gigs & jams', apiType: 'music', heroPhoto: 'gig1',
+  'music-nights': {
+    plural: 'Music nights', singular: 'music night',  apiType: 'music', heroPhoto: 'gig1',
     heroLine: 'Living-room gigs, open mics and jam circles — music up close.',
     anatomy: [
       { label: 'The line-up', detail: 'Artists listed on the event page' },
@@ -145,11 +147,11 @@ export const TYPE_STORIES: Record<string, TypeStory> = {
     capacity: 40,
     faq: city => [
       { q: 'Can I perform?', a: 'Open mics and jams list a sign-up in the event description — message the host.' },
-      ...commonFaq('Gigs & jams', city),
+      ...commonFaq('Music nights', city),
     ],
   },
   events: {
-    plural: 'Events', apiType: 'other', heroPhoto: 'fr2',
+    plural: 'Events', singular: 'night',  apiType: 'other', heroPhoto: 'fr2',
     heroLine: 'Potlucks, swaps, garba nights, karaoke — everything that isn’t a category yet.',
     anatomy: [
       { label: 'Anything goes', detail: 'Read the description' },

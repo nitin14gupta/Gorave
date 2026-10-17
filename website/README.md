@@ -54,6 +54,8 @@ invented stats, ratings or reviews on public pages (placeholders are marked
 | **Hosting guides** | `/host/guides`, `/host/guides/[slug]` (6 guides) | 2 hub variants — A magazine, B dark playbook; one article template (progress bar, sticky TOC, Article JSON-LD). Copy in `lib/hostGuides.ts`. Lock with `GUIDES_VARIANT`; compare at `/lab/guides?v=a\|b` |
 | **Safety** | `/safety` | 2 variants — A "protected at every step" (journey, address unlock, SOS hold demo, crowd room), B "Layers of trust" (3D layers, torch two-views, map circle, SOS phone, door list). Lock with `SAFETY_VARIANT`; compare at `/lab/safety?v=a\|b` |
 | **404** | any unknown URL / `notFound()` | Lights off: cursor torch reveals the 404 and hidden flyers; ticket scanned and stamped "Not on the list" |
+| **Neighbourhood** | `/[city]/[facet]` → 33 areas (e.g. `/mumbai/bandra`) | "Postcards": postcard hero, word-reveal feeling, events pinned on a line, lights-on building print, polaroid night with ticking postmark clock, duotone stamp sheet, luggage-tag types, neighbour postcard deck, send-a-postcard share, door-reveal host card, FAQ postcard, flipping sign-off, deckled paper edges. Area copy in `lib/area.ts`; generated images (OpenArt, Nano Banana 2) in `public/img/areas` — 8 city streets + 6 scenes |
+| **Event-type hubs** | `/[city]` (shared root segment) → `/house-parties`, `/rooftop-parties`, `/game-nights`, `/dinner-parties`, `/music-nights`, `/events` | India-wide: spotlight hero, live events across cities, anatomy, postcard city picker with real per-city counts, hour-by-hour, invite builder, FAQ, other types. Names match the app's types (dinner → Dinner parties, music → Music nights) |
 
 ### ⏳ To build — page templates (each template renders many URLs from data)
 | # | Screen | Route(s) | Generates |
@@ -63,7 +65,7 @@ invented stats, ratings or reviews on public pages (placeholders are marked
 | 4 | City × price | `/[city]/free-events`, `/under-500` | cities × 2 |
 | 5 | City × crowd | `/[city]/women-only`, `/21-plus` | cities × 2 |
 | 6 | Neighbourhood | `/[city]/[area]` e.g. `/mumbai/bandra` | ~10–20 per city |
-| 7 | Event type hub | `/house-parties`, `/rooftop-parties`, `/game-nights`, `/supper-clubs`, `/gigs`, `/events` | 6 |
+| 7 | Event type hub | `/house-parties`, `/rooftop-parties`, `/game-nights`, `/dinner-parties`, `/music-nights`, `/events` | 6 |
 | 8 | All cities | `/cities` | 1 |
 | 9 | Event detail | `/e/[id]` — link previews, "open in app" | dynamic |
 | 10 | Host profile | `/h/[username]` | dynamic |
@@ -86,7 +88,7 @@ content — otherwise `noindex` (no thin pages).
 ### 🗺️ Page matrix — every programmatic page family
 
 Dimensions: **cities** 8 now (~75 later) · **areas** ~8 per city · **types** 6
-(house-parties, rooftop-parties, game-nights, supper-clubs, gigs, events) ·
+(house-parties, rooftop-parties, game-nights, dinner-parties, music-nights, events) ·
 **time** tonight, tomorrow, this-weekend, this-week, friday-night,
 saturday-night · **occasions** new-years-eve, holi, diwali, navratri, christmas,
 halloween, valentines-day, independence-day, eid, ganesh-chaturthi ·
@@ -100,7 +102,7 @@ halloween, valentines-day, independence-day, eid, ganesh-chaturthi ·
 | City × occasion | `/[city]/[occasion]` | `/mumbai/new-years-eve` | 80 | date window |
 | City × price | `/[city]/[price]` | `/mumbai/free-events` | 24 | API `free` / `max_price` |
 | City × crowd | `/[city]/[crowd]` | `/mumbai/women-only` | 24 | API `women_only` / `min_age` |
-| Neighbourhood | `/[city]/[area]` | `/mumbai/bandra` | ~64 | API `area` |
+| Neighbourhood | `/[city]/[area]` | `/mumbai/bandra` | 33 | ✅ built (`/[city]/[facet]`) |
 | Area × type | `/[city]/[area]/[type]` | `/mumbai/bandra/rooftop-parties` | ~384 | API `area`+`type` |
 | City × type × time | `/[city]/[type]/[time]` | `/mumbai/house-parties/this-weekend` | 288 | API |
 | City × type × price | `/[city]/[type]/[price]` | `/mumbai/house-parties/free-events` | 144 | API |

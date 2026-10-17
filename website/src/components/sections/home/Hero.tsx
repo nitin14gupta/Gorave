@@ -65,7 +65,7 @@ export function Hero() {
             transition={{ duration: 0.8, ease: EASE, delay: 0.8 }}
             className="mb-8 mt-7 max-w-[560px] font-sans text-xl leading-relaxed text-ink-2"
           >
-            House parties, rooftops, game nights and supper clubs, hosted by real people near you. One link for the invite, the guest list and the door.
+            House parties, rooftops, game nights and dinner parties, hosted by real people near you. One link for the invite, the guest list and the door.
           </motion.p>
 
           <motion.div

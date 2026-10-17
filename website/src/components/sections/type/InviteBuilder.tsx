@@ -16,11 +16,11 @@ const DAYS = ['Fri 9 PM', 'Sat 9 PM', 'Sun 7 PM']
  * Chapter 07 — make one. A tiny version of the app's invite maker: pick a
  * template, type a name, and the invite tilts in your hand as the cursor moves.
  */
-export function InviteBuilder({ city, story }: { city: City; story: TypeContent }) {
+export function InviteBuilder({ city, story, chapter = '07' }: { city: City; story: TypeContent; chapter?: string }) {
   const [tpl, setTpl] = useState(TEMPLATES[0])
   const [title, setTitle] = useState('')
   const [day, setDay] = useState(DAYS[1])
-  const placeholder = `${story.plural.replace(/s( &.*)?$/, '')} at mine`
+  const placeholder = `${story.singular[0].toUpperCase()}${story.singular.slice(1)} at mine`
 
   const mx = useMotionValue(0)
   const my = useMotionValue(0)
@@ -38,7 +38,7 @@ export function InviteBuilder({ city, story }: { city: City; story: TypeContent 
     <section className="overflow-hidden bg-cream px-6 py-24 md:px-20 md:py-32">
       <div className="mx-auto grid max-w-[1280px] items-center gap-16 lg:grid-cols-[1fr_1fr]">
         <div>
-          <Chapter n="07" title="Your turn" />
+          <Chapter n={chapter} title="Your turn" />
           <h2 className="mt-4 font-display text-[clamp(44px,6vw,84px)] font-extrabold leading-[0.92] tracking-[-0.055em]">
             Throw one<br />this weekend.
           </h2>
@@ -89,7 +89,7 @@ export function InviteBuilder({ city, story }: { city: City; story: TypeContent 
           </div>
 
           <div className="mt-10 flex flex-wrap items-center gap-4">
-            <Button href="/host" size="lg">Host in {city.name}</Button>
+            <Button href="/host" size="lg">{city.slug ? `Host in ${city.name}` : 'Start hosting'}</Button>
             <StoreBadges height={44} />
           </div>
         </div>
