@@ -43,6 +43,8 @@ invented stats, ratings or reviews on public pages (placeholders are marked
 
 **Internal links:** every city, neighbourhood, type, crowd and time page ends with an "Explore {place}" block (`components/sections/shared/ExploreLinks.tsx`) linking to all time windows, crowds, kinds of night and hosts for that place; India hubs link to all hubs + cities. Navbar mega menu lists every time window and crowd (Mumbai); footer Explore links the India hubs.
 
+**Parts bank (built, unused, reuse on other pages):** `evergreen/app/a/Hero.tsx` (cursor-tilt phone cover), `evergreen/app/b/CitiesStrip.tsx` (widening city cards), `evergreen/app/b/FinalCta.tsx` (word-drop CTA with dealt cards). Shared hover list: `components/ui/HoverPreviewList.tsx` (homepage cities, badges).
+
 **Palette rule:** pages sit on cream / paper. Black (`bg-noir`) is only for small elements (buttons, pills, phone screens, the app's ticket) and two deliberate night moments: the city page's after-dark sky and the footer. Live sections that were black (home safety + CTA, testimonials, city crowd + departure board, type hero / guest list / night, guides fine print + article, host profile, host address, safety SOS, 404) were converted to cream.
 
 ### ✅ Done
@@ -66,6 +68,10 @@ invented stats, ratings or reviews on public pages (placeholders are marked
 | **Hosts in a city / neighbourhood** | `/[city]/hosts` (8), `/[city]/[area]/hosts` (33) | Real hosts who've hosted there, most active first (`/public/hosts`), host cards → profiles, area chips, CTA. Thin pages (<2 hosts) noindex. City and neighbourhood pages get a "Hosts near you" strip linking here; host profiles link back to their areas/cities/types; event pages link to their neighbourhood |
 | **Crowd pages** | `/women-only`, `/balanced-crowd`, `/21-plus`, `/25-plus` (India hubs, root segment) + `/[city]/[crowd]` (32) | One cream-palette page built from the best of 3 lab variants (`components/sections/crowd/parts`): editorial cover whose photo opens to full bleed · the promise lit word by word · pinned rail of real events · "Pull up a chair" seat fill · sticky split-screen "why" · pinned "how the app makes it true" steps · huge place names with photos flying out on hover · host one-setting card · FAQ · other crowds · sign-off. Real filters on `/public/events` (`women_only`, `balanced` = 40–60% women, `min_age`), live per-city / per-area counts, generated photos in `public/img/crowd`. Copy in `lib/crowd.ts`. City pages with <3 events noindex. No `/singles` (no such data in the app) |
 | **Time pages** | `/tonight`, `/tomorrow`, `/this-weekend`, `/this-week` (India hubs) + `/[city]/[time]` (32) | Mixed from the 3 lab variants: B calendar cover (pages tear to the photo) · B at-a-glance ledger · B day-by-day rail (hour ruler for one night) · C getting ready story · A stopwatch steps · A tear-off reasons · A city-by-city / area-by-area reveal · B why cards · B other windows · FAQ · B calendar sign-off. Real `when` filter (IST; `tomorrow` added), events grouped by day, live counts. Copy in `lib/time.ts`, photos in `public/img/time`. City pages with <3 events noindex |
+| **Payouts** | `/host/payouts` | New "90%" hero (event photo inside the digits, example payout card) · one ticket, three stops (coin on a drawn path) · the itemised receipt · price-the-night calculator · free vs paid · tell us where (UPI / bank phone) · the 48-hour line · FAQ · print your first payout |
+| **Badges** | `/host/badges` | The climb (pinned mountain, badges stamp on) · four badges, who's wearing them (homepage hover list, `ui/HoverPreviewList`) · level up, everyone sees it (callouts) · pick a number, see your card · who holds which card (max 4 per badge, 1:1 photos) · FAQ · start at the bottom · your shelf is empty |
+| **Get the app** | `/app` (every "Get the app" button) | Real cards gather into a phone · five-screen story with callouts · Thursday to Sunday rail · hover bento · cursor-follow features · live cities + browse-first links · FAQ · see you Saturday |
+| **About** | `/about` | "Why we exist" manifesto: the line reveals word by word with photos blooming between words · mission lit word by word · pinned beliefs with callouts, each linking to its proof page · cities as huge names with photos flying out + live counts · how it works in 3 steps · FAQ · sign-off. Team section pending real team details |
 
 ### ⏳ To build — page templates (each template renders many URLs from data)
 | # | Screen | Route(s) | Generates |
@@ -73,10 +79,6 @@ invented stats, ratings or reviews on public pages (placeholders are marked
 | 1 | City × occasion | `/[city]/new-years-eve`, `/holi`, `/diwali` (time pages 🧪 in lab) | cities × occasions |
 | 2 | City × price | `/[city]/free-events`, `/under-500` | cities × 2 |
 | 4 | Area × type | `/[city]/[area]/[type]` (neighbourhood pages already link here) | ~200 |
-| 5 | Payouts | `/host/payouts` | 1 |
-| 6 | Badges | `/host/badges` | 1 |
-| 7 | Download | `/app` | 1 |
-| 8 | About | `/about` | 1 |
 | 9 | Help centre | `/help`, `/help/[topic]` | ~15 |
 | 10 | Going-out + women's guides | `/guides`, `/guides/women/[slug]` | ~30 |
 | 11 | Legal | `/terms`, `/privacy`, `/guidelines`, `/refunds` | 4 |

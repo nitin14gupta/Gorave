@@ -7,7 +7,7 @@ import type { PublicEventsQuery } from './api'
 
 export interface CrowdStory {
   slug: string
-  /** "Women-only" — used in "Women-only nights in Mumbai" */
+  /** "Women-only": used in "Women-only nights in Mumbai" */
   label: string
   /** Short noun for headings: "women-only nights" */
   nights: string
