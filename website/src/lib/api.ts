@@ -68,7 +68,63 @@ export async function fetchEvents(q: PublicEventsQuery = {}) {
   return get<{ events: PublicEvent[]; total: number; has_more: boolean }>(`/public/events?${params}`)
 }
 
-export const fetchEvent = (id: string) => get<PublicEvent & { description: string | null; rules: string | null }>(`/public/events/${encodeURIComponent(id)}`)
+export interface PublicEventDetail extends PublicEvent {
+  description: string | null
+  rules: string | null
+  ratio: { women_pct: number; women_left: number; men_left: number; open_left: number } | null
+  avg_rating: number | null
+  review_count: number
+}
+
+export interface PublicHostProfile {
+  name: string | null
+  username: string
+  avatar: string | null
+  city: string | null
+  badges: string[]
+  hosted_count: number
+  avg_rating: number | null
+  review_count: number
+  upcoming: PublicEvent[]
+}
+
+export interface PublicCity {
+  name: string
+  state: string
+  upcoming_events: number
+}
+
+// Event ids are uuids; anything else 404s without a round trip.
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+export const fetchEvent = (id: string) =>
+  UUID.test(id) ? get<PublicEventDetail>(`/public/events/${encodeURIComponent(id)}`) : Promise.resolve(null)
+
+export const fetchHost = (username: string) =>
+  /^[a-z0-9_.]{2,40}$/i.test(username) ? get<PublicHostProfile>(`/public/hosts/${encodeURIComponent(username)}`) : Promise.resolve(null)
+
+export const fetchCities = () => get<PublicCity[]>('/public/cities')
+
+export interface PublicReviews {
+  avg_rating: number | null
+  review_count: number
+  reviews: { rating: number; body: string; name: string; city: string | null; event_type: string; event_title: string }[]
+}
+
+export const fetchReviews = (limit = 4) => get<PublicReviews>(`/public/reviews?limit=${limit}`)
+
+/** The API sends "2026-10-17 14:30:00+00"; make it strict ISO so every runtime parses it. */
+export function parseApiDate(s: string) {
+  return new Date(s.replace(' ', 'T').replace(/([+-]\d{2})$/, '$1:00'))
+}
+
+/** "Saturday, 18 October · 9 PM" in IST. */
+export function longWhen(iso: string) {
+  const d = parseApiDate(iso)
+  const day = d.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'Asia/Kolkata' })
+  const time = d.toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit', timeZone: 'Asia/Kolkata' }).replace(':00', '').toUpperCase()
+  return `${day} · ${time}`
+}
 
 // ── Adapters ──────────────────────────────────────────────────────────────
 
@@ -77,9 +133,9 @@ export const TYPE_LABEL: Record<string, string> = {
 }
 
 function whenLabel(iso: string) {
-  const d = new Date(iso)
+  const d = parseApiDate(iso)
   const day = d.toLocaleDateString('en-IN', { weekday: 'short', timeZone: 'Asia/Kolkata' })
-  const time = d.toLocaleTimeString('en-IN', { hour: 'numeric', minute: d.getMinutes() ? '2-digit' : undefined, timeZone: 'Asia/Kolkata' }).replace(':00', '').toUpperCase()
+  const time = d.toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit', timeZone: 'Asia/Kolkata' }).replace(':00', '').toUpperCase()
   return `${day} · ${time}`
 }
 
@@ -98,7 +154,21 @@ export function toCardEvent(e: PublicEvent): SampleEvent {
     going: e.attendee_count,
     mix: e.women_pct == null ? undefined : e.women_pct >= 100 ? 'Women only' : e.women_pct <= 0 ? 'Men only' : `${e.women_pct}:${100 - e.women_pct}`,
     request: e.join_mode === 'request',
+    hour: istHour(e.date_time),
+    date: istDate(e.date_time),
+    clock: parseApiDate(e.date_time).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' }),
+    spotsLeft: e.spots_left,
   }
+}
+
+/** IST calendar date as YYYY-MM-DD. */
+export const istDate = (iso: string | Date) =>
+  (typeof iso === 'string' ? parseApiDate(iso) : iso).toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' })
+
+/** IST start hour; 12 AM–5 AM count as 24–29 so a night sorts in order. */
+function istHour(iso: string) {
+  const h = Number(parseApiDate(iso).toLocaleString('en-IN', { hour: 'numeric', hour12: false, timeZone: 'Asia/Kolkata' })) % 24
+  return h < 6 ? h + 24 : h
 }
 
 /** Live events for a query, or sample events matching it if the API is down. */

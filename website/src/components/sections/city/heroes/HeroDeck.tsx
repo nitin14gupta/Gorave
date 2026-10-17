@@ -2,12 +2,12 @@
 
 import { useEffect, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
-import { POSTERS } from '@/constants'
 import { Button } from '@/components/ui/Button'
 import { Breadcrumbs } from '@/components/ui/Breadcrumbs'
 import { Poster } from '@/components/ui/Poster'
 import { SplitWords } from '@/components/motion/Reveal'
 import type { HeroProps } from './types'
+import { useCityKit } from '../CityKit'
 
 const EASE = [0.2, 0.8, 0.2, 1] as const
 const SWIPE_MS = 2600
@@ -15,16 +15,18 @@ const DEPTH = 4
 
 /** A deck of tonight's flyers that swipes itself — tap to swipe faster. */
 export function HeroDeck({ city, crumbs }: HeroProps) {
+  const { posters } = useCityKit()
   const [top, setTop] = useState(0)
   const [dir, setDir] = useState(1)
 
-  const next = () => { setDir(d => -d); setTop(t => (t + 1) % POSTERS.length) }
+  const next = () => { setDir(d => -d); setTop(t => (t + 1) % posters.length) }
+  const count = posters.length
   useEffect(() => {
-    const id = setInterval(next, SWIPE_MS)
+    const id = setInterval(() => { setDir(d => -d); setTop(t => (t + 1) % count) }, SWIPE_MS)
     return () => clearInterval(id)
-  }, [])
+  }, [count])
 
-  const cards = Array.from({ length: DEPTH }, (_, k) => (top + k) % POSTERS.length)
+  const cards = Array.from({ length: DEPTH }, (_, k) => (top + k) % posters.length)
 
   return (
     <section className="relative overflow-hidden bg-sky px-6 pb-20 pt-28 md:px-20">
@@ -60,7 +62,7 @@ export function HeroDeck({ city, crumbs }: HeroProps) {
                   transition={{ duration: 0.5, ease: EASE }}
                   style={{ zIndex: DEPTH - depth }}
                 >
-                  <Poster poster={POSTERS[idx]} area={city.areas[idx % city.areas.length]} width={330} height={440} radius={24} className="shadow-pop" />
+                  <Poster poster={posters[idx]} area={city.areas[idx % city.areas.length]} width={330} height={440} radius={24} className="shadow-pop" />
                 </motion.div>
               )
             })}

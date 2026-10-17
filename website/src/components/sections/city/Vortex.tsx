@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { POSTERS, type City } from '@/constants'
+import { POSTERS, type City, type PosterDef } from '@/constants'
 import { StoreBadges } from '@/components/ui/atoms'
 import { Poster } from '@/components/ui/Poster'
 
@@ -16,7 +16,7 @@ const RINGS = [
  * Chapter 11 — see you out there. Rings of flyers rotate slowly
  * counter-clockwise around the call to action, smaller towards the centre.
  */
-export function Vortex({ city, chapter = '11' }: { city: City; chapter?: string }) {
+export function Vortex({ city, chapter = '11', posters = POSTERS.filter(p => p.kind === 'template') }: { city: City; chapter?: string; posters?: PosterDef[] }) {
   return (
     <section className="relative h-[920px] overflow-hidden bg-paper">
       <div className="absolute left-1/2 top-1/2" aria-hidden>
@@ -24,7 +24,7 @@ export function Vortex({ city, chapter = '11' }: { city: City; chapter?: string 
           <div key={ri} className="absolute left-0 top-0" style={{ animation: `spin-ccw ${ring.speed}s linear infinite` }}>
             {Array.from({ length: ring.n }, (_, k) => {
               const angle = (k / ring.n) * 360 + ri * 11
-              const poster = POSTERS[(k * 3 + ri * 5) % POSTERS.length]
+              const poster = posters[(k * 3 + ri * 5) % posters.length]
               return (
                 <div
                   key={k}

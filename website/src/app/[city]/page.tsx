@@ -46,5 +46,6 @@ export default async function CityOrHubPage({ params }: PageProps<'/[city]'>) {
   }
   const city = getCity(slug)
   if (!city) notFound()
-  return <CityPageView city={city} />
+  const { events } = await cardEvents({ city: city.name, limit: 24 }, e => e.city === city.name)
+  return <CityPageView city={city} events={events} />
 }

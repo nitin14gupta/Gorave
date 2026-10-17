@@ -288,3 +288,52 @@ def public_host(username: str, request: Request, response: Response):
         "badges": compute_host_badges(host["hosted_count"]), "hosted_count": host["hosted_count"],
         "avg_rating": host["avg_rating"], "review_count": host["review_count"] or 0, "upcoming": upcoming,
     }
+
+
+@router.get("/reviews")
+def public_reviews(request: Request, response: Response, limit: int = Query(default=6, ge=1, le=20)):
+    """Platform-wide rating plus the most recent written reviews.
+
+    Reviewers appear as first name + last initial only; reviews without text
+    are counted in the average but not quoted.
+    """
+    _guard(request, response)
+    with get_db() as (cur, _):
+        cur.execute(
+            """
+            SELECT ROUND(AVG(er.rating)::numeric, 1)::float AS avg_rating, COUNT(*)::int AS review_count
+            FROM event_reviews er JOIN events e ON e.id = er.event_id
+            WHERE e.is_published = TRUE
+            """
+        )
+        agg = cur.fetchone()
+        cur.execute(
+            """
+            SELECT er.rating, er.body, u.name AS reviewer, e.city, e.event_type, e.title AS event_title
+            FROM event_reviews er
+            JOIN events e ON e.id = er.event_id
+            JOIN users u ON u.id = er.reviewer_id
+            WHERE e.is_published = TRUE AND er.body IS NOT NULL AND LENGTH(TRIM(er.body)) > 0
+              AND COALESCE(u.is_deleted, FALSE) = FALSE
+            ORDER BY er.created_at DESC
+            LIMIT %s
+            """,
+            (limit,),
+        )
+        rows = cur.fetchall()
+
+    def short(name):
+        parts = (name or "").split()
+        if not parts:
+            return "A guest"
+        return parts[0] + (f" {parts[-1][0]}." if len(parts) > 1 else "")
+
+    return {
+        "avg_rating": agg["avg_rating"],
+        "review_count": agg["review_count"] or 0,
+        "reviews": [
+            {"rating": r["rating"], "body": r["body"].strip(), "name": short(r["reviewer"]), "city": r["city"],
+             "event_type": r["event_type"], "event_title": r["event_title"]}
+            for r in rows
+        ],
+    }

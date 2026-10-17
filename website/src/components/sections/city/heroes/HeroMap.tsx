@@ -3,13 +3,13 @@
 import Link from 'next/link'
 import { useMemo, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
-import { POSTERS } from '@/constants'
 import { areaSlug } from '@/lib/city'
 import { Button } from '@/components/ui/Button'
 import { Breadcrumbs } from '@/components/ui/Breadcrumbs'
 import { Poster } from '@/components/ui/Poster'
 import { SplitWords } from '@/components/motion/Reveal'
 import type { HeroProps } from './types'
+import { useCityKit } from '../CityKit'
 
 const EASE = [0.2, 0.8, 0.2, 1] as const
 const W = 640
@@ -36,6 +36,7 @@ function useDots(seed: number) {
 }
 
 export function HeroMap({ city, crumbs }: HeroProps) {
+  const { posters } = useCityKit()
   const [active, setActive] = useState<number | null>(null)
   const dots = useDots(city.name.length)
   const pins = city.areas.map((a, i) => {
@@ -93,7 +94,7 @@ export function HeroMap({ city, crumbs }: HeroProps) {
                 className="pointer-events-none absolute z-10"
                 style={{ left: Math.min(pins[active].x + 24, W - 190), top: Math.max(pins[active].y - 250, 0), rotate: 4 }}
               >
-                <Poster poster={POSTERS[(active * 5) % POSTERS.length]} area={pins[active].area} width={170} height={225} className="shadow-pop" />
+                <Poster poster={posters[(active * 5) % posters.length]} area={pins[active].area} width={170} height={225} className="shadow-pop" />
               </motion.div>
             )}
           </AnimatePresence>

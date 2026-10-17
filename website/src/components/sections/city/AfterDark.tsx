@@ -2,9 +2,10 @@
 
 import { useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion, useMotionValueEvent, useScroll, useTransform } from 'motion/react'
-import { NIGHT_SLOTS, POSTERS, type City } from '@/constants'
+import { type City } from '@/constants'
 import { Chapter } from '@/components/ui/atoms'
 import { Poster } from '@/components/ui/Poster'
+import { useCityKit } from './CityKit'
 
 const EASE = [0.2, 0.8, 0.2, 1] as const
 const START = 18 // 6 PM
@@ -22,6 +23,7 @@ const fmtHour = (h: number) => {
  * 3 AM, the sky goes sunset → night, and that hour's event swaps in.
  */
 export function AfterDark({ city }: { city: City }) {
+  const { slots, posters } = useCityKit()
   const ref = useRef<HTMLElement>(null)
   const { scrollYProgress } = useScroll({ target: ref, offset: ['start start', 'end end'] })
   const [hour, setHour] = useState(START)
@@ -32,16 +34,17 @@ export function AfterDark({ city }: { city: City }) {
   const sunY = useTransform(scrollYProgress, [0, 0.45], ['0%', '140%'])
 
   const slot = useMemo(() => {
-    let pick = NIGHT_SLOTS[0]
-    for (const s of NIGHT_SLOTS) if (hour >= s.hour) pick = s
+    let pick = slots[0]
+    for (const s of slots) if (hour >= s.hour) pick = s
     return pick
-  }, [hour])
-  const area = city.areas[NIGHT_SLOTS.indexOf(slot) % city.areas.length]
+  }, [hour, slots])
+  const area = slot.area ?? city.areas[slots.indexOf(slot) % city.areas.length]
 
+  // Rounded so the server and client render identical positions.
   const starDots = useMemo(() => Array.from({ length: 70 }, (_, i) => ({
-    x: (Math.sin(i * 12.9898) * 43758.5453 % 1 + 1) % 1 * 100,
-    y: (Math.sin(i * 78.233) * 12345.678 % 1 + 1) % 1 * 60,
-    d: (i % 7) * 0.4,
+    x: Math.round(((Math.sin(i * 12.9898) * 43758.5453 % 1 + 1) % 1) * 10000) / 100,
+    y: Math.round(((Math.sin(i * 78.233) * 12345.678 % 1 + 1) % 1) * 6000) / 100,
+    o: 0.35 + (i % 5) * 0.13,
   })), [])
 
   return (
@@ -49,7 +52,7 @@ export function AfterDark({ city }: { city: City }) {
       <motion.div style={{ backgroundColor: bg }} className="sticky top-0 flex h-screen items-center overflow-hidden px-6 text-white md:px-20">
         <motion.div style={{ opacity: stars }} className="pointer-events-none absolute inset-0">
           {starDots.map((s, i) => (
-            <span key={i} className="absolute size-[3px] rounded-full bg-white" style={{ left: `${s.x}%`, top: `${s.y}%`, animation: `twinkle 3s ${s.d}s infinite` }} />
+            <span key={i} className="absolute size-[3px] rounded-full bg-white" style={{ left: `${s.x}%`, top: `${s.y}%`, opacity: s.o }} />
           ))}
         </motion.div>
         <motion.div style={{ y: sunY }} className="pointer-events-none absolute -bottom-40 left-1/2 size-[520px] -translate-x-1/2 rounded-full bg-gradient-to-b from-[#FFD27A] to-[#FF6B35] opacity-70 blur-[2px]" />
@@ -67,14 +70,14 @@ export function AfterDark({ city }: { city: City }) {
           <div className="relative hidden h-[440px] lg:block">
             <AnimatePresence mode="popLayout">
               <motion.div
-                key={slot.title}
+                key={slot.href ?? slot.title}
                 initial={{ opacity: 0, y: 60, rotate: 8 }}
                 animate={{ opacity: 1, y: 0, rotate: -3 }}
                 exit={{ opacity: 0, y: -60, rotate: -10 }}
                 transition={{ duration: 0.55, ease: EASE }}
                 className="absolute inset-0 flex flex-col items-center"
               >
-                <Poster poster={POSTERS[slot.poster]} area={area} width={280} height={360} radius={22} className="shadow-pop" />
+                <Poster poster={posters[slot.poster]} area={area} width={280} height={360} radius={22} className="shadow-pop" />
                 <div className="mt-5 text-center">
                   <div className="font-display text-2xl font-extrabold">{slot.title}</div>
                   <div className="font-sans text-sm text-white/75">{area} · {slot.price} · {slot.status}</div>

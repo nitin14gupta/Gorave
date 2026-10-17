@@ -1,10 +1,10 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { NIGHT_SLOTS } from '@/constants'
 import { Button } from '@/components/ui/Button'
 import { Breadcrumbs } from '@/components/ui/Breadcrumbs'
 import type { HeroProps } from './types'
+import { useCityKit } from '../CityKit'
 
 const CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789:·'
 const CYCLE_MS = 3600
@@ -48,14 +48,16 @@ function FlapRow({ text, length, size = 64 }: { text: string; length: number; si
 
 /** Airport departure board — tonight's nights, flipping into place. */
 export function HeroFlap({ city, crumbs }: HeroProps) {
+  const { slots } = useCityKit()
   const [i, setI] = useState(0)
+  const count = slots.length
   useEffect(() => {
-    const id = setInterval(() => setI(n => (n + 1) % NIGHT_SLOTS.length), CYCLE_MS)
+    const id = setInterval(() => setI(n => (n + 1) % count), CYCLE_MS)
     return () => clearInterval(id)
-  }, [])
+  }, [count])
 
-  const slot = NIGHT_SLOTS[i]
-  const area = city.areas[i % city.areas.length]
+  const slot = slots[i]
+  const area = slot.area ?? city.areas[i % city.areas.length]
   const time = `${String(slot.hour % 24).padStart(2, '0')}:00`
 
   return (

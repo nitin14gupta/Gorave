@@ -23,8 +23,9 @@ export function Crowd({ city }: { city: City }) {
     const ang = i * 2.399963 // golden angle spiral
     const r = 120 + Math.sqrt(i / COUNT) * 520
     return {
-      x: 50 + (Math.cos(ang) * r) / 14,
-      y: H / 2 + Math.sin(ang) * r * 0.42,
+      // Rounded so the server and client render identical positions.
+      x: Math.round((50 + (Math.cos(ang) * r) / 14) * 100) / 100,
+      y: Math.round(H / 2 + Math.sin(ang) * r * 0.42),
       size: 44 + ((i * 37) % 5) * 10,
       avatar: i % 3 === 0 ? AVATARS[i % AVATARS.length] : null,
       tint: TINTS[i % TINTS.length],

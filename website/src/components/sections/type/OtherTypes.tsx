@@ -15,7 +15,7 @@ export function OtherTypes({ city, current, hub, chapter = '09' }: { city: City;
         <h2 className="mt-4 font-display text-[clamp(40px,5vw,72px)] font-extrabold leading-[0.92] tracking-[-0.055em]">
           {hub ? 'Other kinds of night.' : `Other nights in ${city.name}.`}
         </h2>
-        <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+        <div className={cn('mt-12 grid gap-4 sm:grid-cols-2', others.length === 6 ? 'sm:grid-cols-3 lg:grid-cols-6' : 'lg:grid-cols-5')}>
           {others.map((t, i) => (
             <Link
               key={t.slug}

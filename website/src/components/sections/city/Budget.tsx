@@ -3,17 +3,19 @@
 import Link from 'next/link'
 import { useState } from 'react'
 import { motion } from 'motion/react'
-import { NIGHT_SLOTS, POSTERS, type City } from '@/constants'
+import { type City } from '@/constants'
 import { Chapter } from '@/components/ui/atoms'
 import { Poster } from '@/components/ui/Poster'
+import { useCityKit } from './CityKit'
 
 const MAX = 2000
 const priceOf = (p: string) => (p === 'Free' ? 0 : Number(p.replace(/[^\d]/g, '')))
 
 /** Chapter 07 — the budget. Drag the price; nights in range stay lit. */
 export function Budget({ city }: { city: City }) {
+  const { slots, posters } = useCityKit()
   const [value, setValue] = useState(500)
-  const nights = NIGHT_SLOTS.map((s, i) => ({ ...s, area: city.areas[i % city.areas.length], amount: priceOf(s.price) }))
+  const nights = slots.map((s, i) => ({ ...s, area: s.area ?? city.areas[i % city.areas.length], amount: priceOf(s.price) }))
   const inRange = nights.filter(n => n.amount <= value).length
 
   return (
@@ -54,12 +56,12 @@ export function Budget({ city }: { city: City }) {
             const ok = n.amount <= value
             return (
               <motion.div
-                key={n.title}
+                key={n.href ?? n.title}
                 animate={{ opacity: ok ? 1 : 0.25, scale: ok ? 1 : 0.94, filter: ok ? 'grayscale(0)' : 'grayscale(1)', y: ok ? 0 : 12 }}
                 transition={{ duration: 0.4 }}
                 className="shrink-0"
               >
-                <Poster poster={POSTERS[n.poster]} area={n.area} width={200} height={260} />
+                <Poster poster={posters[n.poster]} area={n.area} width={200} height={260} />
                 <div className="mt-3 font-display text-lg font-extrabold">{n.title}</div>
                 <div className="font-sans text-sm text-ink-3">{n.area} · {n.price}</div>
               </motion.div>

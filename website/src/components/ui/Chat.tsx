@@ -3,7 +3,8 @@
 import Image from 'next/image'
 import type { ReactNode } from 'react'
 import { motion } from 'motion/react'
-import { AVATARS, SAMPLE_EVENTS } from '@/constants'
+import { AVATARS } from '@/constants'
+import { useLiveEvent } from './LiveEvents'
 import { cn } from '@/lib/cn'
 import { InviteCard } from './InviteCard'
 
@@ -46,13 +47,14 @@ export function TypingDots({ delay = 0 }: { delay?: number }) {
 
 /** The hero's group-chat story — a plan forming, then the invite drops in. */
 export function ChatThread() {
+  const event = useLiveEvent(0)
   return (
     <div className="flex flex-col gap-2.5">
       <Bubble name="Riya" avatar={0} delay={0.5}>anyone free saturday??</Bubble>
       <Bubble name="Kabir" avatar={1} delay={0.9}>only if it&apos;s not another café</Bubble>
       <Bubble me delay={1.3}>found a rooftop thing in bandra 👀</Bubble>
       <motion.div {...pop(1.7)} className="self-end">
-        <InviteCard event={SAMPLE_EVENTS[0]} tilt={-2} />
+        <InviteCard event={event} tilt={-2} />
       </motion.div>
       <Bubble name="Riya" avatar={0} delay={2.2}>IN. requesting rn</Bubble>
       <TypingDots delay={2.6} />

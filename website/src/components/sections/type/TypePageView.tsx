@@ -13,6 +13,8 @@ import { GuestList } from './GuestList'
 import { HourByHour } from './HourByHour'
 import { InviteBuilder } from './InviteBuilder'
 import { OtherTypes } from './OtherTypes'
+import { buildCityKit } from '@/lib/cityKit'
+import { CityKitProvider } from '@/components/sections/city/CityKit'
 
 interface Props {
   city: City
@@ -35,8 +37,10 @@ export function TypePageView({ city, slug, story, events }: Props) {
   const noun = story.plural.toLowerCase()
   // Client sections get the data only; the faq builder stays on the server.
   const { faq, ...content } = story
+  const kit = buildCityKit(events)
   return (
     <>
+      <CityKitProvider kit={kit}>
       <main>
         <TypeHero city={city} story={content} crumbs={crumbs} />
         <TypeEvents city={city} events={events} />
@@ -54,8 +58,9 @@ export function TypePageView({ city, slug, story, events }: Props) {
         <InviteBuilder city={city} story={content} />
         <Faq chapter="08" title={`${story.plural} in ${city.name}`} items={faq(city)} />
         <OtherTypes city={city} current={slug} />
-        <Vortex city={city} chapter="10" />
+        <Vortex city={city} chapter="10" posters={kit.posters} />
       </main>
+      </CityKitProvider>
       <SiteFooter />
       <FloatingDock />
     </>

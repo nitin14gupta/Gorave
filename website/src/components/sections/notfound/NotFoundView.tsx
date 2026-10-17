@@ -4,6 +4,9 @@ import Link from 'next/link'
 import { useEffect, useRef } from 'react'
 import { animate, motion, useMotionTemplate, useMotionValue, useSpring, useTransform } from 'motion/react'
 import { CITIES, POSTERS } from '@/constants'
+
+// Only the app's real invite templates hide in the dark — no made-up event flyers.
+const FLYERS = POSTERS.filter(p => p.kind === 'template')
 import { Button } from '@/components/ui/Button'
 import { Poster } from '@/components/ui/Poster'
 import { TicketCard } from '@/components/ui/TicketCard'
@@ -55,7 +58,7 @@ export function NotFoundView() {
         <Giant404 className="text-brand" />
         {HIDDEN.map(([l, t, r, p]) => (
           <div key={p} className="absolute hidden md:block" style={{ left: `${l}%`, top: `${t}%`, rotate: `${r}deg` }}>
-            <Poster poster={POSTERS[p]} width={150} height={200} radius={12} />
+            <Poster poster={FLYERS[p % FLYERS.length]} width={150} height={200} radius={12} />
           </div>
         ))}
       </motion.div>

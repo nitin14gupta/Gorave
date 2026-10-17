@@ -2,9 +2,10 @@
 
 import { useRef, useState, type ReactNode } from 'react'
 import { motion, useScroll, useSpring, useTransform } from 'motion/react'
-import { POSTERS, type City } from '@/constants'
+import { type City } from '@/constants'
 import { Chapter } from '@/components/ui/atoms'
 import { Poster } from '@/components/ui/Poster'
+import { useCityKit } from './CityKit'
 
 const EASE = 'cubic-bezier(.2,.8,.2,1)'
 const STEP = 118
@@ -24,6 +25,7 @@ interface Props {
 }
 
 export function PosterStack({ city, chapter = '01', chapterTitle = 'The reasons', title, subtitle }: Props) {
+  const { posters } = useCityKit()
   const ref = useRef<HTMLElement>(null)
   const [hover, setHover] = useState<number | null>(null)
   const { scrollYProgress } = useScroll({ target: ref, offset: ['start end', 'end start'] })
@@ -41,7 +43,7 @@ export function PosterStack({ city, chapter = '01', chapterTitle = 'The reasons'
 
       <div className="absolute inset-0" style={{ perspective: 1500, perspectiveOrigin: '30% 40%' }}>
         <motion.div className="absolute left-0 top-0" style={{ x, transformStyle: 'preserve-3d' }}>
-          {POSTERS.map((poster, i) => {
+          {posters.map((poster, i) => {
             const isHover = hover === i
             const spread = hover !== null && i > hover ? 150 : 0
             return (

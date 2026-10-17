@@ -1,6 +1,9 @@
+'use client'
+
 import Image from 'next/image'
 import type { ReactNode } from 'react'
-import { PHOTOS, SAMPLE_EVENTS, type SampleEvent } from '@/constants'
+import { PHOTOS, type SampleEvent } from '@/constants'
+import { useLiveEvent, useLiveEvents } from './LiveEvents'
 import { cn } from '@/lib/cn'
 import { TicketCard } from './TicketCard'
 
@@ -20,11 +23,13 @@ function BottomBar({ left, cta }: { left: string; cta: string }) {
   )
 }
 
-export function EventDetailScreen({ event = SAMPLE_EVENTS[0], cta = 'Book Now', status }: { event?: SampleEvent; cta?: string; status?: ReactNode }) {
+export function EventDetailScreen({ event: given, cta = 'Book Now', status }: { event?: SampleEvent; cta?: string; status?: ReactNode }) {
+  const live = useLiveEvent(0)
+  const event = given ?? live
   return (
     <div className="h-full font-sans text-noir-ink">
       <div className="relative h-[46%]">
-        <Image src={PHOTOS[event.photo]} alt="" fill sizes="400px" className="object-cover" />
+        <Image src={event.image ?? PHOTOS[event.photo]} alt="" fill sizes="400px" className="object-cover" />
         <div className="absolute inset-0 bg-gradient-to-b from-transparent from-40% to-noir" />
       </div>
       <div className="relative -mt-7 px-4">
@@ -43,6 +48,7 @@ export function EventDetailScreen({ event = SAMPLE_EVENTS[0], cta = 'Book Now', 
 }
 
 export function DiscoverScreen() {
+  const events = useLiveEvents()
   return (
     <div className="h-full px-3.5 pt-12 font-sans text-noir-ink">
       <div className="font-display text-xl font-extrabold">Events</div>
@@ -53,9 +59,9 @@ export function DiscoverScreen() {
         ))}
       </div>
       <div className="mt-3 flex flex-col gap-2.5">
-        {SAMPLE_EVENTS.slice(0, 3).map(e => (
+        {events.slice(0, 3).map(e => (
           <div key={e.id} className="overflow-hidden rounded-2xl bg-noir-2">
-            <div className="relative h-24"><Image src={PHOTOS[e.photo]} alt="" fill sizes="300px" className="object-cover" /></div>
+            <div className="relative h-24"><Image src={e.image ?? PHOTOS[e.photo]} alt="" fill sizes="300px" className="object-cover" /></div>
             <div className="p-2.5">
               <div className="font-display text-sm font-extrabold">{e.title}</div>
               <div className="text-[11px] text-noir-ink-2">{e.area} · {e.price}</div>

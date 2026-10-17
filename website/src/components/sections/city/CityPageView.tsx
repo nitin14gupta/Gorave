@@ -1,4 +1,6 @@
-import type { City } from '@/constants'
+import type { City, SampleEvent } from '@/constants'
+import { buildCityKit } from '@/lib/cityKit'
+import { CityKitProvider } from './CityKit'
 import { cityFaq } from '@/lib/city'
 import { CityHero, type HeroKind } from './heroes'
 import { PosterStack } from './PosterStack'
@@ -23,7 +25,8 @@ export const CITY_HERO: HeroKind = 'letters'
  * The city page, told as one night out — eleven chapters from "the reasons"
  * to "see you out there". Identical for every city; only `city` data changes.
  */
-export function CityPageView({ city, hero = CITY_HERO }: { city: City; hero?: HeroKind }) {
+export function CityPageView({ city, hero = CITY_HERO, events = [] }: { city: City; hero?: HeroKind; events?: SampleEvent[] }) {
+  const kit = buildCityKit(events)
   const crumbs = [
     { label: 'Home', href: '/' },
     { label: 'Cities', href: '/cities' },
@@ -31,6 +34,7 @@ export function CityPageView({ city, hero = CITY_HERO }: { city: City; hero?: He
   ]
   return (
     <>
+      <CityKitProvider kit={kit}>
       <main>
         <CityHero kind={hero} city={city} crumbs={crumbs} />
         <PosterStack city={city} />
@@ -44,8 +48,9 @@ export function CityPageView({ city, hero = CITY_HERO }: { city: City; hero?: He
         <CityHost city={city} />
         <Faq chapter="10" title={`Going out in ${city.name}`} items={cityFaq(city)} />
         <OtherCities current={city} />
-        <Vortex city={city} />
+        <Vortex city={city} posters={kit.posters} />
       </main>
+      </CityKitProvider>
       <SiteFooter />
       <FloatingDock />
     </>

@@ -2,10 +2,11 @@
 
 import Link from 'next/link'
 import { useState } from 'react'
-import { POSTERS, type City } from '@/constants'
+import { type City } from '@/constants'
 import { areaSlug } from '@/lib/city'
 import { Chapter } from '@/components/ui/atoms'
 import { Poster } from '@/components/ui/Poster'
+import { useCityKit } from './CityKit'
 
 const EASE = 'cubic-bezier(.2,.8,.2,1)'
 
@@ -23,6 +24,7 @@ interface Props {
 }
 
 export function AreaReveal({ city, chapter = '06', title = 'Closer to home.', subtitle, typeSlug }: Props) {
+  const { posters } = useCityKit()
   const [active, setActive] = useState<number | null>(null)
   const areas = city.areas.slice(0, 6)
 
@@ -63,7 +65,7 @@ export function AreaReveal({ city, chapter = '06', title = 'Closer to home.', su
                       transition: `transform .65s ${EASE} ${on ? lane * 0.07 : 0}s, opacity .4s ${on ? lane * 0.07 : 0}s`,
                     }}
                   >
-                    <Poster poster={POSTERS[(i * 3 + k * 4) % POSTERS.length]} area={a} width={160} height={210} radius={12} />
+                    <Poster poster={posters[(i * 3 + k * 4) % posters.length]} area={a} width={160} height={210} radius={12} />
                   </div>
                 )
               })}

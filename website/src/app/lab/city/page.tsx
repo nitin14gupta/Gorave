@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { CITIES } from '@/constants'
 import { cn } from '@/lib/cn'
+import { cardEvents } from '@/lib/api'
 import { CityPageView } from '@/components/sections/city/CityPageView'
 import { HERO_KINDS, HERO_LABELS, type HeroKind } from '@/components/sections/city/heroes'
 
@@ -12,10 +13,11 @@ export default async function CityLab({ searchParams }: PageProps<'/lab/city'>) 
   const sp = await searchParams
   const hero = (HERO_KINDS as readonly string[]).includes(String(sp.hero)) ? (sp.hero as HeroKind) : 'letters'
   const city = CITIES.find(c => c.slug === sp.city) ?? CITIES[0]
+  const { events } = await cardEvents({ city: city.name, limit: 24 }, e => e.city === city.name)
 
   return (
     <>
-      <CityPageView city={city} hero={hero} />
+      <CityPageView city={city} hero={hero} events={events} />
       <div className="fixed bottom-5 left-5 z-[60] flex flex-col gap-2 rounded-[22px] bg-ink/90 p-2.5 text-cream shadow-pop backdrop-blur">
         <div className="px-2 pt-1 font-sans text-[10px] font-bold uppercase tracking-[0.16em] text-noir-ink-2">Hero</div>
         <div className="flex gap-1">

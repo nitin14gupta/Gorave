@@ -2,9 +2,10 @@
 
 import { useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
-import { EVENT_TYPES, POSTERS, type City } from '@/constants'
+import { EVENT_TYPES, type City } from '@/constants'
 import { Chapter } from '@/components/ui/atoms'
 import { Poster } from '@/components/ui/Poster'
+import { useCityKit } from './CityKit'
 
 const ITEM_H = 96
 const LOOPS = 40
@@ -30,6 +31,7 @@ function Reel({ items, index, duration }: { items: string[]; index: number; dura
  * time. Spin, reels land one after another, a matching flyer drops in.
  */
 export function SpinSaturday({ city }: { city: City }) {
+  const { posters } = useCityKit()
   const vibes = EVENT_TYPES.filter(t => t.key !== 'other').map(t => t.label)
   const reels = [vibes, city.areas, TIMES]
   const [idx, setIdx] = useState([0, 0, 0])
@@ -77,7 +79,7 @@ export function SpinSaturday({ city }: { city: City }) {
                 exit={{ opacity: 0, x: 120, rotate: 20, transition: { duration: 0.35 } }}
                 className="text-center"
               >
-                <Poster poster={POSTERS[(spins * 5) % POSTERS.length]} area={landed[1]} width={270} height={350} radius={22} className="shadow-pop" />
+                <Poster poster={posters[(spins * 5) % posters.length]} area={landed[1]} width={270} height={350} radius={22} className="shadow-pop" />
                 <div className="mt-5 font-display text-2xl font-extrabold text-sage-ink">{landed[0]} · {landed[1]} · {landed[2]}</div>
               </motion.div>
             ) : (

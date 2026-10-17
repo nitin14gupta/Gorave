@@ -1,7 +1,6 @@
-import { SAMPLE_EVENTS } from '@/constants'
 import { H2, Lede, StoreBadges } from '@/components/ui/atoms'
 import { Phone } from '@/components/ui/Phone'
-import { EventDetailScreen } from '@/components/ui/AppScreens'
+import { LiveEventDetailScreen } from '@/components/ui/LiveEvents'
 import { Parallax } from '@/components/motion/Parallax'
 import { Reveal } from '@/components/motion/Reveal'
 
@@ -16,10 +15,10 @@ export function SaturdayCta() {
         </Reveal>
         <div className="hidden self-start lg:flex">
           <Parallax offset={-90} rotate={2}>
-            <div className="-rotate-8"><Phone width={240}><EventDetailScreen event={SAMPLE_EVENTS[4]} /></Phone></div>
+            <div className="-rotate-8"><Phone width={240}><LiveEventDetailScreen index={1} /></Phone></div>
           </Parallax>
           <Parallax offset={-160} rotate={-2} className="-ml-15 mt-18">
-            <div className="rotate-6"><Phone width={240}><EventDetailScreen event={SAMPLE_EVENTS[0]} /></Phone></div>
+            <div className="rotate-6"><Phone width={240}><LiveEventDetailScreen index={2} /></Phone></div>
           </Parallax>
         </div>
       </div>

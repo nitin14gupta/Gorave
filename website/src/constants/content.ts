@@ -58,6 +58,12 @@ export interface SampleEvent {
   request?: boolean
   /** Real cover photo URL (from the API); falls back to `photo` */
   image?: string
+  /** Start hour in IST, after-midnight hours as 24+ (from the API) */
+  hour?: number
+  /** IST calendar date (YYYY-MM-DD) and 24h clock (21:30) */
+  date?: string
+  clock?: string
+  spotsLeft?: number
 }
 
 export const SAMPLE_EVENTS: SampleEvent[] = [
@@ -77,23 +83,13 @@ export const SAMPLE_EVENTS: SampleEvent[] = [
 
 export const BROWSE_CITIES = ['Mumbai', 'Bangalore', 'Delhi', 'Pune'] as const
 
-// ⚠️ PLACEHOLDER — not real reviews. Replace with genuine user quotes (with
-// permission) and the live store rating before launch; showing invented
-// testimonials or ratings publicly is misleading.
-export const TESTIMONIALS = [
-  { quote: 'The best events come to me via this app.', name: 'Aditi', city: 'Mumbai' },
-  { quote: 'Hosted my first rooftop. 40 strangers, zero chaos.', name: 'Kabir', city: 'Bangalore' },
-  { quote: 'Women-only nights are a game changer.', name: 'Neha', city: 'Pune' },
-]
-
-export const APP_RATING = { score: '4.9', count: '12k+ ratings' }
 
 // ── City-page posters ─────────────────────────────────────────────────
 // City-agnostic flyer set; the area line is filled per city at render time,
 // so every city page shows "its own" posters from the same artwork.
 export type PosterDef =
   | { kind: 'template'; name: string }
-  | { kind: 'photo'; photo: PhotoKey; title: string; when: string; big?: boolean }
+  | { kind: 'photo'; photo: PhotoKey; title: string; when: string; big?: boolean; image?: string; place?: string }
   | { kind: 'type'; bg: string; ink: string; title: string; when: string }
 
 export const POSTERS: PosterDef[] = [

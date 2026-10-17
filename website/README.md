@@ -50,37 +50,32 @@ invented stats, ratings or reviews on public pages (placeholders are marked
 | **City** | `/[city]` → all 8 cities | Told as one night out, 11 chapters: Hero · 01 The reasons (3D poster stack) · 02 The night (pinned 6 PM→3 AM scroll) · 03 The plan (departure board) · 04 The dare (spin your Saturday) · 05 The vibe (expanding panels) · 06 The neighbourhood (area reveal) · 07 The budget (price slider) · 08 The people (cursor-repel crowd) · 09 Your turn (host) · 10 FAQ · 11 See you out there (poster vortex). Same layout for every city — only data changes |
 | City lab | `/lab/city?hero=letters\|map\|flap\|deck&city=<slug>` | Compare the 4 heroes; lock the winner with `CITY_HERO` in `components/sections/city/CityPageView.tsx`. noindex |
 | **City × type** | `/[city]/[facet]` → 8 cities × 6 types = 48 | Ten chapters about one kind of night: Hero (cursor spotlight) · 01 On the list (live events from `/public/events`, sample fallback) · 02 The anatomy (scroll-drawn callouts) · 03 The guest list (seats fill, requests get accepted) · 04 The flyers (poster stack) · 05 The night (pinned horizontal timeline, dusk → midnight) · 06 The neighbourhood · 07 Your turn (live invite builder, 3D tilt) · 08 FAQ · 09 Something else · 10 Vortex. Copy per type in `lib/eventType.ts`; revalidates every 60s |
-| **Host** | `/host` | 2 variants — A "first party, start to finish" (sticky phone build, earnings example, mix dial, badge ladder), B "Backstage" (curtains, run of show, tearing ticket, request swipe, mixing desk, laminates). Lock with `HOST_VARIANT`; compare at `/lab/host?v=a\|b` |
-| **Hosting guides** | `/host/guides`, `/host/guides/[slug]` (6 guides) | 2 hub variants — A magazine, B dark playbook; one article template (progress bar, sticky TOC, Article JSON-LD). Copy in `lib/hostGuides.ts`. Lock with `GUIDES_VARIANT`; compare at `/lab/guides?v=a\|b` |
-| **Safety** | `/safety` | 2 variants — A "protected at every step" (journey, address unlock, SOS hold demo, crowd room), B "Layers of trust" (3D layers, torch two-views, map circle, SOS phone, door list). Lock with `SAFETY_VARIANT`; compare at `/lab/safety?v=a\|b` |
+| **Host landing** | `/host` | Live: A. 2 variants — A "first party, start to finish" (sticky phone build, earnings example, mix dial, badge ladder), B "Backstage" (curtains, run of show, tearing ticket, request swipe, mixing desk, laminates). Lock with `HOST_VARIANT`; compare at `/lab/host?v=a\|b` |
+| **Hosting guides** | `/host/guides`, `/host/guides/[slug]` (6 guides) | Live: A. 2 hub variants — A magazine, B dark playbook; one article template (progress bar, sticky TOC, Article JSON-LD). Copy in `lib/hostGuides.ts`. Lock with `GUIDES_VARIANT`; compare at `/lab/guides?v=a\|b` |
+| **Safety** | `/safety` | Live: A. 2 variants — A "protected at every step" (journey, address unlock, SOS hold demo, crowd room), B "Layers of trust" (3D layers, torch two-views, map circle, SOS phone, door list). Lock with `SAFETY_VARIANT`; compare at `/lab/safety?v=a\|b` |
 | **404** | any unknown URL / `notFound()` | Lights off: cursor torch reveals the 404 and hidden flyers; ticket scanned and stamped "Not on the list" |
 | **Neighbourhood** | `/[city]/[facet]` → 33 areas (e.g. `/mumbai/bandra`) | "Postcards": postcard hero, word-reveal feeling, events pinned on a line, lights-on building print, polaroid night with ticking postmark clock, duotone stamp sheet, luggage-tag types, neighbour postcard deck, send-a-postcard share, door-reveal host card, FAQ postcard, flipping sign-off, deckled paper edges. Area copy in `lib/area.ts`; generated images (OpenArt, Nano Banana 2) in `public/img/areas` — 8 city streets + 6 scenes |
 | **Event-type hubs** | `/[city]` (shared root segment) → `/house-parties`, `/rooftop-parties`, `/game-nights`, `/dinner-parties`, `/music-nights`, `/events` | India-wide: spotlight hero, live events across cities, anatomy, postcard city picker with real per-city counts, hour-by-hour, invite builder, FAQ, other types. Names match the app's types (dinner → Dinner parties, music → Music nights) |
+| **All cities** | `/cities` | Postcard grid of the 8 cities (generated street photos, live upcoming counts from `/public/cities`) · full neighbourhood index (all 33 area links) · type hubs · FAQ |
+| **Event detail** | `/e/[id]` (any event, on demand) | Simple: photo gallery · sticky decision card (when, area, price + fee, spots bar, crowd mix, age, request/book in app) · host card → profile · about + house rules · before you go · more nights. Event JSON-LD (area-level location only), OG image = cover. Past/cancelled → noindex |
+| **Host profile** | `/h/[username]` (any host, on demand) | Polaroid photo + badge stamp, counting stats (nights hosted, coming up, rating or "New") · upcoming nights · badge ladder (Rising→Legend progress) · how it works · host-your-own CTA. ProfilePage JSON-LD; thin profiles noindex; members who never hosted 404 |
 
 ### ⏳ To build — page templates (each template renders many URLs from data)
 | # | Screen | Route(s) | Generates |
 |---|---|---|---|
-| 2 | City × event type | `/[city]/[type]` e.g. `/mumbai/house-parties` | cities × 6 types |
-| 3 | City × time | `/[city]/tonight`, `/this-weekend`, `/new-years-eve`, `/holi`, `/diwali` | cities × occasions |
-| 4 | City × price | `/[city]/free-events`, `/under-500` | cities × 2 |
-| 5 | City × crowd | `/[city]/women-only`, `/21-plus` | cities × 2 |
-| 6 | Neighbourhood | `/[city]/[area]` e.g. `/mumbai/bandra` | ~10–20 per city |
-| 7 | Event type hub | `/house-parties`, `/rooftop-parties`, `/game-nights`, `/dinner-parties`, `/music-nights`, `/events` | 6 |
-| 8 | All cities | `/cities` | 1 |
-| 9 | Event detail | `/e/[id]` — link previews, "open in app" | dynamic |
-| 10 | Host profile | `/h/[username]` | dynamic |
-| 11 | Host landing | `/host` | 1 |
-| 12 | Host guides | `/host/guides`, `/host/guides/[slug]` (how to throw a house party, crowd mix…) | 1 + 1 per guide |
-| 13 | Payouts | `/host/payouts` | 1 |
-| 14 | Badges | `/host/badges` | 1 |
-| 15 | Safety | `/safety` | 1 |
-| 16 | Download | `/app` | 1 |
-| 17 | About | `/about` | 1 |
-| 18 | Help centre | `/help`, `/help/[topic]` | ~15 |
-| 19 | FAQ per type | `/[type]/faq` | 6 |
-| 20 | Legal | `/terms`, `/privacy`, `/guidelines`, `/refunds` | 4 |
-| 21 | 404 | `not-found` | 1 |
-| 22 | Blog (later) | `/blog`, `/blog/[slug]` | — |
+| 1 | City × time | `/[city]/tonight`, `/this-weekend`, `/new-years-eve`, `/holi`, `/diwali` | cities × occasions |
+| 2 | City × price | `/[city]/free-events`, `/under-500` | cities × 2 |
+| 3 | City × crowd | `/[city]/women-only`, `/21-plus` | cities × 2 |
+| 4 | Area × type | `/[city]/[area]/[type]` (neighbourhood pages already link here) | ~200 |
+| 5 | Payouts | `/host/payouts` | 1 |
+| 6 | Badges | `/host/badges` | 1 |
+| 7 | Download | `/app` | 1 |
+| 8 | About | `/about` | 1 |
+| 9 | Help centre | `/help`, `/help/[topic]` | ~15 |
+| 10 | Going-out + women's guides | `/guides`, `/guides/women/[slug]` | ~30 |
+| 11 | Legal | `/terms`, `/privacy`, `/guidelines`, `/refunds` | 4 |
+| 12 | Sitemap + robots | `sitemap.xml`, `robots.txt` (only indexable pages) | — |
+| 13 | Blog (later) | `/blog`, `/blog/[slug]` | — |
 
 SEO rule: a combination page is only indexed when it has real events or written
 content — otherwise `noindex` (no thin pages).
@@ -107,16 +102,16 @@ halloween, valentines-day, independence-day, eid, ganesh-chaturthi ·
 | City × type × time | `/[city]/[type]/[time]` | `/mumbai/house-parties/this-weekend` | 288 | API |
 | City × type × price | `/[city]/[type]/[price]` | `/mumbai/house-parties/free-events` | 144 | API |
 | City × type × crowd | `/[city]/[type]/[crowd]` | `/mumbai/house-parties/women-only` | 144 | API |
-| Type hub (India) | `/[type]` | `/house-parties` | 6 | API |
+| Type hub (India) | `/[type]` | `/house-parties` | 6 | ✅ built (`/[city]` root segment) |
 | Crowd hub (India) | `/[crowd]` | `/women-only` | 3 | API |
 | Price hub (India) | `/[price]` | `/free-events` | 3 | API |
 | Occasion hub (India) | `/[occasion]` | `/new-years-eve` | 10 | API |
 | Going-out guides | `/guides`, `/guides/[slug]` | `/guides/first-house-party` | ~20 | written |
 | Women's guides | `/guides/women`, `/guides/women/[slug]` | `/guides/women/going-out-solo-safely` | ~10 | written |
 | City guides | `/[city]/guide` | `/mumbai/guide` | 8 | written + API |
-| Hosting guides | `/host/guides/[slug]` | `/host/guides/how-to-throw-a-house-party` | ~15 | written |
-| Event | `/e/[id]` | — | every event | API |
-| Host profile | `/h/[username]` | — | every host | API |
+| Hosting guides | `/host/guides/[slug]` | `/host/guides/how-to-throw-a-house-party` | 6 now | ✅ built |
+| Event | `/e/[id]` | — | every event | ✅ built |
+| Host profile | `/h/[username]` | — | every host | ✅ built |
 
 **≈ 1,300 pages with 8 cities.** At ~75 cities: 75 × 8 areas × 6 types × 6 time/price/crowd
 facets ≈ **2–3 lakh** URLs. Rules that keep this from becoming spam:
@@ -126,8 +121,11 @@ facets ≈ **2–3 lakh** URLs. Rules that keep this from becoming spam:
 4. Every page gets unique copy from templates + live numbers (no duplicated paragraphs across pages).
 
 ### ⏳ Platform / backend work the pages depend on
-- Public read-only API (no login): `/public/events?city=&type=&when=&price=`, `/public/events/{id}`, `/public/hosts/{username}`, `/public/cities` — until then pages use sample data from `constants/content.ts`.
-- Add the website origin to server CORS.
+- ✅ Public read-only API (`server/routes/public.py`): `/public/events`, `/public/events/{id}`, `/public/hosts/{username}`, `/public/cities` — area-level location only, rate-limited, cached. Pages fall back to sample data from `constants/content.ts` if the API is down.
+- ✅ Website origin in server CORS (`WEBSITE_ORIGINS`).
+- ✅ `/public/reviews` — platform rating + latest written reviews (reviewer as first name + last initial) for the homepage.
+- ✅ Live data everywhere: city/type flyers + night timeline from real events (`lib/cityKit.ts`), homepage rails, invite cards and phone mock-ups (`components/ui/LiveEvents.tsx`). No placeholder testimonials/ratings left.
+- Dev seed: `server/scripts/seed_website_demo.py` (~90 upcoming events across all 33 neighbourhoods; `--clean` to remove). Review list: `website/AUDIT.md`.
 - Real App Store / Play Store URLs (`APP_LINKS` in `constants/nav.ts`).
 - Replace placeholder testimonials + rating (`TESTIMONIALS`, `APP_RATING`) with real ones.
 - `sitemap.ts`, `robots.ts`, per-page metadata + JSON-LD (Event, Organization, FAQPage, BreadcrumbList).

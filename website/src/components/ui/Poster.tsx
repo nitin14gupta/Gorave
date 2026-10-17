@@ -16,7 +16,8 @@ interface Props {
 export function Poster({ poster, area, width = 220, height = 290, radius = 16, className }: Props) {
   const box = cn('relative shrink-0 overflow-hidden bg-tile', className)
   const style = { width, height, borderRadius: radius }
-  const sub = [area, 'when' in poster ? poster.when : null].filter(Boolean).join(' · ')
+  const place = poster.kind === 'photo' && poster.place ? poster.place : area
+  const sub = [place, 'when' in poster ? poster.when : null].filter(Boolean).join(' · ')
 
   if (poster.kind === 'template') {
     return (
@@ -29,7 +30,7 @@ export function Poster({ poster, area, width = 220, height = 290, radius = 16, c
   if (poster.kind === 'photo') {
     return (
       <div className={box} style={style}>
-        <Image src={PHOTOS[poster.photo]} alt="" fill sizes={`${width * 2}px`} className="object-cover" draggable={false} />
+        <Image src={poster.image ?? PHOTOS[poster.photo]} alt="" fill sizes={`${width * 2}px`} className="object-cover" draggable={false} />
         <div className="absolute inset-0 bg-gradient-to-b from-black/5 from-30% to-black/65" />
         <div className="absolute inset-x-3.5 bottom-3.5 text-white">
           <div className="font-display font-extrabold leading-[0.9] tracking-[-0.04em]" style={{ fontSize: width * (poster.big ? 0.2 : 0.13) }}>{poster.title}</div>

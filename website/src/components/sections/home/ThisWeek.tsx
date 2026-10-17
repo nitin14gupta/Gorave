@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
-import { BROWSE_CITIES, SAMPLE_EVENTS } from '@/constants'
+import { BROWSE_CITIES, type SampleEvent } from '@/constants'
 import { cn } from '@/lib/cn'
 import { Eyebrow, H2 } from '@/components/ui/atoms'
 import { EventCard } from '@/components/ui/EventCard'
@@ -11,10 +11,10 @@ import { EventCard } from '@/components/ui/EventCard'
 const EASE = [0.2, 0.8, 0.2, 1] as const
 
 /** Real events by city in a draggable rail — replaces a decorative marquee. */
-export function ThisWeek() {
+export function ThisWeek({ byCity }: { byCity: Record<string, SampleEvent[]> }) {
   const [city, setCity] = useState<string>(BROWSE_CITIES[0])
   const constraintsRef = useRef<HTMLDivElement>(null)
-  const events = useMemo(() => SAMPLE_EVENTS.filter(e => e.city === city), [city])
+  const events = useMemo(() => byCity[city] ?? [], [byCity, city])
 
   return (
     <section className="bg-paper py-28">

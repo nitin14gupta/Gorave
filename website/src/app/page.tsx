@@ -1,3 +1,5 @@
+import { BROWSE_CITIES, SAMPLE_EVENTS } from '@/constants'
+import { cardEvents, fetchReviews } from '@/lib/api'
 import { Hero } from '@/components/sections/home/Hero'
 import { ThisWeek } from '@/components/sections/home/ThisWeek'
 import { OneLink } from '@/components/sections/home/OneLink'
@@ -11,13 +13,23 @@ import { Testimonials } from '@/components/sections/home/Testimonials'
 import { SaturdayCta } from '@/components/sections/home/SaturdayCta'
 import { SiteFooter } from '@/components/layout/SiteFooter'
 import { FloatingDock } from '@/components/layout/FloatingDock'
+import { LiveEventsProvider } from '@/components/ui/LiveEvents'
 
-export default function HomePage() {
+export const revalidate = 60
+
+export default async function HomePage() {
+  const [perCity, reviews] = await Promise.all([
+    Promise.all(BROWSE_CITIES.map(c => cardEvents({ city: c, limit: 12 }, e => e.city === c))),
+    fetchReviews(4),
+  ])
+  const byCity = Object.fromEntries(BROWSE_CITIES.map((c, i) => [c, perCity[i].events]))
+  // Mock-up screens show real events with photos; samples only if the API is down.
+  const featured = perCity.flatMap(r => r.events).filter(e => e.image)
   return (
-    <>
+    <LiveEventsProvider events={featured.length ? featured : SAMPLE_EVENTS}>
       <main>
         <Hero />
-        <ThisWeek />
+        <ThisWeek byCity={byCity} />
         <OneLink />
         <GroupChat />
         <EventTypes />
@@ -25,11 +37,11 @@ export default function HomePage() {
         <MoreThanInvite />
         <Safety />
         <Hosts />
-        <Testimonials />
+        <Testimonials data={reviews} />
         <SaturdayCta />
       </main>
       <SiteFooter />
       <FloatingDock />
-    </>
+    </LiveEventsProvider>
   )
 }

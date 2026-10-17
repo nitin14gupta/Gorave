@@ -1,7 +1,6 @@
 import type { ReactNode } from 'react'
-import { SAMPLE_EVENTS } from '@/constants'
 import { H2, Lede } from '@/components/ui/atoms'
-import { InviteCard } from '@/components/ui/InviteCard'
+import { LiveInviteCard } from '@/components/ui/LiveEvents'
 import { TicketCard } from '@/components/ui/TicketCard'
 import { Reveal, Stagger, StaggerItem } from '@/components/motion/Reveal'
 
@@ -10,7 +9,7 @@ const STEPS: { n: string; title: string; body: string; art: ReactNode }[] = [
     n: '01',
     title: 'Find your night',
     body: 'Browse by vibe, date or price. Closest to you first.',
-    art: <InviteCard event={SAMPLE_EVENTS[1]} width={240} tilt={-3} />,
+    art: <LiveInviteCard index={1} width={240} tilt={-3} />,
   },
   {
     n: '02',
