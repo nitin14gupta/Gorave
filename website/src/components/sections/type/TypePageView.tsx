@@ -15,6 +15,7 @@ import { InviteBuilder } from './InviteBuilder'
 import { OtherTypes } from './OtherTypes'
 import { buildCityKit } from '@/lib/cityKit'
 import { CityKitProvider } from '@/components/sections/city/CityKit'
+import { ExploreLinks } from '@/components/sections/shared/ExploreLinks'
 
 interface Props {
   city: City
@@ -56,6 +57,7 @@ export function TypePageView({ city, slug, story, events }: Props) {
         <HourByHour city={city} story={content} />
         <AreaReveal city={city} chapter="06" title={`${story.plural} near you.`} subtitle={`Pick your part of ${city.name}.`} typeSlug={slug} />
         <InviteBuilder city={city} story={content} />
+        <ExploreLinks place={city.name} citySlug={city.slug} current={slug} />
         <Faq chapter="08" title={`${story.plural} in ${city.name}`} items={faq(city)} />
         <OtherTypes city={city} current={slug} />
         <Vortex city={city} chapter="10" posters={kit.posters} />

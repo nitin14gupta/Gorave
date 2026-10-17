@@ -19,6 +19,7 @@ import { Vortex } from './Vortex'
 import { Faq } from '@/components/sections/shared/Faq'
 import { SiteFooter } from '@/components/layout/SiteFooter'
 import { FloatingDock } from '@/components/layout/FloatingDock'
+import { ExploreLinks } from '@/components/sections/shared/ExploreLinks'
 
 // The hero the live /[city] pages use. Change this one line after picking in /lab/city.
 export const CITY_HERO: HeroKind = 'letters'
@@ -49,6 +50,7 @@ export function CityPageView({ city, hero = CITY_HERO, events = [], hosts = [], 
         <Crowd city={city} />
         <CityHost city={city} />
         <HostsStrip hosts={hosts} total={hostTotal} place={city.name} href={`/${city.slug}/hosts`} />
+        <ExploreLinks place={city.name} citySlug={city.slug} />
         <Faq chapter="10" title={`Going out in ${city.name}`} items={cityFaq(city)} />
         <OtherCities current={city} />
         <Vortex city={city} posters={kit.posters} />

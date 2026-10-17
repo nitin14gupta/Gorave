@@ -13,6 +13,9 @@ import { HostsView } from '@/components/sections/hosts/HostsView'
 import { CROWDS, getCrowd } from '@/lib/crowd'
 import { crowdPageData } from '@/lib/crowdPage'
 import { CrowdPageView } from '@/components/sections/crowd/CrowdPageView'
+import { TIMES, getTime } from '@/lib/time'
+import { timePageData } from '@/lib/timePage'
+import { TimePageView } from '@/components/sections/time/TimePageView'
 
 // /[city]/[facet], a facet is an event type (/mumbai/house-parties), a
 // neighbourhood (/mumbai/bandra) or the city's hosts (/mumbai/hosts). Time, price and crowd facets will resolve
@@ -26,6 +29,7 @@ export function generateStaticParams() {
     ...allAreaParams(),
     ...CITIES.map(c => ({ city: c.slug, facet: 'hosts' })),
     ...CITIES.flatMap(c => CROWDS.map(cr => ({ city: c.slug, facet: cr.slug }))),
+    ...CITIES.flatMap(c => TIMES.map(t => ({ city: c.slug, facet: t.slug }))),
   ]
 }
 
@@ -35,6 +39,8 @@ function resolve(citySlug: string, facet: string) {
   if (facet === 'hosts') return { kind: 'hosts' as const, city }
   const crowd = getCrowd(facet)
   if (crowd) return { kind: 'crowd' as const, city, crowd }
+  const time = getTime(facet)
+  if (time) return { kind: 'time' as const, city, time }
   const story = getTypeStory(facet)
   if (story) return { kind: 'type' as const, city, story }
   const area = getArea(citySlug, facet)
@@ -47,6 +53,13 @@ export async function generateMetadata({ params }: PageProps<'/[city]/[facet]'>)
   const r = resolve(c, facet)
   if (!r) return {}
   const url = absoluteUrl(`/${c}/${facet}`)
+  if (r.kind === 'time') {
+    const { city, time } = r
+    const title = `${time.label} in ${city.name}: house parties & things to do`
+    const description = `${time.heroLine} Live listings across ${city.areas.slice(0, 3).join(', ')} and more in ${city.name}.`
+    const live = await fetchEvents({ when: time.when, city: city.name, limit: 1 })
+    return { title, description, alternates: { canonical: url }, openGraph: { title, description, url, images: [time.image] }, robots: (live?.total ?? 0) >= 3 ? undefined : { index: false, follow: true } }
+  }
   if (r.kind === 'crowd') {
     const { city, crowd } = r
     const title = `${crowd.label} parties & nights in ${city.name}`
@@ -76,6 +89,7 @@ export default async function CityFacetPage({ params }: PageProps<'/[city]/[face
   const { city: c, facet } = await params
   const r = resolve(c, facet)
   if (!r) notFound()
+  if (r.kind === 'time') return <TimePageView {...await timePageData(r.time, r.city)} />
   if (r.kind === 'crowd') return <CrowdPageView {...await crowdPageData(r.crowd, r.city)} />
   if (r.kind === 'hosts') {
     const list = await fetchHosts(r.city.name, undefined, 48)

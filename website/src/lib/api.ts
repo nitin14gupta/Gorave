@@ -44,7 +44,7 @@ export interface PublicEventsQuery {
   city?: string
   type?: string
   area?: string
-  when?: 'tonight' | 'weekend' | 'week'
+  when?: 'tonight' | 'tomorrow' | 'weekend' | 'week'
   free?: boolean
   max_price?: number
   women_only?: boolean

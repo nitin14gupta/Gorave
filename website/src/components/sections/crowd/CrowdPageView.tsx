@@ -12,6 +12,7 @@ import { PlaceReveal } from './parts/PlaceReveal'
 import { HostCall } from './parts/HostCall'
 import { OtherCrowds } from './parts/OtherCrowds'
 import { SignOff } from './parts/SignOff'
+import { ExploreLinks } from '@/components/sections/shared/ExploreLinks'
 
 /**
  * Crowd page (/women-only, /mumbai/women-only): the best sections of the three
@@ -32,6 +33,7 @@ export function CrowdPageView({ crowd, place, events, total, places, others, faq
         <HowItHolds crowd={crowd} />
         <PlaceReveal crowd={crowd} place={place} places={places} />
         <HostCall crowd={crowd} place={place} others={others} />
+        <ExploreLinks place={place.name} citySlug={place.citySlug} current={crowd.slug} />
         <Faq chapter="08" title={`${crowd.label} nights, answered`} items={faq} />
         <OtherCrowds place={place} others={others} />
         <SignOff crowd={crowd} place={place} chapter="10" />

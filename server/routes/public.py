@@ -180,7 +180,7 @@ def public_events(
     city: Optional[str] = Query(default=None),
     type: Optional[str] = Query(default=None, description="event_type key, e.g. house_party"),
     area: Optional[str] = Query(default=None),
-    when: Optional[str] = Query(default=None, pattern="^(tonight|weekend|week)$"),
+    when: Optional[str] = Query(default=None, pattern="^(tonight|tomorrow|weekend|week)$"),
     free: Optional[bool] = Query(default=None),
     max_price: Optional[int] = Query(default=None, ge=0),
     women_only: Optional[bool] = Query(default=None),
@@ -210,6 +210,8 @@ def public_events(
     # IST calendar logic so "tonight" means tonight in India, not UTC.
     if when == "tonight":
         filters.append("(e.date_time AT TIME ZONE 'Asia/Kolkata')::date = (NOW() AT TIME ZONE 'Asia/Kolkata')::date")
+    elif when == "tomorrow":
+        filters.append("(e.date_time AT TIME ZONE 'Asia/Kolkata')::date = (NOW() AT TIME ZONE 'Asia/Kolkata')::date + 1")
     elif when == "weekend":
         filters.append("e.date_time < NOW() + INTERVAL '7 days'")
         filters.append("EXTRACT(ISODOW FROM e.date_time AT TIME ZONE 'Asia/Kolkata') IN (5, 6, 7)")

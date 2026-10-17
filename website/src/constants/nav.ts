@@ -24,7 +24,9 @@ export const MEGA_MENUS: MegaMenuDef[] = [
         heading: 'When',
         links: [
           { label: 'Tonight', href: '/mumbai/tonight' },
+          { label: 'Tomorrow', href: '/mumbai/tomorrow' },
           { label: 'This weekend', href: '/mumbai/this-weekend' },
+          { label: 'This week', href: '/mumbai/this-week' },
           { label: "New Year's Eve", href: '/mumbai/new-years-eve' },
           { label: 'Holi', href: '/mumbai/holi' },
           { label: 'Diwali', href: '/mumbai/diwali' },
@@ -36,7 +38,9 @@ export const MEGA_MENUS: MegaMenuDef[] = [
           { label: 'Free events', href: '/mumbai/free-events' },
           { label: 'Under ₹500', href: '/mumbai/under-500' },
           { label: 'Women only', href: '/mumbai/women-only' },
+          { label: 'Balanced crowd', href: '/mumbai/balanced-crowd' },
           { label: '21+ nights', href: '/mumbai/21-plus' },
+          { label: '25+ nights', href: '/mumbai/25-plus' },
         ],
       },
     ],
@@ -61,7 +65,7 @@ export const NAV_LINKS = [
 ]
 
 export const FOOTER_COLUMNS: MenuColumn[] = [
-  { heading: 'Explore', links: [{ label: 'Events near you', href: '/mumbai' }, { label: 'This weekend', href: '/mumbai/this-weekend' }, { label: 'Free events', href: '/mumbai/free-events' }, { label: 'All cities', href: '/cities' }] },
+  { heading: 'Explore', links: [{ label: 'Tonight', href: '/tonight' }, { label: 'This weekend', href: '/this-weekend' }, { label: 'Women-only nights', href: '/women-only' }, { label: 'House parties', href: '/house-parties' }, { label: 'All cities', href: '/cities' }] },
   { heading: 'Host', links: [{ label: 'Host on Gorave', href: '/host' }, { label: 'How payouts work', href: '/host/payouts' }, { label: 'Hosting guides', href: '/host/guides' }, { label: 'Badges', href: '/host/badges' }] },
   { heading: 'Company', links: [{ label: 'About', href: '/about' }, { label: 'Safety', href: '/safety' }, { label: 'Blog', href: '/blog' }] },
   { heading: 'Help', links: [{ label: 'Help centre', href: '/help' }, { label: 'Contact', href: 'mailto:support@gorave.in' }, { label: 'Terms', href: '/terms' }, { label: 'Privacy', href: '/privacy' }] },

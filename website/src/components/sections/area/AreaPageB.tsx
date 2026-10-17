@@ -15,6 +15,7 @@ import { HostPostcard } from './b/HostPostcard'
 import { FaqPostcard } from './b/FaqPostcard'
 import { HostsStrip } from '@/components/sections/hosts/HostsStrip'
 import { SignOff } from './b/SignOff'
+import { ExploreLinks } from '@/components/sections/shared/ExploreLinks'
 
 /**
  * Variant B"Postcards". A warm, paper-and-cream neighbourhood page where
@@ -37,6 +38,7 @@ export function AreaPageB({ area, events, crumbs, faq, hosts, hostTotal }: AreaV
         <SendPostcard area={area} />
         <HostPostcard area={area} />
         <HostsStrip hosts={hosts} total={hostTotal} place={area.name} href={`/${area.city.slug}/${area.slug}/hosts`} />
+        <ExploreLinks place={area.city.name} citySlug={area.city.slug} />
         <FaqPostcard area={area}>
           <Faq chapter="10" title={`Good to know in ${area.name}.`} items={faq} />
         </FaqPostcard>

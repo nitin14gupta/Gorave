@@ -10,6 +10,7 @@ import { TypeCities } from './TypeCities'
 import { HourByHour } from './HourByHour'
 import { InviteBuilder } from './InviteBuilder'
 import { OtherTypes } from './OtherTypes'
+import { ExploreLinks } from '@/components/sections/shared/ExploreLinks'
 
 // The hub talks about the whole country; the city sections read `name` and
 // `areas`, so India stands in as a "city" whose areas are our cities.
@@ -41,6 +42,7 @@ export function TypeHubView({ slug, story, events, cities }: Props) {
         <TypeCities story={content} slug={slug} cities={cities} />
         <HourByHour city={INDIA} story={content} chapter="04" />
         <InviteBuilder city={INDIA} story={content} chapter="05" />
+        <ExploreLinks place="India" citySlug={null} current={slug} />
         <Faq chapter="06" title={`${story.plural} in India`} items={faq(INDIA)} />
         <OtherTypes city={INDIA} current={slug} hub chapter="07" />
       </main>
