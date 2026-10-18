@@ -62,6 +62,7 @@ invented stats, ratings or reviews on public pages (placeholders are marked
 | **404** | any unknown URL / `notFound()` | Lights off: cursor torch reveals the 404 and hidden flyers; ticket scanned and stamped "Not on the list" |
 | **Neighbourhood** | `/[city]/[facet]` → 33 areas (e.g. `/mumbai/bandra`) | "Postcards": postcard hero, word-reveal feeling, events pinned on a line, lights-on building print, polaroid night with ticking postmark clock, duotone stamp sheet, luggage-tag types, neighbour postcard deck, send-a-postcard share, door-reveal host card, FAQ postcard, flipping sign-off, deckled paper edges. Area copy in `lib/area.ts`; generated images (OpenArt, Nano Banana 2) in `public/img/areas` — 8 city streets + 6 scenes |
 | **Area × type** | `/[city]/[facet]/[sub]` → 30 areas × 6 types = 180 (e.g. `/mumbai/bandra/rooftop-parties`) | Told as one night: the window (title parts as a photo window opens to full screen) · 01 lineup (event rows, photo slides open on hover; quiet areas show nearby) · 02 the feeling (scroll-driven word rows with photo pills, area vibe) · 03 fly-through (pinned, anatomy cards rush in from depth through receding rings) · 04 by the clock (pinned, odometer time + round photo + arc) · 05 getting in (pinned invite: request → yes → address scrambles to unlocked, QR drops in) · 06 city grid (every area × type, live counts, crosshair + cursor preview) · hosts · 07 FAQ · explore links · 08 the window closes (full-screen photo shrinks into a ticket). Data in `lib/areaType.ts`; noindex until something is listed. Neighbourhood luggage tags link here |
+| **Guides (going out + women)** | `/guides`, `/guides/[slug]` (20), `/guides/women/[slug]` (10) | One page, no listing grid: hero chat (questions are real guides, replies link in) + the night in 5 stops · 01 the night (pinned horizontal walk 4 PM → morning after, light changes, sun crosses a bar; every guide set as the question you'd ask a friend; cursor cover + short answer; "Guides for women" toggle lights the women's ones) · 02 ask anything (type a question, the best guide answers with its 3-line short version) · 03 for women (4 real product rules, each opening its guide) · 04 go out. Articles reuse the hosting-guide reader + a "short version" box. Copy in `lib/guides/*.ts`, questions + stages in `lib/goingOut.ts` |
 | **Event-type hubs** | `/[city]` (shared root segment) → `/house-parties`, `/rooftop-parties`, `/game-nights`, `/dinner-parties`, `/music-nights`, `/events` | India-wide: spotlight hero, live events across cities, anatomy, postcard city picker with real per-city counts, hour-by-hour, invite builder, FAQ, other types. Names match the app's types (dinner → Dinner parties, music → Music nights) |
 | **All cities** | `/cities` | Postcard grid of the 8 cities (generated street photos, live upcoming counts from `/public/cities`) · full neighbourhood index (all 33 area links) · type hubs · FAQ |
 | **Event detail** | `/e/[id]` (any event, on demand) | Simple: photo gallery · sticky decision card (when, area, price + fee, spots bar, crowd mix, age, request/book in app) · host card → profile · about + house rules · before you go · more nights. Event JSON-LD (area-level location only), OG image = cover. Past/cancelled → noindex |
@@ -80,7 +81,6 @@ invented stats, ratings or reviews on public pages (placeholders are marked
 | 1 | City × occasion | `/[city]/new-years-eve`, `/holi`, `/diwali` (time pages 🧪 in lab) | cities × occasions |
 | 2 | City × price | `/[city]/free-events`, `/under-500` | cities × 2 |
 | 9 | Help centre | `/help`, `/help/[topic]` | ~15 |
-| 10 | Going-out + women's guides | `/guides`, `/guides/women/[slug]` | ~30 |
 | 11 | Legal | `/terms`, `/privacy`, `/guidelines`, `/refunds` | 4 |
 | 12 | Sitemap + robots | `sitemap.xml`, `robots.txt` (only indexable pages) | — |
 | 13 | Blog (later) | `/blog`, `/blog/[slug]` | — |
@@ -114,8 +114,8 @@ halloween, valentines-day, independence-day, eid, ganesh-chaturthi ·
 | Crowd hub (India) | `/[crowd]` | `/women-only` | 4 | ✅ built (lab variants) |
 | Price hub (India) | `/[price]` | `/free-events` | 3 | API |
 | Occasion hub (India) | `/[occasion]` | `/new-years-eve` | 10 | API |
-| Going-out guides | `/guides`, `/guides/[slug]` | `/guides/first-house-party` | ~20 | written |
-| Women's guides | `/guides/women`, `/guides/women/[slug]` | `/guides/women/going-out-solo-safely` | ~10 | written |
+| Going-out guides | `/guides`, `/guides/[slug]` | `/guides/first-house-party` | 20 | ✅ built |
+| Women's guides | `/guides/women/[slug]` (listed on `/guides`, no separate hub) | `/guides/women/going-out-solo-safely` | 10 | ✅ built |
 | City guides | `/[city]/guide` | `/mumbai/guide` | 8 | written + API |
 | Hosting guides | `/host/guides/[slug]` | `/host/guides/how-to-throw-a-house-party` | 6 now | ✅ built |
 | Event | `/e/[id]` | — | every event | ✅ built |

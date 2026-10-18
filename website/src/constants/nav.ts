@@ -60,12 +60,12 @@ export const MEGA_MENUS: MegaMenuDef[] = [
 
 export const NAV_LINKS = [
   { label: 'Host', href: '/host' },
-  { label: 'Guides', href: '/host/guides' },
+  { label: 'Guides', href: '/guides' },
   { label: 'Safety', href: '/safety' },
 ]
 
 export const FOOTER_COLUMNS: MenuColumn[] = [
-  { heading: 'Explore', links: [{ label: 'Tonight', href: '/tonight' }, { label: 'This weekend', href: '/this-weekend' }, { label: 'Women-only nights', href: '/women-only' }, { label: 'House parties', href: '/house-parties' }, { label: 'All cities', href: '/cities' }] },
+  { heading: 'Explore', links: [{ label: 'Tonight', href: '/tonight' }, { label: 'This weekend', href: '/this-weekend' }, { label: 'Women-only nights', href: '/women-only' }, { label: 'House parties', href: '/house-parties' }, { label: 'Going-out guides', href: '/guides' }, { label: 'All cities', href: '/cities' }] },
   { heading: 'Host', links: [{ label: 'Host on Gorave', href: '/host' }, { label: 'How payouts work', href: '/host/payouts' }, { label: 'Hosting guides', href: '/host/guides' }, { label: 'Badges', href: '/host/badges' }] },
   { heading: 'Company', links: [{ label: 'About', href: '/about' }, { label: 'Safety', href: '/safety' }, { label: 'Blog', href: '/blog' }] },
   { heading: 'Help', links: [{ label: 'Help centre', href: '/help' }, { label: 'Contact', href: 'mailto:support@gorave.in' }, { label: 'Terms', href: '/terms' }, { label: 'Privacy', href: '/privacy' }] },

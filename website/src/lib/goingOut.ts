@@ -61,7 +61,43 @@ export const GUIDES_HUB_CRUMBS: Crumb[] = [
   { label: 'Home', href: '/' },
   { label: 'Guides', href: '/guides' },
 ]
-export const WOMEN_HUB_CRUMBS: Crumb[] = [...GUIDES_HUB_CRUMBS, { label: 'For women', href: '/guides/women' }]
+/** Women's guides live under /guides too (there is no separate listing page). */
+export const WOMEN_HUB_CRUMBS: Crumb[] = GUIDES_HUB_CRUMBS
+
+/** Each guide as the question you'd ask a friend. Used by the /guides page. */
+export const QUESTIONS: Record<string, string> = {
+  'first-house-party': 'It’s my first house party. What happens?',
+  'going-to-a-party-alone': 'Can I go alone?',
+  'how-to-read-an-event-listing': 'How do I read a listing?',
+  'free-vs-paid-house-parties': 'Free or paid, what’s the difference?',
+  'planning-a-weekend-of-house-parties': 'Can I plan a whole weekend?',
+  'choosing-a-house-party-you-feel-good-about': 'How do I pick one I’ll feel good about?',
+  'women-only-events-explained': 'How do women-only nights work?',
+  'reading-the-crowd-mix': 'What does 50:50 actually mean?',
+  'going-with-friends-or-alone': 'Bring friends, or go solo?',
+  'going-out-solo-safely': 'Going solo as a woman, where do I start?',
+  'how-request-to-join-works': 'How does request-to-join work?',
+  'how-to-get-accepted-to-a-house-party': 'How do I get accepted?',
+  'what-to-bring-to-a-house-party': 'What do I bring?',
+  'what-to-wear-to-a-house-party': 'What do I wear?',
+  'house-party-etiquette': 'What are the unwritten rules?',
+  'first-rooftop-party': 'First rooftop party, anything to know?',
+  'first-game-night': 'Game night with strangers?',
+  'dinner-party-with-strangers': 'Dinner with people I’ve never met?',
+  'living-room-gig-etiquette': 'How do living-room gigs work?',
+  'introverts-guide-to-house-parties': 'What if I’m an introvert?',
+  'setting-boundaries-at-a-party': 'How do I set boundaries?',
+  'when-the-party-isnt-your-vibe': 'What if it’s not my vibe?',
+  'if-you-feel-uncomfortable-at-a-party': 'What if I feel uncomfortable?',
+  'using-sos-and-live-location': 'How does SOS work?',
+  'leaving-a-party-early': 'Can I leave early?',
+  'getting-home-safely-after-a-party': 'How do I get home safe?',
+  'getting-home-late-at-night': 'It’s late. What’s the plan?',
+  'rating-and-reviewing-a-host': 'How do I rate the host?',
+  'how-to-make-friends-in-a-new-city': 'How do I turn tonight into friends?',
+  'hosting-a-women-only-night': 'Could I host a women-only night?',
+}
+export const questionOf = (g: Pick<OutGuide, 'slug' | 'title'>) => QUESTIONS[g.slug] ?? g.title
 
 /** The night in five stops, each with the guides that belong to it (both collections). */
 export const NIGHT_STAGES = [

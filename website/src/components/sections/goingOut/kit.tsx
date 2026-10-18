@@ -1,7 +1,5 @@
-import Image from 'next/image'
-import Link from 'next/link'
 import { PHOTOS } from '@/constants'
-import { outGuideHref, type OutGuide } from '@/lib/goingOut'
+import type { OutGuide } from '@/lib/goingOut'
 import { Button } from '@/components/ui/Button'
 import { Chapter, StoreBadges } from '@/components/ui/atoms'
 import { cn } from '@/lib/cn'
@@ -15,21 +13,6 @@ export const guidePhoto = (g: OutGuide) => PHOTOS[g.hero]
 /** "For women" pill for guides in the women's collection. */
 export function WomenTag({ className }: { className?: string }) {
   return <span className={cn('rounded-full bg-blush px-2.5 py-1 font-sans text-[11px] font-bold text-blush-ink', className)}>For women</span>
-}
-
-/** A guide as a photo card. */
-export function GuideTile({ g, className, tall }: { g: OutGuide; className?: string; tall?: boolean }) {
-  return (
-    <Link href={outGuideHref(g)} className={cn('group block', className)}>
-      <div className={cn('relative overflow-hidden rounded-[26px] bg-tile', tall ? 'aspect-[4/5]' : 'aspect-[4/3]')}>
-        <Image src={guidePhoto(g)} alt="" fill sizes="(min-width: 1024px) 400px, 90vw" className="object-cover transition-transform duration-[1.1s] ease-out-expo group-hover:scale-[1.06]" />
-        {g.collection === 'women' && <WomenTag className="absolute left-3 top-3" />}
-      </div>
-      <div className="mt-4 font-sans text-xs font-bold uppercase tracking-[0.14em] text-ink-3">{g.category} · {g.readMinutes} min</div>
-      <div className="mt-1.5 font-display text-[24px] font-extrabold leading-[1.05] tracking-[-0.035em] transition-colors group-hover:text-orange">{g.title}</div>
-      <p className="mt-2 line-clamp-2 font-sans text-[15px] leading-relaxed text-ink-2">{g.dek}</p>
-    </Link>
-  )
 }
 
 /** Shared last section: stop reading, go out. */
