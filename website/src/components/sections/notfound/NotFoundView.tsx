@@ -105,9 +105,9 @@ export function NotFoundView() {
         <ScanDesk />
       </div>
 
-      <div className="pointer-events-none absolute inset-x-0 bottom-5 z-10 hidden text-center font-sans text-xs font-bold uppercase tracking-[0.2em] text-ink-2/60 md:block">
+      {/* <div className="pointer-events-none absolute inset-x-0 bottom-5 z-10 hidden text-center font-sans text-xs font-bold uppercase tracking-[0.2em] text-ink-2/60 md:block">
         Lights are off. Move your torch around
-      </div>
+      </div> */}
     </main>
   )
 }

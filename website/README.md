@@ -61,6 +61,7 @@ invented stats, ratings or reviews on public pages (placeholders are marked
 | **Safety** | `/safety` | Live: A. 2 variants — A "protected at every step" (journey, address unlock, SOS hold demo, crowd room), B "Layers of trust" (3D layers, torch two-views, map circle, SOS phone, door list). Lock with `SAFETY_VARIANT`; compare at `/lab/safety?v=a\|b` |
 | **404** | any unknown URL / `notFound()` | Lights off: cursor torch reveals the 404 and hidden flyers; ticket scanned and stamped "Not on the list" |
 | **Neighbourhood** | `/[city]/[facet]` → 33 areas (e.g. `/mumbai/bandra`) | "Postcards": postcard hero, word-reveal feeling, events pinned on a line, lights-on building print, polaroid night with ticking postmark clock, duotone stamp sheet, luggage-tag types, neighbour postcard deck, send-a-postcard share, door-reveal host card, FAQ postcard, flipping sign-off, deckled paper edges. Area copy in `lib/area.ts`; generated images (OpenArt, Nano Banana 2) in `public/img/areas` — 8 city streets + 6 scenes |
+| **Area × type** | `/[city]/[facet]/[sub]` → 30 areas × 6 types = 180 (e.g. `/mumbai/bandra/rooftop-parties`) | Told as one night: the window (title parts as a photo window opens to full screen) · 01 lineup (event rows, photo slides open on hover; quiet areas show nearby) · 02 the feeling (scroll-driven word rows with photo pills, area vibe) · 03 fly-through (pinned, anatomy cards rush in from depth through receding rings) · 04 by the clock (pinned, odometer time + round photo + arc) · 05 getting in (pinned invite: request → yes → address scrambles to unlocked, QR drops in) · 06 city grid (every area × type, live counts, crosshair + cursor preview) · hosts · 07 FAQ · explore links · 08 the window closes (full-screen photo shrinks into a ticket). Data in `lib/areaType.ts`; noindex until something is listed. Neighbourhood luggage tags link here |
 | **Event-type hubs** | `/[city]` (shared root segment) → `/house-parties`, `/rooftop-parties`, `/game-nights`, `/dinner-parties`, `/music-nights`, `/events` | India-wide: spotlight hero, live events across cities, anatomy, postcard city picker with real per-city counts, hour-by-hour, invite builder, FAQ, other types. Names match the app's types (dinner → Dinner parties, music → Music nights) |
 | **All cities** | `/cities` | Postcard grid of the 8 cities (generated street photos, live upcoming counts from `/public/cities`) · full neighbourhood index (all 33 area links) · type hubs · FAQ |
 | **Event detail** | `/e/[id]` (any event, on demand) | Simple: photo gallery · sticky decision card (when, area, price + fee, spots bar, crowd mix, age, request/book in app) · host card → profile · about + house rules · before you go · more nights. Event JSON-LD (area-level location only), OG image = cover. Past/cancelled → noindex |
@@ -78,7 +79,6 @@ invented stats, ratings or reviews on public pages (placeholders are marked
 |---|---|---|---|
 | 1 | City × occasion | `/[city]/new-years-eve`, `/holi`, `/diwali` (time pages 🧪 in lab) | cities × occasions |
 | 2 | City × price | `/[city]/free-events`, `/under-500` | cities × 2 |
-| 4 | Area × type | `/[city]/[area]/[type]` (neighbourhood pages already link here) | ~200 |
 | 9 | Help centre | `/help`, `/help/[topic]` | ~15 |
 | 10 | Going-out + women's guides | `/guides`, `/guides/women/[slug]` | ~30 |
 | 11 | Legal | `/terms`, `/privacy`, `/guidelines`, `/refunds` | 4 |
@@ -106,7 +106,7 @@ halloween, valentines-day, independence-day, eid, ganesh-chaturthi ·
 | City × price | `/[city]/[price]` | `/mumbai/free-events` | 24 | API `free` / `max_price` |
 | City × crowd | `/[city]/[crowd]` | `/mumbai/women-only` | 32 | ✅ built (lab variants) |
 | Neighbourhood | `/[city]/[area]` | `/mumbai/bandra` | 33 | ✅ built (`/[city]/[facet]`) |
-| Area × type | `/[city]/[area]/[type]` | `/mumbai/bandra/rooftop-parties` | ~384 | API `area`+`type` |
+| Area × type | `/[city]/[area]/[type]` | `/mumbai/bandra/rooftop-parties` | 180 | ✅ built (`/[city]/[facet]/[sub]`) |
 | City × type × time | `/[city]/[type]/[time]` | `/mumbai/house-parties/this-weekend` | 288 | API |
 | City × type × price | `/[city]/[type]/[price]` | `/mumbai/house-parties/free-events` | 144 | API |
 | City × type × crowd | `/[city]/[type]/[crowd]` | `/mumbai/house-parties/women-only` | 144 | API |

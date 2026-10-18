@@ -1,5 +1,3 @@
-import Link from 'next/link'
-import type { ReactNode } from 'react'
 import { PHOTOS, type SampleEvent } from '@/constants'
 import { AREA_SCENES } from '@/lib/area'
 import { BADGE_TIERS, HOST_FEES } from '@/lib/host'
@@ -172,12 +170,5 @@ export function Ctas({ className, badges = true, size = 'lg' }: { className?: st
   )
 }
 
-/** Small serif-italic link with an arrow, for the "proof" links. */
-export function ProofLink({ href, children, className }: { href: string; children: ReactNode; className?: string }) {
-  return (
-    <Link href={href} className={cn('group inline-flex items-center gap-2 font-sans text-[15px] font-bold text-ink', className)}>
-      <span className="border-b-[1.5px] border-ink/25 pb-0.5 transition-colors group-hover:border-orange">{children}</span>
-      <span aria-hidden className="transition-transform duration-500 ease-out-expo group-hover:translate-x-1">→</span>
-    </Link>
-  )
-}
+/** Underlined link with an arrow, for the "proof" links (shared: components/ui/ProofLink). */
+export { ProofLink } from '@/components/ui/ProofLink'

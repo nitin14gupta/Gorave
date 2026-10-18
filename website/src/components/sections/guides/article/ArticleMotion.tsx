@@ -6,6 +6,9 @@ import { useEffect, useRef, useState } from 'react'
 import { motion, useScroll, useSpring, useTransform } from 'motion/react'
 import { PHOTOS } from '@/constants'
 import type { HostGuide } from '@/lib/hostGuides'
+
+/** What the article pieces need from any guide (hosting, going-out or women's). */
+export type ArticleMeta = Pick<HostGuide, 'title' | 'dek' | 'readMinutes' | 'hero'> & { category: string }
 import type { Crumb } from '@/lib/seo'
 import { Breadcrumbs } from '@/components/ui/Breadcrumbs'
 import { cn } from '@/lib/cn'
@@ -20,7 +23,7 @@ export function ReadingProgress() {
 }
 
 /** Full-bleed photo that sinks slower than the page while the headline lifts away. */
-export function ArticleHero({ guide, crumbs }: { guide: HostGuide; crumbs: Crumb[] }) {
+export function ArticleHero({ guide, crumbs, kicker = 'Gorave hosting guide' }: { guide: ArticleMeta; crumbs: Crumb[]; kicker?: string }) {
   const ref = useRef<HTMLElement>(null)
   const { scrollYProgress } = useScroll({ target: ref, offset: ['start start', 'end start'] })
   const imgY = useTransform(scrollYProgress, [0, 1], ['0%', '28%'])
@@ -47,7 +50,7 @@ export function ArticleHero({ guide, crumbs }: { guide: HostGuide; crumbs: Crumb
             <span className="rounded-full bg-white/15 px-3 py-1 backdrop-blur">{guide.category}</span>
             <span>{guide.readMinutes} min read</span>
             <span>·</span>
-            <span>Gorave hosting guide</span>
+            <span>{kicker}</span>
           </motion.div>
           <motion.h1
             initial={{ opacity: 0, y: 40 }}
@@ -113,7 +116,7 @@ export function Toc({ items }: { items: { id: string; label: string }[] }) {
 }
 
 /** "Read next"the photo slides in from the side as the card scrolls up, and zooms on hover. */
-export function NextGuideCard({ guide, href }: { guide: HostGuide; href: string }) {
+export function NextGuideCard({ guide, href }: { guide: ArticleMeta; href: string }) {
   const ref = useRef<HTMLAnchorElement>(null)
   const { scrollYProgress } = useScroll({ target: ref, offset: ['start end', 'center center'] })
   const clip = useTransform(scrollYProgress, [0, 1], ['inset(0 0 0 100%)', 'inset(0 0 0 0%)'])

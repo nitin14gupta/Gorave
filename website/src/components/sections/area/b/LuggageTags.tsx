@@ -43,7 +43,7 @@ export function LuggageTags({ area }: { area: Area }) {
                   <path d="M20 0 C 14 18, 26 30, 20 52" stroke="currentColor" strokeWidth="1.3" />
                 </svg>
                 <Link
-                  href={`/${city.slug}/${t.slug}`}
+                  href={`/${city.slug}/${area.slug}/${t.slug}`}
                   className={cn('group absolute inset-x-0 bottom-0 top-10 flex flex-col p-4 pt-9', t.tint, t.ink)}
                   style={{ clipPath: TAG_SHAPE }}
                 >
@@ -56,7 +56,7 @@ export function LuggageTags({ area }: { area: Area }) {
                       {BARS.map((w, k) => <span key={k} className="bg-current" style={{ width: w }} />)}
                     </span>
                     <span className="mt-2 flex items-center justify-between font-sans text-xs font-bold">
-                      {city.name}
+                      {area.name}
                       <span className="inline-block transition-transform duration-300 group-hover:translate-x-1">→</span>
                     </span>
                   </span>
