@@ -60,7 +60,7 @@ export function proofLine(stats: { upcoming: number; liveCities: number }) {
 export const PAYOUT_FAQ: AccordionItem[] = [
   {
     q: 'When do I get paid?',
-    a: `After the event. Gorave collects the full ticket price when guests book, then automatically transfers your 90% to the UPI ID or bank account you've added. You don't have to request it.`,
+    a: `After the event. Gorave collects the full ticket price when guests book, then sends your 90% to the UPI ID or bank account you've added. If a payout hasn't arrived, write to support@gorave.in.`,
   },
   {
     q: 'How much does Gorave take?',

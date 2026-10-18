@@ -12,7 +12,7 @@ const STEPS = [
   { n: '01', title: 'Add a UPI ID', body: 'Type it in and the app verifies it, then shows you the account name so you know the money is going to the right person.' },
   { n: '02', title: 'Or a bank account', body: 'Holder name, account number and IFSC. We look up the bank and branch from the IFSC so you can check them at a glance.' },
   { n: '03', title: 'Locked to you', body: 'Payout details are encrypted. One UPI ID or bank account can be linked to only one Gorave account.' },
-  { n: '04', title: 'Host, then get paid', body: 'After the event, Gorave automatically transfers your 90% to the account you added. Nothing to request, nothing to chase.' },
+  { n: '04', title: 'Host, then get paid', body: 'After the event, Gorave sends your 90% to the account you added. No chasing guests for money.' },
 ]
 
 /**
