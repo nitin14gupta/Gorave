@@ -30,6 +30,7 @@ export function Team() {
   const ampScale = useTransform(deal, [0.4, 1], [0.4, 1])
   const ampOpacity = useTransform(deal, [0.4, 0.9], [0, 1])
   const ampRotate = useTransform(deal, [0.4, 1], [-30, 0])
+  const [active, setActive] = useState<string | null>(null)
 
   return (
     <section ref={ref} className="relative overflow-hidden bg-cream px-6 pb-28 pt-28 md:px-12 md:pb-36 md:pt-36 lg:px-20">
@@ -47,15 +48,18 @@ export function Team() {
         </div>
 
         <div className="relative mt-16 grid items-start gap-16 md:mt-24 md:grid-cols-[1fr_auto_1fr] md:gap-6">
-          <Card f={TEAM[0]} deal={deal} desktop={desktop} reduce={reduce} />
+          <Card f={TEAM[0]} deal={deal} desktop={desktop} reduce={reduce} hover={active === TEAM[0].key} onHover={on => setActive(on ? TEAM[0].key : null)} />
           <motion.div
             aria-hidden
             style={{ scale: ampScale, opacity: ampOpacity, rotate: ampRotate }}
-            className="hidden select-none self-center font-serif text-[clamp(140px,16vw,260px)] italic leading-none text-brand md:block"
+            className="hidden select-none self-center font-serif text-[clamp(140px,16vw,260px)] italic leading-none md:block"
           >
-            &amp;
+            {/* Steps back while a founder's note slides over it */}
+            <span className="block text-brand transition-[opacity,transform] duration-500" style={{ opacity: active ? 0.12 : 1, transform: active ? 'scale(.85)' : 'none' }}>
+              &amp;
+            </span>
           </motion.div>
-          <Card f={TEAM[1]} deal={deal} desktop={desktop} reduce={reduce} />
+          <Card f={TEAM[1]} deal={deal} desktop={desktop} reduce={reduce} hover={active === TEAM[1].key} onHover={on => setActive(on ? TEAM[1].key : null)} />
         </div>
 
         <div className="mx-auto mt-24 max-w-[860px] text-center md:mt-28">
@@ -70,8 +74,16 @@ export function Team() {
   )
 }
 
-function Card({ f, deal, desktop, reduce }: { f: Founder; deal: MotionValue<number>; desktop: boolean; reduce: boolean }) {
-  const [hover, setHover] = useState(false)
+interface CardProps {
+  f: Founder
+  deal: MotionValue<number>
+  desktop: boolean
+  reduce: boolean
+  hover: boolean
+  onHover: (on: boolean) => void
+}
+
+function Card({ f, deal, desktop, reduce, hover, onHover }: CardProps) {
   // Dealt from a shared stack in the middle out to its own column.
   const x = useTransform(deal, [0, 1], [desktop ? -f.side * 260 : 0, 0])
   const rotate = useTransform(deal, [0, 1], [f.side * 3, f.side * 5])
@@ -91,7 +103,7 @@ function Card({ f, deal, desktop, reduce }: { f: Founder; deal: MotionValue<numb
     my.set((e.clientY - r.top) / r.height - 0.5)
   }
   function onLeave() {
-    setHover(false)
+    onHover(false)
     mx.set(0)
     my.set(0)
   }
@@ -102,13 +114,13 @@ function Card({ f, deal, desktop, reduce }: { f: Founder; deal: MotionValue<numb
     <motion.div style={{ x, zIndex: f.side === -1 ? 2 : 1 }} className="relative mx-auto w-full max-w-[400px]">
       {/* The card */}
       <div style={{ perspective: 1100 }} className="relative">
-        {/* Note that slides out from behind on hover */}
+        {/* Note that slides out from behind, inward over the "&", on hover */}
         <div
           aria-hidden
-          className="absolute top-10 z-0 hidden w-[220px] rounded-2xl bg-white p-4 shadow-soft lg:block"
+          className="absolute top-[38%] z-0 hidden w-[240px] rounded-2xl bg-white p-5 shadow-pop lg:block"
           style={{
-            [f.side === -1 ? 'left' : 'right']: 0,
-            transform: hover ? `translateX(${f.side * 58}%) rotate(${f.side * 4}deg)` : 'translateX(0) rotate(0deg)',
+            [f.side === -1 ? 'right' : 'left']: 0,
+            transform: hover ? `translateX(${-f.side * 96}%) rotate(${-f.side * 4}deg)` : 'translateX(0) rotate(0deg)',
             opacity: hover ? 1 : 0,
             transition: `transform .6s ${EASE_CSS}, opacity .35s`,
           }}
@@ -118,7 +130,7 @@ function Card({ f, deal, desktop, reduce }: { f: Founder; deal: MotionValue<numb
 
         <motion.div style={{ rotate }} className="relative z-[1]">
           <motion.div
-            onPointerEnter={() => setHover(true)}
+            onPointerEnter={() => onHover(true)}
             onPointerMove={onMove}
             onPointerLeave={onLeave}
             animate={{ rotate: hover ? -f.side * 5 : 0, y: hover ? -14 : 0, scale: hover ? 1.03 : 1 }}
