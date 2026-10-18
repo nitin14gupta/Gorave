@@ -36,7 +36,7 @@ export const WOMEN_GUIDES: OutGuideDraft[] = [
         heading: 'Sort the basics before you leave',
         paragraphs: [
           'Charge your phone fully and carry a small power bank if you have one. Your phone is your ticket, your map and your way home, so a dead battery at midnight is the one problem worth preventing.',
-          'Tell one person where you’re going, the area and the rough time you expect to be back. On Gorave, set up your SOS contacts (you can add up to 5) before the night, not during it. One tap shares your live location with them, and it keeps sharing even if the app is in the background.',
+          'Tell one person where you’re going, the area and the rough time you expect to be back. On Gorave, set up your SOS contacts (you can add up to 5) before the night, not during it. One tap texts them your location.',
         ],
         tips: [
           'Keep a little money for an auto or cab separate from the rest, just in case.',
@@ -190,21 +190,21 @@ export const WOMEN_GUIDES: OutGuideDraft[] = [
   },
   {
     slug: 'using-sos-and-live-location',
-    title: 'How to use SOS and live location on Gorave',
+    title: 'How to use SOS on Gorave',
     dek: 'Set it up once, before you need it, and it’s one tap away for every night out.',
     category: 'Safety',
     hero: 'sceneDoor',
     takeaways: [
       'Add up to 5 emergency contacts you trust before your first event.',
-      'One tap on SOS shares your live location, and it keeps sharing with the app in the background.',
+      'One tap on SOS texts your current location to them as a map link.',
       'SOS supports your plan; it doesn’t replace calling 112 in an emergency.',
     ],
     body: [
       {
         heading: 'What SOS does',
         paragraphs: [
-          'Gorave has a one-tap SOS. When you use it, your live location is shared with the emergency contacts you’ve chosen, up to 5 of them. It keeps sharing even when the app is in the background, so you can switch to calling someone or booking a cab without it stopping.',
-          'It’s designed for the moment you want people you trust to know exactly where you are, quickly, without having to type out an address or explain the situation first.',
+          'Gorave has a one-tap SOS. When you use it, every emergency contact you’ve chosen (up to 5) gets a text message saying you may need help, with a map link to where you are at that moment.',
+          'It’s designed for the moment you want people you trust to know exactly where you are, quickly, without having to type out an address or explain the situation first. It’s a one-time alert, not a live tracker, so if you move somewhere else you can send it again (up to 3 times an hour).',
         ],
       },
       {
@@ -221,14 +221,14 @@ export const WOMEN_GUIDES: OutGuideDraft[] = [
       {
         heading: 'Make sure your phone can do its job',
         paragraphs: [
-          'Live location only works if your phone is on, has some charge and can reach a network. Leave home with a full battery, carry a power bank on longer nights, and turn on battery saver early rather than at 5%.',
-          'Check that Gorave has location permission on your phone. Without it, the app can’t share where you are.',
+          'SOS only works if your phone is on, has some charge and can reach a network. Leave home with a full battery, carry a power bank on longer nights, and turn on battery saver early rather than at 5%.',
+          'Check that Gorave has location permission on your phone and that location is switched on. Without it, SOS can’t send where you are.',
         ],
       },
       {
         heading: 'When to use it',
         paragraphs: [
-          'You don’t need to wait for things to be dramatic. If a situation is making you uneasy, if your ride home is going somewhere unexpected, or if you’ve lost your friends and your phone is dying, it’s fine to tap SOS so the people you trust can see where you are.',
+          'You don’t need to wait for things to be dramatic. If a situation is making you uneasy, if your ride home is going somewhere unexpected, or if you’ve lost your friends and your phone is dying, it’s fine to tap SOS so the people you trust know where you are.',
           'Your contacts can then call you, come to you or help you decide what to do next. It’s much easier for them to help when they don’t have to guess your location.',
         ],
       },
@@ -290,7 +290,7 @@ export const WOMEN_GUIDES: OutGuideDraft[] = [
         heading: 'Leaving early, the easy way',
         paragraphs: [
           'You can walk out of any party at any time. A quick “thanks, heading off” to the host is polite, but it isn’t required if you don’t feel like it. Book your cab from inside, wait somewhere you feel comfortable, and check the vehicle details before you get in.',
-          'If you’re worried about being followed out, or you’d just like someone to know, tap SOS on Gorave to share your live location with your emergency contacts. It keeps sharing in the background while you call someone or book your ride.',
+          'If you’re worried about being followed out, or you’d just like someone to know, tap SOS on Gorave to text your location to your emergency contacts.',
         ],
       },
       {
@@ -353,7 +353,7 @@ export const WOMEN_GUIDES: OutGuideDraft[] = [
           'Each of you needs to be confirmed on the event. Free events are request-to-join, so the host sees each profile and decides separately. Paid events book instantly in the app. Don’t assume a friend can just come along at the door; your ticket is a QR code and only confirmed guests get in.',
           'Agree on the plan before you leave: when you’re roughly heading home, how, and what happens if one of you wants to leave early. It saves a lot of shouting over music at midnight.',
         ],
-        tips: ['Add each other as SOS contacts on Gorave, so either of you can share live location with one tap.'],
+        tips: ['Add each other as SOS contacts on Gorave, so either of you can send their location with one tap.'],
       },
       {
         heading: 'If you go alone',
@@ -413,7 +413,7 @@ export const WOMEN_GUIDES: OutGuideDraft[] = [
         heading: 'During the ride',
         paragraphs: [
           'Keep the map open and follow the route. If the driver takes a turn you don’t expect, it’s fine to ask about it calmly. Many detours are just traffic, but you’re allowed to check.',
-          'If you feel uneasy, call a friend and talk to them for the rest of the ride. On Gorave, one tap on SOS shares your live location with your emergency contacts, and it keeps sharing even with the app in the background while you’re on a call.',
+          'If you feel uneasy, call a friend and talk to them for the rest of the ride. On Gorave, one tap on SOS texts your current location to your emergency contacts while you’re on a call.',
         ],
       },
       {
@@ -601,7 +601,7 @@ export const WOMEN_GUIDES: OutGuideDraft[] = [
         heading: 'When someone doesn’t listen',
         paragraphs: [
           'If you’ve said no and someone keeps pushing, that’s on them, not you. Move to another part of the room, join a group, or find the host and tell them plainly. Hosts are responsible for the room and good ones will step in.',
-          'You’re always free to leave. If you want someone to know where you are on the way out, tap SOS on Gorave to share your live location with your emergency contacts. If you ever feel unsafe, call 112, or 1091 for the women’s helpline.',
+          'You’re always free to leave. If you want someone to know where you are on the way out, tap SOS on Gorave to text your location to your emergency contacts. If you ever feel unsafe, call 112, or 1091 for the women’s helpline.',
         ],
       },
       {

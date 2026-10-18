@@ -40,8 +40,8 @@ export function SosScreen() {
             SOS
           </div>
         </div>
-        <div className="mt-4 text-center text-[12px] font-bold">Tap to share your live location</div>
-        <div className="mt-0.5 text-center text-[11px] text-noir-ink-2">Keeps sharing in the background</div>
+        <div className="mt-4 text-center text-[12px] font-bold">Tap to send your location</div>
+        <div className="mt-0.5 text-center text-[11px] text-noir-ink-2">Texted to your emergency contacts</div>
       </div>
       <div className="mt-6 rounded-2xl bg-noir-2 p-3">
         <div className="flex items-center justify-between text-[11px]">

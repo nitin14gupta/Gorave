@@ -11,15 +11,15 @@ import { cn } from '@/lib/cn'
 const EASE = [0.2, 0.8, 0.2, 1] as const
 const STEPS = [
   { title: 'You’re at the party', body: 'SOS sits one tap away for the whole night.', ms: 2200 },
-  { title: 'Tap SOS', body: 'One tap starts sharing your live location.', ms: 1800 },
+  { title: 'Tap SOS', body: 'One tap grabs your current location.', ms: 1800 },
   { title: 'Your five contacts get it', body: 'Up to five people you chose, all at once.', ms: 2800 },
-  { title: 'It keeps sharing', body: 'Even with the app in the background.', ms: 0 },
+  { title: 'They know where', body: 'Each contact gets a text with a map link.', ms: 0 },
 ]
 
 /**
  * Chapter 04, the button. A phone plays the SOS flow once as it scrolls
- * into view: the party screen, the tap, five contacts ticking in, then live
- * sharing in the background. Tap any step to jump to it, or replay.
+ * into view: the party screen, the tap, five contacts ticking in, then the sent
+ * texting each contact your location. Tap any step to jump to it, or replay.
  */
 export function SosPhoneB() {
   const ref = useRef<HTMLDivElement>(null)
@@ -125,7 +125,7 @@ function Screen({ step }: { step: number }) {
           >
             <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-white/20" />
             <div className="font-display text-lg font-extrabold">SOS sent</div>
-            <div className="text-[11px] text-noir-ink-2">Live location shared with</div>
+            <div className="text-[11px] text-noir-ink-2">Location sent to</div>
             <div className="mt-3 grid gap-1.5">
               {SOS_CONTACTS.map((c, i) => (
                 <motion.div
@@ -160,8 +160,8 @@ function Screen({ step }: { step: number }) {
               initial={{ y: -30, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.3, duration: 0.5, ease: EASE }}
               className="absolute inset-x-3 top-11 rounded-2xl bg-green px-3.5 py-3 text-noir"
             >
-              <div className="text-[13px] font-bold">Sharing live location</div>
-              <div className="text-[11px] opacity-80">With 5 contacts · keeps going in the background</div>
+              <div className="text-[13px] font-bold">SOS sent</div>
+              <div className="text-[11px] opacity-80">Map link texted to 5 contacts</div>
             </motion.div>
           </motion.div>
         )}

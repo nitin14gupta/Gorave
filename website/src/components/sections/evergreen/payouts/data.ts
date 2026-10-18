@@ -76,7 +76,7 @@ export const PAYOUT_FAQ: AccordionItem[] = [
   },
   {
     q: 'What if I need to cancel?',
-    a: `You can cancel up to 48 hours before the event, and every attendee gets an automatic full refund to their Gorave Wallet. Inside 48 hours, cancellation is blocked, so guests can count on the night happening.`,
+    a: `You can cancel up to 48 hours before the event, and every attendee gets their ticket price back in their Gorave Wallet automatically. Inside 48 hours, cancellation is blocked, so guests can count on the night happening.`,
   },
   {
     q: 'Do I have to charge for tickets?',

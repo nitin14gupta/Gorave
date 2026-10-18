@@ -15,7 +15,7 @@ const CARDS = [
     key: 'open',
     when: 'Up to 48 hours before',
     title: 'Cancel, and everyone is refunded.',
-    body: 'Attendees get an automatic full refund to their Gorave Wallet. You don\'t have to message anyone or move any money yourself.',
+    body: 'Attendees get their ticket price back in their Gorave Wallet, automatically. You don\'t have to message anyone or move any money yourself.',
     tone: 'bg-sage text-sage-ink',
   },
   {

@@ -43,7 +43,7 @@ export function cityFaq(city: City) {
     },
     {
       q: 'Is it safe to go to a house party with people I don’t know?',
-      a: 'Every guest is phone-verified and 18+. The exact address is only shared with confirmed guests, hosts are reviewed after every event, and the app has one-tap SOS that shares your live location with emergency contacts.',
+      a: 'Every guest is phone-verified and 18+. The exact address is only shared with confirmed guests, hosts are reviewed after every event, and the app has one-tap SOS that texts your location to your emergency contacts.',
     },
     {
       q: `Where are most events in ${city.name}?`,

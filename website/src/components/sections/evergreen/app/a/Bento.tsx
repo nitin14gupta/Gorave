@@ -203,7 +203,7 @@ export function Bento({ events }: { events: SampleEvent[] }) {
             <Tile
               className="bg-white"
               title="SOS, one tap."
-              body="Shares your live location with up to 5 emergency contacts."
+              body="Texts your location to up to 5 emergency contacts."
               art={
                 <div className="absolute inset-0 flex items-center justify-center">
                   {[0, 1, 2, 3, 4].map(i => {

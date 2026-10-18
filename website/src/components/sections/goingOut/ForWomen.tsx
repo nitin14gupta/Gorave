@@ -7,7 +7,7 @@ const PILLARS = [
   { title: 'Women-only nights', line: 'Hosts can make a night women-only. Gender is set once and can’t be changed.', slug: 'women-only-events-explained' },
   { title: 'The crowd mix', line: '50:50, 60:40 and more. Seats fill to the mix the host chose.', slug: 'reading-the-crowd-mix' },
   { title: 'A private address', line: 'Only the area shows publicly. The flat unlocks once you’re confirmed.', slug: 'choosing-a-house-party-you-feel-good-about' },
-  { title: 'One-tap SOS', line: 'Live location to up to 5 people you choose, even in the background.', slug: 'using-sos-and-live-location' },
+  { title: 'One-tap SOS', line: 'One tap texts your location to up to 5 people you choose.', slug: 'using-sos-and-live-location' },
 ]
 
 /**

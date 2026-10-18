@@ -56,7 +56,7 @@ export const CROWDS: CrowdStory[] = [
     hostLine: 'Hosting a girls’ night? Pick women-only when you create the event and the app does the rest.',
     faq: place => [
       { q: `Are women-only events in ${place} really women-only?`, a: 'Yes. When a host sets an event to women-only, the app only accepts requests and bookings from guests whose profile gender is woman.' },
-      { q: 'Can I go alone?', a: 'Most people do. Check the host’s reviews and badges first, and turn on SOS: one tap shares your live location with up to 5 emergency contacts.' },
+      { q: 'Can I go alone?', a: 'Most people do. Check the host’s reviews and badges first, and set up SOS: one tap texts your location to up to 5 emergency contacts.' },
       ...shared(place),
     ],
     sample: e => e.mix === 'Women only',

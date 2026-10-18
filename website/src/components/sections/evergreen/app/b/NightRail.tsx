@@ -18,7 +18,7 @@ const BEATS: Beat[] = [
   { when: 'Friday, lunch', title: 'Or book it.', body: 'Paid events book instantly with UPI or the Gorave Wallet. One flat ₹50 platform fee.', screen: <PayScreen /> },
   { when: 'Saturday, 4:02 pm', title: 'The address lands.', body: 'Only confirmed guests get the exact location. Everyone else just sees the area.', screen: <LockScreen /> },
   { when: '8:30 pm', title: 'Show the QR.', body: 'Your ticket is in the app. The host scans it at the door.', screen: <TicketScreen /> },
-  { when: 'All night', title: 'Feel safe.', body: 'Everyone is phone-verified and 18+. SOS shares your live location with up to 5 emergency contacts.', screen: <SosScreen /> },
+  { when: 'All night', title: 'Feel safe.', body: 'Everyone is phone-verified and 18+. SOS texts your location to up to 5 emergency contacts.', screen: <SosScreen /> },
   { when: 'Sunday', title: 'Keep the people.', body: 'Follow the ones you clicked with. They become your Vibers, you are Vibing them back.', screen: <ProfileScreen /> },
 ]
 

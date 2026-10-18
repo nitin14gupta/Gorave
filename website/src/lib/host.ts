@@ -173,7 +173,7 @@ export const HOST_FAQ = [
   },
   {
     q: 'What if I need to change or cancel the event?',
-    a: 'Edit it any time and guests who are going or have requested are notified. If you cancel, everyone is notified.',
+    a: 'You can edit it up to 7 hours before it starts, and guests who are going or have requested are notified. If you cancel, everyone is notified.',
   },
   {
     q: 'Who can join my event?',

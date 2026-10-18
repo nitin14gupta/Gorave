@@ -18,7 +18,7 @@ const ROWS: Row[] = [
   { title: 'UPI, booked', detail: 'Paid events book instantly with UPI or the Gorave Wallet. Flat ₹50 fee.', screen: <PayScreen /> },
   { title: 'QR at the door', detail: 'Your ticket, plus the exact address once you are confirmed.', screen: <TicketScreen /> },
   { title: 'The crowd, set', detail: 'Hosts pick a crowd mix like women-only or 50:50, and an age gate.', screen: <CrowdScreen /> },
-  { title: 'One-tap SOS', detail: 'Live location to up to 5 emergency contacts.', screen: <SosScreen /> },
+  { title: 'One-tap SOS', detail: 'Your location to up to 5 emergency contacts.', screen: <SosScreen /> },
   { title: 'A voice, not a bio', detail: 'Photos and a 30-second voice intro. Vibers follow you, you are Vibing them.', screen: <ProfileScreen /> },
   { title: 'Host, keep 90%', detail: 'Free to list, 2 free-entry events a month, paid tickets from ₹99.', screen: <HostScreen />, href: '/host' },
 ]

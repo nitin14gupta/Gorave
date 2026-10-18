@@ -4,7 +4,7 @@ import { Eyebrow, H2 } from '@/components/ui/atoms'
 const CARDS = [
   ['Every guest is verified', "Phone-verified and 18+ only. Hosts see who's asking before they accept."],
   ['Addresses stay private', 'Only confirmed guests get the exact location. Everyone else sees the area.'],
-  ['SOS in one tap', 'Shares your live location with your emergency contacts, even in the background.'],
+  ['SOS in one tap', 'Texts your location to up to 5 emergency contacts.'],
   ['Reviewed hosts', 'Guests rate every event. Hosts earn badges from Rising to Legend.'],
 ]
 

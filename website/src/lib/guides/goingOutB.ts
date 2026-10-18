@@ -272,7 +272,7 @@ export const GOING_OUT_B: OutGuideDraft[] = [
       {
         heading: 'Set up your safety tools before you need them',
         paragraphs: [
-          'Gorave has a one-tap SOS that shares your live location with up to five emergency contacts and keeps sharing in the background. It only helps if it’s set up, so add your contacts now, while you’re sitting calmly on your sofa. Pick people who keep their phones on at night and will actually act if they get an alert.',
+          'Gorave has a one-tap SOS that texts your current location to up to five emergency contacts. It only helps if it’s set up, so add your contacts now, while you’re sitting calmly on your sofa. Pick people who keep their phones on at night and will actually act if they get an alert.',
           'If you use a cab app, most let you share your trip with a friend. Make that a habit for late rides. And remember India’s emergency number, 112, works for police, ambulance and fire.',
         ],
       },
@@ -345,7 +345,7 @@ export const GOING_OUT_B: OutGuideDraft[] = [
         heading: 'If you’re leaving because something feels wrong',
         paragraphs: [
           'Sometimes you leave early because the night isn’t what you expected, or because someone is making you uncomfortable. In that case, you don’t owe anyone a polite exit. Pick up your things and go. Your comfort comes first.',
-          'If you want to, let the host know quietly what happened, either on the way out or afterwards. You can also report or block someone from their profile or from the event in Gorave. If you ever feel unsafe, use the one-tap SOS, which shares your live location with up to five emergency contacts, or call 112.',
+          'If you want to, let the host know quietly what happened, either on the way out or afterwards. You can also report or block someone from their profile or from the event in Gorave. If you ever feel unsafe, use the one-tap SOS, which texts your current location to up to five emergency contacts, or call 112.',
         ],
       },
       {
@@ -409,7 +409,7 @@ export const GOING_OUT_B: OutGuideDraft[] = [
         heading: 'When it really isn’t for you',
         paragraphs: [
           'Sometimes you give it a fair go and it still doesn’t click. That’s fine. You don’t have to stay to be polite. Find the host, say thank you and head off. A short, warm goodbye is all anyone expects.',
-          'There’s a difference between a night that isn’t your vibe and a night that feels wrong. If you feel uncomfortable or unsafe, leave without worrying about manners. You can report or block someone in Gorave from their profile or the event, use the one-tap SOS to share your live location with up to five emergency contacts, or call 112 in an emergency.',
+          'There’s a difference between a night that isn’t your vibe and a night that feels wrong. If you feel uncomfortable or unsafe, leave without worrying about manners. You can report or block someone in Gorave from their profile or the event, use the one-tap SOS to text your location to up to five emergency contacts, or call 112 in an emergency.',
         ],
       },
       {
@@ -476,7 +476,7 @@ export const GOING_OUT_B: OutGuideDraft[] = [
         heading: 'When something went seriously wrong',
         paragraphs: [
           'A low rating isn’t the right tool for a serious problem. If someone harassed you, if you felt unsafe, or if the event was nothing like what was listed in a way that put people at risk, use the report option. You can report or block from any profile or event in Gorave.',
-          'Reporting means the right people can look at what happened. A rating alone just becomes a number on a profile. If you were ever in immediate danger, call 112, and remember Gorave’s one-tap SOS shares live location with up to five emergency contacts.',
+          'Reporting means the right people can look at what happened. A rating alone just becomes a number on a profile. If you were ever in immediate danger, call 112, and remember Gorave’s one-tap SOS texts your location to up to five emergency contacts.',
         ],
       },
       {
@@ -543,7 +543,7 @@ export const GOING_OUT_B: OutGuideDraft[] = [
       {
         heading: 'Keep safety simple across the weekend',
         paragraphs: [
-          'Set up your emergency contacts in Gorave once, and the one-tap SOS is ready for every night. It shares your live location with up to five people and keeps sharing in the background. Keep your phone charged between events, and plan each ride home before you leave the house.',
+          'Set up your emergency contacts in Gorave once, and the one-tap SOS is ready for every night. It texts your current location to up to five people. Keep your phone charged between events, and plan each ride home before you leave the house.',
           'Your tickets live in the app as QR codes, and the exact address for each event unlocks once you’re confirmed. Check each one on the day so you’re not scrolling for it on the doorstep.',
         ],
       },
@@ -598,7 +598,7 @@ export const GOING_OUT_B: OutGuideDraft[] = [
         heading: 'Plan your exit',
         paragraphs: [
           'Knowing when and how you’ll leave takes a lot of the anxiety away. Decide a rough time before you go, plan your ride home, and give yourself permission to leave earlier if you’re done. Say a quick thank you to the host on your way out, and that’s it.',
-          'Set up Gorave’s one-tap SOS with your emergency contacts so it’s ready if you ever need it. It shares your live location with up to five people. For any emergency in India, call 112.',
+          'Set up Gorave’s one-tap SOS with your emergency contacts so it’s ready if you ever need it. It texts your current location to up to five people. For any emergency in India, call 112.',
         ],
       },
       {

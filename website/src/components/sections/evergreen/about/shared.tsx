@@ -80,7 +80,7 @@ export const BELIEFS: Belief[] = [
     rules: [
       { label: 'Area only, publicly', detail: 'An approximate circle on the map.' },
       { label: 'Address for guests', detail: 'The flat unlocks once you’re confirmed.' },
-      { label: 'One-tap SOS', detail: 'Live location to up to 5 contacts.' },
+      { label: 'One-tap SOS', detail: 'Texts your location to up to 5 contacts.' },
     ],
     href: '/safety',
     cta: 'Read the safety rules',

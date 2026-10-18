@@ -63,8 +63,8 @@ export const SAFETY_FEATURES: SafetyFeature[] = [
     key: 'sos',
     stage: 'during',
     title: 'One-tap SOS',
-    short: 'Live location to 5 contacts',
-    body: 'One tap shares your live location with up to 5 emergency contacts you choose, and it keeps sharing even when the app is in the background.',
+    short: 'Your location to 5 contacts',
+    body: 'One tap texts your current location, as a map link, to up to 5 emergency contacts you choose. Location needs to be on for it to send.',
   },
   {
     key: 'reviews',
@@ -171,7 +171,7 @@ export const SAFETY_FAQ = [
   },
   {
     q: 'How does SOS work?',
-    a: 'One tap shares your live location with up to 5 emergency contacts you’ve added. It keeps sharing even if the app is in the background. Add your contacts before your first event so it’s ready.',
+    a: 'One tap texts your current location, as a map link, to the emergency contacts you’ve added (up to 5). Add your contacts and turn location on before your first event so it’s ready.',
   },
   {
     q: 'Can I go to women-only events?',

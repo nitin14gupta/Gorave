@@ -65,7 +65,7 @@ export const GOING_OUT_A: OutGuideDraft[] = [
         heading: 'Staying safe without making it a big deal',
         paragraphs: [
           'Every Gorave account is phone-verified and the app is 18+ only, which helps, but your own good sense still matters most. Tell a friend where you are going. Keep an eye on your drink, and pour it yourself if you prefer. Eat something before you start drinking.',
-          'The app has one-tap SOS, which shares your live location with up to 5 emergency contacts and keeps sharing in the background. Set your contacts up before the night, so it is there if you ever need it. If anyone makes you uncomfortable, you can leave, and you can report or block them from their profile or the event afterwards.',
+          'The app has one-tap SOS, which texts your current location to up to 5 emergency contacts. Set your contacts up before the night, so it is there if you ever need it. If anyone makes you uncomfortable, you can leave, and you can report or block them from their profile or the event afterwards.',
         ],
       },
       {
@@ -111,7 +111,7 @@ export const GOING_OUT_A: OutGuideDraft[] = [
         heading: 'Before you leave home',
         paragraphs: [
           'A bit of preparation takes most of the nerves away. Check the route and how long it takes. Save the exact address, which unlocks once you are confirmed, and keep your QR ticket handy for the door. Charge your phone properly.',
-          'Tell one friend where you are going and roughly when you expect to be home. Set up your emergency contacts for Gorave’s one-tap SOS, which shares your live location with up to 5 people and keeps sharing in the background. You will probably never use it, but knowing it is there makes it easier to relax.',
+          'Tell one friend where you are going and roughly when you expect to be home. Set up your emergency contacts for Gorave’s one-tap SOS, which texts your current location to up to 5 people. You will probably never use it, but knowing it is there makes it easier to relax.',
         ],
         tips: ['Plan your ride home before you go, and keep some money in your wallet or UPI for it.'],
       },
@@ -355,7 +355,7 @@ export const GOING_OUT_A: OutGuideDraft[] = [
         heading: 'Stay safe while you explore',
         paragraphs: [
           'Meeting new people is mostly safe and mostly fun, but use the same common sense you would anywhere. Meet in groups at first, tell a friend where you are going and plan your ride home. Every Gorave account is phone-verified, and the exact address of an event only unlocks once you are confirmed.',
-          'Set up your emergency contacts for one-tap SOS, which shares your live location with up to 5 people. And trust your instincts. If someone feels off, you can leave, and you can report or block them from their profile.',
+          'Set up your emergency contacts for one-tap SOS, which texts your current location to up to 5 people. And trust your instincts. If someone feels off, you can leave, and you can report or block them from their profile.',
         ],
       },
     ],
@@ -472,7 +472,7 @@ export const GOING_OUT_A: OutGuideDraft[] = [
         paragraphs: [
           'The one rule that matters most on a rooftop is simple: stay away from the edge. Don’t sit on parapets or low walls, don’t lean over railings for a photo, and keep an eye out for friends who have had a few drinks. Good hosts will mark off unsafe areas, and you should treat those markings seriously.',
           'Watch out for the practical hazards too: water tanks, pipes, cables for the speakers and steps in the dark. Use your phone torch if you need to walk to a darker corner. And know where the stairs are, because that is your way down if anything goes wrong.',
-          'As at any event, keep your drink with you, plan your ride home and set up Gorave’s one-tap SOS, which shares your live location with up to 5 emergency contacts and keeps sharing in the background.',
+          'As at any event, keep your drink with you, plan your ride home and set up Gorave’s one-tap SOS, which texts your current location to up to 5 emergency contacts.',
         ],
       },
       {

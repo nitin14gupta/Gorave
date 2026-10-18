@@ -97,7 +97,7 @@ export function areaFaq(area: Area) {
     { q: `Are there house parties in ${name}?`, a: `Yes, hosts in and around ${name} list house parties, rooftops, game nights and dinner parties on Gorave. Free ones are request-to-join; paid ones book instantly with UPI.` },
     { q: `Will I see the exact address in ${name}?`, a: `Not until you’re confirmed. Before that you only see “${name}, ${city.name}” and an approximate area on the map. Confirmed guests get the full address and a QR ticket.` },
     { q: `Can I host in ${name}?`, a: 'Yes. Listing is free and takes a few minutes in the app. You can run 2 free-entry events a month; on paid events (from ₹99) you keep 90% of every ticket.' },
-    { q: `Is it safe to go to a party in ${name} alone?`, a: 'Every guest is phone-verified and 18+, hosts approve who comes, and SOS shares your live location with up to 5 emergency contacts. Many people go solo. Check the host’s reviews and the crowd mix before you request.' },
+    { q: `Is it safe to go to a party in ${name} alone?`, a: 'Every guest is phone-verified and 18+, hosts approve who comes, and SOS texts your location to up to 5 emergency contacts. Many people go solo. Check the host’s reviews and the crowd mix before you request.' },
   ]
 }
 

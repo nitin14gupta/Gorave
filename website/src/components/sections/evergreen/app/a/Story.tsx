@@ -71,7 +71,7 @@ const STEPS: Step[] = [
     body: 'Every guest is phone-verified and 18+. And help is one tap away.',
     screen: <SosScreen />,
     notes: [
-      { title: 'One-tap SOS', body: 'Shares your live location, even in the background.', dot: [184, 152], y: 110 },
+      { title: 'One-tap SOS', body: 'Texts your location to your emergency contacts.', dot: [184, 152], y: 110 },
       { title: 'Up to 5 contacts', body: 'Your emergency contacts all get it at once.', dot: [92, 398], y: 380 },
     ],
   },

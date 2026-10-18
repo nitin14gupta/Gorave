@@ -45,7 +45,7 @@ export const FAQ: AccordionItem[] = [
   },
   {
     q: 'How does Gorave keep guests safe?',
-    a: 'Every guest is phone-verified and 18+. Hosts can set a crowd mix, like women-only or 50:50, and an age gate. SOS shares your live location with up to 5 emergency contacts.',
+    a: 'Every guest is phone-verified and 18+. Hosts can set a crowd mix, like women-only or 50:50, and an age gate. SOS texts your location to up to 5 emergency contacts.',
   },
   {
     q: 'Can I host my own event?',
