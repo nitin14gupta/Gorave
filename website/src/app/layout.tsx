@@ -48,7 +48,7 @@ export const metadata: Metadata = {
   // Lets Android and Facebook hand gorave.in links to the installed app.
   appLinks: {
     android: { package: APP_IDS.android, app_name: "Gorave" },
-    ...(APP_IDS.appStoreId ? { ios: { app_store_id: APP_IDS.appStoreId, app_name: "Gorave" } } : {}),
+    ...(APP_IDS.appStoreId ? { ios: { url: `https://apps.apple.com/app/id${APP_IDS.appStoreId}`, app_store_id: APP_IDS.appStoreId, app_name: "Gorave" } } : {}),
   },
   // Safari's "Open in the app" banner, once the iOS app is live.
   ...(APP_IDS.appStoreId ? { itunes: { appId: APP_IDS.appStoreId } } : {}),

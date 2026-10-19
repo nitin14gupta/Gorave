@@ -55,7 +55,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       if ((hosts?.total ?? 0) >= 2) out.push(page(`/${c.slug}/hosts`, 0.6, 'daily'))
       // Host profiles: indexed with an upcoming night or 2+ hosted.
       for (const h of hosts?.hosts ?? []) if (h.upcoming_count > 0 || h.hosted_count >= 2) out.push(page(`/h/${h.username}`, 0.5, 'weekly'))
-      for (const p of PRICES) if ((await total({ ...p.query, city: c.name })) >= 1) out.push(page(`/${c.slug}/${p.slug}`, 0.7, 'daily'))
+      // Reuses the pooled price requests the area checks make too (the API rate-limits per IP).
+      for (const p of PRICES) if ((await pricePageData(p, c)).events.length >= 1) out.push(page(`/${c.slug}/${p.slug}`, 0.7, 'daily'))
       for (const o of OCCASIONS) if (!(await occasionPageData(o, c)).fallback) out.push(page(`/${c.slug}/${o.slug}`, 0.7, 'daily'))
     }),
   )
@@ -65,12 +66,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     allAreaParams().map(async ({ city, facet }) => {
       const area = getArea(city, facet)
       if (!area) return
-      const hosts = await fetchHosts(area.city.name, area.name, 1)
-      if ((hosts?.total ?? 0) >= 2) out.push(page(`/${city}/${facet}/hosts`, 0.5, 'weekly'))
+      // The area hosts count comes from the same request the area × type data makes.
+      let hostTotal = 0
       for (const t of EVENT_TYPES) {
         const d = await areaTypePageData(city, facet, t.slug)
+        hostTotal = d?.hostTotal ?? hostTotal
         if (d && d.events.length > 0) out.push(page(`/${city}/${facet}/${t.slug}`, 0.6, 'daily'))
       }
+      if (hostTotal >= 2) out.push(page(`/${city}/${facet}/hosts`, 0.5, 'weekly'))
       for (const p of PRICES) {
         const d = await pricePageData(p, undefined, area)
         if (d.events.length && !d.wider) out.push(page(`/${city}/${facet}/${p.slug}`, 0.6, 'daily'))
