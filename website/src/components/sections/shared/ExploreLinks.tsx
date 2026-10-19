@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { EVENT_TYPES } from '@/constants'
 import { CROWDS } from '@/lib/crowd'
 import { TIMES } from '@/lib/time'
+import { OCCASIONS } from '@/lib/occasion'
 import { Chapter } from '@/components/ui/atoms'
 
 /**
@@ -16,6 +17,7 @@ export function ExploreLinks({ place, citySlug, current }: { place: string; city
     { title: 'When', links: TIMES.map(t => ({ slug: t.slug, label: t.label, href: `${base}/${t.slug}` })) },
     { title: 'Who it’s for', links: CROWDS.map(c => ({ slug: c.slug, label: c.label, href: `${base}/${c.slug}` })) },
     { title: 'Kind of night', links: EVENT_TYPES.map(t => ({ slug: t.slug, label: t.label, href: `${base}/${t.slug}` })) },
+    { title: 'Occasions', links: OCCASIONS.map(o => ({ slug: o.slug, label: o.name, href: `${base}/${o.slug}` })) },
     { title: 'Budget', links: [{ slug: 'free-events', label: 'Free events', href: `${base}/free-events` }, { slug: 'under-500', label: 'Under ₹500', href: `${base}/under-500` }] },
     {
       title: 'People',
@@ -28,7 +30,7 @@ export function ExploreLinks({ place, citySlug, current }: { place: string; city
     <section className="bg-paper px-6 py-20 md:px-20">
       <div className="mx-auto max-w-[1280px]">
         <Chapter n="+" title={`Explore ${place}`} />
-        <div className="mt-8 grid gap-10 sm:grid-cols-2 lg:grid-cols-5">
+        <div className="mt-8 grid gap-10 sm:grid-cols-2 lg:grid-cols-6">
           {groups.map(g => (
             <div key={g.title}>
               <div className="font-sans text-xs font-bold uppercase tracking-[0.16em] text-ink-3">{g.title}</div>

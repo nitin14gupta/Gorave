@@ -8,6 +8,8 @@ import { HostsView } from '@/components/sections/hosts/HostsView'
 import { AreaTypePageView } from '@/components/sections/areaType/AreaTypePageView'
 import { PRICES, getPrice, pricePageData } from '@/lib/price'
 import { PricePageView } from '@/components/sections/price/PricePageView'
+import { OCCASIONS, getOccasion, occasionPageData } from '@/lib/occasion'
+import { OccasionPageView } from '@/components/sections/occasion/OccasionPageView'
 
 // /[city]/[area]/[sub]: the neighbourhood's hosts (/mumbai/bandra/hosts) or
 // one kind of night in it (/mumbai/bandra/house-parties).
@@ -15,7 +17,7 @@ export const dynamicParams = false
 export const revalidate = 60
 
 export function generateStaticParams() {
-  return [...allAreaParams().map(p => ({ ...p, sub: 'hosts' })), ...allAreaTypeParams(), ...allAreaParams().flatMap(p => PRICES.map(pr => ({ ...p, sub: pr.slug })))]
+  return [...allAreaParams().map(p => ({ ...p, sub: 'hosts' })), ...allAreaTypeParams(), ...allAreaParams().flatMap(p => PRICES.map(pr => ({ ...p, sub: pr.slug }))), ...allAreaParams().flatMap(p => OCCASIONS.map(o => ({ ...p, sub: o.slug })))]
 }
 
 export async function generateMetadata({ params }: PageProps<'/[city]/[facet]/[sub]'>): Promise<Metadata> {
@@ -33,6 +35,14 @@ export async function generateMetadata({ params }: PageProps<'/[city]/[facet]/[s
       openGraph: { title, description, url },
       robots: (list?.total ?? 0) >= 2 ? undefined : { index: false, follow: true },
     }
+  }
+  const occ = getOccasion(sub)
+  const occArea = occ ? getArea(city, facet) : undefined
+  if (occ && occArea) {
+    const data = await occasionPageData(occ, undefined, occArea)
+    const title = `${occ.name} parties in ${occArea.name}, ${occArea.city.name}`
+    const url = absoluteUrl(`/${city}/${facet}/${sub}`)
+    return { title, description: occ.heroLine, alternates: { canonical: url }, openGraph: { title, description: occ.heroLine, url }, robots: data.fallback ? { index: false, follow: true } : undefined }
   }
   const price = getPrice(sub)
   const priceArea = price ? getArea(city, facet) : undefined
@@ -60,6 +70,12 @@ export async function generateMetadata({ params }: PageProps<'/[city]/[facet]/[s
 
 export default async function AreaSubPage({ params }: PageProps<'/[city]/[facet]/[sub]'>) {
   const { city, facet, sub } = await params
+  const occ = getOccasion(sub)
+  if (occ) {
+    const area = getArea(city, facet)
+    if (!area) notFound()
+    return <OccasionPageView {...await occasionPageData(occ, undefined, area)} />
+  }
   const price = getPrice(sub)
   if (price) {
     const area = getArea(city, facet)
