@@ -15,34 +15,39 @@ const EASE = 'cubic-bezier(.2,.8,.2,1)'
  * flyers slide out from behind it to both sides, leave and they tuck away.
  */
 interface Props {
-  city: City
+  /** The city whose areas are listed (unless `items` is given) */
+  city?: City
   chapter?: string
   title?: string
   subtitle?: string
   /** Links each area to /city/area/<typeSlug> instead of /city/area */
   typeSlug?: string
+  /** Any names + links instead of the city's areas (e.g. cities on India-wide pages) */
+  items?: { label: string; href: string }[]
+  /** Label beside the chapter number */
+  kicker?: string
 }
 
-export function AreaReveal({ city, chapter = '06', title = 'Closer to home.', subtitle, typeSlug }: Props) {
+export function AreaReveal({ city, chapter = '06', title = 'Closer to home.', subtitle, typeSlug, items, kicker = 'The neighbourhood' }: Props) {
   const { posters } = useCityKit()
   const [active, setActive] = useState<number | null>(null)
-  const areas = city.areas.slice(0, 6)
+  const rows = items ?? (city?.areas ?? []).slice(0, 6).map(a => ({ label: a, href: `/${city!.slug}/${areaSlug(a)}${typeSlug ? `/${typeSlug}` : ''}` }))
 
   return (
     <section className="overflow-hidden bg-paper pb-36 pt-28">
       <div className="mb-12 px-6 text-center">
-        <Chapter n={chapter} title="The neighbourhood" className="justify-center" />
+        <Chapter n={chapter} title={kicker} className="justify-center" />
         <h2 className="mt-4 font-display text-[clamp(48px,6vw,84px)] font-extrabold leading-[0.92] tracking-[-0.055em]">{title}</h2>
-        <p className="mt-3 font-sans text-[19px] text-ink-2">{subtitle ?? `See what's happening in your part of ${city.name}.`}</p>
+        <p className="mt-3 font-sans text-[19px] text-ink-2">{subtitle ?? `See what's happening in your part of ${city?.name ?? 'town'}.`}</p>
       </div>
       <div onMouseLeave={() => setActive(null)}>
-        {areas.map((a, i) => {
+        {rows.map(({ label: a, href }, i) => {
           const on = active === i
           const dim = active !== null && !on
           return (
             <Link
               key={a}
-              href={`/${city.slug}/${areaSlug(a)}${typeSlug ? `/${typeSlug}` : ''}`}
+              href={href}
               onMouseEnter={() => setActive(i)}
               onFocus={() => setActive(i)}
               className="relative flex items-center justify-center"

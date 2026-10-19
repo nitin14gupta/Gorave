@@ -13,6 +13,8 @@ import { CrowdPageView } from '@/components/sections/crowd/CrowdPageView'
 import { TIMES, getTime } from '@/lib/time'
 import { timePageData } from '@/lib/timePage'
 import { TimePageView } from '@/components/sections/time/TimePageView'
+import { PRICES, getPrice, pricePageData } from '@/lib/price'
+import { PricePageView } from '@/components/sections/price/PricePageView'
 
 // One root segment, two page families: a city (/mumbai) or an India-wide
 // event-type hub (/house-parties). Anything else is a 404.
@@ -20,12 +22,18 @@ export const dynamicParams = false
 export const revalidate = 60
 
 export function generateStaticParams() {
-  return [...CITIES.map(c => ({ city: c.slug })), ...EVENT_TYPES.map(t => ({ city: t.slug })), ...CROWDS.map(c => ({ city: c.slug })), ...TIMES.map(t => ({ city: t.slug }))]
+  return [...CITIES.map(c => ({ city: c.slug })), ...EVENT_TYPES.map(t => ({ city: t.slug })), ...CROWDS.map(c => ({ city: c.slug })), ...TIMES.map(t => ({ city: t.slug })), ...PRICES.map(p => ({ city: p.slug }))]
 }
 
 export async function generateMetadata({ params }: PageProps<'/[city]'>): Promise<Metadata> {
   const { city: slug } = await params
   const url = absoluteUrl(`/${slug}`)
+  const price = getPrice(slug)
+  if (price) {
+    const title = price.slug === 'free-events' ? 'Free events & house parties across India' : 'Events under ₹500: cheap house parties & nights out in India'
+    const description = `${price.heroLine} Live listings in ${CITIES.slice(0, 4).map(c => c.name).join(', ')} and more on Gorave.`
+    return { title, description, alternates: { canonical: url }, openGraph: { title, description, url } }
+  }
   const time = getTime(slug)
   if (time) {
     const title = `${time.label}: house parties & things to do across India`
@@ -53,6 +61,8 @@ export async function generateMetadata({ params }: PageProps<'/[city]'>): Promis
 
 export default async function CityOrHubPage({ params }: PageProps<'/[city]'>) {
   const { city: slug } = await params
+  const price = getPrice(slug)
+  if (price) return <PricePageView {...await pricePageData(price)} />
   const time = getTime(slug)
   if (time) return <TimePageView {...await timePageData(time)} />
   const crowd = getCrowd(slug)

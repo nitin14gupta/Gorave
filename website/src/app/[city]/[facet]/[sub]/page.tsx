@@ -6,6 +6,8 @@ import { fetchHosts } from '@/lib/api'
 import { absoluteUrl } from '@/lib/seo'
 import { HostsView } from '@/components/sections/hosts/HostsView'
 import { AreaTypePageView } from '@/components/sections/areaType/AreaTypePageView'
+import { PRICES, getPrice, pricePageData } from '@/lib/price'
+import { PricePageView } from '@/components/sections/price/PricePageView'
 
 // /[city]/[area]/[sub]: the neighbourhood's hosts (/mumbai/bandra/hosts) or
 // one kind of night in it (/mumbai/bandra/house-parties).
@@ -13,7 +15,7 @@ export const dynamicParams = false
 export const revalidate = 60
 
 export function generateStaticParams() {
-  return [...allAreaParams().map(p => ({ ...p, sub: 'hosts' })), ...allAreaTypeParams()]
+  return [...allAreaParams().map(p => ({ ...p, sub: 'hosts' })), ...allAreaTypeParams(), ...allAreaParams().flatMap(p => PRICES.map(pr => ({ ...p, sub: pr.slug })))]
 }
 
 export async function generateMetadata({ params }: PageProps<'/[city]/[facet]/[sub]'>): Promise<Metadata> {
@@ -31,6 +33,14 @@ export async function generateMetadata({ params }: PageProps<'/[city]/[facet]/[s
       openGraph: { title, description, url },
       robots: (list?.total ?? 0) >= 2 ? undefined : { index: false, follow: true },
     }
+  }
+  const price = getPrice(sub)
+  const priceArea = price ? getArea(city, facet) : undefined
+  if (price && priceArea) {
+    const data = await pricePageData(price, undefined, priceArea)
+    const title = price.slug === 'free-events' ? `Free events in ${priceArea.name}, ${priceArea.city.name}` : `Events under ₹500 in ${priceArea.name}, ${priceArea.city.name}`
+    const url = absoluteUrl(`/${city}/${facet}/${sub}`)
+    return { title, description: price.heroLine, alternates: { canonical: url }, openGraph: { title, description: price.heroLine, url }, robots: data.events.length && !data.wider ? undefined : { index: false, follow: true } }
   }
   const found = getAreaType(city, facet, sub)
   if (!found) return {}
@@ -50,6 +60,12 @@ export async function generateMetadata({ params }: PageProps<'/[city]/[facet]/[s
 
 export default async function AreaSubPage({ params }: PageProps<'/[city]/[facet]/[sub]'>) {
   const { city, facet, sub } = await params
+  const price = getPrice(sub)
+  if (price) {
+    const area = getArea(city, facet)
+    if (!area) notFound()
+    return <PricePageView {...await pricePageData(price, undefined, area)} />
+  }
   if (sub !== 'hosts') {
     const data = await areaTypePageData(city, facet, sub)
     if (!data) notFound()
