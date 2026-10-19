@@ -12,7 +12,7 @@ export interface ContactTopic {
   key: string
   label: string
   /** A help topic that often answers this already */
-  help?: { slug: string; title: string; answer: string }
+  help?: { slug: string; title: string; question: string; answer: string }
   urgent?: boolean
 }
 
@@ -92,7 +92,8 @@ export function ContactForm({ topics }: { topics: ContactTopic[] }) {
                 <motion.div key={t.key} initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} transition={{ duration: 0.4, ease: EASE }} className="overflow-hidden">
                   <div className="mt-4 rounded-2xl bg-cream p-4">
                     <div className="font-sans text-[11px] font-bold uppercase tracking-[0.16em] text-orange">Quick answer</div>
-                    <p className="mt-1.5 font-sans text-[15px] leading-relaxed text-ink-2">{t.help.answer}</p>
+                    <p className="mt-1.5 font-display text-[17px] font-extrabold tracking-[-0.025em]">{t.help.question}</p>
+                    <p className="mt-1 font-sans text-[15px] leading-relaxed text-ink-2">{t.help.answer}</p>
                     <Link href={helpHref(t.help.slug)} className="mt-2 inline-block font-sans text-sm font-bold text-ink">More in {t.help.title} →</Link>
                   </div>
                 </motion.div>

@@ -68,7 +68,7 @@ export const FOOTER_COLUMNS: MenuColumn[] = [
   { heading: 'Explore', links: [{ label: 'Tonight', href: '/tonight' }, { label: 'This weekend', href: '/this-weekend' }, { label: 'Women-only nights', href: '/women-only' }, { label: 'House parties', href: '/house-parties' }, { label: 'Going-out guides', href: '/guides' }, { label: 'All cities', href: '/cities' }] },
   { heading: 'Host', links: [{ label: 'Host on Gorave', href: '/host' }, { label: 'How payouts work', href: '/host/payouts' }, { label: 'Hosting guides', href: '/host/guides' }, { label: 'Badges', href: '/host/badges' }, { label: 'Host agreement', href: '/host-agreement' }] },
   { heading: 'Company', links: [{ label: 'About', href: '/about' }, { label: 'Safety', href: '/safety' }, { label: 'Blog', href: '/blog' }] },
-  { heading: 'Help', links: [{ label: 'Help centre', href: '/help' }, { label: 'Contact', href: 'mailto:support@gorave.in' }, { label: 'Guidelines', href: '/guidelines' }, { label: 'Refunds', href: '/refunds' }, { label: 'Terms', href: '/terms' }, { label: 'Privacy', href: '/privacy' }] },
+  { heading: 'Help', links: [{ label: 'Help centre', href: '/help' }, { label: 'Contact', href: '/contact' }, { label: 'Guidelines', href: '/guidelines' }, { label: 'Refunds', href: '/refunds' }, { label: 'Terms', href: '/terms' }, { label: 'Privacy', href: '/privacy' }] },
 ]
 
 // Store links are placeholders until the listings are live.
