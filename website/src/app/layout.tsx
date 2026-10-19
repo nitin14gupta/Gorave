@@ -1,4 +1,5 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
+import { APP_IDS } from "@/constants/nav";
 import localFont from "next/font/local";
 import { Instrument_Serif } from "next/font/google";
 import "lenis/dist/lenis.css";
@@ -39,7 +40,22 @@ export const metadata: Metadata = {
   },
   description:
     "Find house parties, rooftops, game nights and dinner parties hosted by real people in your city, or host your own. Verified 18+ guests, private addresses, UPI tickets.",
+  applicationName: "Gorave",
+  keywords: ["house parties", "rooftop parties", "game nights", "dinner parties", "things to do", "Mumbai", "Bangalore", "Delhi", "Pune", "Gen Z", "India"],
   openGraph: { siteName: "Gorave", type: "website", locale: "en_IN" },
+  twitter: { card: "summary_large_image" },
+  appleWebApp: { title: "Gorave", statusBarStyle: "default" },
+  // Lets Android and Facebook hand gorave.in links to the installed app.
+  appLinks: {
+    android: { package: APP_IDS.android, app_name: "Gorave" },
+    ...(APP_IDS.appStoreId ? { ios: { app_store_id: APP_IDS.appStoreId, app_name: "Gorave" } } : {}),
+  },
+  // Safari's "Open in the app" banner, once the iOS app is live.
+  ...(APP_IDS.appStoreId ? { itunes: { appId: APP_IDS.appStoreId } } : {}),
+};
+
+export const viewport: Viewport = {
+  themeColor: "#f1e9d8",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
