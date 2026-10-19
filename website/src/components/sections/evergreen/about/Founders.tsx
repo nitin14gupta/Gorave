@@ -5,7 +5,8 @@ import { useRef, useState, useSyncExternalStore } from 'react'
 import { motion, useMotionValue, useReducedMotion, useScroll, useSpring, useTransform, type MotionValue } from 'motion/react'
 import { Chapter } from '@/components/ui/atoms'
 import { EASE, EASE_CSS } from './shared'
-import { TEAM, type Founder } from './team'
+import Link from 'next/link'
+import { TEAM, founderHref, type Founder } from '@/lib/founders'
 
 const mql = '(min-width: 768px)'
 const subscribe = (cb: () => void) => {
@@ -21,7 +22,7 @@ const useDesktop = () => useSyncExternalStore(subscribe, () => window.matchMedia
  * landing between them. Hover a card: it straightens, tilts toward the
  * cursor, the photo warms to full colour and a note slides out from behind.
  */
-export function Team() {
+export function Team({ n = '05', title = 'Who’s building it', links = true }: { n?: string; title?: string; links?: boolean } = {}) {
   const ref = useRef<HTMLElement>(null)
   const reduce = !!useReducedMotion()
   const desktop = useDesktop()
@@ -36,7 +37,7 @@ export function Team() {
     <section ref={ref} className="relative overflow-hidden bg-cream px-6 pb-28 pt-28 md:px-12 md:pb-36 md:pt-36 lg:px-20">
       <div className="mx-auto max-w-[1280px]">
         <div className="text-center">
-          <Chapter n="05" title="Who’s building it" className="justify-center" />
+          <Chapter n={n} title={title} className="justify-center" />
           <h2 className="mt-4 font-display text-[clamp(44px,6.4vw,100px)] font-extrabold leading-[0.9] tracking-[-0.055em]">
             Two people,
             <br />
@@ -48,7 +49,7 @@ export function Team() {
         </div>
 
         <div className="relative mt-16 grid items-start gap-16 md:mt-24 md:grid-cols-[1fr_auto_1fr] md:gap-6">
-          <Card f={TEAM[0]} deal={deal} desktop={desktop} reduce={reduce} hover={active === TEAM[0].key} onHover={on => setActive(on ? TEAM[0].key : null)} />
+          <Card links={links} f={TEAM[0]} deal={deal} desktop={desktop} reduce={reduce} hover={active === TEAM[0].key} onHover={on => setActive(on ? TEAM[0].key : null)} />
           <motion.div
             aria-hidden
             style={{ scale: ampScale, opacity: ampOpacity, rotate: ampRotate }}
@@ -59,7 +60,7 @@ export function Team() {
               &amp;
             </span>
           </motion.div>
-          <Card f={TEAM[1]} deal={deal} desktop={desktop} reduce={reduce} hover={active === TEAM[1].key} onHover={on => setActive(on ? TEAM[1].key : null)} />
+          <Card links={links} f={TEAM[1]} deal={deal} desktop={desktop} reduce={reduce} hover={active === TEAM[1].key} onHover={on => setActive(on ? TEAM[1].key : null)} />
         </div>
 
         <div className="mx-auto mt-24 max-w-[860px] text-center md:mt-28">
@@ -81,9 +82,10 @@ interface CardProps {
   reduce: boolean
   hover: boolean
   onHover: (on: boolean) => void
+  links: boolean
 }
 
-function Card({ f, deal, desktop, reduce, hover, onHover }: CardProps) {
+function Card({ f, deal, desktop, reduce, hover, onHover, links }: CardProps) {
   // Dealt from a shared stack in the middle out to its own column.
   const x = useTransform(deal, [0, 1], [desktop ? -f.side * 260 : 0, 0])
   const rotate = useTransform(deal, [0, 1], [f.side * 3, f.side * 5])
@@ -201,6 +203,12 @@ function Card({ f, deal, desktop, reduce, hover, onHover }: CardProps) {
           ))}
         </div>
         <p className="mt-4 font-sans text-[15px] leading-relaxed text-ink-2 lg:hidden">{f.note}</p>
+        {links && (
+          <Link href={founderHref(f)} className="group/l mt-5 inline-flex items-center gap-2 font-sans text-[15px] font-bold">
+            <span className="border-b-[1.5px] border-ink/25 pb-0.5 transition-colors group-hover/l:border-orange">{first}’s story</span>
+            <span aria-hidden className="transition-transform duration-500 group-hover/l:translate-x-1">→</span>
+          </Link>
+        )}
       </motion.div>
     </motion.div>
   )
