@@ -5,10 +5,9 @@ import { router, useFocusEffect } from 'expo-router'
 import { Clock, ChevronRight } from 'lucide-react-native'
 import ApiService, { type EventSummary } from '@/api/apiService'
 import { EventCard } from '@/components/events/EventCard'
-import { useEventCardVariant, EVENT_CARD_CAROUSEL_W } from '@/store/eventCardVariantStore'
 import { getOrFetch, invalidate } from '@/lib/queryCache'
 import { isEventPast } from '@/lib/dates'
-import { CacheKeys, Colors, FontFamily } from '@/constants'
+import { CacheKeys, Colors, FontFamily, EVENT_CARD_CAROUSEL_W } from '@/constants'
 
 const CARD_GAP = 12
 const INITIAL_COUNT = 6
@@ -20,7 +19,7 @@ function upcomingSorted(events: EventSummary[]) {
 
 function WaitlistCard({ event, onPress }: { event: EventSummary; onPress: (id: string) => void }) {
   return (
-    <View style={{ width: EVENT_CARD_CAROUSEL_W[useEventCardVariant()] }}>
+    <View style={{ width: EVENT_CARD_CAROUSEL_W }}>
       <EventCard
         event={event}
         showHost
@@ -84,12 +83,12 @@ export const WaitlistSection = forwardRef<WaitlistSectionHandle, Props>(function
     <WaitlistCard event={item} onPress={handlePress} />
   ), [handlePress])
 
-  const cardW = EVENT_CARD_CAROUSEL_W[useEventCardVariant()]
+  const cardW = EVENT_CARD_CAROUSEL_W
   const getItemLayout = useCallback((_: unknown, index: number) => ({
     length: cardW,
     offset: (cardW + CARD_GAP) * index,
     index,
-  }), [cardW])
+  }), [])
 
   if (events.length === 0) return null
 

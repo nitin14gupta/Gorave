@@ -1,10 +1,9 @@
 import { useEffect, type ReactNode, type ReactElement } from 'react'
 import { View, Text, StyleSheet, FlatList, ActivityIndicator } from 'react-native'
 import { router } from 'expo-router'
-import { Colors, FontFamily } from '@/constants'
+import { Colors, FontFamily, EVENT_GRID_GAP, eventGridCellWidth } from '@/constants'
 import { EventListCard, EventListCardSkeleton, PrimaryButton, BrandedRefreshControl } from '@/components/ui'
 import { EventCardSkeletonList } from '@/components/events/EventCard'
-import { useEventCardVariant, eventCardColumns, eventGridCellWidth, EVENT_GRID_GAP } from '@/store/eventCardVariantStore'
 import type { useMyEventsPage } from '@/hooks/useMyEventsPage'
 import type { EventSummary } from '@/api/apiService'
 
@@ -24,9 +23,8 @@ export function EventsPane({
 }) {
   // Fetch once, cached after that — swiping between tabs never re-fetches.
   useEffect(() => { if (active && !page.loaded) page.fetchFirstPage(false) }, [active, page.loaded])
-  const variant = useEventCardVariant()
-  // Posters sit two per row; ticket rows and the compact list are one per row.
-  const cols = viewMode === 'card' ? eventCardColumns(variant) : 1
+  // Cards sit two per row; the compact list is one per row.
+  const cols = viewMode === 'card' ? 2 : 1
   const cellW = eventGridCellWidth(16)
 
   if (page.loading) {

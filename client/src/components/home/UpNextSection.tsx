@@ -5,33 +5,19 @@ import { router } from 'expo-router'
 import { QrCode, ChevronRight } from 'lucide-react-native'
 import type { EventSummary } from '@/api/apiService'
 import { EventCard } from '@/components/events/EventCard'
-import { useEventCardVariant, EVENT_CARD_CAROUSEL_W } from '@/store/eventCardVariantStore'
-import { parseServerDate } from '@/lib/dates'
-import { Colors, FontFamily } from '@/constants'
+import { Colors, FontFamily, EVENT_CARD_CAROUSEL_W } from '@/constants'
 
 const CARD_GAP = 12
 const INITIAL_COUNT = 6
 const PAGE_SIZE = 6
-
-export function relativeDayLabel(date: Date): string {
-  const now = new Date()
-  const todayMid = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-  const eventMid = new Date(date.getFullYear(), date.getMonth(), date.getDate())
-  const diffDays = Math.round((eventMid.getTime() - todayMid.getTime()) / 86400000)
-  if (diffDays <= 0) return 'Today'
-  if (diffDays === 1) return 'Tomorrow'
-  if (diffDays < 7) return `This ${date.toLocaleDateString('en-US', { weekday: 'long' })}`
-  return date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
-}
 
 const UpNextCard = memo(function UpNextCard({ event, onPress, onTicketPress }: {
   event: EventSummary
   onPress: (id: string) => void
   onTicketPress: (id: string) => void
 }) {
-  const d = parseServerDate(event.date_time)
   return (
-    <View style={{ width: EVENT_CARD_CAROUSEL_W[useEventCardVariant()] }}>
+    <View style={{ width: EVENT_CARD_CAROUSEL_W }}>
       <EventCard
         event={event}
         showHost
@@ -40,7 +26,7 @@ const UpNextCard = memo(function UpNextCard({ event, onPress, onTicketPress }: {
           <Pressable style={s.ticketFooter} onPress={() => onTicketPress(event.id)}>
             <QrCode size={15} color={Colors.inkSecondary} strokeWidth={2} />
             <Text style={s.ticketFooterText} numberOfLines={1}>
-              {d ? relativeDayLabel(d) : ''} · View Ticket
+              View ticket
             </Text>
             <ChevronRight size={15} color={Colors.inkSecondary} strokeWidth={2} />
           </Pressable>
@@ -63,12 +49,12 @@ export function UpNextSection({ events }: { events: EventSummary[] }) {
     <UpNextCard event={item} onPress={handlePress} onTicketPress={handleTicketPress} />
   ), [handlePress, handleTicketPress])
 
-  const cardW = EVENT_CARD_CAROUSEL_W[useEventCardVariant()]
+  const cardW = EVENT_CARD_CAROUSEL_W
   const getItemLayout = useCallback((_: unknown, index: number) => ({
     length: cardW,
     offset: (cardW + CARD_GAP) * index,
     index,
-  }), [cardW])
+  }), [])
 
   if (events.length === 0) return null
 
@@ -107,5 +93,5 @@ const s = StyleSheet.create({
     backgroundColor: Colors.elevated,
     paddingVertical: 12,
   },
-  ticketFooterText: { fontFamily: FontFamily.bodySemiBold, fontSize: 13, color: Colors.inkPrimary },
+  ticketFooterText: { fontFamily: FontFamily.bodySemiBold, fontSize: 13, color: Colors.inkPrimary, flexShrink: 1 },
 })

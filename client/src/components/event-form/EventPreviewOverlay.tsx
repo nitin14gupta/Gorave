@@ -7,7 +7,6 @@ import { ArrowLeft, Calendar, Clock, MapPin, Shield, Users } from 'lucide-react-
 import { Colors, FontFamily, PLATFORM_FEE_INR, HOST_COMMISSION_RATE, EVENT_ICONS, EVENT_ICON_FALLBACK, withOpacity, eventImageHeight } from '@/constants'
 import { hTap, hSelection } from '@/lib/haptics'
 import { EventCard } from '@/components/events/EventCard'
-import { useEventCardVariant } from '@/store/eventCardVariantStore'
 import { StaticEventMap } from '@/components/maps'
 import ApiService, { type EventSummary } from '@/api/apiService'
 import { composeLocationName, type CreateEventForm } from '@/hooks/useCreateEvent'
@@ -54,7 +53,6 @@ export function EventPreviewOverlay({ visible, form, onClose }: Props) {
     return () => { cancelled = true }
   }, [visible])
 
-  const cardVariant = useEventCardVariant()
   if (!visible) return null
 
   const coverPhotos = form.coverPhotos.filter(Boolean).map((url, position) => ({ url, position }))
@@ -122,7 +120,7 @@ export function EventPreviewOverlay({ visible, form, onClose }: Props) {
       {tab === 'card' ? (
         <ScrollView contentContainerStyle={s.cardTabContent} showsVerticalScrollIndicator={false}>
           <Text style={s.cardTabHint}>This is how your event looks in Discover and lists</Text>
-          <View style={cardVariant === 'a' ? { width: 220, alignSelf: 'center' } : undefined}>
+          <View style={{ width: 220, alignSelf: 'center' }}>
             <EventCard event={previewSummary} onPress={() => {}} showHost />
           </View>
         </ScrollView>

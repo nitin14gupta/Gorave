@@ -7,7 +7,6 @@ import { AppHeader, HeaderIconBtn, ViewModeToggle, SwipeableTabs } from '@/compo
 import ApiService, { type EventSummary } from '@/api/apiService'
 import { EventCard } from '@/components/events/EventCard'
 import { EventsPane, type EventsTab } from '@/components/settings/EventsPane'
-import { EventCardVariantSwitch } from '@/components/events/EventCardVariantSwitch'
 import { useEventViewModeStore } from '@/store/eventViewModeStore'
 import { useMyEventsPage } from '@/hooks/useMyEventsPage'
 import { useFocusRefresh } from '@/hooks/useFocusRefresh'
@@ -98,7 +97,6 @@ export default function JoinedEventsScreen() {
           <ViewModeToggle mode={viewMode} onChange={setViewMode} />
         </View>
       )}
-      {viewMode === 'card' && <EventCardVariantSwitch style={s.variantSwitch} />}
     </View>
   )
 }
@@ -125,5 +123,4 @@ const s = StyleSheet.create({
   expiredFooterText: { fontFamily: FontFamily.bodyMedium, fontSize: 12, color: Colors.inkDisabled },
 
   viewToggle: { position: 'absolute', right: 16, bottom: 16 },
-  variantSwitch: { position: 'absolute', left: 16, bottom: 18 },
 })

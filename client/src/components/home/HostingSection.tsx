@@ -5,10 +5,7 @@ import { router } from 'expo-router'
 import { Users, ChevronRight } from 'lucide-react-native'
 import type { EventSummary } from '@/api/apiService'
 import { EventCard } from '@/components/events/EventCard'
-import { useEventCardVariant, EVENT_CARD_CAROUSEL_W } from '@/store/eventCardVariantStore'
-import { parseServerDate } from '@/lib/dates'
-import { relativeDayLabel } from './UpNextSection'
-import { Colors, FontFamily } from '@/constants'
+import { Colors, FontFamily, EVENT_CARD_CAROUSEL_W } from '@/constants'
 
 const CARD_GAP = 12
 const INITIAL_COUNT = 6
@@ -19,9 +16,8 @@ const HostingCard = memo(function HostingCard({ event, onPress, onManagePress }:
   onPress: (id: string) => void
   onManagePress: (id: string) => void
 }) {
-  const d = parseServerDate(event.date_time)
   return (
-    <View style={{ width: EVENT_CARD_CAROUSEL_W[useEventCardVariant()] }}>
+    <View style={{ width: EVENT_CARD_CAROUSEL_W }}>
       <EventCard
         event={event}
         onPress={() => onPress(event.id)}
@@ -29,7 +25,7 @@ const HostingCard = memo(function HostingCard({ event, onPress, onManagePress }:
           <Pressable style={s.manageFooter} onPress={() => onManagePress(event.id)}>
             <Users size={15} color={Colors.inkSecondary} strokeWidth={2} />
             <Text style={s.manageFooterText} numberOfLines={1}>
-              {d ? relativeDayLabel(d) : ''} · Manage
+              Manage
             </Text>
             <ChevronRight size={15} color={Colors.inkSecondary} strokeWidth={2} />
           </Pressable>
@@ -52,12 +48,12 @@ export function HostingSection({ events }: { events: EventSummary[] }) {
     <HostingCard event={item} onPress={handlePress} onManagePress={handleManagePress} />
   ), [handlePress, handleManagePress])
 
-  const cardW = EVENT_CARD_CAROUSEL_W[useEventCardVariant()]
+  const cardW = EVENT_CARD_CAROUSEL_W
   const getItemLayout = useCallback((_: unknown, index: number) => ({
     length: cardW,
     offset: (cardW + CARD_GAP) * index,
     index,
-  }), [cardW])
+  }), [])
 
   if (events.length === 0) return null
 
@@ -96,5 +92,5 @@ const s = StyleSheet.create({
     backgroundColor: Colors.elevated,
     paddingVertical: 12,
   },
-  manageFooterText: { fontFamily: FontFamily.bodySemiBold, fontSize: 13, color: Colors.inkPrimary },
+  manageFooterText: { fontFamily: FontFamily.bodySemiBold, fontSize: 13, color: Colors.inkPrimary, flexShrink: 1 },
 })

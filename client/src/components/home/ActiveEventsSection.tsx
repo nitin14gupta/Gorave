@@ -5,10 +5,9 @@ import { router, useFocusEffect } from 'expo-router'
 import ApiService, { type EventSummary } from '@/api/apiService'
 import { getOrFetch, invalidate } from '@/lib/queryCache'
 import { EventCard } from '@/components/events/EventCard'
-import { useEventCardVariant, EVENT_CARD_CAROUSEL_W } from '@/store/eventCardVariantStore'
 import { SosButton } from '@/components/events/SosButton'
 import { parseServerDate, isEventActive } from '@/lib/dates'
-import { CacheKeys, Colors, FontFamily, withOpacity } from '@/constants'
+import { CacheKeys, Colors, FontFamily, withOpacity, EVENT_CARD_CAROUSEL_W } from '@/constants'
 
 
 function activeSorted(events: EventSummary[]) {
@@ -19,7 +18,7 @@ function activeSorted(events: EventSummary[]) {
 
 const ActiveEventCard = memo(function ActiveEventCard({ event }: { event: EventSummary }) {
   return (
-    <View style={{ width: EVENT_CARD_CAROUSEL_W[useEventCardVariant()] }}>
+    <View style={{ width: EVENT_CARD_CAROUSEL_W }}>
       <EventCard event={event} showHost onPress={() => router.push(`/(events)/${event.id}` as any)} />
       <SosButton eventId={event.id} size={15} style={s.sosBadge} />
     </View>

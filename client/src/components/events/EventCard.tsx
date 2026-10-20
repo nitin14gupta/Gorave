@@ -3,12 +3,11 @@ import { Pressable, StyleSheet, Text, View, type StyleProp, type TextStyle, type
 import { LinearGradient } from 'expo-linear-gradient'
 import { Image } from 'expo-image'
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withDelay, withSpring, withTiming } from 'react-native-reanimated'
-import { MapPin, Flame, Hourglass, Ban, History } from 'lucide-react-native'
+import { Flame, Hourglass, Ban, History } from 'lucide-react-native'
 import { AutoSkeletonView } from 'react-native-auto-skeleton'
 import { Colors, FontFamily, EVENT_ICONS, EVENT_ICON_FALLBACK, EVENT_IMAGE_ASPECT, withOpacity } from '@/constants'
 import { parseServerDate, isEventPast } from '@/lib/dates'
 import { hSelection } from '@/lib/haptics'
-import { useEventCardVariant, type EventCardVariant } from '@/store/eventCardVariantStore'
 import { HotlistButton } from './HotlistButton'
 import { EventQuickPeekSheet } from './EventQuickPeekSheet'
 import type { EventSummary } from '@/api/apiService'
@@ -205,8 +204,6 @@ interface Props {
   isCancelled?: boolean
   /** Optional tappable strip rendered at the bottom of the card (e.g. "View Ticket", "View Reviews") */
   footer?: ReactNode
-  /** Force a design; otherwise the one picked in eventCardVariantStore. */
-  variant?: EventCardVariant
 }
 
 const DOW = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
@@ -222,9 +219,7 @@ export function eventDateParts(iso: string | null | undefined) {
   return { dow: DOW[d.getDay()], day: d.getDate(), mon: MON[d.getMonth()], time }
 }
 
-export const EventCard = memo(function EventCard({ event, onPress, showHost, isPast, isCancelled, footer, variant }: Props) {
-  const picked = useEventCardVariant()
-  const v = variant ?? picked
+export const EventCard = memo(function EventCard({ event, onPress, showHost, isPast, isCancelled, footer }: Props) {
   const [peekOpen, setPeekOpen] = useState(false)
   const cover = event.cover_photos?.[0]?.url
   const TypeIcon = EVENT_ICONS[event.event_type] ?? EVENT_ICON_FALLBACK
@@ -257,7 +252,7 @@ export const EventCard = memo(function EventCard({ event, onPress, showHost, isP
     <Image source={{ uri: cover }} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="memory-disk" priority="low" transition={150} />
   ) : (
     <LinearGradient colors={[Colors.surface, Colors.deepBackground]} style={[StyleSheet.absoluteFill, s.placeholder]}>
-      <TypeIcon size={v === 'a' ? 36 : 26} color={Colors.inkDisabled} strokeWidth={1.5} />
+      <TypeIcon size={36} color={Colors.inkDisabled} strokeWidth={1.5} />
     </LinearGradient>
   )
   const price = formatPrice(event.price_inr, event.is_free)
@@ -273,90 +268,48 @@ export const EventCard = memo(function EventCard({ event, onPress, showHost, isP
       onPressIn={() => { pressScale.value = withSpring(0.985, { duration: 120 }) }}
       onPressOut={() => { pressScale.value = withSpring(1, { duration: 120 }) }}
     >
-      {v === 'a' ? (
-        // A · Poster: the 4:5 photo is the whole card, details sit on it.
-        <View style={pa.poster}>
-          {photo}
-          <LinearGradient
-            colors={['transparent', 'rgba(0,0,0,0.55)', 'rgba(0,0,0,0.88)']}
-            locations={[0, 0.45, 1]}
-            style={pa.scrim}
-            pointerEvents="none"
-          />
-          <View style={pa.top}>
-            {parts ? (
-              <View style={pa.dateChip}>
-                <Text style={pa.dateDay}>{parts.day}</Text>
-                <Text style={pa.dateMon}>{parts.mon}</Text>
-              </View>
-            ) : null}
-            {note ? (
-              <View style={[pa.chip, isCancelled && pa.chipCancelled]}>
-                <note.Icon size={11} color={Colors.white} strokeWidth={2.4} />
-                <Text style={pa.chipText} numberOfLines={1}>{note.text}</Text>
-              </View>
-            ) : null}
-          </View>
-          <View style={pa.bottom}>
-            {showHost && host ? (
-              <View style={pa.hostRow}>
-                <HostAvatar name={host} avatar={event.host_avatar} size={16} />
-                <Text style={pa.host} numberOfLines={1}>{host}</Text>
-              </View>
-            ) : null}
-            <Text style={pa.title} numberOfLines={2}>{event.title}</Text>
-            <Text style={pa.meta} numberOfLines={1}>
-              {parts ? `${parts.dow} · ${parts.time}` : 'Date TBC'}{area ? ` · ${area}` : ''}
-            </Text>
-            <View style={pa.foot}>
-              {event.attendee_count > 0 ? (
-                <AttendeeAvatarStack avatars={event.attendee_avatars} count={event.attendee_count} avatarSize={16} textStyle={pa.going} />
-              ) : <View />}
-              <View style={pa.price}><Text style={pa.priceText}>{price}</Text></View>
+      {/* The 4:5 photo is the whole card; the details sit on it. */}
+      <View style={pa.poster}>
+        {photo}
+        <LinearGradient
+          colors={['transparent', 'rgba(0,0,0,0.55)', 'rgba(0,0,0,0.88)']}
+          locations={[0, 0.45, 1]}
+          style={pa.scrim}
+          pointerEvents="none"
+        />
+        <View style={pa.top}>
+          {parts ? (
+            <View style={pa.dateChip}>
+              <Text style={pa.dateDay}>{parts.day}</Text>
+              <Text style={pa.dateMon}>{parts.mon}</Text>
             </View>
+          ) : null}
+          {note ? (
+            <View style={[pa.chip, isCancelled && pa.chipCancelled]}>
+              <note.Icon size={11} color={Colors.white} strokeWidth={2.4} />
+              <Text style={pa.chipText} numberOfLines={1}>{note.text}</Text>
+            </View>
+          ) : null}
+        </View>
+        <View style={pa.bottom}>
+          {showHost && host ? (
+            <View style={pa.hostRow}>
+              <HostAvatar name={host} avatar={event.host_avatar} size={16} />
+              <Text style={pa.host} numberOfLines={1}>{host}</Text>
+            </View>
+          ) : null}
+          <Text style={pa.title} numberOfLines={2}>{event.title}</Text>
+          <Text style={pa.meta} numberOfLines={1}>
+            {parts ? `${parts.dow} · ${parts.time}` : 'Date TBC'}{area ? ` · ${area}` : ''}
+          </Text>
+          <View style={pa.foot}>
+            {event.attendee_count > 0 ? (
+              <AttendeeAvatarStack avatars={event.attendee_avatars} count={event.attendee_count} avatarSize={16} textStyle={pa.going} />
+            ) : <View />}
+            <View style={pa.price}><Text style={pa.priceText}>{price}</Text></View>
           </View>
         </View>
-      ) : (
-        // B · Ticket: 4:5 photo on the left, the details read on the right.
-        <View style={tb.row}>
-          <View style={tb.thumb}>
-            {photo}
-            <View style={tb.price}><Text style={tb.priceText}>{price}</Text></View>
-          </View>
-          <View style={[tb.info, !eventIsPast && { paddingRight: 34 }]}>
-            <Text style={[tb.when, !live && tb.whenMuted]} numberOfLines={1}>
-              {parts ? `${parts.dow}, ${parts.day} ${parts.mon} · ${parts.time}` : 'Date TBC'}
-            </Text>
-            <Text style={tb.title} numberOfLines={2}>{event.title}</Text>
-            {area ? (
-              <View style={tb.line}>
-                <MapPin size={12} color={Colors.inkSecondary} strokeWidth={2} />
-                <Text style={tb.lineText} numberOfLines={1}>
-                  {area}{event.distance_km != null ? ` · ${event.distance_km} km` : ''}
-                </Text>
-              </View>
-            ) : null}
-            {showHost && host ? (
-              <View style={tb.line}>
-                <HostAvatar name={host} avatar={event.host_avatar} size={14} />
-                <Text style={tb.lineText} numberOfLines={1}>by {host}</Text>
-              </View>
-            ) : null}
-            <View style={{ flex: 1 }} />
-            <View style={tb.foot}>
-              {event.attendee_count > 0 ? (
-                <AttendeeAvatarStack avatars={event.attendee_avatars} count={event.attendee_count} avatarSize={18} />
-              ) : null}
-              {note ? (
-                <View style={[tb.chip, isCancelled && tb.chipCancelled]}>
-                  <note.Icon size={11} color={isCancelled ? Colors.destructive : Colors.inkPrimary} strokeWidth={2.4} />
-                  <Text style={[tb.chipText, isCancelled && { color: Colors.destructive }]} numberOfLines={1}>{note.text}</Text>
-                </View>
-              ) : null}
-            </View>
-          </View>
-        </View>
-      )}
+      </View>
 
       {footer ? <View style={s.footerWrap}>{footer}</View> : null}
     </AnimatedPressable>
@@ -364,7 +317,7 @@ export const EventCard = memo(function EventCard({ event, onPress, showHost, isP
     {/* A true sibling of the card's Pressable, not a descendant: a nested
         touchable breaks both taps on Android. */}
     {!eventIsPast && (
-      <HotlistButton eventId={event.id} initial={event.is_hotlisted} style={v === 'a' ? pa.hotlist : tb.hotlist} size={14} />
+      <HotlistButton eventId={event.id} initial={event.is_hotlisted} style={pa.hotlist} size={14} />
     )}
     </View>
     <EventQuickPeekSheet visible={peekOpen} event={event} onClose={() => setPeekOpen(false)} />
@@ -386,38 +339,20 @@ function HostAvatar({ name, avatar, size }: { name: string; avatar: string | nul
 // Same shape as the real card, shimmering — shown while events are still
 // loading. Own transparent wrapper (AutoSkeletonView treats any child with a
 // background as a bone, so a filled container shimmers as one blob).
-export function EventCardSkeleton({ variant }: { variant?: EventCardVariant }) {
-  const picked = useEventCardVariant()
-  const v = variant ?? picked
+export function EventCardSkeleton() {
   return (
     <AutoSkeletonView isLoading animationType="gradient" defaultRadius={20} gradientColors={[Colors.skeletonBase, Colors.skeletonHighlight]}>
-      {v === 'a' ? (
-        <View style={[pa.poster, s.skBlock, { borderRadius: 20 }]} />
-      ) : (
-        <View style={tb.row}>
-          <View style={[tb.thumb, s.skBlock]} />
-          <View style={[tb.info, { gap: 8 }]}>
-            <View style={[s.skLine, { width: '50%', height: 11 }]} />
-            <View style={[s.skLine, { width: '85%', height: 16 }]} />
-            <View style={[s.skLine, { width: '60%', height: 11 }]} />
-          </View>
-        </View>
-      )}
+      <View style={[pa.poster, s.skBlock, { borderRadius: 20 }]} />
     </AutoSkeletonView>
   )
 }
 
-/**
- * Lays skeletons out the way the real list will be: posters two per row,
- * ticket rows stacked. `cellWidth` is the poster cell's width.
- */
+/** Skeletons laid out like the real list: two posters per row. */
 export function EventCardSkeletonList({ count = 4, cellWidth }: { count?: number; cellWidth: number }) {
-  const v = useEventCardVariant()
-  if (v === 'b') return <>{Array.from({ length: count }).map((_, i) => <EventCardSkeleton key={i} variant="b" />)}</>
   return (
     <View style={s.skGrid}>
       {Array.from({ length: count }).map((_, i) => (
-        <View key={i} style={{ width: cellWidth }}><EventCardSkeleton variant="a" /></View>
+        <View key={i} style={{ width: cellWidth }}><EventCardSkeleton /></View>
       ))}
     </View>
   )
@@ -443,11 +378,9 @@ const s = StyleSheet.create({
   hostInitial: { fontFamily: FontFamily.headingBold, color: Colors.inkPrimary },
 
   skBlock: { backgroundColor: Colors.surfaceMuted },
-  skLine: { borderRadius: 5, backgroundColor: Colors.surfaceMuted },
   skGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
 })
 
-// A · Poster
 const pa = StyleSheet.create({
   poster: { width: '100%', aspectRatio: EVENT_IMAGE_ASPECT, overflow: 'hidden' },
   scrim: { position: 'absolute', left: 0, right: 0, bottom: 0, height: '62%' },
@@ -482,36 +415,4 @@ const pa = StyleSheet.create({
   going: { fontFamily: FontFamily.bodyMedium, fontSize: 10, color: withOpacity(Colors.white, 0.78), marginLeft: 4 },
   price: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8, backgroundColor: withOpacity(Colors.white, 0.16) },
   priceText: { fontFamily: FontFamily.bodySemiBold, fontSize: 11, color: Colors.white },
-})
-
-// B · Ticket
-const tb = StyleSheet.create({
-  row: { flexDirection: 'row', gap: 12, padding: 10 },
-  thumb: { width: 104, height: 130, borderRadius: 14, overflow: 'hidden' }, // 4:5
-  price: {
-    position: 'absolute', left: 6, bottom: 6,
-    paddingHorizontal: 7, paddingVertical: 3, borderRadius: 7,
-    backgroundColor: 'rgba(10,10,10,0.6)',
-  },
-  priceText: { fontFamily: FontFamily.bodySemiBold, fontSize: 11, color: Colors.white },
-  info: { flex: 1, minWidth: 0, paddingVertical: 2, gap: 5 },
-  when: { fontFamily: FontFamily.bodySemiBold, fontSize: 11, letterSpacing: 0.6, color: Colors.brandOrange, textTransform: 'uppercase' },
-  whenMuted: { color: Colors.inkSecondary },
-  title: { fontFamily: FontFamily.headingBold, fontSize: 17, lineHeight: 21, color: Colors.inkPrimary, letterSpacing: -0.2 },
-  line: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  lineText: { fontFamily: FontFamily.bodyRegular, fontSize: 12, color: Colors.inkSecondary, flexShrink: 1 },
-  foot: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 6, flexWrap: 'wrap' },
-  chip: {
-    flexDirection: 'row', alignItems: 'center', gap: 4,
-    paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999,
-    backgroundColor: withOpacity(Colors.inkPrimary, 0.07),
-  },
-  chipCancelled: { backgroundColor: withOpacity(Colors.destructive, 0.12) },
-  chipText: { fontFamily: FontFamily.bodySemiBold, fontSize: 10, color: Colors.inkPrimary },
-  hotlist: {
-    position: 'absolute', top: 10, right: 10,
-    width: 28, height: 28, borderRadius: 14,
-    backgroundColor: withOpacity(Colors.inkPrimary, 0.07),
-    alignItems: 'center', justifyContent: 'center',
-  },
 })

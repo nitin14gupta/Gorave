@@ -7,8 +7,7 @@ import { AppHeader, APP_HEADER_BAR_HEIGHT, HeaderIconBtn, PrimaryButton, Branded
 import { useHeaderScroll } from '@/hooks/useHeaderScroll'
 import ApiService, { type EventSummary } from '@/api/apiService'
 import { EventCard } from '@/components/events/EventCard'
-import { useEventCardVariant, eventCardColumns, eventGridCellWidth, EVENT_GRID_GAP } from '@/store/eventCardVariantStore'
-import { Colors, FontFamily, Spacing } from '@/constants'
+import { Colors, FontFamily, Spacing, EVENT_GRID_GAP, eventGridCellWidth } from '@/constants'
 
 export default function HotlistScreen() {
   const { hideProgress, onScroll } = useHeaderScroll()
@@ -34,7 +33,7 @@ export default function HotlistScreen() {
 
   useFocusEffect(useCallback(() => { load() }, [load]))
 
-  const cols = eventCardColumns(useEventCardVariant())
+  const cols = 2
   const cellW = eventGridCellWidth(Spacing.screenPadding)
 
   return (

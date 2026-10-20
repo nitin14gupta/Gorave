@@ -4,10 +4,9 @@ import { View, StyleSheet, FlatList, type ListRenderItemInfo } from 'react-nativ
 import { router } from 'expo-router'
 import ApiService, { type EventSummary } from '@/api/apiService'
 import { EventCard } from '@/components/events/EventCard'
-import { useEventCardVariant, EVENT_CARD_CAROUSEL_W } from '@/store/eventCardVariantStore'
 import { useProfile } from '@/hooks/useProfile'
 import { getOrFetch } from '@/lib/queryCache'
-import { CacheKeys, Colors, FontFamily } from '@/constants'
+import { CacheKeys, Colors, FontFamily, EVENT_CARD_CAROUSEL_W } from '@/constants'
 
 const CARD_GAP = 12
 const INITIAL_COUNT = 6
@@ -20,7 +19,7 @@ const TrendingCard = memo(function TrendingCard({ event, onPress }: {
 }) {
   const handlePress = useCallback(() => onPress(event.id), [onPress, event.id])
   return (
-    <View style={{ width: EVENT_CARD_CAROUSEL_W[useEventCardVariant()] }}>
+    <View style={{ width: EVENT_CARD_CAROUSEL_W }}>
       <EventCard event={event} onPress={handlePress} />
     </View>
   )
@@ -96,12 +95,12 @@ export const TrendingSection = forwardRef<TrendingSectionHandle, Props>(function
     <TrendingCard event={item} onPress={handleCardPress} />
   ), [handleCardPress])
 
-  const cardW = EVENT_CARD_CAROUSEL_W[useEventCardVariant()]
+  const cardW = EVENT_CARD_CAROUSEL_W
   const getItemLayout = useCallback((_: unknown, index: number) => ({
     length: cardW,
     offset: (cardW + CARD_GAP) * index,
     index,
-  }), [cardW])
+  }), [])
 
   if (allEvents.length === 0) return null
 

@@ -14,11 +14,10 @@ import { HomeGradientBackdrop } from "@/components/home/HomeGradientBackdrop";
 import { EventsMapView } from "@/components/maps";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Colors, ComponentSize, FontFamily } from "@/constants";
+import { Colors, ComponentSize, FontFamily, EVENT_GRID_GAP, eventGridCellWidth } from "@/constants";
 import { useEvents } from "@/hooks/useEvents";
 import type { EventSummary } from "@/api/apiService";
 import { EventCard, EventCardSkeletonList } from "@/components/events/EventCard";
-import { useEventCardVariant, eventCardColumns, eventGridCellWidth, EVENT_GRID_GAP } from "@/store/eventCardVariantStore";
 import { EventSearchModal } from "@/components/events/EventSearchModal";
 import { EventPreviewStrip, PreviewCard } from "@/components/events/EventPreviewStrip";
 import { MapFloatingHeader, ListModeHeader, ViewModeTogglePill, FilterChipsRow, LIST_HEADER_CONTENT_HEIGHT } from "@/components/events/EventsScreenHeader";
@@ -63,9 +62,8 @@ export default function EventsScreen() {
   const [activeEventId, setActiveEventId] = useState<string | null>(null);
   const [listCount, setListCount] = useState(LIST_PAGE);
   const cardViewMode = useEventViewModeStore((s) => s.mode);
-  const cardVariant = useEventCardVariant();
-  // Posters sit two per row; ticket rows and the compact list take the full width.
-  const listCols = cardViewMode === "card" ? eventCardColumns(cardVariant) : 1;
+  // Cards sit two per row; the compact list takes the full width.
+  const listCols = cardViewMode === "card" ? 2 : 1;
   const cellW = eventGridCellWidth(16);
   const setCardViewMode = useEventViewModeStore((s) => s.setMode);
   const [searchModalOpen, setSearchModalOpen] = useState(false);
