@@ -18,8 +18,18 @@ import { usePermissionSheetStore } from '@/store/permissionSheetStore'
 const MAX_SECONDS = 30
 const MIN_SECONDS = 3
 
-export function useVoice() {
-  const store = useOnboardingStore()
+/**
+ * The orb voice recorder. 'onboarding' keeps the take in the onboarding store
+ * and moves on to interests; 'edit' (from Edit Profile) uploads the new intro
+ * and goes back.
+ */
+export function useVoice({ mode = 'onboarding' }: { mode?: 'onboarding' | 'edit' } = {}) {
+  const setStoreUri = useOnboardingStore(s => s.setField)
+  const [voiceUri, setVoiceUriState] = useState('')
+  const setVoiceUri = (uri: string) => {
+    setVoiceUriState(uri)
+    if (mode === 'onboarding') setStoreUri('voiceUri', uri)
+  }
   const showPill = usePillStore.getState().show
   const showPermissionSheet = usePermissionSheetStore.getState().show
   const [recorded, setRecorded] = useState(false)
@@ -66,11 +76,11 @@ export function useVoice() {
       const uri = audioRecorder.uri
       if (uri) {
         if (durationSeconds < MIN_SECONDS) {
-          store.setField('voiceUri', '')
+          setVoiceUri('')
           showPill(`Recording too short — hold for at least ${MIN_SECONDS} seconds`, 'error')
           return
         }
-        store.setField('voiceUri', uri)
+        setVoiceUri(uri)
         player.replace({ uri })
         setRecorded(true)
       }
@@ -95,7 +105,7 @@ export function useVoice() {
       await setAudioModeAsync({ playsInSilentMode: true, allowsRecording: true })
 
       setRecorded(false)
-      store.setField('voiceUri', '')
+      setVoiceUri('')
       try {
         await audioRecorder.prepareToRecordAsync()
         audioRecorder.record()
@@ -117,15 +127,21 @@ export function useVoice() {
   const handleRetake = () => {
     player.pause()
     setRecorded(false)
-    store.setField('voiceUri', '')
+    setVoiceUri('')
   }
 
   const handleUse = async () => {
-    if (!store.voiceUri) return
+    if (!voiceUri) return
+    if (player.playing) player.pause()
     setUploading(true)
     try {
-      await uploadVoice(store.voiceUri)
-      router.push('/(onboarding)/interests')
+      await uploadVoice(voiceUri)
+      if (mode === 'edit') {
+        showPill('Voice intro updated', 'success')
+        router.back()
+      } else {
+        router.push('/(onboarding)/interests')
+      }
     } catch (e: any) {
       showPill(e?.message ?? 'Upload failed — check your connection', 'error')
     } finally {

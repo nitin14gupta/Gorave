@@ -82,7 +82,8 @@ export function useEditProfile() {
   const refreshPhotos = useCallback(async () => {
     try {
       const p = await getMe()
-      setProfile(prev => prev ? { ...prev, photos: p.photos } : p)
+      // Also picks up a voice intro re-recorded on /(profile)/voice.
+      setProfile(prev => prev ? { ...prev, photos: p.photos, voice_url: p.voice_url } : p)
     } catch (e) {
       // ignore
     }

@@ -50,17 +50,11 @@ export default function EditProfileScreen() {
     )
   }
 
-  const voiceDirty = !!voice.localUri && voice.recorded
-  const canSave = (isDirty || voiceDirty) && !saving
+  // The voice intro saves on its own screen, so only the form makes this dirty.
+  const canSave = isDirty && !saving
 
   const onPressSave = async () => {
-    if (voiceDirty) {
-      try {
-        await voice.saveVoice()
-      } catch {
-        // saveError shown in ProfileVoiceIntroSection; still save other fields
-      }
-    }
+    voice.stop()
     await handleSave()
   }
 
