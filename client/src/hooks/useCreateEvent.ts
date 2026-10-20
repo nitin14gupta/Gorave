@@ -32,7 +32,7 @@ const INITIAL: CreateEventForm = {
   rules: '',
   dateTime: null,
   endTime: null,
-  capacity: 20,
+  capacity: 60,
   ageRestriction: 18,
   womenPct: null,
   city: '',

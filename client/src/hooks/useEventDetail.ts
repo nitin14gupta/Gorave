@@ -115,26 +115,35 @@ export function useEventDetail(id: string | undefined) {
   const crowdFull = !crowdIneligible && myBucketLeft != null && myBucketLeft <= 0
   const isRequestMode = event?.join_mode === 'request'
 
-  const sendRequest = useCallback(async () => {
+  // Request flow: warn before the last allowed request, confirm before withdrawing.
+  const [lastRequestConfirm, setLastRequestConfirm] = useState(false)
+  const [withdrawConfirm, setWithdrawConfirm] = useState(false)
+
+  const sendRequest = useCallback(async (opts?: { confirmed?: boolean }) => {
     if (!event || !id) return
+    if (!opts?.confirmed && event.my_requests_left === 1) {
+      setLastRequestConfirm(true)
+      return
+    }
     setRequestBusy(true)
     try {
       await ApiService.requestToJoin(id)
-      setEvent(prev => prev ? { ...prev, my_rsvp_status: 'requested' } : prev)
-      showPill("Request sent — we'll let you know when the host decides", 'default')
+      setEvent(prev => prev ? { ...prev, my_rsvp_status: 'requested', my_requests_left: Math.max(0, (prev.my_requests_left ?? 3) - 1) } : prev)
+      router.push({ pathname: '/(events)/[id]/requested' as any, params: { id, title: event.title } })
     } catch (e: any) {
       showPill(e?.message || "Couldn't send your request", 'error')
     } finally {
       setRequestBusy(false)
     }
-  }, [event, id, showPill])
+  }, [event, id, router, showPill])
 
   const withdrawRequest = useCallback(async () => {
     if (!id) return
     setRequestBusy(true)
     try {
       await ApiService.withdrawJoinRequest(id)
-      setEvent(prev => prev ? { ...prev, my_rsvp_status: 'cancelled' } : prev)
+      // Withdrawing doesn't give the request back: the server counts sends.
+      setEvent(prev => prev ? { ...prev, my_rsvp_status: 'cancelled', my_can_request_again: (prev.my_requests_left ?? 1) > 0 } : prev)
       showPill('Request withdrawn', 'default')
     } catch (e: any) {
       showPill(e?.message || "Couldn't withdraw your request", 'error')
@@ -322,6 +331,10 @@ export function useEventDetail(id: string | undefined) {
     myBucket: bucket,
     requestBusy,
     sendRequest,
+    lastRequestConfirm,
+    setLastRequestConfirm,
+    withdrawConfirm,
+    setWithdrawConfirm,
     withdrawRequest,
   }
 }

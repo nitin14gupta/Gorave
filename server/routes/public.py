@@ -8,6 +8,8 @@ No auth. Everything here is safe to show a logged-out visitor:
     links still resolve
 Responses carry Cache-Control so the website/CDN can cache them briefly.
 """
+import hmac
+import os
 import uuid
 from typing import List, Optional
 
@@ -26,8 +28,18 @@ CACHE_HEADER = "public, max-age=60, s-maxage=300, stale-while-revalidate=600"
 EVENT_TYPES = {"house_party", "rooftop", "game_night", "dinner", "music", "other"}
 
 
+# The website renders every page server-side from one IP, so it shares a
+# budget with nobody else: requests carrying the shared site key get their
+# own, much higher limit. Unset key = everyone gets the per-IP limit.
+_SITE_KEY = os.getenv("PUBLIC_SITE_KEY", "")
+
+
 def _guard(request: Request, response: Response) -> None:
-    enforce_rate_limit(f"public:ip:{client_ip(request)}", max_events=240, window_seconds=60)
+    sent = request.headers.get("x-gorave-site-key", "")
+    if _SITE_KEY and sent and hmac.compare_digest(sent, _SITE_KEY):
+        enforce_rate_limit("public:site", max_events=6000, window_seconds=60)
+    else:
+        enforce_rate_limit(f"public:ip:{client_ip(request)}", max_events=240, window_seconds=60)
     response.headers["Cache-Control"] = CACHE_HEADER
 
 

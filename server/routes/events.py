@@ -212,6 +212,8 @@ class EventDetail(EventSummary):
     my_offer_expires_at: Optional[str] = None   # ISO string when promoted, else None
     my_review_rating: Optional[int] = None
     my_can_request_again: bool = True
+    my_requests_left: int = _MAX_JOIN_REQUESTS    # join requests this user can still send for this event
+    max_join_requests: int = _MAX_JOIN_REQUESTS
     ratio: Optional[dict] = None                # {women_pct, women_left, men_left, open_left}
     pending_request_count: int = 0              # host only
 
@@ -1253,9 +1255,11 @@ def get_event(event_id: str, current_user: dict = Depends(get_current_user)):
                 (event_id, uid),
             )
             mine = cur.fetchone()
+            used = mine["request_count"] if mine else 0
+            d["my_requests_left"] = max(0, _MAX_JOIN_REQUESTS - used)
             d["my_can_request_again"] = (
                 d.get("my_rsvp_status") not in ("declined",)
-                and (mine["request_count"] if mine else 0) < _MAX_JOIN_REQUESTS
+                and used < _MAX_JOIN_REQUESTS
             )
         _apply_location_privacy(cur, [d], uid)
 

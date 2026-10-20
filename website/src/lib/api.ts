@@ -7,6 +7,10 @@ import { EVENT_TYPES, SAMPLE_EVENTS, type SampleEvent } from '@/constants'
 
 const API_URL = process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000'
 const REVALIDATE = 60
+// Server-side only (no NEXT_PUBLIC_ prefix, so it never reaches the browser).
+// The API gives requests carrying this key their own rate-limit budget, since
+// every page render comes from the website server's one IP.
+const SITE_HEADERS: Record<string, string> = process.env.PUBLIC_SITE_KEY ? { 'x-gorave-site-key': process.env.PUBLIC_SITE_KEY } : {}
 
 export interface PublicHost {
   name: string | null
@@ -55,7 +59,7 @@ export interface PublicEventsQuery {
 
 async function get<T>(path: string): Promise<T | null> {
   try {
-    const res = await fetch(`${API_URL}${path}`, { next: { revalidate: REVALIDATE }, signal: AbortSignal.timeout(4000) })
+    const res = await fetch(`${API_URL}${path}`, { headers: SITE_HEADERS, next: { revalidate: REVALIDATE }, signal: AbortSignal.timeout(4000) })
     if (!res.ok) return null
     return (await res.json()) as T
   } catch {

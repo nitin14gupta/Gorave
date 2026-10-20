@@ -74,7 +74,16 @@ export function EventRsvpBar({
       {isHost ? (
         <View style={styles.hostBar}>
           <View style={styles.hostMeta}>
-            <Text style={styles.stickyPrice}>{formatPrice(event.price_inr, event.is_free)}</Text>
+            {isRequestMode && myStatus === 'requested' ? (
+              <View>
+                <Text style={styles.waitTitle}>Waiting for the host</Text>
+                {event.my_requests_left != null && (
+                  <Text style={styles.waitSub}>{event.my_requests_left} of {event.max_join_requests ?? 3} requests left</Text>
+                )}
+              </View>
+            ) : (
+              <Text style={styles.stickyPrice}>{formatPrice(event.price_inr, event.is_free)}</Text>
+            )}
             {attendeesLoading ? (
               <ActivityIndicator size="small" color={Colors.inkSecondary} />
             ) : (
@@ -187,11 +196,11 @@ export function EventRsvpBar({
           ) : isRequestMode && myStatus === 'requested' ? (
             <Pressable style={styles.waitlistActiveBtn} onPress={() => { hTap(); onWithdrawRequest?.() }}>
               <Hourglass size={14} color={Colors.inkPrimary} strokeWidth={2} />
-              <Text style={styles.waitlistActiveBtnText}>Requested · Withdraw</Text>
+              <Text style={styles.waitlistActiveBtnText}>Withdraw</Text>
             </Pressable>
           ) : isRequestMode && myStatus === 'declined' ? (
             <View style={styles.eventFullBtn}>
-              <Text style={styles.waitlistBtnText}>Request declined</Text>
+              <Text style={styles.waitlistBtnText}>Not this time</Text>
             </View>
           ) : isRequestMode && myStatus === 'expired' ? (
             <View style={styles.eventFullBtn}>
@@ -199,7 +208,7 @@ export function EventRsvpBar({
             </View>
           ) : isRequestMode && event.my_can_request_again === false ? (
             <View style={styles.eventFullBtn}>
-              <Text style={styles.waitlistBtnText}>Request limit reached</Text>
+              <Text style={styles.waitlistBtnText}>No requests left</Text>
             </View>
           ) : isRequestMode ? (
             <Pressable style={styles.bookBtn} onPress={() => { hSuccess(); onRsvp() }}>
@@ -447,6 +456,8 @@ const styles = StyleSheet.create({
   requestsChipText: { flex: 1, fontFamily: FontFamily.bodySemiBold, fontSize: 14, color: Colors.inkPrimary },
   requestsDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: Colors.brandOrange },
   requestHint: { fontFamily: FontFamily.bodyRegular, fontSize: 12, color: Colors.inkSecondary, marginBottom: 2 },
+  waitTitle: { fontFamily: FontFamily.bodySemiBold, fontSize: 15, color: Colors.inkPrimary },
+  waitSub: { fontFamily: FontFamily.bodyRegular, fontSize: 12, color: Colors.inkSecondary, marginTop: 2 },
   hostMeta: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   hostAttendeeCount: {
     fontFamily: FontFamily.bodyRegular, fontSize: 13, color: Colors.inkSecondary,

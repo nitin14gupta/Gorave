@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react'
 import {
+  Linking,
   Pressable,
   Share,
   StyleSheet,
@@ -7,7 +8,6 @@ import {
   View,
 } from 'react-native'
 import { hTap, hSuccess } from '@/lib/haptics'
-import { LinearGradient } from 'expo-linear-gradient'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import * as Clipboard from 'expo-clipboard'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -16,7 +16,7 @@ import { ConfettiRain, ShareToChatSheet } from '@/components/ui'
 import { usePillStore } from '@/store/pillStore'
 import ApiService from '@/api/apiService'
 import { EventShareCard } from '@/components/events/EventShareCard'
-import { PublishedHero } from '@/components/events/PublishedHero'
+import { InviteBackdrop, PublishedChecklist, PublishedInvite } from '@/components/events/published/PublishedVariants'
 import { useImageShare } from '@/hooks/useImageShare'
 import { buildEventShareUrl } from '@/lib/deepLink'
 
@@ -49,6 +49,11 @@ export default function PublishedScreen() {
 
   const [coverUrl, setCoverUrl] = useState('')
   const [dateTimeLabel, setDateTimeLabel] = useState('')
+  const [area, setArea] = useState('')
+  const [priceLabel, setPriceLabel] = useState('')
+  const [spots, setSpots] = useState(0)
+  // Design lab: dev builds get an A | B switch in the top-right. Lock the winner, then delete the switch.
+  const [variant, setVariant] = useState<'a' | 'b'>('a')
   const [chatShareOpen, setChatShareOpen] = useState(false)
   const shareCardRef = useRef<View>(null)
   const { shareImage } = useImageShare()
@@ -59,6 +64,9 @@ export default function PublishedScreen() {
       .then(ev => {
         setCoverUrl(ev.cover_photos?.[0]?.url ?? '')
         setDateTimeLabel(formatDateTime(ev.date_time))
+        setArea([ev.area, ev.city].filter(Boolean).join(', '))
+        setPriceLabel(ev.is_free ? 'Free' : `₹${ev.price_inr.toLocaleString('en-IN')}`)
+        setSpots(ev.capacity ?? 0)
       })
       .catch(() => { })
   }, [id])
@@ -76,6 +84,16 @@ export default function PublishedScreen() {
       await Share.share({ message: shareText })
     } catch {
       showPill('Could not share right now. Please try again.', 'error')
+    }
+  }
+
+  // Straight into WhatsApp with the invite text; falls back to the system sheet.
+  const shareOnWhatsApp = async () => {
+    const url = `whatsapp://send?text=${encodeURIComponent(`${shareText}\n${shareUrl}`)}`
+    try {
+      await Linking.openURL(url)
+    } catch {
+      handleShare()
     }
   }
 
@@ -106,30 +124,29 @@ export default function PublishedScreen() {
 
   return (
     <View style={[s.root, { paddingBottom: insets.bottom + 16 }]}>
+      {variant === 'a' && <InviteBackdrop coverUrl={coverUrl} />}
       <ConfettiRain />
 
+      {__DEV__ && (
+        <View style={[s.lab, { top: insets.top + 10 }]}>
+          {(['a', 'b'] as const).map(v => (
+            <Pressable key={v} onPress={() => { hTap(); setVariant(v) }} style={[s.labBtn, variant === v && s.labBtnOn]}>
+              <Text style={[s.labText, variant === v && s.labTextOn]}>{v.toUpperCase()}</Text>
+            </Pressable>
+          ))}
+        </View>
+      )}
+
       <View style={s.content}>
-        <PublishedHero
-          onShare={handleShare}
-          onShareInChat={shareInChat}
-          onCopyLink={copyLink}
-        />
-
-        {/* Primary CTA */}
-        <Pressable style={s.primaryBtn} onPress={goToMyEvents}>
-          <LinearGradient
-            colors={[Colors.brandOrange, Colors.brandCoral]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={s.primaryGradient}
-          >
-            <Text style={s.primaryBtnText}>GO TO MY EVENTS</Text>
-          </LinearGradient>
-        </Pressable>
-
-        <Pressable onPress={skipForNow} hitSlop={12}>
-          <Text style={s.skipText}>Skip for now</Text>
-        </Pressable>
+        {(() => {
+          const props = {
+            title: eventTitle, dateLabel: dateTimeLabel, area, coverUrl, shareUrl,
+            onShare: handleShare, onShareInChat: shareInChat, onCopyLink: copyLink, onWhatsApp: shareOnWhatsApp,
+            priceLabel, spots,
+            onMyEvents: goToMyEvents, onViewEvent: skipForNow,
+          }
+          return variant === 'a' ? <PublishedInvite {...props} /> : <PublishedChecklist {...props} />
+        })()}
       </View>
 
       <ShareToChatSheet
@@ -172,27 +189,9 @@ const s = StyleSheet.create({
     maxWidth: 420,
   },
 
-  // Primary button
-  primaryBtn: { width: '100%', borderRadius: 28, overflow: 'hidden', marginBottom: 20 },
-  primaryGradient: {
-    height: 56,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 28,
-  },
-  primaryBtnText: {
-    fontFamily: FontFamily.headingBold,
-    fontSize: 15,
-    color: Colors.inkPrimary,
-    letterSpacing: 1,
-  },
-
-  skipText: {
-    fontFamily: FontFamily.bodyMedium,
-    fontSize: 14,
-    color: withOpacity(Colors.inkPrimary, 0.35),
-    paddingBottom: 4,
-    borderBottomWidth: 1,
-    borderBottomColor: withOpacity(Colors.inkPrimary, 0.12),
-  },
+  lab: { position: 'absolute', right: 16, zIndex: 10, flexDirection: 'row', padding: 3, borderRadius: 999, backgroundColor: withOpacity(Colors.inkPrimary, 0.1) },
+  labBtn: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999 },
+  labBtnOn: { backgroundColor: Colors.inkPrimary },
+  labText: { fontFamily: FontFamily.bodySemiBold, fontSize: 12, color: Colors.inkSecondary },
+  labTextOn: { color: Colors.inkOnAccent },
 })

@@ -1,9 +1,7 @@
 import React, { useState } from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
-import { useRouter } from 'expo-router'
-import { Colors, FontFamily, withOpacity } from '@/constants'
-import { hSelection, hTap } from '@/lib/haptics'
-import { StaticEventMap } from '@/components/maps'
+import { Colors, FontFamily } from '@/constants'
+import { hSelection } from '@/lib/haptics'
 import type { EventDetail } from '@/api/apiService'
 
 interface Props {
@@ -11,8 +9,8 @@ interface Props {
   eventId: string
 }
 
-export function EventDetailsSection({ event, eventId }: Props) {
-  const router = useRouter()
+// The map now lives in EventAddressCard (top of the screen).
+export function EventDetailsSection({ event }: Props) {
   const [showFullDesc, setShowFullDesc] = useState(false)
 
   return (
@@ -41,23 +39,6 @@ export function EventDetailsSection({ event, eventId }: Props) {
         </View>
       ) : null}
 
-      {event.location_lat != null && event.location_lng != null && (
-        <Pressable
-          style={styles.miniMapWrap}
-          onPress={() => { hTap(); router.push(`/(events)/${eventId}/map` as any) }}
-        >
-          <StaticEventMap
-            lat={event.location_lat}
-            lng={event.location_lng}
-            eventType={event.event_type}
-          />
-          {event.is_location_masked && (
-            <View style={styles.approxBadge} pointerEvents="none">
-              <Text style={styles.approxText}>Approximate area</Text>
-            </View>
-          )}
-        </Pressable>
-      )}
     </>
   )
 }
@@ -68,11 +49,4 @@ const styles = StyleSheet.create({
   sectionBody: { fontFamily: FontFamily.bodyRegular, fontSize: 14, color: Colors.inkSecondary, lineHeight: 22 },
   readMore: { color: Colors.inkPrimary, fontFamily: FontFamily.bodyMedium, fontSize: 13, marginTop: 6 },
 
-  miniMapWrap: { height: 160, borderRadius: 16, overflow: 'hidden', marginBottom: 16 },
-  approxBadge: {
-    position: 'absolute', left: 10, bottom: 10,
-    paddingHorizontal: 10, paddingVertical: 5, borderRadius: 999,
-    backgroundColor: withOpacity(Colors.background, 0.8),
-  },
-  approxText: { fontFamily: FontFamily.bodyMedium, fontSize: 11, color: Colors.inkPrimary },
 })

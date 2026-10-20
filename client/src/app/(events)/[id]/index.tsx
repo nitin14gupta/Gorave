@@ -4,7 +4,7 @@ import { useLocalSearchParams } from 'expo-router'
 import { useGoBack } from '@/hooks/useGoBack'
 import { useEventDetail } from '@/hooks/useEventDetail'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { ArrowLeft, Ghost } from 'lucide-react-native'
+import { ArrowLeft, Ghost, LogOut, TriangleAlert } from 'lucide-react-native'
 import { Colors, FontFamily, withOpacity } from '@/constants'
 import { BrandedLoader, BrandedRefreshControl } from '@/components/ui'
 import { ConfirmSheet, GuestListSheet, EventShareSheet, DotsSheet } from '@/components/ui'
@@ -18,6 +18,7 @@ import { EventDetailsSection } from '@/components/events/EventDetailsSection'
 import { EventSafetySection } from '@/components/events/EventSafetySection'
 import { useSafetyAgreementGate } from '@/components/safety/useSafetyAgreementGate'
 import { EventRsvpBar } from '@/components/events/EventRsvpBar'
+import { RequestTries } from '@/components/events/RequestTries'
 import { EventCancelledScreen } from '@/components/events/EventCancelledScreen'
 import { EventLockedScreen } from '@/components/events/EventLockedScreen'
 import { buildEventShareUrl } from '@/lib/deepLink'
@@ -86,7 +87,7 @@ export default function EventDetailScreen() {
           showsVerticalScrollIndicator={false}
           refreshControl={<BrandedRefreshControl refreshing={d.refreshing} onRefresh={d.handleRefresh} />}
         >
-          <EventInfoHeader event={event} onPressAddress={() => d.setAddressSheetOpen(true)} />
+          <EventInfoHeader event={event} eventId={id ?? ''} onPressAddress={() => d.setAddressSheetOpen(true)} />
 
           <EventHostCard event={event} isHost={isHost} />
 
@@ -126,7 +127,7 @@ export default function EventDetailScreen() {
         crowdFull={d.crowdFull}
         myBucket={d.myBucket}
         requestBusy={d.requestBusy}
-        onWithdrawRequest={d.withdrawRequest}
+        onWithdrawRequest={() => d.setWithdrawConfirm(true)}
       />
 
       <EventOptionsSheet
@@ -137,6 +138,39 @@ export default function EventDetailScreen() {
         onClose={() => d.setOptionsOpen(false)}
         showWaitlist={(event?.waitlist_count ?? 0) > 0}
       />
+      <ConfirmSheet
+        visible={d.withdrawConfirm}
+        icon={<LogOut size={28} color={Colors.destructive} strokeWidth={2} />}
+        title="Withdraw your request?"
+        body={`Your place in the host’s queue goes. You can request again, but each event allows ${event.max_join_requests ?? 3} requests in total.`}
+        confirmLabel="Withdraw"
+        cancelLabel="Keep my request"
+        destructive
+        onConfirm={d.withdrawRequest}
+        onClose={() => d.setWithdrawConfirm(false)}
+      >
+        {event.my_requests_left != null ? (
+          <View style={styles.tries}>
+            <RequestTries
+              left={event.my_requests_left}
+              max={event.max_join_requests ?? 3}
+              note={event.my_requests_left === 0 ? 'That was your last request, so you won’t be able to request again.' : `After withdrawing you can still send ${event.my_requests_left} more.`}
+            />
+          </View>
+        ) : null}
+      </ConfirmSheet>
+      <ConfirmSheet
+        visible={d.lastRequestConfirm}
+        icon={<TriangleAlert size={28} color={Colors.accentGold} strokeWidth={2} />}
+        title="This is your last request"
+        body="You’ve already used your other requests for this event. If you withdraw this one, you won’t be able to ask again."
+        confirmLabel="Send my last request"
+        cancelLabel="Not now"
+        onConfirm={() => d.sendRequest({ confirmed: true })}
+        onClose={() => d.setLastRequestConfirm(false)}
+      >
+        <View style={styles.tries}><RequestTries left={1} max={event.max_join_requests ?? 3} /></View>
+      </ConfirmSheet>
       <ConfirmSheet
         visible={d.cancelConfirm}
         title="Cancel Event"
@@ -190,6 +224,7 @@ export default function EventDetailScreen() {
 }
 
 const styles = StyleSheet.create({
+  tries: { padding: 14, borderRadius: 16, backgroundColor: withOpacity(Colors.inkPrimary, 0.05) },
   root: { flex: 1, backgroundColor: Colors.background },
   center: { alignItems: 'center', justifyContent: 'center' },
 

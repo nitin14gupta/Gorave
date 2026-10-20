@@ -207,6 +207,9 @@ export interface EventDetail extends EventSummary {
   my_offer_expires_at: string | null
   my_review_rating: number | null
   my_can_request_again?: boolean
+  /** Join requests this viewer can still send for this event (server caps at max_join_requests) */
+  my_requests_left?: number
+  max_join_requests?: number
   ratio?: CrowdRatio | null
   pending_request_count?: number
 }

@@ -1,5 +1,5 @@
-import { useRef, useEffect } from 'react'
-import { Text, Pressable, StyleSheet } from 'react-native'
+import { useRef, useEffect, type ReactNode } from 'react'
+import { Text, Pressable, StyleSheet, View } from 'react-native'
 import { BottomSheetModal, BottomSheetView, BottomSheetBackdrop } from '@gorhom/bottom-sheet'
 import type { BottomSheetBackdropProps } from '@gorhom/bottom-sheet'
 import { hSuccess, hTap } from '@/lib/haptics'
@@ -15,13 +15,18 @@ interface Props {
   destructive?: boolean
   onConfirm: () => void
   onClose: () => void
+  /** Optional extra content between the body and the buttons */
+  children?: ReactNode
+  /** Optional icon shown above the title */
+  icon?: ReactNode
+  cancelLabel?: string
 }
 
 function renderBackdrop(props: BottomSheetBackdropProps) {
   return <BottomSheetBackdrop {...props} disappearsOnIndex={-1} appearsOnIndex={0} pressBehavior="close" opacity={0.6} />
 }
 
-function ConfirmSheetCore({ title, body, confirmLabel, destructive, onConfirm, onClose }: Omit<Props, 'visible'>) {
+function ConfirmSheetCore({ title, body, confirmLabel, destructive, onConfirm, onClose, children, icon, cancelLabel = 'Cancel' }: Omit<Props, 'visible'>) {
   const sheetRef = useRef<BottomSheetModal>(null)
 
   useEffect(() => { sheetRef.current?.present() }, [])
@@ -37,8 +42,10 @@ function ConfirmSheetCore({ title, body, confirmLabel, destructive, onConfirm, o
       handleIndicatorStyle={s.handleIndicator}
     >
       <BottomSheetView style={s.content}>
+        {icon ? <View style={s.icon}>{icon}</View> : null}
         <Text style={s.title}>{title}</Text>
         <Text style={s.body}>{body}</Text>
+        {children}
         {destructive ? (
           <OutlineButton
             label={confirmLabel}
@@ -54,7 +61,7 @@ function ConfirmSheetCore({ title, body, confirmLabel, destructive, onConfirm, o
           />
         )}
         <Pressable style={s.cancelBtn} onPress={() => { hTap(); onClose() }}>
-          <Text style={s.cancelText}>Cancel</Text>
+          <Text style={s.cancelText}>{cancelLabel}</Text>
         </Pressable>
       </BottomSheetView>
     </BottomSheetModal>
@@ -75,4 +82,5 @@ const s = StyleSheet.create({
   btn: { height: 52, borderRadius: 999, marginTop: 4 },
   cancelBtn: { height: 48, alignItems: 'center', justifyContent: 'center' },
   cancelText: { fontFamily: FontFamily.bodyMedium, fontSize: 15, color: Colors.inkSecondary },
+  icon: { alignSelf: 'center', marginBottom: 2 },
 })

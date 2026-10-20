@@ -19,6 +19,8 @@ export interface StaticEventMapProps {
   lng: number
   eventType?: string
   provider?: 'maplibre' | 'google'
+  /** Approximate locations: no pin, just the area */
+  hideMarker?: boolean
 }
 
 export function StaticEventMap({
@@ -26,6 +28,7 @@ export function StaticEventMap({
   lng,
   eventType = 'other',
   provider = MAP_PROVIDER,
+  hideMarker = false,
 }: StaticEventMapProps) {
   const TypeIcon = EVENT_ICONS[eventType] ?? MapPinIcon
 
@@ -39,11 +42,13 @@ export function StaticEventMap({
         zoomEnabled={false}
         rotateEnabled={false}
       >
-        <GoogleMarker coordinate={{ latitude: lat, longitude: lng }} tracksViewChanges={false}>
-          <View style={s.pin}>
-            <TypeIcon size={16} color={Colors.brandOrange} strokeWidth={2} />
-          </View>
-        </GoogleMarker>
+        {!hideMarker && (
+          <GoogleMarker coordinate={{ latitude: lat, longitude: lng }} tracksViewChanges={false}>
+            <View style={s.pin}>
+              <TypeIcon size={16} color={Colors.brandOrange} strokeWidth={2} />
+            </View>
+          </GoogleMarker>
+        )}
       </MapView>
     )
   }
@@ -61,11 +66,13 @@ export function StaticEventMap({
     >
       <Camera initialViewState={{ center: [lng, lat], zoom: 14 }} />
       {/* Marker.lngLat = [longitude, latitude] */}
-      <Marker lngLat={[lng, lat]}>
-        <View style={s.pin}>
-          <TypeIcon size={16} color={Colors.brandOrange} strokeWidth={2} />
-        </View>
-      </Marker>
+      {!hideMarker && (
+        <Marker lngLat={[lng, lat]}>
+          <View style={s.pin}>
+            <TypeIcon size={16} color={Colors.brandOrange} strokeWidth={2} />
+          </View>
+        </Marker>
+      )}
     </Map>
   )
 }
