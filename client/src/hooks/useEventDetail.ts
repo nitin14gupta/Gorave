@@ -128,7 +128,7 @@ export function useEventDetail(id: string | undefined) {
     setRequestBusy(true)
     try {
       await ApiService.requestToJoin(id)
-      setEvent(prev => prev ? { ...prev, my_rsvp_status: 'requested', my_requests_left: Math.max(0, (prev.my_requests_left ?? 3) - 1) } : prev)
+      setEvent(prev => prev ? { ...prev, my_rsvp_status: 'requested', my_requests_left: Math.max(0, (prev.my_requests_left ?? 2) - 1) } : prev)
       router.push({ pathname: '/(events)/[id]/requested' as any, params: { id, title: event.title } })
     } catch (e: any) {
       showPill(e?.message || "Couldn't send your request", 'error')

@@ -7,6 +7,7 @@ import { AppHeader, APP_HEADER_BAR_HEIGHT, HeaderIconBtn, PrimaryButton, Branded
 import { useHeaderScroll } from '@/hooks/useHeaderScroll'
 import ApiService, { type EventSummary } from '@/api/apiService'
 import { EventCard } from '@/components/events/EventCard'
+import { useEventCardVariant, eventCardColumns, eventGridCellWidth, EVENT_GRID_GAP } from '@/store/eventCardVariantStore'
 import { Colors, FontFamily, Spacing } from '@/constants'
 
 export default function HotlistScreen() {
@@ -33,6 +34,9 @@ export default function HotlistScreen() {
 
   useFocusEffect(useCallback(() => { load() }, [load]))
 
+  const cols = eventCardColumns(useEventCardVariant())
+  const cellW = eventGridCellWidth(Spacing.screenPadding)
+
   return (
     <View style={s.root}>
       <AppHeader
@@ -54,14 +58,19 @@ export default function HotlistScreen() {
         </View>
       ) : (
         <FlatList
+          key={`cols-${cols}`}
           data={events}
+          numColumns={cols}
+          columnWrapperStyle={cols > 1 ? { gap: EVENT_GRID_GAP } : undefined}
           keyExtractor={e => e.id}
           contentContainerStyle={[s.list, { paddingTop: headerHeight + 8 }]}
           onScroll={onScroll}
           scrollEventThrottle={16}
           refreshControl={<BrandedRefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
           renderItem={({ item }) => (
-            <EventCard event={item} onPress={() => router.push(`/(events)/${item.id}` as any)} />
+            <View style={cols > 1 ? { width: cellW } : undefined}>
+              <EventCard event={item} onPress={() => router.push(`/(events)/${item.id}` as any)} />
+            </View>
           )}
         />
       )}

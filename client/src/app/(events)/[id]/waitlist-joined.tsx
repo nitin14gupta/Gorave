@@ -6,7 +6,7 @@ import { StatusBar } from 'expo-status-bar'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { Users, Calendar, MapPin } from 'lucide-react-native'
-import { Colors, FontFamily, Spacing, Radius, withOpacity } from '@/constants'
+import { Colors, FontFamily, Spacing, Radius, withOpacity, eventImageHeight } from '@/constants'
 import { PrimaryButton, OutlineButton, BackButton, ConfirmSheet } from '@/components/ui'
 import { WaitlistPositionBadge } from '@/components/events/WaitlistPositionBadge'
 import { WaitlistInfoCard } from '@/components/events/WaitlistInfoCard'
@@ -15,10 +15,9 @@ import { useLeaveWaitlist } from '@/hooks/useLeaveWaitlist'
 import ApiService, { type EventDetail } from '@/api/apiService'
 
 const { width: SCREEN_W } = Dimensions.get('window')
-// Event imagery is always 16:9 across the app — a portion-of-screen-height
-// banner (the old BANNER_H = SCREEN_H * 0.48) doesn't respect that and crops
-// differently per device; deriving height from width keeps the true ratio.
-const BANNER_H = (SCREEN_W * 9) / 16
+// Event imagery is 4:5 across the app; deriving height from width keeps the
+// true ratio on every device.
+const BANNER_H = eventImageHeight(SCREEN_W)
 
 export default function WaitlistJoinedScreen() {
   const { id, position, coverUrl, title } = useLocalSearchParams<{

@@ -4,9 +4,10 @@ import { Image } from 'expo-image'
 import { LinearGradient } from 'expo-linear-gradient'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { ArrowLeft, Calendar, Clock, MapPin, Shield, Users } from 'lucide-react-native'
-import { Colors, FontFamily, PLATFORM_FEE_INR, HOST_COMMISSION_RATE, EVENT_ICONS, EVENT_ICON_FALLBACK, withOpacity } from '@/constants'
+import { Colors, FontFamily, PLATFORM_FEE_INR, HOST_COMMISSION_RATE, EVENT_ICONS, EVENT_ICON_FALLBACK, withOpacity, eventImageHeight } from '@/constants'
 import { hTap, hSelection } from '@/lib/haptics'
 import { EventCard } from '@/components/events/EventCard'
+import { useEventCardVariant } from '@/store/eventCardVariantStore'
 import { StaticEventMap } from '@/components/maps'
 import ApiService, { type EventSummary } from '@/api/apiService'
 import { composeLocationName, type CreateEventForm } from '@/hooks/useCreateEvent'
@@ -53,6 +54,7 @@ export function EventPreviewOverlay({ visible, form, onClose }: Props) {
     return () => { cancelled = true }
   }, [visible])
 
+  const cardVariant = useEventCardVariant()
   if (!visible) return null
 
   const coverPhotos = form.coverPhotos.filter(Boolean).map((url, position) => ({ url, position }))
@@ -89,7 +91,7 @@ export function EventPreviewOverlay({ visible, form, onClose }: Props) {
   }
 
   const heroPhoto = coverPhotos[0]?.url
-  const heroHeight = W * (9 / 16)
+  const heroHeight = eventImageHeight(W)
 
   return (
     <View style={[s.root, { paddingTop: insets.top }]}>
@@ -120,11 +122,13 @@ export function EventPreviewOverlay({ visible, form, onClose }: Props) {
       {tab === 'card' ? (
         <ScrollView contentContainerStyle={s.cardTabContent} showsVerticalScrollIndicator={false}>
           <Text style={s.cardTabHint}>This is how your event looks in Discover and lists</Text>
-          <EventCard event={previewSummary} onPress={() => {}} showHost />
+          <View style={cardVariant === 'a' ? { width: 220, alignSelf: 'center' } : undefined}>
+            <EventCard event={previewSummary} onPress={() => {}} showHost />
+          </View>
         </ScrollView>
       ) : (
         <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
-          {/* Hero — true 16:9, matches EventCard */}
+          {/* Hero — 4:5, matches EventCard and the event page */}
           <View style={[s.hero, { height: heroHeight }]}>
             {heroPhoto ? (
               <Image

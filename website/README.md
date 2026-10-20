@@ -45,6 +45,8 @@ invented stats, ratings or reviews on public pages (placeholders are marked
 
 **Parts bank (built, unused, reuse on other pages):** `evergreen/app/a/Hero.tsx` (cursor-tilt phone cover), `evergreen/app/b/CitiesStrip.tsx` (widening city cards), `evergreen/app/b/FinalCta.tsx` (word-drop CTA with dealt cards). Shared hover list: `components/ui/HoverPreviewList.tsx` (homepage cities, badges).
 
+**Event photos are 4:5 (portrait) everywhere**, matching the app's cropper: `components/ui/EventCard.tsx` and the event page gallery (`sections/event/EventGallery.tsx`, capped at 78vh). Older 16:9 photos are centre-cropped.
+
 **Palette rule:** pages sit on cream / paper. Black (`bg-noir`) is only for small elements (buttons, pills, phone screens, the app's ticket) and two deliberate night moments: the city page's after-dark sky and the footer. Live sections that were black (home safety + CTA, testimonials, city crowd + departure board, type hero / guest list / night, guides fine print + article, host profile, host address, safety SOS, 404) were converted to cream.
 
 ### ✅ Done

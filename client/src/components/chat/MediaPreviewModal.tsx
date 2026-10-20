@@ -54,9 +54,11 @@ export function MediaPreviewModal({ media, onSend, onCancel, onRemove, onUpdate,
 
   const handleCrop = async (uri: string, index: number) => {
     try {
-      const is16by9 = Math.abs(cropAspectRatio - 16 / 9) < 0.01
-      const w = is16by9 ? 1600 : 800
-      const h = is16by9 ? 900 : 800
+      // Output size follows the requested ratio: square stays 800×800, anything
+      // else is 1200 px on the short side (4:5 event photos → 1200×1500).
+      const square = Math.abs(cropAspectRatio - 1) < 0.01
+      const w = square ? 800 : cropAspectRatio < 1 ? 1200 : Math.round(1200 * cropAspectRatio)
+      const h = square ? 800 : cropAspectRatio < 1 ? Math.round(1200 / cropAspectRatio) : 1200
 
       const options: any = {
         path: uri,

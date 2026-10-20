@@ -5,12 +5,12 @@ import { useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { cn } from '@/lib/cn'
 
-/** Cover photos: one big frame that cross-fades, thumbnails underneath. */
+/** Cover photos, portrait 4:5 like the app: one big frame that cross-fades, thumbnails underneath. Capped to the screen height on desktop. */
 export function EventGallery({ photos, title }: { photos: string[]; title: string }) {
   const [i, setI] = useState(0)
   return (
     <div>
-      <div className="relative aspect-[4/3] overflow-hidden rounded-[32px] bg-tile shadow-soft">
+      <div className="relative mx-auto aspect-[4/5] w-full max-w-[calc(78vh*0.8)] overflow-hidden rounded-[32px] bg-tile shadow-soft">
         <AnimatePresence initial={false}>
           <motion.div
             key={photos[i]}
@@ -25,7 +25,7 @@ export function EventGallery({ photos, title }: { photos: string[]; title: strin
         </AnimatePresence>
       </div>
       {photos.length > 1 && (
-        <div className="mt-3 flex gap-2.5">
+        <div className="mx-auto mt-3 flex max-w-[calc(78vh*0.8)] gap-2.5">
           {photos.slice(0, 6).map((p, k) => (
             <button
               key={p}
@@ -33,7 +33,7 @@ export function EventGallery({ photos, title }: { photos: string[]; title: strin
               onClick={() => setI(k)}
               aria-label={`Photo ${k + 1}`}
               className={cn(
-                'relative h-16 w-20 overflow-hidden rounded-xl transition-[opacity,transform] duration-300 hover:-translate-y-0.5',
+                'relative h-[70px] w-14 overflow-hidden rounded-xl transition-[opacity,transform] duration-300 hover:-translate-y-0.5',
                 k === i ? 'ring-[3px] ring-ink ring-offset-2 ring-offset-cream' : 'opacity-60 hover:opacity-100',
               )}
             >

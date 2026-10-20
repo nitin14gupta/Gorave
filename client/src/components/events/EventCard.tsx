@@ -3,13 +3,12 @@ import { Pressable, StyleSheet, Text, View, type StyleProp, type TextStyle, type
 import { LinearGradient } from 'expo-linear-gradient'
 import { Image } from 'expo-image'
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withDelay, withSpring, withTiming } from 'react-native-reanimated'
-import { MapPin, Flame, Hourglass } from 'lucide-react-native'
-import { useRouter } from 'expo-router'
+import { MapPin, Flame, Hourglass, Ban, History } from 'lucide-react-native'
 import { AutoSkeletonView } from 'react-native-auto-skeleton'
-import { Colors, FontFamily, EVENT_ICONS, EVENT_ICON_FALLBACK, withOpacity } from '@/constants'
+import { Colors, FontFamily, EVENT_ICONS, EVENT_ICON_FALLBACK, EVENT_IMAGE_ASPECT, withOpacity } from '@/constants'
 import { parseServerDate, isEventPast } from '@/lib/dates'
 import { hSelection } from '@/lib/haptics'
-import { useAuthStore } from '@/store/auth'
+import { useEventCardVariant, type EventCardVariant } from '@/store/eventCardVariantStore'
 import { HotlistButton } from './HotlistButton'
 import { EventQuickPeekSheet } from './EventQuickPeekSheet'
 import type { EventSummary } from '@/api/apiService'
@@ -198,7 +197,7 @@ const pb = StyleSheet.create({
 interface Props {
   event: EventSummary
   onPress: () => void
-  /** Show host name below title (for joined-events) */
+  /** Show host name on the card (for joined-events) */
   showHost?: boolean
   /** Dim card and show Past badge */
   isPast?: boolean
@@ -206,26 +205,62 @@ interface Props {
   isCancelled?: boolean
   /** Optional tappable strip rendered at the bottom of the card (e.g. "View Ticket", "View Reviews") */
   footer?: ReactNode
+  /** Force a design; otherwise the one picked in eventCardVariantStore. */
+  variant?: EventCardVariant
 }
 
-export const EventCard = memo(function EventCard({ event, onPress, showHost, isPast, isCancelled, footer }: Props) {
-  const router = useRouter()
-  const myId = useAuthStore(state => state.userId)
+const DOW = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+
+/** "Sat", 24, "Oct", "8:30 pm", split so cards can lay the date out their own way. */
+export function eventDateParts(iso: string | null | undefined) {
+  const d = parseServerDate(iso)
+  if (!d) return null
+  const h = d.getHours()
+  const m = d.getMinutes()
+  const time = `${h % 12 || 12}${m ? ':' + String(m).padStart(2, '0') : ''} ${h < 12 ? 'am' : 'pm'}`
+  return { dow: DOW[d.getDay()], day: d.getDate(), mon: MON[d.getMonth()], time }
+}
+
+export const EventCard = memo(function EventCard({ event, onPress, showHost, isPast, isCancelled, footer, variant }: Props) {
+  const picked = useEventCardVariant()
+  const v = variant ?? picked
   const [peekOpen, setPeekOpen] = useState(false)
   const cover = event.cover_photos?.[0]?.url
-  const spotsLow = event.spots_left > 0 && event.spots_left <= 10
   const TypeIcon = EVENT_ICONS[event.event_type] ?? EVENT_ICON_FALLBACK
-
-  const canOpenHost = !!event.host_id && event.host_name && !event.host_is_deleted
+  const parts = eventDateParts(event.date_time)
+  const area = event.area || event.location_name
+  const host = event.host_name && !event.host_is_deleted ? event.host_name : null
   // Don't offer hotlisting an event that's already ended — respects both the
   // explicit `isPast` prop (e.g. Joined Events' Past tab) and the event's
   // own dates, so it's safe even where callers don't pass `isPast`.
   const eventIsPast = isPast || isEventPast(event)
+  const live = !isPast && !isCancelled
+
+  // One short line about where you stand, shown only when it matters.
+  const note = isCancelled
+    ? { Icon: Ban, text: 'Cancelled' }
+    : isPast
+      ? { Icon: History, text: 'Past' }
+      : live && event.my_rsvp_status === 'requested'
+        ? { Icon: Hourglass, text: 'Requested' }
+        : live && event.spots_left > 0 && event.spots_left <= 10
+          ? { Icon: Flame, text: `${event.spots_left} spots left` }
+          : null
 
   // Tiny tactile press feedback — same spring the app's buttons already use,
   // just a gentler target scale since a card is a much bigger tap target.
   const pressScale = useSharedValue(1)
   const pressStyle = useAnimatedStyle(() => ({ transform: [{ scale: pressScale.value }] }))
+
+  const photo = cover ? (
+    <Image source={{ uri: cover }} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="memory-disk" priority="low" transition={150} />
+  ) : (
+    <LinearGradient colors={[Colors.surface, Colors.deepBackground]} style={[StyleSheet.absoluteFill, s.placeholder]}>
+      <TypeIcon size={v === 'a' ? 36 : 26} color={Colors.inkDisabled} strokeWidth={1.5} />
+    </LinearGradient>
+  )
+  const price = formatPrice(event.price_inr, event.is_free)
 
   return (
     <Fragment>
@@ -238,125 +273,98 @@ export const EventCard = memo(function EventCard({ event, onPress, showHost, isP
       onPressIn={() => { pressScale.value = withSpring(0.985, { duration: 120 }) }}
       onPressOut={() => { pressScale.value = withSpring(1, { duration: 120 }) }}
     >
-      {/* 16:9 cover image */}
-      <View style={s.imageWrap}>
-        {cover ? (
-          <Image
-            source={{ uri: cover }}
-            style={StyleSheet.absoluteFill}
-            contentFit="cover"
-            cachePolicy="memory-disk"
-            priority="low"
-            transition={150}
+      {v === 'a' ? (
+        // A · Poster: the 4:5 photo is the whole card, details sit on it.
+        <View style={pa.poster}>
+          {photo}
+          <LinearGradient
+            colors={['transparent', 'rgba(0,0,0,0.55)', 'rgba(0,0,0,0.88)']}
+            locations={[0, 0.45, 1]}
+            style={pa.scrim}
+            pointerEvents="none"
           />
-        ) : (
-          <LinearGradient colors={[Colors.surface, Colors.deepBackground]} style={[StyleSheet.absoluteFill, s.placeholder]}>
-            <TypeIcon size={40} color={Colors.inkDisabled} strokeWidth={1.5} />
-          </LinearGradient>
-        )}
-
-        {/* Gradient scrim for title legibility */}
-        <LinearGradient
-          colors={['transparent', withOpacity(Colors.background, 0.78)]}
-          style={s.gradient}
-          pointerEvents="none"
-        />
-
-        <PriceBadge
-          price={event.price_inr}
-          isFree={event.is_free}
-          style={[s.priceBadgePos, eventIsPast && s.priceBadgeNoHotlist]}
-        />
-
-        {/* Host pill (display only when not tappable) — avatar + name,
-            Partiful-style organizer credit. The tappable version is the
-            sibling Pressable rendered after the card below; only one of the
-            two ever renders. */}
-        {!canOpenHost && event.host_name && !event.host_is_deleted ? (
-          <HostPill
-            name={event.host_name}
-            avatar={event.host_avatar}
-            style={s.hostPillPos}
-          />
-        ) : null}
-
-        {/* Status badges */}
-        {isCancelled ? (
-          <View style={[s.statusBadge, s.cancelledBadge]}>
-            <Text style={s.statusBadgeText}>Cancelled</Text>
+          <View style={pa.top}>
+            {parts ? (
+              <View style={pa.dateChip}>
+                <Text style={pa.dateDay}>{parts.day}</Text>
+                <Text style={pa.dateMon}>{parts.mon}</Text>
+              </View>
+            ) : null}
+            {note ? (
+              <View style={[pa.chip, isCancelled && pa.chipCancelled]}>
+                <note.Icon size={11} color={Colors.white} strokeWidth={2.4} />
+                <Text style={pa.chipText} numberOfLines={1}>{note.text}</Text>
+              </View>
+            ) : null}
           </View>
-        ) : isPast ? (
-          <View style={s.statusBadge}>
-            <Text style={s.statusBadgeText}>Past</Text>
-          </View>
-        ) : null}
-
-        {/* Title + date overlaid on gradient */}
-        <View style={s.cardFooter}>
-          <Text style={s.title} numberOfLines={2}>{event.title}</Text>
-          {showHost && event.host_name ? (
-            <Text style={[s.hostName, event.host_is_deleted && s.hostNameDeleted]} numberOfLines={1}>
-              by {event.host_name}
+          <View style={pa.bottom}>
+            {showHost && host ? (
+              <View style={pa.hostRow}>
+                <HostAvatar name={host} avatar={event.host_avatar} size={16} />
+                <Text style={pa.host} numberOfLines={1}>{host}</Text>
+              </View>
+            ) : null}
+            <Text style={pa.title} numberOfLines={2}>{event.title}</Text>
+            <Text style={pa.meta} numberOfLines={1}>
+              {parts ? `${parts.dow} · ${parts.time}` : 'Date TBC'}{area ? ` · ${area}` : ''}
             </Text>
-          ) : null}
-          <Text style={s.date}>{formatEventDate(event.date_time)}</Text>
-        </View>
-      </View>
-
-      {/* Meta row */}
-      <View style={s.meta}>
-        <View style={s.metaLeft}>
-          <View style={s.eventTypeRow}>
-            <TypeIcon size={12} color={Colors.inkSecondary} strokeWidth={2} />
-            <Text style={s.eventType}>{event.event_type.replace('_', ' ')}</Text>
-          </View>
-          {event.location_name ? (
-            <View style={s.eventTypeRow}>
-              <MapPin size={12} color={Colors.inkSecondary} strokeWidth={2} />
-              <Text style={s.location} numberOfLines={1}>{event.location_name}</Text>
+            <View style={pa.foot}>
+              {event.attendee_count > 0 ? (
+                <AttendeeAvatarStack avatars={event.attendee_avatars} count={event.attendee_count} avatarSize={16} textStyle={pa.going} />
+              ) : <View />}
+              <View style={pa.price}><Text style={pa.priceText}>{price}</Text></View>
             </View>
-          ) : null}
+          </View>
         </View>
-        <View style={s.metaRight}>
-          {event.distance_km != null && (
-            <Text style={s.dist}>{event.distance_km} km</Text>
-          )}
-          <AttendeeAvatarStack avatars={event.attendee_avatars} count={event.attendee_count} />
-        </View>
-      </View>
-
-      {event.my_rsvp_status === 'requested' && !isPast && !isCancelled ? (
-        <View style={s.spotsBar}>
-          <Hourglass size={13} color={Colors.inkPrimary} strokeWidth={2} />
-          <Text style={s.spotsText}>Requested · waiting for host</Text>
-        </View>
-      ) : spotsLow && !isPast && !isCancelled && (
-        <View style={s.spotsBar}>
-          <Flame size={13} color={Colors.inkPrimary} strokeWidth={2} />
-          <Text style={s.spotsText}>Only {event.spots_left} spots left</Text>
+      ) : (
+        // B · Ticket: 4:5 photo on the left, the details read on the right.
+        <View style={tb.row}>
+          <View style={tb.thumb}>
+            {photo}
+            <View style={tb.price}><Text style={tb.priceText}>{price}</Text></View>
+          </View>
+          <View style={[tb.info, !eventIsPast && { paddingRight: 34 }]}>
+            <Text style={[tb.when, !live && tb.whenMuted]} numberOfLines={1}>
+              {parts ? `${parts.dow}, ${parts.day} ${parts.mon} · ${parts.time}` : 'Date TBC'}
+            </Text>
+            <Text style={tb.title} numberOfLines={2}>{event.title}</Text>
+            {area ? (
+              <View style={tb.line}>
+                <MapPin size={12} color={Colors.inkSecondary} strokeWidth={2} />
+                <Text style={tb.lineText} numberOfLines={1}>
+                  {area}{event.distance_km != null ? ` · ${event.distance_km} km` : ''}
+                </Text>
+              </View>
+            ) : null}
+            {showHost && host ? (
+              <View style={tb.line}>
+                <HostAvatar name={host} avatar={event.host_avatar} size={14} />
+                <Text style={tb.lineText} numberOfLines={1}>by {host}</Text>
+              </View>
+            ) : null}
+            <View style={{ flex: 1 }} />
+            <View style={tb.foot}>
+              {event.attendee_count > 0 ? (
+                <AttendeeAvatarStack avatars={event.attendee_avatars} count={event.attendee_count} avatarSize={18} />
+              ) : null}
+              {note ? (
+                <View style={[tb.chip, isCancelled && tb.chipCancelled]}>
+                  <note.Icon size={11} color={isCancelled ? Colors.destructive : Colors.inkPrimary} strokeWidth={2.4} />
+                  <Text style={[tb.chipText, isCancelled && { color: Colors.destructive }]} numberOfLines={1}>{note.text}</Text>
+                </View>
+              ) : null}
+            </View>
+          </View>
         </View>
       )}
 
-      {footer}
+      {footer ? <View style={s.footerWrap}>{footer}</View> : null}
     </AnimatedPressable>
 
-    {/* True siblings of the card's Pressable above, not descendants — see
-        the comment on the wrapper View. */}
+    {/* A true sibling of the card's Pressable, not a descendant: a nested
+        touchable breaks both taps on Android. */}
     {!eventIsPast && (
-      <HotlistButton eventId={event.id} initial={event.is_hotlisted} style={s.hotlistBtn} />
-    )}
-    {canOpenHost && (
-      <Pressable
-        style={s.hostPillPos}
-        onPress={() => {
-          hSelection()
-          router.push((event.host_id === myId ? '/(tabs)/profile' : `/(profile)/${event.host_id}`) as any)
-        }}
-      >
-        <View pointerEvents="none">
-          <HostPill name={event.host_name!} avatar={event.host_avatar} />
-        </View>
-      </Pressable>
+      <HotlistButton eventId={event.id} initial={event.is_hotlisted} style={v === 'a' ? pa.hotlist : tb.hotlist} size={14} />
     )}
     </View>
     <EventQuickPeekSheet visible={peekOpen} event={event} onClose={() => setPeekOpen(false)} />
@@ -364,44 +372,53 @@ export const EventCard = memo(function EventCard({ event, onPress, showHost, isP
   )
 })
 
+function HostAvatar({ name, avatar, size }: { name: string; avatar: string | null; size: number }) {
+  const st = { width: size, height: size, borderRadius: size / 2 }
+  return avatar ? (
+    <Image source={{ uri: avatar }} style={[st, s.hostAvatar]} contentFit="cover" cachePolicy="memory-disk" priority="low" />
+  ) : (
+    <View style={[st, s.hostAvatar, s.hostAvatarFallback]}>
+      <Text style={[s.hostInitial, { fontSize: size * 0.55 }]}>{name.charAt(0).toUpperCase()}</Text>
+    </View>
+  )
+}
+
 // Same shape as the real card, shimmering — shown while events are still
-// loading. Own transparent wrapper (not the real card's s.card, which
-// carries a solid backgroundColor) — AutoSkeletonView treats any child with
-// a background as a bone to shimmer, so a filled container gets swallowed
-// into one shimmering blob instead of showing the image block + text lines
-// as distinct shapes.
-export function EventCardSkeleton() {
+// loading. Own transparent wrapper (AutoSkeletonView treats any child with a
+// background as a bone, so a filled container shimmers as one blob).
+export function EventCardSkeleton({ variant }: { variant?: EventCardVariant }) {
+  const picked = useEventCardVariant()
+  const v = variant ?? picked
   return (
-    <View style={[s.card, { elevation: 0, shadowOpacity: 0 }]}>
-      {/* Static backgrounds so the skeleton maintains the visual card shape */}
-      <View style={[s.imageWrap, { backgroundColor: Colors.background }]} />
-      <View style={[StyleSheet.absoluteFill, { backgroundColor: 'transparent' }]}>
-        <AutoSkeletonView isLoading animationType="gradient" defaultRadius={20} gradientColors={[Colors.surfaceMuted, '#3a3a3a']}>
-          <View style={s.imageWrap}>
-            {/* Top Left: Host Pill */}
-            <View style={[s.skLine, s.hostPillPos, { width: 120, height: 28, borderRadius: 14 }]} />
-            
-            {/* Top Right: Hotlist & Price */}
-            <View style={[s.skLine, s.hotlistBtn]} />
-            <View style={[s.skLine, s.priceBadge, { width: 50, height: 24, borderRadius: 10 }]} />
-            
-            {/* Bottom: Title & Date */}
-            <View style={s.cardFooter}>
-              <View style={[s.skLine, { width: '75%', height: 18, marginBottom: 8 }]} />
-              <View style={[s.skLine, { width: '45%', height: 14 }]} />
-            </View>
+    <AutoSkeletonView isLoading animationType="gradient" defaultRadius={20} gradientColors={[Colors.skeletonBase, Colors.skeletonHighlight]}>
+      {v === 'a' ? (
+        <View style={[pa.poster, s.skBlock, { borderRadius: 20 }]} />
+      ) : (
+        <View style={tb.row}>
+          <View style={[tb.thumb, s.skBlock]} />
+          <View style={[tb.info, { gap: 8 }]}>
+            <View style={[s.skLine, { width: '50%', height: 11 }]} />
+            <View style={[s.skLine, { width: '85%', height: 16 }]} />
+            <View style={[s.skLine, { width: '60%', height: 11 }]} />
           </View>
-          <View style={s.meta}>
-            <View style={s.metaLeft}>
-              <View style={[s.skLine, { width: '45%', height: 12 }]} />
-              <View style={[s.skLine, { width: '65%', height: 12, marginTop: 6 }]} />
-            </View>
-            <View style={s.metaRight}>
-              <View style={[s.skLine, { width: 54, height: 11 }]} />
-            </View>
-          </View>
-        </AutoSkeletonView>
-      </View>
+        </View>
+      )}
+    </AutoSkeletonView>
+  )
+}
+
+/**
+ * Lays skeletons out the way the real list will be: posters two per row,
+ * ticket rows stacked. `cellWidth` is the poster cell's width.
+ */
+export function EventCardSkeletonList({ count = 4, cellWidth }: { count?: number; cellWidth: number }) {
+  const v = useEventCardVariant()
+  if (v === 'b') return <>{Array.from({ length: count }).map((_, i) => <EventCardSkeleton key={i} variant="b" />)}</>
+  return (
+    <View style={s.skGrid}>
+      {Array.from({ length: count }).map((_, i) => (
+        <View key={i} style={{ width: cellWidth }}><EventCardSkeleton variant="a" /></View>
+      ))}
     </View>
   )
 }
@@ -418,65 +435,83 @@ const s = StyleSheet.create({
     elevation: 5,
   },
   cardPast: { opacity: 0.65 },
-
-  imageWrap: { width: '100%', aspectRatio: 16 / 9, position: 'relative', overflow: 'hidden' },
   placeholder: { alignItems: 'center', justifyContent: 'center' },
-  gradient: { position: 'absolute', bottom: 0, left: 0, right: 0, height: 130 },
+  footerWrap: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: Colors.divider },
 
-  hotlistBtn: {
-    position: 'absolute', top: 12, right: 12,
+  hostAvatar: { borderWidth: 1, borderColor: withOpacity(Colors.white, 0.6) },
+  hostAvatarFallback: { backgroundColor: Colors.surfaceMuted, alignItems: 'center', justifyContent: 'center' },
+  hostInitial: { fontFamily: FontFamily.headingBold, color: Colors.inkPrimary },
+
+  skBlock: { backgroundColor: Colors.surfaceMuted },
+  skLine: { borderRadius: 5, backgroundColor: Colors.surfaceMuted },
+  skGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+})
+
+// A · Poster
+const pa = StyleSheet.create({
+  poster: { width: '100%', aspectRatio: EVENT_IMAGE_ASPECT, overflow: 'hidden' },
+  scrim: { position: 'absolute', left: 0, right: 0, bottom: 0, height: '62%' },
+  top: { position: 'absolute', top: 10, left: 10, right: 48, flexDirection: 'row', alignItems: 'flex-start', gap: 6 },
+  dateChip: {
+    minWidth: 40, paddingHorizontal: 7, paddingVertical: 5, borderRadius: 12, alignItems: 'center',
+    backgroundColor: 'rgba(10,10,10,0.55)',
+    borderWidth: StyleSheet.hairlineWidth, borderColor: withOpacity(Colors.white, 0.18),
+  },
+  dateDay: { fontFamily: FontFamily.headingBold, fontSize: 17, lineHeight: 19, color: Colors.white },
+  dateMon: { fontFamily: FontFamily.bodySemiBold, fontSize: 9, letterSpacing: 0.8, color: withOpacity(Colors.white, 0.8), textTransform: 'uppercase' },
+  chip: {
+    flexDirection: 'row', alignItems: 'center', gap: 4, flexShrink: 1,
+    paddingHorizontal: 8, paddingVertical: 5, borderRadius: 999,
+    backgroundColor: 'rgba(10,10,10,0.55)',
+    borderWidth: StyleSheet.hairlineWidth, borderColor: withOpacity(Colors.white, 0.18),
+  },
+  chipCancelled: { backgroundColor: withOpacity(Colors.destructive, 0.85) },
+  chipText: { fontFamily: FontFamily.bodySemiBold, fontSize: 10, color: Colors.white, flexShrink: 1 },
+  hotlist: {
+    position: 'absolute', top: 10, right: 10,
     width: 30, height: 30, borderRadius: 15,
     backgroundColor: 'rgba(10,10,10,0.55)',
     alignItems: 'center', justifyContent: 'center',
   },
-  // Position only — PriceBadge (exported above) owns the badge's own look.
-  priceBadgePos: { position: 'absolute', top: 12, right: 50 },
-  // Kept for the skeleton's placeholder block below, which needs the same
-  // top/right slot but sizes/colors itself independently.
-  priceBadge: { position: 'absolute', top: 12, right: 50 },
-  // Past events hide the hotlist button — slide the price over into that
-  // now-empty slot instead of leaving a gap.
-  priceBadgeNoHotlist: { right: 12 },
+  bottom: { position: 'absolute', left: 12, right: 12, bottom: 12, gap: 4 },
+  hostRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 1 },
+  host: { fontFamily: FontFamily.bodySemiBold, fontSize: 11, color: withOpacity(Colors.white, 0.85), flexShrink: 1 },
+  title: { fontFamily: FontFamily.headingBold, fontSize: 16, lineHeight: 20, color: Colors.white, letterSpacing: -0.2 },
+  meta: { fontFamily: FontFamily.bodyMedium, fontSize: 11, color: withOpacity(Colors.white, 0.78) },
+  foot: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 4, gap: 6 },
+  going: { fontFamily: FontFamily.bodyMedium, fontSize: 10, color: withOpacity(Colors.white, 0.78), marginLeft: 4 },
+  price: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8, backgroundColor: withOpacity(Colors.white, 0.16) },
+  priceText: { fontFamily: FontFamily.bodySemiBold, fontSize: 11, color: Colors.white },
+})
 
-  hostPillPos: {
-    position: 'absolute', top: 12, left: 12,
-    maxWidth: '65%',
+// B · Ticket
+const tb = StyleSheet.create({
+  row: { flexDirection: 'row', gap: 12, padding: 10 },
+  thumb: { width: 104, height: 130, borderRadius: 14, overflow: 'hidden' }, // 4:5
+  price: {
+    position: 'absolute', left: 6, bottom: 6,
+    paddingHorizontal: 7, paddingVertical: 3, borderRadius: 7,
+    backgroundColor: 'rgba(10,10,10,0.6)',
   },
-
-  // Sits below the host pill (top:12 + ~28px height + gap) rather than
-  // sharing its corner — Cancelled/Past events still show who hosted them.
-  statusBadge: {
-    position: 'absolute', top: 50, left: 12,
-    backgroundColor: withOpacity(Colors.background, 0.85),
-    borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3,
+  priceText: { fontFamily: FontFamily.bodySemiBold, fontSize: 11, color: Colors.white },
+  info: { flex: 1, minWidth: 0, paddingVertical: 2, gap: 5 },
+  when: { fontFamily: FontFamily.bodySemiBold, fontSize: 11, letterSpacing: 0.6, color: Colors.brandOrange, textTransform: 'uppercase' },
+  whenMuted: { color: Colors.inkSecondary },
+  title: { fontFamily: FontFamily.headingBold, fontSize: 17, lineHeight: 21, color: Colors.inkPrimary, letterSpacing: -0.2 },
+  line: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  lineText: { fontFamily: FontFamily.bodyRegular, fontSize: 12, color: Colors.inkSecondary, flexShrink: 1 },
+  foot: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 6, flexWrap: 'wrap' },
+  chip: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999,
+    backgroundColor: withOpacity(Colors.inkPrimary, 0.07),
   },
-  cancelledBadge: { backgroundColor: withOpacity(Colors.destructive, 0.85) },
-  statusBadgeText: { fontFamily: FontFamily.bodyMedium, fontSize: 11, color: Colors.inkPrimary },
-
-  cardFooter: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: 14 },
-  title: { fontFamily: FontFamily.headingBold, fontSize: 16, color: Colors.inkPrimary, lineHeight: 21 },
-  hostName: { fontFamily: FontFamily.bodyMedium, fontSize: 12, color: withOpacity(Colors.inkPrimary, 0.75), marginTop: 2 },
-  hostNameDeleted: { color: withOpacity(Colors.inkPrimary, 0.4) },
-  date: { fontFamily: FontFamily.bodyRegular, fontSize: 12, color: withOpacity(Colors.inkPrimary, 0.75), marginTop: 3 },
-
-  meta: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start',
-    paddingHorizontal: 14, paddingVertical: 12, gap: 8,
+  chipCancelled: { backgroundColor: withOpacity(Colors.destructive, 0.12) },
+  chipText: { fontFamily: FontFamily.bodySemiBold, fontSize: 10, color: Colors.inkPrimary },
+  hotlist: {
+    position: 'absolute', top: 10, right: 10,
+    width: 28, height: 28, borderRadius: 14,
+    backgroundColor: withOpacity(Colors.inkPrimary, 0.07),
+    alignItems: 'center', justifyContent: 'center',
   },
-  metaLeft: { flex: 1, gap: 3 },
-  metaRight: { alignItems: 'flex-end', gap: 3 },
-  eventTypeRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  eventType: { fontFamily: FontFamily.bodyMedium, fontSize: 12, color: Colors.inkSecondary, textTransform: 'capitalize' },
-  location: { fontFamily: FontFamily.bodyRegular, fontSize: 12, color: Colors.inkSecondary },
-  dist: { fontFamily: FontFamily.bodyMedium, fontSize: 12, color: Colors.inkDisabled },
-
-  spotsBar: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    paddingHorizontal: 14, paddingVertical: 8,
-  },
-  spotsText: { fontFamily: FontFamily.bodyMedium, fontSize: 12, color: Colors.inkPrimary },
-
-  skCard: { borderRadius: 20, overflow: 'hidden' },
-  skBlock: { backgroundColor: Colors.surfaceMuted },
-  skLine: { borderRadius: 5, backgroundColor: Colors.surfaceMuted },
 })

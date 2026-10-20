@@ -58,7 +58,7 @@ export const LEGAL_TERMS: LegalDoc = {
         'How you join depends on the event:',
       ],
       bullets: [
-        'Free events are request to join. The host accepts or declines your request. You can withdraw a pending request and send one for the same event up to 3 times. A decline is final, and any request still pending when the event starts expires.',
+        'Free events are request to join. The host accepts or declines your request. You can withdraw a pending request and request the same event once more (2 requests per event in total). A decline is final, and any request still pending when the event starts expires.',
         'Paid events book instantly when your payment goes through, as long as a spot that fits the event’s crowd mix is still available.',
         'When a paid event is full, you may be able to join its waitlist. If a spot opens, you get 1 hour to confirm and pay. If you don’t, the offer passes on and you can’t rejoin that waitlist.',
         'The exact address is shared only with the host and confirmed guests. Before that you’ll see the area and an approximate location.',

@@ -17,7 +17,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors, ComponentSize, FontFamily } from "@/constants";
 import { useEvents } from "@/hooks/useEvents";
 import type { EventSummary } from "@/api/apiService";
-import { EventCard, EventCardSkeleton } from "@/components/events/EventCard";
+import { EventCard, EventCardSkeletonList } from "@/components/events/EventCard";
+import { useEventCardVariant, eventCardColumns, eventGridCellWidth, EVENT_GRID_GAP } from "@/store/eventCardVariantStore";
 import { EventSearchModal } from "@/components/events/EventSearchModal";
 import { EventPreviewStrip, PreviewCard } from "@/components/events/EventPreviewStrip";
 import { MapFloatingHeader, ListModeHeader, ViewModeTogglePill, FilterChipsRow, LIST_HEADER_CONTENT_HEIGHT } from "@/components/events/EventsScreenHeader";
@@ -62,6 +63,10 @@ export default function EventsScreen() {
   const [activeEventId, setActiveEventId] = useState<string | null>(null);
   const [listCount, setListCount] = useState(LIST_PAGE);
   const cardViewMode = useEventViewModeStore((s) => s.mode);
+  const cardVariant = useEventCardVariant();
+  // Posters sit two per row; ticket rows and the compact list take the full width.
+  const listCols = cardViewMode === "card" ? eventCardColumns(cardVariant) : 1;
+  const cellW = eventGridCellWidth(16);
   const setCardViewMode = useEventViewModeStore((s) => s.setMode);
   const [searchModalOpen, setSearchModalOpen] = useState(false);
   const previewListRef = useRef<FlatList>(null);
@@ -149,10 +154,14 @@ export default function EventsScreen() {
       cardViewMode === "list" ? (
         <EventListCard event={item} onPress={() => openEvent(item.id)} />
       ) : (
-        <EventCard event={item} onPress={() => openEvent(item.id)} />
+        listCols > 1 ? (
+          <View style={{ width: cellW }}><EventCard event={item} onPress={() => openEvent(item.id)} /></View>
+        ) : (
+          <EventCard event={item} onPress={() => openEvent(item.id)} />
+        )
       )
     ),
-    [cardViewMode, openEvent],
+    [cardViewMode, listCols, cellW, openEvent],
   );
   const isEmpty = !loading && !error && events.length === 0;
   const previewEvents = events.slice(0, PREVIEW_MAX);
@@ -287,9 +296,9 @@ export default function EventsScreen() {
           <View style={{ paddingTop: insets.top + LIST_HEADER_CONTENT_HEIGHT }}>
             <FilterChipsRow activeChip={activeChip} onSelect={handleChip} />
             <View style={styles.listContent}>
-              {Array.from({ length: 4 }).map((_, i) => (
-                cardViewMode === "list" ? <EventListCardSkeleton key={i} /> : <EventCardSkeleton key={i} />
-              ))}
+              {cardViewMode === "list"
+                ? Array.from({ length: 4 }).map((_, i) => <EventListCardSkeleton key={i} />)
+                : <EventCardSkeletonList count={4} cellWidth={cellW} />}
             </View>
           </View>
         ) : hasError ? (
@@ -304,7 +313,10 @@ export default function EventsScreen() {
           </View>
         ) : (
           <Animated.FlatList
+            key={`cols-${listCols}`}
             data={listEvents}
+            numColumns={listCols}
+            columnWrapperStyle={listCols > 1 ? { gap: EVENT_GRID_GAP } : undefined}
             keyExtractor={(e) => e.id}
             style={{ flex: 1 }}
             contentContainerStyle={[styles.listContent, { paddingTop: insets.top + LIST_HEADER_CONTENT_HEIGHT + 16 }]}

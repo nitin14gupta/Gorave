@@ -3,7 +3,8 @@ import { View, Text, StyleSheet, FlatList, ActivityIndicator } from 'react-nativ
 import { router } from 'expo-router'
 import { Colors, FontFamily } from '@/constants'
 import { EventListCard, EventListCardSkeleton, PrimaryButton, BrandedRefreshControl } from '@/components/ui'
-import { EventCardSkeleton } from '@/components/events/EventCard'
+import { EventCardSkeletonList } from '@/components/events/EventCard'
+import { useEventCardVariant, eventCardColumns, eventGridCellWidth, EVENT_GRID_GAP } from '@/store/eventCardVariantStore'
 import type { useMyEventsPage } from '@/hooks/useMyEventsPage'
 import type { EventSummary } from '@/api/apiService'
 
@@ -23,13 +24,17 @@ export function EventsPane({
 }) {
   // Fetch once, cached after that — swiping between tabs never re-fetches.
   useEffect(() => { if (active && !page.loaded) page.fetchFirstPage(false) }, [active, page.loaded])
+  const variant = useEventCardVariant()
+  // Posters sit two per row; ticket rows and the compact list are one per row.
+  const cols = viewMode === 'card' ? eventCardColumns(variant) : 1
+  const cellW = eventGridCellWidth(16)
 
   if (page.loading) {
     return (
       <View style={s.listContent}>
-        {Array.from({ length: 4 }).map((_, i) => (
-          viewMode === 'list' ? <EventListCardSkeleton key={i} /> : <EventCardSkeleton key={i} />
-        ))}
+        {viewMode === 'list'
+          ? Array.from({ length: 4 }).map((_, i) => <EventListCardSkeleton key={i} />)
+          : <EventCardSkeletonList count={4} cellWidth={cellW} />}
       </View>
     )
   }
@@ -49,7 +54,10 @@ export function EventsPane({
 
   return (
     <FlatList
+      key={`cols-${cols}`}
       data={page.events}
+      numColumns={cols}
+      columnWrapperStyle={cols > 1 ? { gap: EVENT_GRID_GAP } : undefined}
       keyExtractor={e => e.id}
       contentContainerStyle={s.listContent}
       showsVerticalScrollIndicator={false}
@@ -68,6 +76,8 @@ export function EventsPane({
       renderItem={({ item }) => (
         viewMode === 'list' ? (
           <EventListCard event={item} onPress={() => router.push(`/(events)/${item.id}` as any)} />
+        ) : cols > 1 ? (
+          <View style={{ width: cellW }}>{renderCard(item)}</View>
         ) : (
           renderCard(item)
         )

@@ -14,7 +14,7 @@ import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio'
 import * as FileSystem from 'expo-file-system/legacy'
 import { router } from 'expo-router'
 import { Play, Pause, Download, Film, Mic, Image as ImageIcon, Calendar, User, Check } from 'lucide-react-native'
-import { Colors, FontFamily, withOpacity } from '@/constants'
+import { Colors, FontFamily, withOpacity, EVENT_IMAGE_ASPECT } from '@/constants'
 import type { Message } from '@/api/apiService'
 import type { MediaViewType } from '@/components/chat/MediaViewerModal'
 import { ReactionPills } from './ReactionPills'
@@ -738,7 +738,7 @@ const s = StyleSheet.create({
     backgroundColor: Colors.skeletonBase, borderWidth: 1, borderColor: Colors.surfaceMuted,
     borderRadius: 16, overflow: 'hidden', width: 260,
   },
-  richCardImg: { width: '100%', height: 140 },
+  richCardImg: { width: '100%', aspectRatio: EVENT_IMAGE_ASPECT },
   richCardImgFallback: { backgroundColor: Colors.surfaceMuted },
   richCardBody: { padding: 12, gap: 4 },
   richCardTitle: { fontFamily: FontFamily.bodySemiBold, fontSize: 15, color: Colors.inkPrimary },

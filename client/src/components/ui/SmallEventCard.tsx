@@ -75,8 +75,8 @@ const s = StyleSheet.create({
     borderColor: withOpacity(Colors.inkPrimary, 0.05),
   },
   imageContainer: {
-    width: 112,
-    height: 63,
+    width: 60,
+    height: 75, // 4:5, like every event photo
     borderRadius: 8,
     overflow: 'hidden',
     backgroundColor: Colors.surfaceMuted,

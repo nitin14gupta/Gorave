@@ -2,8 +2,8 @@ import React from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 import { Colors, FontFamily } from '@/constants'
 
-/** "2 of 3 requests left for this event", as a little meter. */
-export function RequestTries({ left, max = 3, note }: { left: number; max?: number; note?: string }) {
+/** "1 of 2 requests left for this event", as a little meter. */
+export function RequestTries({ left, max = 2, note }: { left: number; max?: number; note?: string }) {
   return (
     <View>
       <View style={s.row}>

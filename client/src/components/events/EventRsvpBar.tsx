@@ -78,7 +78,7 @@ export function EventRsvpBar({
               <View>
                 <Text style={styles.waitTitle}>Waiting for the host</Text>
                 {event.my_requests_left != null && (
-                  <Text style={styles.waitSub}>{event.my_requests_left} of {event.max_join_requests ?? 3} requests left</Text>
+                  <Text style={styles.waitSub}>{event.my_requests_left} of {event.max_join_requests ?? 2} requests left</Text>
                 )}
               </View>
             ) : (

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
-import Animated, { Easing, useAnimatedStyle, useSharedValue, withDelay, withSpring, withTiming } from 'react-native-reanimated'
+import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated'
 import { LinearGradient } from 'expo-linear-gradient'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useLocalSearchParams, useRouter } from 'expo-router'
@@ -20,8 +20,8 @@ const STEPS = [
 
 /**
  * After "Request to join": a proper moment instead of a toast. The sent
- * badge lands, the three steps show what happens next, and withdrawing is
- * one tap away, behind a confirm that says how many requests are left.
+ * three steps show what happens next, and withdrawing is one tap away,
+ * behind a confirm that says whether you'll get another chance.
  */
 export default function RequestSentScreen() {
   const { id, title } = useLocalSearchParams<{ id: string; title?: string }>()
@@ -37,18 +37,15 @@ export default function RequestSentScreen() {
     if (id) ApiService.getEvent(id).then(setEvent).catch(() => {})
   }, [id])
 
-  // Entrance: badge drops in and settles, copy rises after it.
-  const badge = useSharedValue(0)
-  const copy = useSharedValue(0)
+  // The screen fades in once; nothing pops or moves after that.
+  const fade = useSharedValue(0)
   useEffect(() => {
-    badge.value = withSpring(1, { damping: 11, stiffness: 140 })
-    copy.value = withDelay(220, withTiming(1, { duration: 500, easing: Easing.out(Easing.cubic) }))
-  }, [badge, copy])
-  const badgeStyle = useAnimatedStyle(() => ({ transform: [{ scale: 0.4 + badge.value * 0.6 }, { rotate: `${-8 * badge.value}deg` }], opacity: badge.value }))
-  const copyStyle = useAnimatedStyle(() => ({ opacity: copy.value, transform: [{ translateY: (1 - copy.value) * 16 }] }))
+    fade.value = withTiming(1, { duration: 350, easing: Easing.out(Easing.cubic) })
+  }, [fade])
+  const fadeStyle = useAnimatedStyle(() => ({ opacity: fade.value }))
 
   const left = event?.my_requests_left ?? null
-  const max = event?.max_join_requests ?? 3
+  const max = event?.max_join_requests ?? 2
 
   const withdraw = async () => {
     if (!id || busy) return
@@ -65,15 +62,15 @@ export default function RequestSentScreen() {
   }
 
   return (
-    <View style={[s.root, { paddingTop: insets.top + 40, paddingBottom: insets.bottom + 20 }]}>
+    <Animated.View style={[s.root, { paddingTop: insets.top + 40, paddingBottom: insets.bottom + 20 }, fadeStyle]}>
       <View style={{ flex: 1, alignItems: 'center' }}>
-        <Animated.View style={[s.badgeShadow, badgeStyle]}>
+        <View style={s.badgeShadow}>
           <LinearGradient colors={[Colors.brandOrange, Colors.brandCoral]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.badge}>
-            <Send size={46} color={Colors.white} strokeWidth={2} />
+            <Send size={40} color={Colors.white} strokeWidth={2} />
           </LinearGradient>
-        </Animated.View>
+        </View>
 
-        <Animated.View style={[{ alignItems: 'center', width: '100%' }, copyStyle]}>
+        <View style={{ alignItems: 'center', width: '100%' }}>
           <Text style={s.title}>Request sent.</Text>
           <Text style={s.body}>
             {title ? `The host of ${title} sees your profile and decides.` : 'The host sees your profile and decides.'} We’ll tell you the moment they do.
@@ -97,7 +94,7 @@ export default function RequestSentScreen() {
             })}
           </View>
           {left != null && <View style={{ marginTop: 14, alignSelf: 'stretch', paddingHorizontal: 4 }}><RequestTries left={left} max={max} /></View>}
-        </Animated.View>
+        </View>
       </View>
 
       <PrimaryButton label="Back to the event" onPress={() => router.back()} />
@@ -109,23 +106,23 @@ export default function RequestSentScreen() {
         visible={confirm}
         icon={<LogOut size={28} color={Colors.destructive} strokeWidth={2} />}
         title="Withdraw your request?"
-        body={`Your place in the host’s queue goes. You can request this event again, but each event allows ${max} requests in total.`}
+        body={left === 0 ? 'Your place in the host’s queue goes, and you won’t be able to request this event again.' : 'Your place in the host’s queue goes. You get one more chance to request this event after this.'}
         confirmLabel="Withdraw"
         cancelLabel="Keep my request"
         destructive
         onConfirm={withdraw}
         onClose={() => setConfirm(false)}
       >
-        {left != null ? <View style={s.sheetTries}><RequestTries left={left} max={max} note={left === 0 ? 'This was your last request, so you won’t be able to request again.' : `After withdrawing you can still send ${left} more.`} /></View> : null}
+        {left != null ? <View style={s.sheetTries}><RequestTries left={left} max={max} note={left === 0 ? 'This was your last chance, so you won’t be able to request again.' : 'You’ll get one more chance to request after this.'} /></View> : null}
       </ConfirmSheet>
-    </View>
+    </Animated.View>
   )
 }
 
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: Colors.background, paddingHorizontal: 20 },
-  badgeShadow: { shadowColor: Colors.brandOrange, shadowOpacity: 0.5, shadowRadius: 30, shadowOffset: { width: 0, height: 16 }, elevation: 12, borderRadius: 36 },
-  badge: { width: 120, height: 120, borderRadius: 36, alignItems: 'center', justifyContent: 'center' },
+  badgeShadow: { borderRadius: 30 },
+  badge: { width: 96, height: 96, borderRadius: 30, alignItems: 'center', justifyContent: 'center' },
   title: { fontFamily: FontFamily.headingBold, fontSize: 34, color: Colors.inkPrimary, letterSpacing: -0.8, marginTop: 30 },
   body: { fontFamily: FontFamily.bodyRegular, fontSize: 15, color: Colors.inkSecondary, textAlign: 'center', lineHeight: 22, marginTop: 10, paddingHorizontal: 6 },
   card: { alignSelf: 'stretch', marginTop: 28, padding: 18, borderRadius: 22, backgroundColor: Colors.surface, borderWidth: 1, borderColor: Colors.divider },

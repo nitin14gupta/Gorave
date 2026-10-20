@@ -236,7 +236,7 @@ export const LEGAL_HOST_AGREEMENT: LegalDoc = {
     {
       heading: 'Choosing your guests',
       paragraphs: [
-        'On free events, guests send a request and you accept or decline each one after seeing their profile. A guest can send a request for the same event up to 3 times in total, a decline is final for that event, and requests still pending when the event starts expire. Paid events book instantly, and when a paid event is full new guests can join a waitlist.',
+        'On free events, guests send a request and you accept or decline each one after seeing their profile. A guest can request the same event twice in total (one more chance after withdrawing), a decline is final for that event, and requests still pending when the event starts expire. Paid events book instantly, and when a paid event is full new guests can join a waitlist.',
         'On any event you can set a crowd mix (open to anyone, women-only, men-only, 50:50, 60:40 or another split in 10% steps) and an age gate of 21+ or 25+. On a split mix, 10% of seats stay open to anyone, and guests who chose Non-binary or Prefer not to say can take those open seats.',
         'Use the crowd mix and age gate tools the app gives you to shape your guest list. Beyond those, don’t accept or decline guests in a way that is unlawful or discriminatory, for example because of religion, caste, race, region, disability or sexual orientation.',
       ],

@@ -206,9 +206,9 @@ const s = StyleSheet.create({
   },
   avatarWrap: { position: 'relative' },
   avatar: { width: 44, height: 44, borderRadius: 22 },
-  // True 16:9 event cover thumbnail — a circular crop mangles a landscape
-  // photo, so these get a rounded-rect thumbnail instead of the avatar shape.
-  coverThumb: { width: 64, height: 36, borderRadius: 8 },
+  // Event covers are 4:5 portrait — a circular crop would mangle them, so
+  // they get a rounded-rect thumbnail instead of the avatar shape.
+  coverThumb: { width: 40, height: 50, borderRadius: 8 },
   avatarFallback: {
     backgroundColor: Colors.surface,
     alignItems: 'center', justifyContent: 'center',

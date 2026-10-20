@@ -13,14 +13,14 @@ import { StatusBar } from 'expo-status-bar'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Calendar, MapPin, ShieldCheck, Wallet, Music2 } from 'lucide-react-native'
-import { Colors, FontFamily, Spacing, Radius, withOpacity } from '@/constants'
+import { Colors, FontFamily, Spacing, Radius, withOpacity, eventImageHeight } from '@/constants'
 import { BackButton, BrandedLoader, PrimaryButton } from '@/components/ui'
 import ApiService, { type EventDetail } from '@/api/apiService'
 import { usePillStore } from '@/store/pillStore'
 import { hSuccess, hSelection } from '@/lib/haptics'
 
 const { width: SCREEN_W } = Dimensions.get('window')
-const BANNER_H = SCREEN_W * (9 / 16)
+const BANNER_H = eventImageHeight(SCREEN_W) // 4:5 event photo
 
 function formatDateTime(iso: string | null | undefined) {
   if (!iso) return 'Date TBC'

@@ -18,7 +18,7 @@ MIN_TICKET_PRICE_INR = 99
 FREE_EVENTS_PER_MONTH = 2
 # A guest can send (or re-send after withdrawing) a join request this many
 # times per event. A host decline is final regardless.
-_MAX_JOIN_REQUESTS = 3
+_MAX_JOIN_REQUESTS = 2  # first request + one more chance after withdrawing
 
 
 def _join_mode_for(price_inr: int) -> str:

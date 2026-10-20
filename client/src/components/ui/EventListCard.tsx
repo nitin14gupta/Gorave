@@ -187,7 +187,7 @@ const s = StyleSheet.create({
     gap: 14,
     padding: 12,
   },
-  thumb: { width: 120, height: 68, borderRadius: 14, overflow: 'hidden', position: 'relative' },
+  thumb: { width: 72, height: 90, borderRadius: 14, overflow: 'hidden', position: 'relative' }, // 4:5
   thumbImg: { width: '100%', height: '100%' },
   thumbFallback: { backgroundColor: Colors.surfaceMuted, alignItems: 'center', justifyContent: 'center' },
   hostBadge: {

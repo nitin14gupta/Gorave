@@ -3,7 +3,8 @@ import { View, Text, StyleSheet, Pressable, ScrollView, ActivityIndicator, Dimen
 import { Plus, X } from 'lucide-react-native'
 import { Image } from 'expo-image'
 import * as ImagePicker from 'expo-image-picker'
-import { Colors, FontFamily, withOpacity } from '@/constants'
+import { Colors, EVENT_IMAGE_ASPECT, FontFamily, eventImageHeight, withOpacity } from '@/constants'
+import { cropEventPhoto } from '@/lib/eventPhotoCrop'
 import type { CreateEventForm } from '@/hooks/useCreateEvent'
 import { useEventPhotos } from '@/hooks/useEventPhotos'
 import { ef } from './styles'
@@ -57,13 +58,15 @@ export function Step5Photos({ form, set, errors, setErrors, disabled, inline }: 
     })
 
     if (!result.canceled && result.assets.length > 0) {
+      // Straight into the 4:5 cropper, one photo at a time. Cancelling skips that photo.
+      const cropped: { uri: string; type: 'image'; width: number; height: number }[] = []
+      for (const a of result.assets) {
+        const c = await cropEventPhoto(a.uri)
+        if (c) cropped.push({ ...c, type: 'image' })
+      }
+      if (!cropped.length) return
       setErrors(e => ({ ...e, coverPhotos: '' }))
-      setPendingMedia(result.assets.map(a => ({
-        uri: a.uri,
-        type: 'image',
-        width: a.width,
-        height: a.height,
-      })))
+      setPendingMedia(cropped)
       setPendingPosition(position)
     }
   }
@@ -93,9 +96,12 @@ export function Step5Photos({ form, set, errors, setErrors, disabled, inline }: 
   
   const sidePadding = inline ? 0 : 24
   const availableWidth = SW - (inline ? 40 : 48)
-  const coverHeight = availableWidth * (9 / 16)
-  const smallSlotWidth = (availableWidth - 12) / 2
-  const smallSlotHeight = smallSlotWidth * (9 / 16)
+  // Portrait 4:5 throughout: the cover is shown at 70% width so the whole
+  // frame fits on screen, the gallery is one row of four.
+  const coverWidth = Math.round(availableWidth * 0.7)
+  const coverHeight = eventImageHeight(coverWidth)
+  const smallSlotWidth = (availableWidth - 24) / 4
+  const smallSlotHeight = eventImageHeight(smallSlotWidth)
 
   return (
     <View style={s.container}>
@@ -108,10 +114,11 @@ export function Step5Photos({ form, set, errors, setErrors, disabled, inline }: 
         )}
 
         <View style={{ paddingHorizontal: sidePadding }}>
-          <Text style={[ef.fieldLabel, { marginTop: inline ? 0 : 24 }]}>Cover Photo (16:9)</Text>
+          <Text style={[ef.fieldLabel, { marginTop: inline ? 0 : 24 }]}>Cover Photo</Text>
+          <Text style={s.hint}>Portrait 4:5, like an Instagram post. This is how it shows everywhere.</Text>
         
         <Pressable 
-          style={[s.coverSlot, { width: availableWidth, height: coverHeight }]} 
+          style={[s.coverSlot, { width: coverWidth, height: coverHeight, alignSelf: 'center' }]} 
           onPress={() => !isCoverUploading && pickForSlot(0)}
         >
           {coverUri ? (
@@ -142,12 +149,12 @@ export function Step5Photos({ form, set, errors, setErrors, disabled, inline }: 
           ) : (
             <View style={s.placeholderContainer}>
               <Plus size={24} color={Colors.glassTextDisabled} />
-              <Text style={s.placeholderText}>Cover Photo (16:9)</Text>
+              <Text style={s.placeholderText}>Add cover · 4:5</Text>
             </View>
           )}
         </Pressable>
 
-        <Text style={[ef.fieldLabel, { marginTop: 32 }]}>Gallery (Optional, 16:9)</Text>
+        <Text style={[ef.fieldLabel, { marginTop: 32 }]}>Gallery (optional)</Text>
         <View style={[s.galleryGrid, { width: availableWidth }]}>
           {[1, 2, 3, 4].map((i) => {
             const uri = displayUri(i)
@@ -197,7 +204,7 @@ export function Step5Photos({ form, set, errors, setErrors, disabled, inline }: 
       {pendingMedia.length > 0 && (
         <MediaPreviewModal
           media={pendingMedia}
-          cropAspectRatio={16 / 9}
+          cropAspectRatio={EVENT_IMAGE_ASPECT}
           onCancel={() => setPendingMedia([])}
           onRemove={() => setPendingMedia([])}
           onUpdate={(index, updated) => setPendingMedia([updated])}
@@ -211,6 +218,7 @@ export function Step5Photos({ form, set, errors, setErrors, disabled, inline }: 
 }
 
 const s = StyleSheet.create({
+  hint: { fontFamily: FontFamily.bodyRegular, fontSize: 12, color: Colors.inkSecondary, marginTop: -4, marginBottom: 12 },
   container: { flex: 1 },
   scrollContent: { paddingBottom: 100 },
   header: { padding: 24, paddingBottom: 0 },
@@ -237,7 +245,7 @@ const s = StyleSheet.create({
     paddingTop: 12,
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 12,
+    gap: 8,
   },
   smallSlot: {
     borderRadius: 12,

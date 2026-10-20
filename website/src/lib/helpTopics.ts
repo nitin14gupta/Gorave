@@ -115,7 +115,7 @@ export const HELP_TOPICS_DATA: HelpTopic[] = [
       },
       {
         q: 'Can I withdraw a request?',
-        a: 'Yes, you can withdraw a pending request at any time from the event page. You can send a request for the same event up to 3 times in total.',
+        a: 'Yes, you can withdraw a pending request at any time from the event page. You can request the same event twice in total: your first request, and one more chance if you withdraw.',
       },
       {
         q: 'What if the host declines?',

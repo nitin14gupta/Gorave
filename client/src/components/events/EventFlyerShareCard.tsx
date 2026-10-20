@@ -5,7 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient'
 import Animated, {
   useSharedValue, useAnimatedStyle, withRepeat, withTiming, Easing,
 } from 'react-native-reanimated'
-import { FontFamily, Logo, Colors } from '@/constants'
+import { FontFamily, Logo, Colors, EVENT_IMAGE_ASPECT } from '@/constants'
 import { FLYER_THEMES, type FlyerTheme } from '@/constants/flyerThemes'
 import { useFlyerThemeStore } from '@/store/flyerThemeStore'
 import { StyledQr } from '@/components/ui/QrCard'
@@ -236,7 +236,7 @@ const s = StyleSheet.create({
   },
   imageWrap: {
     width: '100%',
-    aspectRatio: 16 / 9,
+    aspectRatio: EVENT_IMAGE_ASPECT,
     borderRadius: 10,
     overflow: 'hidden',
     backgroundColor: '#00000010',

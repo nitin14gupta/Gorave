@@ -1,9 +1,5 @@
-import { useEffect, type ReactNode } from 'react'
+import type { ReactNode } from 'react'
 import { View, Text, StyleSheet } from 'react-native'
-import Animated, {
-  useSharedValue, useAnimatedStyle,
-  withRepeat, withSequence, withTiming, Easing,
-} from 'react-native-reanimated'
 import { Colors, FontFamily } from '@/constants'
 import { PrimaryButton } from './PrimaryButton'
 import { LogoMark } from './LogoMark'
@@ -16,38 +12,15 @@ interface Props {
   onCtaPress?: () => void
   ctaIcon?: ReactNode
   compact?: boolean
-  // Opt out of the default floating drift for this one call site — the icon
-  // renders still instead.
+  /** Kept for existing call sites; icons are always still now. */
   staticIcon?: boolean
 }
 
-// Gentle, endless up/down drift on the icon — the one change that makes every
-// empty state in the app (search, chat, notifications, wallet...) feel alive
-// instead of static, without touching each call site.
-function FloatingIcon({ children }: { children: ReactNode }) {
-  const floatY = useSharedValue(0)
-
-  useEffect(() => {
-    floatY.value = withRepeat(
-      withSequence(
-        withTiming(-6, { duration: 1400, easing: Easing.inOut(Easing.sin) }),
-        withTiming(0, { duration: 1400, easing: Easing.inOut(Easing.sin) }),
-      ),
-      -1,
-      false,
-    )
-  }, [])
-
-  const style = useAnimatedStyle(() => ({ transform: [{ translateY: floatY.value }] }))
-
-  return <Animated.View style={style}>{children}</Animated.View>
-}
-
-export function EmptyState({ icon, title, subtitle, ctaLabel, onCtaPress, ctaIcon, compact, staticIcon }: Props) {
+export function EmptyState({ icon, title, subtitle, ctaLabel, onCtaPress, ctaIcon, compact }: Props) {
   const resolvedIcon = icon ?? <LogoMark size={64} opacity={0.12} />
   return (
     <View style={[s.wrap, compact && s.wrapCompact]}>
-      {staticIcon ? resolvedIcon : <FloatingIcon>{resolvedIcon}</FloatingIcon>}
+      {resolvedIcon}
       <Text style={s.title}>{title}</Text>
       {subtitle ? <Text style={s.subtitle}>{subtitle}</Text> : null}
       {ctaLabel && onCtaPress ? (

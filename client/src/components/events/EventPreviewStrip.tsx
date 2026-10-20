@@ -4,7 +4,7 @@ import Animated, { useAnimatedStyle, useSharedValue, withSpring } from "react-na
 import { LinearGradient } from "expo-linear-gradient";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
-import { Colors, FontFamily, EVENT_ICONS, EVENT_ICON_FALLBACK } from '@/constants';
+import { Colors, FontFamily, EVENT_ICONS, EVENT_ICON_FALLBACK, eventImageHeight } from '@/constants';
 import { hSelection } from "@/lib/haptics";
 import { useAuthStore } from "@/store/auth";
 import type { EventSummary } from "@/api/apiService";
@@ -12,7 +12,7 @@ import { formatEventDate, HostPill, PriceBadge } from "@/components/events/Event
 import { HotlistButton } from "@/components/events/HotlistButton";
 import { isEventPast } from "@/lib/dates";
 
-const CARD_W = 268;
+const CARD_W = 200;
 const CARD_MARGIN = 10;
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
@@ -192,7 +192,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.4,
     shadowRadius: 14,
   },
-  previewImageWrap: { height: 118 },
+  previewImageWrap: { height: eventImageHeight(CARD_W) },
   previewImage: { width: "100%", height: "100%" },
   previewPlaceholder: {
     backgroundColor: Colors.elevated,

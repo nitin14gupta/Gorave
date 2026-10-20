@@ -5,10 +5,10 @@ import { router } from 'expo-router'
 import { QrCode, ChevronRight } from 'lucide-react-native'
 import type { EventSummary } from '@/api/apiService'
 import { EventCard } from '@/components/events/EventCard'
+import { useEventCardVariant, EVENT_CARD_CAROUSEL_W } from '@/store/eventCardVariantStore'
 import { parseServerDate } from '@/lib/dates'
 import { Colors, FontFamily } from '@/constants'
 
-const CARD_WIDTH = 240
 const CARD_GAP = 12
 const INITIAL_COUNT = 6
 const PAGE_SIZE = 6
@@ -31,7 +31,7 @@ const UpNextCard = memo(function UpNextCard({ event, onPress, onTicketPress }: {
 }) {
   const d = parseServerDate(event.date_time)
   return (
-    <View style={s.card}>
+    <View style={{ width: EVENT_CARD_CAROUSEL_W[useEventCardVariant()] }}>
       <EventCard
         event={event}
         showHost
@@ -39,7 +39,7 @@ const UpNextCard = memo(function UpNextCard({ event, onPress, onTicketPress }: {
         footer={
           <Pressable style={s.ticketFooter} onPress={() => onTicketPress(event.id)}>
             <QrCode size={15} color={Colors.inkSecondary} strokeWidth={2} />
-            <Text style={s.ticketFooterText}>
+            <Text style={s.ticketFooterText} numberOfLines={1}>
               {d ? relativeDayLabel(d) : ''} · View Ticket
             </Text>
             <ChevronRight size={15} color={Colors.inkSecondary} strokeWidth={2} />
@@ -63,11 +63,12 @@ export function UpNextSection({ events }: { events: EventSummary[] }) {
     <UpNextCard event={item} onPress={handlePress} onTicketPress={handleTicketPress} />
   ), [handlePress, handleTicketPress])
 
+  const cardW = EVENT_CARD_CAROUSEL_W[useEventCardVariant()]
   const getItemLayout = useCallback((_: unknown, index: number) => ({
-    length: CARD_WIDTH,
-    offset: (CARD_WIDTH + CARD_GAP) * index,
+    length: cardW,
+    offset: (cardW + CARD_GAP) * index,
     index,
-  }), [])
+  }), [cardW])
 
   if (events.length === 0) return null
 
@@ -98,7 +99,6 @@ export function UpNextSection({ events }: { events: EventSummary[] }) {
 const s = StyleSheet.create({
   wrap: { gap: 10 },
   list: { gap: 12, paddingRight: 4 },
-  card: { width: CARD_WIDTH },
   ticketFooter: {
     flexDirection: 'row',
     alignItems: 'center',

@@ -5,11 +5,11 @@ import { router, useFocusEffect } from 'expo-router'
 import ApiService, { type EventSummary } from '@/api/apiService'
 import { getOrFetch, invalidate } from '@/lib/queryCache'
 import { EventCard } from '@/components/events/EventCard'
+import { useEventCardVariant, EVENT_CARD_CAROUSEL_W } from '@/store/eventCardVariantStore'
 import { SosButton } from '@/components/events/SosButton'
 import { parseServerDate, isEventActive } from '@/lib/dates'
 import { CacheKeys, Colors, FontFamily, withOpacity } from '@/constants'
 
-const CARD_WIDTH = 240
 
 function activeSorted(events: EventSummary[]) {
   return events
@@ -19,7 +19,7 @@ function activeSorted(events: EventSummary[]) {
 
 const ActiveEventCard = memo(function ActiveEventCard({ event }: { event: EventSummary }) {
   return (
-    <View style={s.card}>
+    <View style={{ width: EVENT_CARD_CAROUSEL_W[useEventCardVariant()] }}>
       <EventCard event={event} showHost onPress={() => router.push(`/(events)/${event.id}` as any)} />
       <SosButton eventId={event.id} size={15} style={s.sosBadge} />
     </View>
@@ -86,9 +86,9 @@ const s = StyleSheet.create({
   wrap: { gap: 10 },
   liveDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: Colors.destructive },
   list: { gap: 12, paddingRight: 4 },
-  card: { width: CARD_WIDTH },
+  // Top right, beside the save button, so it never covers price or details.
   sosBadge: {
-    position: 'absolute', bottom: 12, right: 12,
+    position: 'absolute', top: 10, right: 46,
     width: 30, height: 30, borderRadius: 15,
     backgroundColor: withOpacity(Colors.background, 0.55),
   },

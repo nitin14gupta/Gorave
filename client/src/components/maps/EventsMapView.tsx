@@ -13,7 +13,7 @@ import {
   Layer,
   type CameraRef,
 } from '@maplibre/maplibre-react-native'
-import { Colors, EVENT_ICONS, EVENT_ICON_FALLBACK, withOpacity } from '@/constants'
+import { Colors, EVENT_ICONS, EVENT_ICON_FALLBACK, withOpacity, EVENT_IMAGE_ASPECT } from '@/constants'
 import { MAP_PROVIDER, TILE_STYLE, DEFAULT_MAP_CENTER, type MapBounds } from '@/constants/mapConfig'
 import { useGoogleMaps } from '@/hooks/useGoogleMaps'
 import { useMapLibre, eventsToGeoJSON } from '@/hooks/useMapLibre'
@@ -430,7 +430,7 @@ function zoomFromLongitudeDelta(longitudeDelta: number) {
   return Math.log2(360 / longitudeDelta)
 }
 
-// Event marker — just the event's own 16:9 photo, centered on the coordinate.
+// Event marker — just the event's own 4:5 photo, centered on the coordinate.
 // The bubble's layout size stays fixed (PIN_W × PIN_H) so the marker's anchor
 // point never shifts — the zoom-driven size change is done purely as a
 // `transform: scale`, animated with Reanimated so it eases smoothly toward
@@ -477,8 +477,8 @@ const EventMapPin = React.memo(function EventMapPin({
   )
 })
 
-const PIN_W = 72
-const PIN_H = Math.round((PIN_W * 9) / 16)
+const PIN_W = 52
+const PIN_H = Math.round(PIN_W / EVENT_IMAGE_ASPECT) // 4:5 like every event photo
 const PIN_RADIUS = 10
 
 const p = StyleSheet.create({

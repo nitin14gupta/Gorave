@@ -5,11 +5,11 @@ import { router, useFocusEffect } from 'expo-router'
 import { Clock, ChevronRight } from 'lucide-react-native'
 import ApiService, { type EventSummary } from '@/api/apiService'
 import { EventCard } from '@/components/events/EventCard'
+import { useEventCardVariant, EVENT_CARD_CAROUSEL_W } from '@/store/eventCardVariantStore'
 import { getOrFetch, invalidate } from '@/lib/queryCache'
 import { isEventPast } from '@/lib/dates'
 import { CacheKeys, Colors, FontFamily } from '@/constants'
 
-const CARD_WIDTH = 240
 const CARD_GAP = 12
 const INITIAL_COUNT = 6
 const PAGE_SIZE = 6
@@ -20,7 +20,7 @@ function upcomingSorted(events: EventSummary[]) {
 
 function WaitlistCard({ event, onPress }: { event: EventSummary; onPress: (id: string) => void }) {
   return (
-    <View style={s.card}>
+    <View style={{ width: EVENT_CARD_CAROUSEL_W[useEventCardVariant()] }}>
       <EventCard
         event={event}
         showHost
@@ -28,7 +28,7 @@ function WaitlistCard({ event, onPress }: { event: EventSummary; onPress: (id: s
         footer={
           <View style={s.footer}>
             <Clock size={15} color={Colors.inkSecondary} strokeWidth={2} />
-            <Text style={s.footerText}>Waiting for a spot</Text>
+            <Text style={s.footerText} numberOfLines={1}>Waiting for a spot</Text>
             <ChevronRight size={15} color={Colors.inkSecondary} strokeWidth={2} />
           </View>
         }
@@ -84,11 +84,12 @@ export const WaitlistSection = forwardRef<WaitlistSectionHandle, Props>(function
     <WaitlistCard event={item} onPress={handlePress} />
   ), [handlePress])
 
+  const cardW = EVENT_CARD_CAROUSEL_W[useEventCardVariant()]
   const getItemLayout = useCallback((_: unknown, index: number) => ({
-    length: CARD_WIDTH,
-    offset: (CARD_WIDTH + CARD_GAP) * index,
+    length: cardW,
+    offset: (cardW + CARD_GAP) * index,
     index,
-  }), [])
+  }), [cardW])
 
   if (events.length === 0) return null
 
@@ -119,7 +120,6 @@ export const WaitlistSection = forwardRef<WaitlistSectionHandle, Props>(function
 const s = StyleSheet.create({
   wrap: { gap: 10 },
   list: { gap: 12, paddingRight: 4 },
-  card: { width: CARD_WIDTH },
   footer: {
     flexDirection: 'row',
     alignItems: 'center',

@@ -1,5 +1,6 @@
 import React from 'react'
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { Pressable, StyleSheet, Text, View } from 'react-native'
+import Animated, { useAnimatedScrollHandler, useSharedValue } from 'react-native-reanimated'
 import { useLocalSearchParams } from 'expo-router'
 import { useGoBack } from '@/hooks/useGoBack'
 import { useEventDetail } from '@/hooks/useEventDetail'
@@ -10,7 +11,7 @@ import { BrandedLoader, BrandedRefreshControl } from '@/components/ui'
 import { ConfirmSheet, GuestListSheet, EventShareSheet, DotsSheet } from '@/components/ui'
 import { ReportEventSheet } from '@/components/events/ReportEventSheet'
 import { EventOptionsSheet } from '@/components/events/EventOptionsSheet'
-import { EventPhotoHero } from '@/components/events/EventPhotoHero'
+import { EventHeroControls, EventHeroPhotos } from '@/components/events/EventPhotoHero'
 import { EventInfoHeader } from '@/components/events/EventInfoHeader'
 import { EventHostCard } from '@/components/events/EventHostCard'
 import { EventGuestListPreview } from '@/components/events/EventGuestListPreview'
@@ -30,6 +31,8 @@ export default function EventDetailScreen() {
   const goBack = useGoBack()
   const d = useEventDetail(id)
   const { runGated, sheet: safetyAgreementSheet } = useSafetyAgreementGate()
+  const scrollY = useSharedValue(0)
+  const onScroll = useAnimatedScrollHandler(e => { scrollY.value = e.contentOffset.y })
 
   if (d.loading) {
     return (
@@ -68,7 +71,37 @@ export default function EventDetailScreen() {
 
   return (
     <View style={styles.root}>
-      <EventPhotoHero
+      {/* One scroll: the 4:5 photo first, then the details sheet sliding up over it */}
+      <Animated.ScrollView
+        style={styles.scroll}
+        contentContainerStyle={{ paddingBottom: insets.bottom + 100 }}
+        showsVerticalScrollIndicator={false}
+        onScroll={onScroll}
+        scrollEventThrottle={16}
+        refreshControl={<BrandedRefreshControl refreshing={d.refreshing} onRefresh={d.handleRefresh} />}
+      >
+        <EventHeroPhotos event={event} scrollY={scrollY} />
+        <View style={styles.sheet}>
+          <View style={styles.sheetHandle} />
+          <View style={styles.sheetContent}>
+            <EventInfoHeader event={event} eventId={id ?? ''} onPressAddress={() => d.setAddressSheetOpen(true)} />
+
+            <EventHostCard event={event} isHost={isHost} />
+
+            <EventGuestListPreview
+              guests={d.guests}
+              guestTotal={d.guestTotal}
+              onPress={() => d.setGuestSheetOpen(true)}
+            />
+
+            <EventDetailsSection event={event} eventId={id ?? ''} />
+
+            <EventSafetySection event={event} />
+          </View>
+        </View>
+      </Animated.ScrollView>
+
+      <EventHeroControls
         event={event}
         isHost={isHost}
         topInset={insets.top}
@@ -77,31 +110,6 @@ export default function EventDetailScreen() {
         onOptions={() => d.setOptionsOpen(true)}
         onReport={() => d.setReportOpen(true)}
       />
-
-      {/* Scrollable content — overlaps the hero photo with rounded top corners */}
-      <View style={styles.sheet}>
-        <View style={styles.sheetHandle} />
-        <ScrollView
-          style={styles.scroll}
-          contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 100 }]}
-          showsVerticalScrollIndicator={false}
-          refreshControl={<BrandedRefreshControl refreshing={d.refreshing} onRefresh={d.handleRefresh} />}
-        >
-          <EventInfoHeader event={event} eventId={id ?? ''} onPressAddress={() => d.setAddressSheetOpen(true)} />
-
-          <EventHostCard event={event} isHost={isHost} />
-
-          <EventGuestListPreview
-            guests={d.guests}
-            guestTotal={d.guestTotal}
-            onPress={() => d.setGuestSheetOpen(true)}
-          />
-
-          <EventDetailsSection event={event} eventId={id ?? ''} />
-
-          <EventSafetySection event={event} />
-        </ScrollView>
-      </View>
 
       <EventRsvpBar
         event={event}
@@ -142,7 +150,7 @@ export default function EventDetailScreen() {
         visible={d.withdrawConfirm}
         icon={<LogOut size={28} color={Colors.destructive} strokeWidth={2} />}
         title="Withdraw your request?"
-        body={`Your place in the host’s queue goes. You can request again, but each event allows ${event.max_join_requests ?? 3} requests in total.`}
+        body={event.my_requests_left === 0 ? 'Your place in the host’s queue goes, and you won’t be able to request this event again.' : 'Your place in the host’s queue goes. You get one more chance to request this event after this.'}
         confirmLabel="Withdraw"
         cancelLabel="Keep my request"
         destructive
@@ -153,8 +161,8 @@ export default function EventDetailScreen() {
           <View style={styles.tries}>
             <RequestTries
               left={event.my_requests_left}
-              max={event.max_join_requests ?? 3}
-              note={event.my_requests_left === 0 ? 'That was your last request, so you won’t be able to request again.' : `After withdrawing you can still send ${event.my_requests_left} more.`}
+              max={event.max_join_requests ?? 2}
+              note={event.my_requests_left === 0 ? 'That was your last chance, so you won’t be able to request again.' : 'You’ll get one more chance to request after this.'}
             />
           </View>
         ) : null}
@@ -162,14 +170,14 @@ export default function EventDetailScreen() {
       <ConfirmSheet
         visible={d.lastRequestConfirm}
         icon={<TriangleAlert size={28} color={Colors.accentGold} strokeWidth={2} />}
-        title="This is your last request"
-        body="You’ve already used your other requests for this event. If you withdraw this one, you won’t be able to ask again."
+        title="This is your last chance"
+        body="You withdrew once already. If you withdraw again, you won’t be able to request this event."
         confirmLabel="Send my last request"
         cancelLabel="Not now"
         onConfirm={() => d.sendRequest({ confirmed: true })}
         onClose={() => d.setLastRequestConfirm(false)}
       >
-        <View style={styles.tries}><RequestTries left={1} max={event.max_join_requests ?? 3} /></View>
+        <View style={styles.tries}><RequestTries left={1} max={event.max_join_requests ?? 2} /></View>
       </ConfirmSheet>
       <ConfirmSheet
         visible={d.cancelConfirm}
@@ -229,8 +237,8 @@ const styles = StyleSheet.create({
   center: { alignItems: 'center', justifyContent: 'center' },
 
   sheet: {
-    flex: 1,
-    marginTop: -24,
+    minHeight: 600,
+    marginTop: -28,
     backgroundColor: Colors.background,
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
@@ -245,7 +253,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   scroll: { flex: 1 },
-  scrollContent: { padding: 20, paddingTop: 14 },
+  sheetContent: { padding: 20, paddingTop: 14 },
 
   backBtn: { marginTop: 8 },
 

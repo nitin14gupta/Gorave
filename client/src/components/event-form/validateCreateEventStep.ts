@@ -71,7 +71,7 @@ export function validateCreateEventStep(
     }
   } else if (step === 5) {
     if (!form.coverPhotos[0]) {
-      flag('coverPhotos', 'Cover photo is required', 'Please add a 16:9 cover photo for your event')
+      flag('coverPhotos', 'Cover photo is required', 'Please add a cover photo for your event')
     }
   }
 

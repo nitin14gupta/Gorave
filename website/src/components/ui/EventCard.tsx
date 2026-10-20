@@ -16,7 +16,7 @@ export function EventCard({ event, width }: { event: SampleEvent; width?: number
       )}
       style={width ? { width } : undefined}
     >
-      <div className="relative aspect-[300/248] overflow-hidden">
+      <div className="relative aspect-[4/5] overflow-hidden">
         <Image
           src={event.image ?? PHOTOS[event.photo]}
           alt={event.title}
