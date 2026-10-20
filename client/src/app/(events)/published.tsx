@@ -1,22 +1,20 @@
 import React, { useEffect, useRef, useState } from 'react'
 import {
   Linking,
-  Pressable,
   Share,
   StyleSheet,
-  Text,
   View,
 } from 'react-native'
 import { hTap, hSuccess } from '@/lib/haptics'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import * as Clipboard from 'expo-clipboard'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { Colors, FontFamily, withOpacity } from '@/constants'
+import { Colors } from '@/constants'
 import { ConfettiRain, ShareToChatSheet } from '@/components/ui'
 import { usePillStore } from '@/store/pillStore'
 import ApiService from '@/api/apiService'
 import { EventShareCard } from '@/components/events/EventShareCard'
-import { InviteBackdrop, PublishedChecklist, PublishedInvite } from '@/components/events/published/PublishedVariants'
+import { InviteBackdrop, PublishedInvite } from '@/components/events/published/PublishedInvite'
 import { useImageShare } from '@/hooks/useImageShare'
 import { buildEventShareUrl } from '@/lib/deepLink'
 
@@ -52,8 +50,6 @@ export default function PublishedScreen() {
   const [area, setArea] = useState('')
   const [priceLabel, setPriceLabel] = useState('')
   const [spots, setSpots] = useState(0)
-  // Design lab: dev builds get an A | B switch in the top-right. Lock the winner, then delete the switch.
-  const [variant, setVariant] = useState<'a' | 'b'>('a')
   const [chatShareOpen, setChatShareOpen] = useState(false)
   const shareCardRef = useRef<View>(null)
   const { shareImage } = useImageShare()
@@ -124,18 +120,8 @@ export default function PublishedScreen() {
 
   return (
     <View style={[s.root, { paddingBottom: insets.bottom + 16 }]}>
-      {variant === 'a' && <InviteBackdrop coverUrl={coverUrl} />}
+      <InviteBackdrop coverUrl={coverUrl} />
       <ConfettiRain />
-
-      {__DEV__ && (
-        <View style={[s.lab, { top: insets.top + 10 }]}>
-          {(['a', 'b'] as const).map(v => (
-            <Pressable key={v} onPress={() => { hTap(); setVariant(v) }} style={[s.labBtn, variant === v && s.labBtnOn]}>
-              <Text style={[s.labText, variant === v && s.labTextOn]}>{v.toUpperCase()}</Text>
-            </Pressable>
-          ))}
-        </View>
-      )}
 
       <View style={s.content}>
         {(() => {
@@ -145,7 +131,7 @@ export default function PublishedScreen() {
             priceLabel, spots,
             onMyEvents: goToMyEvents, onViewEvent: skipForNow,
           }
-          return variant === 'a' ? <PublishedInvite {...props} /> : <PublishedChecklist {...props} />
+          return <PublishedInvite {...props} />
         })()}
       </View>
 
@@ -189,9 +175,4 @@ const s = StyleSheet.create({
     maxWidth: 420,
   },
 
-  lab: { position: 'absolute', right: 16, zIndex: 10, flexDirection: 'row', padding: 3, borderRadius: 999, backgroundColor: withOpacity(Colors.inkPrimary, 0.1) },
-  labBtn: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999 },
-  labBtnOn: { backgroundColor: Colors.inkPrimary },
-  labText: { fontFamily: FontFamily.bodySemiBold, fontSize: 12, color: Colors.inkSecondary },
-  labTextOn: { color: Colors.inkOnAccent },
 })
