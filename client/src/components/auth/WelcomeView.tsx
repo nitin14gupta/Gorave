@@ -5,13 +5,31 @@ import { LinearGradient } from 'expo-linear-gradient'
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withDelay, withTiming } from 'react-native-reanimated'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Colors, FontFamily, withOpacity } from '@/constants'
-import { WELCOME_POSTERS } from '@/constants/welcomePosters'
 import { LogoMark, PrimaryButton } from '@/components/ui'
 
-// Every image in assets/images/welcome is a poster. After adding or
-// removing one, run `npm run posters` to refresh the list. Event posters
-// are 4:5, so photos of that shape look best; others are cropped to fit.
-const POSTERS = WELCOME_POSTERS
+// The welcome posters: every image in assets/images/welcome. Add a file
+// there and a line here. Event posters are 4:5, so photos of that shape
+// look best; others are cropped to fit.
+const POSTERS = [
+  require('../../../assets/images/welcome/after-dark.webp'),
+  require('../../../assets/images/welcome/ass.webp'),
+  require('../../../assets/images/welcome/back.webp'),
+  require('../../../assets/images/welcome/cheers.webp'),
+  require('../../../assets/images/welcome/clockit.webp'),
+  require('../../../assets/images/welcome/confetti.webp'),
+  require('../../../assets/images/welcome/dance-floor.webp'),
+  require('../../../assets/images/welcome/diva.webp'),
+  require('../../../assets/images/welcome/dj-night.webp'),
+  require('../../../assets/images/welcome/dress-up.webp'),
+  require('../../../assets/images/welcome/enjoy.webp'),
+  require('../../../assets/images/welcome/feet.webp'),
+  require('../../../assets/images/welcome/girls-night.webp'),
+  require('../../../assets/images/welcome/house-party.webp'),
+  require('../../../assets/images/welcome/out-late.webp'),
+  require('../../../assets/images/welcome/sequins.webp'),
+  require('../../../assets/images/welcome/the-boys.webp'),
+  require('../../../assets/images/welcome/the-squad.webp'),
+]
 
 export interface WelcomeViewProps {
   onStart: () => void
