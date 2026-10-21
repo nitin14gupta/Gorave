@@ -6,6 +6,7 @@ import { Star } from 'lucide-react-native'
 import { router } from 'expo-router'
 import { Colors, FontFamily, Radius, Spacing } from '@/constants'
 import { useAuthStore } from '@/store/auth'
+import { parseServerDate } from '@/lib/dates'
 import type { ReviewItem } from '@/api/apiService'
 
 export const StarRow = memo(function StarRow({ rating, size = 13 }: { rating: number; size?: number }) {
@@ -124,8 +125,8 @@ export const ReviewCard = memo(function ReviewCard({
 }) {
   const initials = (item.reviewer_name ?? '?').charAt(0).toUpperCase()
   const dateStr = useMemo(() => {
-    const date = new Date(item.created_at.replace(' ', 'T').replace(/([+-]\d{2})$/, '$1:00'))
-    return isNaN(date.getTime()) ? '' : date.toLocaleDateString([], { month: 'short', day: 'numeric' })
+    const date = parseServerDate(item.created_at)
+    return !date ? '' : date.toLocaleDateString([], { month: 'short', day: 'numeric' })
   }, [item.created_at])
 
   const goToReviewer = () => {

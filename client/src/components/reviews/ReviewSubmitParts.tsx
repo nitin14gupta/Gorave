@@ -1,71 +1,9 @@
 import React from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { ArrowLeft, Lock, Star } from 'lucide-react-native'
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withSpring,
-} from 'react-native-reanimated'
-import { hSelection } from '@/lib/haptics'
-import { Colors, FontFamily, withOpacity } from '@/constants'
+import { ArrowLeft, Lock } from 'lucide-react-native'
+import { Colors, FontFamily } from '@/constants'
 import { ConfettiRain, PrimaryButton } from '@/components/ui'
-
-const STAR_LABELS = ['', 'Terrible', 'Bad', 'Okay', 'Great', 'Amazing!']
-
-function AnimatedStar({ n, rating, onPress }: { n: number; rating: number; onPress: () => void }) {
-  const scale = useSharedValue(1)
-  const aStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }))
-  const filled = n <= rating
-
-  return (
-    <Pressable
-      onPressIn={() => { scale.value = withSpring(1.08, { damping: 18, stiffness: 600 }) }}
-      onPressOut={() => { scale.value = withSpring(1, { damping: 20, stiffness: 600 }) }}
-      onPress={onPress}
-      hitSlop={8}
-    >
-      <Animated.View style={aStyle}>
-        <Star
-          size={48}
-          color={filled ? Colors.brandOrange : withOpacity(Colors.inkPrimary, 0.15)}
-          fill={filled ? Colors.brandOrange : 'transparent'}
-          strokeWidth={1.4}
-        />
-      </Animated.View>
-    </Pressable>
-  )
-}
-
-export function StarRatingPicker({ rating, onSelect }: { rating: number; onSelect: (n: number) => void }) {
-  const handlePress = (n: number) => {
-    hSelection()
-    onSelect(n)
-  }
-
-  return (
-    <View style={p.ratingSection}>
-      <Text style={p.rateLabel}>TAP TO RATE</Text>
-
-      <View style={p.stars}>
-        {[1, 2, 3, 4, 5].map(n => {
-          const arcOffset = Math.abs(n - 3) * 8
-          return (
-            <View key={n} style={{ transform: [{ translateY: arcOffset }] }}>
-              <AnimatedStar n={n} rating={rating} onPress={() => handlePress(n)} />
-            </View>
-          )
-        })}
-      </View>
-
-      {rating > 0 ? (
-        <Text style={p.starWord}>{STAR_LABELS[rating]}</Text>
-      ) : (
-        <Text style={p.starWordEmpty}>How was the vibe?</Text>
-      )}
-    </View>
-  )
-}
 
 export function NotCheckedInGate({ onBack }: { onBack: () => void }) {
   const insets = useSafeAreaInsets()

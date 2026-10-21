@@ -38,6 +38,7 @@ export function useEvents() {
         const result = await ApiService.getEvents({
           ...(browseCity ? { city: browseCity, lat, lng } : { lat, lng, radius_km: 50 }),
           ...apiFilters(f),
+          discover: true,
           limit: 100,
         })
         setEvents(result)
@@ -57,6 +58,7 @@ export function useEvents() {
       try {
         const result = await ApiService.getEvents({
           ...apiFilters(filters),
+          discover: true,
           min_lat: bounds.minLat,
           max_lat: bounds.maxLat,
           min_lng: bounds.minLng,

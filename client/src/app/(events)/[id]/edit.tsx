@@ -1,30 +1,22 @@
 import React, { useEffect, useRef, useState } from 'react'
-import {
-  ActivityIndicator,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native'
+import { Platform, StyleSheet, View } from 'react-native'
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller'
-import { LinearGradient } from 'expo-linear-gradient'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useLocalSearchParams, useRouter } from 'expo-router'
-import { ArrowLeft } from 'lucide-react-native'
+import { Type, CalendarDays, MapPin, IndianRupee, Image as ImageIcon } from 'lucide-react-native'
 import { hSuccess } from '@/lib/haptics'
-import { Colors, FontFamily, withOpacity } from '@/constants'
-import { DateTimePickerSheet, BrandedLoader } from '@/components/ui'
+import { parseServerDate } from '@/lib/dates'
+import { Colors } from '@/constants'
+import { DateTimePickerSheet, BrandedLoader, PrimaryButton } from '@/components/ui'
 import { Step1Basics, Step2When, Step3Where, Step4Pricing, Step5Photos, LockedBanner, DateShiftBanner, validateCreateEventStep } from '@/components/event-form'
 import { useCreateEvent, locationPayload } from '@/hooks/useCreateEvent'
 import { useEventDateTimePickers } from '@/hooks/useEventDateTimePickers'
 import ApiService, { type EventDetail } from '@/api/apiService'
 import { usePillStore } from '@/store/pillStore'
+import { crowdLabel } from '@/lib/crowdMix'
+import { EditEventView, type EditSection } from '@/components/events/EditEventView'
 
 export default function EditEventScreen() {
   const { id } = useLocalSearchParams<{ id: string }>()
-  const insets = useSafeAreaInsets()
   const router = useRouter()
 
   const { form, set } = useCreateEvent()
@@ -77,7 +69,7 @@ export default function EditEventScreen() {
         set('priceInr', ev.price_inr)
         set('coverPhotos', ev.cover_photos?.map((p: { url: string }) => p.url) ?? [])
 
-        const parseTs = (s: string) => new Date(s.replace(' ', 'T').replace(/([+-]\d{2})$/, '$1:00'))
+        const parseTs = (s: string) => parseServerDate(s) ?? new Date(NaN)
         const dt = parseTs(ev.date_time)
         set('dateTime', dt)
         if (ev.end_time) set('endTime', parseTs(ev.end_time))
@@ -240,38 +232,25 @@ export default function EditEventScreen() {
     )
   }
 
-  return (
-    <KeyboardAvoidingView style={s.root} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <View style={[s.header, { paddingTop: insets.top + 8 }]}>
-        <Pressable style={s.backBtn} onPress={() => router.back()}>
-          <ArrowLeft size={20} color={Colors.inkPrimary} />
-        </Pressable>
-        <Text style={s.headerTitle}>Edit Event</Text>
-        <View style={{ width: 40 }} />
-      </View>
+  const ic = (I: typeof Type) => <I size={18} color={Colors.inkPrimary} strokeWidth={2} />
+  const dateLine = form.dateTime
+    ? form.dateTime.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' }) + ' · ' +
+      form.dateTime.toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' })
+    : 'No date yet'
+  const crowd = crowdLabel(form.womenPct)
+  const photos = form.coverPhotos.filter(Boolean).length
 
-      {locked && <LockedBanner capacityLocked={capacityLocked} />}
-
-      {largeDateShiftPending && (
-        <DateShiftBanner
-          onCancel={() => setLargeDateShiftPending(false)}
-          onConfirm={() => handleSave(true)}
-        />
-      )}
-
-      <ScrollView
-        style={s.scroll}
-        contentContainerStyle={[s.content, { paddingBottom: insets.bottom + 100 }]}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-      >
-        {/* Step 1 — Basics */}
-        <Step1Basics
-          form={form} set={set} errors={errors} setErrors={setErrors}
-          scrollable={false} disabled={locked}
-        />
-
-        {/* Step 2 — When & who */}
+  const sections: EditSection[] = [
+    {
+      key: 'basics', title: 'Basics', icon: ic(Type),
+      summary: [form.title || 'No title', form.eventType.replace('_', ' ')].join(' · '),
+      render: () => <Step1Basics form={form} set={set} errors={errors} setErrors={setErrors} scrollable={false} disabled={locked} />,
+    },
+    {
+      key: 'when', title: 'When and who', icon: ic(CalendarDays),
+      summary: [dateLine, `${form.capacity} people`, `${form.ageRestriction}+`, crowd].filter(Boolean).join(' · '),
+      note: hasAttendees ? 'Age and crowd mix are locked, guests already joined' : undefined,
+      render: () => (
         <Step2When
           form={form} set={set} errors={errors} setErrors={setErrors}
           openDate={openDate} openStartTime={openStartTime} openEndDate={openEndDate} openEndTime={openEndTime}
@@ -279,53 +258,64 @@ export default function EditEventScreen() {
           capacityUnlocked={locked && !capacityLocked}
           ageLocked={hasAttendees}
           ratioLocked={hasAttendees}
-          ageLockNote="Locked — attendees already joined"
+          ageLockNote="Locked, guests already joined"
           minCapacity={Math.max(5, bookedCount)}
-          capacityNote={bookedCount > 0 ? `${bookedCount} spot${bookedCount === 1 ? '' : 's'} already booked — can't reduce below this` : undefined}
+          capacityNote={bookedCount > 0 ? `${bookedCount} spot${bookedCount === 1 ? '' : 's'} already booked, can't go below this` : undefined}
         />
-
-        {/* Step 3 — Where (inline map) */}
-        <Step3Where
-          form={form} set={set} errors={errors} setErrors={setErrors}
-          disabled={locked} inline
-        />
-
-        {/* Step 4 — Pricing & photos */}
+      ),
+    },
+    {
+      key: 'where', title: 'Where', icon: ic(MapPin),
+      summary: [form.addressLine1, form.area, form.city].filter(Boolean).join(', ') || 'No address yet',
+      render: () => <Step3Where form={form} set={set} errors={errors} setErrors={setErrors} disabled={locked} inline />,
+    },
+    {
+      key: 'price', title: 'Price', icon: ic(IndianRupee),
+      summary: form.isFree ? 'Free, guests request to join' : `₹${form.priceInr} a ticket`,
+      note: hasAttendees ? 'Locked, guests already booked' : hasRequests ? 'Locked, people have asked to join' : undefined,
+      render: () => (
         <Step4Pricing
           form={form} set={set} errors={errors} setErrors={setErrors}
           scrollable={false} disabled={locked}
           priceLocked={hasAttendees || hasRequests}
-          priceLockNote={hasAttendees ? 'Locked — attendees already booked' : 'Locked — people have requested to join'}
+          priceLockNote={hasAttendees ? 'Locked, guests already booked' : 'Locked, people have asked to join'}
         />
+      ),
+    },
+    {
+      key: 'photos', title: 'Photos', icon: ic(ImageIcon),
+      summary: photos ? `${photos} photo${photos === 1 ? '' : 's'}, the first is the cover` : 'No photos yet',
+      render: () => <Step5Photos form={form} set={set} errors={errors} setErrors={setErrors} disabled={locked} inline />,
+    },
+  ]
 
-        {/* Step 5 — Photos */}
-        <Step5Photos
-          form={form} set={set} errors={errors} setErrors={setErrors}
-          disabled={locked} inline
-        />
-      </ScrollView>
+  const saveBar = (!locked || (locked && !capacityLocked)) ? (
+    <PrimaryButton
+      label="Save changes"
+      onPress={() => { if (!isDirty) return; hSuccess(); handleSave() }}
+      disabled={saving || !canSave}
+      loading={saving}
+    />
+  ) : null
 
-      {(!locked || (locked && !capacityLocked)) && (
-        <View style={[s.footer, { paddingBottom: insets.bottom + 16 }]}>
-          <Pressable
-            style={[s.saveBtn, !canSave && s.saveBtnDisabled]}
-            onPress={() => { if (!isDirty) return; hSuccess(); handleSave() }}
-            disabled={saving || !isDirty}
-          >
-            <LinearGradient
-              colors={canSave ? [Colors.brandOrange, Colors.brandCoral] : [Colors.grayBorder, Colors.grayBorder]}
-              start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
-              style={s.saveGradient}
-            >
-              {saving ? (
-                <ActivityIndicator color={Colors.inkPrimary} />
-              ) : (
-                <Text style={s.saveText}>Save Changes</Text>
-              )}
-            </LinearGradient>
-          </Pressable>
-        </View>
-      )}
+  return (
+    <KeyboardAvoidingView style={s.root} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <EditEventView
+        cover={form.coverPhotos[0] || null}
+        title={form.title}
+        sections={sections}
+        banners={
+          <>
+            {locked && <LockedBanner capacityLocked={capacityLocked} />}
+            {largeDateShiftPending && (
+              <DateShiftBanner onCancel={() => setLargeDateShiftPending(false)} onConfirm={() => handleSave(true)} />
+            )}
+          </>
+        }
+        footer={saveBar}
+        dirty={isDirty}
+        onBack={() => router.back()}
+      />
 
       <DateTimePickerSheet
         visible={picker.visible}
@@ -341,22 +331,4 @@ export default function EditEventScreen() {
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: Colors.background },
   center: { alignItems: 'center', justifyContent: 'center' },
-  header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 16, paddingBottom: 12,
-  },
-  backBtn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
-  headerTitle: { fontFamily: FontFamily.headingBold, fontSize: 17, color: Colors.inkPrimary },
-
-  scroll: { flex: 1 },
-  content: { padding: 20, gap: 12 },
-  footer: {
-    paddingHorizontal: 20, paddingTop: 12,
-    // borderTopWidth: 1, borderTopColor: Colors.divider,
-    backgroundColor: withOpacity(Colors.background, 0.95),
-  },
-  saveBtn: { borderRadius: 16, overflow: 'hidden' },
-  saveBtnDisabled: { opacity: 0.5 },
-  saveGradient: { height: 54, alignItems: 'center', justifyContent: 'center', borderRadius: 16 },
-  saveText: { fontFamily: FontFamily.bodySemiBold, fontSize: 15, color: Colors.inkPrimary, letterSpacing: 0.5 },
 })

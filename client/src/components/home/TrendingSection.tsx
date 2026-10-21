@@ -5,8 +5,7 @@ import { router } from 'expo-router'
 import ApiService, { type EventSummary } from '@/api/apiService'
 import { EventCard } from '@/components/events/EventCard'
 import { useProfile } from '@/hooks/useProfile'
-import { getOrFetch } from '@/lib/queryCache'
-import { CacheKeys, Colors, FontFamily, EVENT_CARD_CAROUSEL_W } from '@/constants'
+import { EVENT_CARD_CAROUSEL_W } from '@/constants'
 
 const CARD_GAP = 12
 const INITIAL_COUNT = 6
@@ -53,24 +52,16 @@ export const TrendingSection = forwardRef<TrendingSectionHandle, Props>(function
   const mountedRef = useRef(true)
 
   const load = useCallback((): Promise<void> => {
-    const ownEventIds = () =>
-      Promise.all([
-        getOrFetch(CacheKeys.homeJoinedEvents, () => ApiService.getMyJoinedEvents(), { ttlMs: 5 * 60_000, persist: false }).catch(() => []),
-        getOrFetch(CacheKeys.homeHostedEvents, () => ApiService.getMyHostedEvents(), { ttlMs: 5 * 60_000, persist: false }).catch(() => []),
-      ]).then(([joined, hosted]) => new Set([...joined, ...hosted].map(e => e.id)))
-
     // City-scoped like the Events tab — the profile's lat/lng get
     // overwritten by live GPS pings, so the city is the stable signal.
     const city = profile?.city
     if (!city) return Promise.resolve()
-    return Promise.all([
-      ApiService.getEvents({ city, limit: FETCH_LIMIT }),
-      ownEventIds(),
-    ])
-      .then(([result, ownIds]) => {
+    // discover: the server leaves out events you host, are going to or are
+    // waiting on, and women-only / men-only events that aren't for you.
+    return ApiService.getEvents({ city, limit: FETCH_LIMIT, discover: true })
+      .then(result => {
         if (!mountedRef.current) return
-        const sorted = result
-          .filter(e => !ownIds.has(e.id))
+        const sorted = [...result]
           .sort((a, b) => b.attendee_count - a.attendee_count)
         setAllEvents(sorted)
         setVisibleCount(INITIAL_COUNT)

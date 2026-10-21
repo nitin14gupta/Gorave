@@ -1,16 +1,16 @@
 import { useState, useEffect, useRef } from 'react'
-import { View, Text, StyleSheet, Pressable, BackHandler, ScrollView } from 'react-native'
+import { View, Text, StyleSheet, Pressable, BackHandler } from 'react-native'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import * as Notifications from 'expo-notifications'
-import { ArrowLeft, CheckCircle, Share2 } from 'lucide-react-native'
+import { ArrowLeft } from 'lucide-react-native'
 import { Colors, FontFamily } from '@/constants'
 import ApiService from '@/api/apiService'
 import { usePillStore } from '@/store/pillStore'
 import { hTap, hSuccess } from '@/lib/haptics'
 import { useImageShare } from '@/hooks/useImageShare'
-import { PrimaryButton, OutlineButton, ConfirmSheet, BrandedLoader } from '@/components/ui'
-import { PaymentQrCard } from '@/components/events/PaymentQrCard'
+import { PrimaryButton, ConfirmSheet, BrandedLoader } from '@/components/ui'
+import { QrPayView } from '@/components/events/QrPayView'
 import { PaymentStatusOverlay } from '@/components/events/PaymentStatusOverlay'
 
 type Status = 'loading' | 'active' | 'paid' | 'expired' | 'error'
@@ -38,7 +38,6 @@ export default function QrPaymentScreen() {
   const [expiresAt, setExpiresAt]   = useState<Date | null>(null)
   const [timeLeft, setTimeLeft]     = useState(0)
   const [verifying, setVerifying]   = useState(false)
-  const [imgLoading, setImgLoading] = useState(false)
   const [eventTitle, setEventTitle] = useState(etitle ?? '')
   const [leaveConfirmOpen, setLeaveConfirmOpen] = useState(false)
 
@@ -175,14 +174,6 @@ export default function QrPaymentScreen() {
 
   // ── Helpers ────────────────────────────────────────────────────────────────
 
-  const formatTime = (secs: number) => {
-    const m = Math.floor(secs / 60)
-    const s = secs % 60
-    return `${m}:${s.toString().padStart(2, '0')}`
-  }
-
-  const timerColor = timeLeft < 30 ? Colors.destructive : timeLeft < 120 ? Colors.inkPrimary : Colors.accentGreen
-
   const handleManualCheck = async () => {
     if (verifying) return
     hTap()
@@ -211,7 +202,7 @@ export default function QrPaymentScreen() {
     hTap()
     if (!paymentUrl && !imageUrl) return
     const name = eventTitle || 'the event'
-    const message = `Pay ₹${amountInr} for ${name}.\n\nScan using any UPI app — GPay, PhonePe, Paytm, BHIM and more.\n\nValid for 15 minutes.`
+    const message = `Pay ₹${amountInr} for my Gorave ticket to ${name}. Scan with any UPI app (GPay, PhonePe, Paytm, BHIM). The code works for 15 minutes.`
     const result = await shareImage(qrCardRef, { message })
     if (!result.shared && result.error === 'failed') {
       showPill('Could not share QR code.', 'error')
@@ -227,6 +218,37 @@ export default function QrPaymentScreen() {
   const isActive  = status === 'active'
   const isExpired = status === 'expired'
 
+  if (isActive || isExpired) {
+    return (
+      <View style={s.root}>
+        <QrPayView
+          cardRef={qrCardRef}
+          eventTitle={eventTitle}
+          amountInr={amountInr}
+          paymentUrl={paymentUrl}
+          imageUrl={imageUrl}
+          isExpired={isExpired}
+          timeLeft={timeLeft}
+          verifying={verifying}
+          onPaid={handleManualCheck}
+          onShare={handleShare}
+          onNewQr={loadQr}
+          onBack={confirmBack}
+        />
+        <ConfirmSheet
+          visible={leaveConfirmOpen}
+          title="Leave this payment?"
+          body="The QR still works for a few minutes. If you leave now and nobody pays it, you won't get the ticket."
+          confirmLabel="Leave"
+          cancelLabel="Stay"
+          destructive
+          onConfirm={() => router.back()}
+          onClose={() => setLeaveConfirmOpen(false)}
+        />
+      </View>
+    )
+  }
+
   return (
     <View style={[s.root, { paddingTop: insets.top }]}>
       {/* Header */}
@@ -234,7 +256,7 @@ export default function QrPaymentScreen() {
         <Pressable onPress={confirmBack} style={s.backBtn} hitSlop={8}>
           <ArrowLeft size={22} color={Colors.inkPrimary} strokeWidth={2} />
         </Pressable>
-        <Text style={s.headerTitle}>Pay via QR Code</Text>
+        <Text style={s.headerTitle}>Pay by QR</Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -242,87 +264,18 @@ export default function QrPaymentScreen() {
       {status === 'loading' && (
         <View style={s.center}>
           <BrandedLoader />
-          <Text style={s.hintText}>Generating QR code…</Text>
+          <Text style={s.hintText}>Making your QR code…</Text>
         </View>
       )}
 
       {/* Error */}
       {status === 'error' && (
         <View style={s.center}>
-          <Text style={s.hintText}>Could not generate QR code.</Text>
+          <Text style={s.hintText}>Could not make a QR code.</Text>
           <View style={{ width: 200, marginTop: 16 }}>
-            <PrimaryButton label="Try Again" onPress={loadQr} />
+            <PrimaryButton label="Try again" onPress={loadQr} />
           </View>
         </View>
-      )}
-
-      {/* Active / Expired */}
-      {(isActive || isExpired) && (
-        <>
-          <ScrollView
-            style={{ flex: 1 }}
-            contentContainerStyle={s.scrollContent}
-            showsVerticalScrollIndicator={false}
-          >
-            <PaymentQrCard
-              cardRef={qrCardRef}
-              amountInr={amountInr}
-              paymentUrl={paymentUrl}
-              imageUrl={imageUrl}
-              isExpired={isExpired}
-              imgLoading={imgLoading}
-              onImageLoadStart={() => setImgLoading(true)}
-              onImageLoad={() => setImgLoading(false)}
-            />
-
-            {/* Countdown */}
-            {isActive && (
-              <Text style={[s.countdown, { color: timerColor }]}>
-                QR code is valid for{' '}
-                <Text style={[s.countdownBold, { color: timerColor }]}>{formatTime(timeLeft)}</Text>
-              </Text>
-            )}
-            {isExpired && (
-              <Text style={[s.countdown, { color: Colors.inkDisabled }]}>QR code has expired</Text>
-            )}
-
-            <Text style={s.disclaimer}>
-              Share this QR code only with trusted individuals, not publicly or with strangers. You are responsible for who you allow to pay.
-            </Text>
-          </ScrollView>
-
-          {/* Footer — wrap buttons in sized Views so flex works on Pressable children */}
-          <View style={[s.footer, { paddingBottom: insets.bottom + 12 }]}>
-            {isActive ? (
-              <>
-                <View style={{ flex: 1 }}>
-                  <OutlineButton
-                    label={verifying ? 'Checking…' : "I've Paid"}
-                    icon={!verifying && <CheckCircle size={16} color={Colors.inkPrimary} strokeWidth={2} />}
-                    onPress={handleManualCheck}
-                    disabled={verifying}
-                  />
-                </View>
-                <View style={{ flex: 1.4 }}>
-                  <PrimaryButton
-                    label="Share QR Code"
-                    icon={<Share2 size={16} color={Colors.background} strokeWidth={2} />}
-                    onPress={handleShare}
-                  />
-                </View>
-              </>
-            ) : (
-              <>
-                <View style={{ flex: 1 }}>
-                  <OutlineButton label="Go Back" onPress={() => router.back()} />
-                </View>
-                <View style={{ flex: 1.4 }}>
-                  <PrimaryButton label="New QR Code" onPress={loadQr} />
-                </View>
-              </>
-            )}
-          </View>
-        </>
       )}
 
       <ConfirmSheet
@@ -346,14 +299,9 @@ const s = StyleSheet.create({
   backBtn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
   headerTitle: { flex: 1, textAlign: 'center', fontFamily: FontFamily.headingBold, fontSize: 18, color: Colors.inkPrimary },
 
-  scrollContent: { paddingHorizontal: 20, paddingBottom: 16, gap: 16 },
 
-  countdown: { fontFamily: FontFamily.bodyMedium, fontSize: 15, textAlign: 'center' },
-  countdownBold: { fontFamily: FontFamily.headingBold, fontSize: 15 },
 
-  disclaimer: { fontFamily: FontFamily.bodyRegular, fontSize: 12, color: Colors.inkDisabled, textAlign: 'center', lineHeight: 18, paddingHorizontal: 4 },
 
-  footer: { flexDirection: 'row', gap: 12, paddingHorizontal: 20, paddingTop: 12, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: Colors.divider },
 
   hintText: { fontFamily: FontFamily.bodyRegular, fontSize: 15, color: Colors.inkSecondary, textAlign: 'center' },
 })

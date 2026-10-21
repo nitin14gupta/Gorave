@@ -1,11 +1,12 @@
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { useEffect, useState } from 'react'
+import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useLocalSearchParams, useRouter } from 'expo-router'
-import { AlertCircle, ArrowLeft, Users } from 'lucide-react-native'
-import { LinearGradient } from 'expo-linear-gradient'
+import { AlertCircle, ArrowLeft } from 'lucide-react-native'
 import { Colors, FontFamily } from '@/constants'
-import { BrandedLoader, EmptyState, BrandedRefreshControl } from '@/components/ui'
-import { WaitlistEntryRow } from '@/components/events/WaitlistEntryRow'
+import { BrandedLoader, EmptyState } from '@/components/ui'
+import ApiService, { type EventDetail } from '@/api/apiService'
+import { ManageWaitlistView } from '@/components/events/ManageWaitlistView'
 import { useManageWaitlist } from '@/hooks/useManageWaitlist'
 
 export default function ManageWaitlistScreen() {
@@ -13,7 +14,29 @@ export default function ManageWaitlistScreen() {
   const insets = useSafeAreaInsets()
   const router = useRouter()
 
-  const { waitlist, loading, refreshing, loadError, admitting, pending, offered, pendingByGender, handleAdmit, reload } = useManageWaitlist(id)
+  const { loading, refreshing, loadError, admitting, pending, offered, pendingByGender, handleAdmit, reload } = useManageWaitlist(id)
+  const [event, setEvent] = useState<EventDetail | null>(null)
+
+  useEffect(() => { if (id) ApiService.getEvent(id).then(setEvent).catch(() => {}) }, [id])
+
+  if (!loading && !loadError) {
+    return (
+      <View style={s.root}>
+        <ManageWaitlistView
+          event={event}
+          pending={pending}
+          offered={offered}
+          byGender={pendingByGender}
+          admitting={admitting}
+          onAdmit={handleAdmit}
+          refreshing={refreshing}
+          onRefresh={() => reload(true)}
+          onBack={() => router.back()}
+          onOpenProfile={e => router.push(`/(profile)/${e.id}` as any)}
+        />
+      </View>
+    )
+  }
 
   return (
     <View style={[s.root, { paddingTop: insets.top }]}>
@@ -39,57 +62,7 @@ export default function ManageWaitlistScreen() {
             onCtaPress={reload}
           />
         </View>
-      ) : waitlist.length === 0 ? (
-        <View style={s.center}>
-          <EmptyState
-            icon={<Users size={48} color={Colors.inkDisabled} strokeWidth={1.2} />}
-            title="Waitlist is empty"
-            subtitle="No one is currently waiting for a spot."
-          />
-        </View>
-      ) : (
-        <>
-          <Pressable style={s.admitBtn} onPress={handleAdmit} disabled={admitting || pending.length === 0}>
-            <LinearGradient
-              colors={pending.length > 0 ? [Colors.brandOrange, Colors.brandCoral] : [Colors.grayBorder, Colors.grayBorder]}
-              start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
-              style={s.admitGradient}
-            >
-              {admitting
-                ? <ActivityIndicator color={Colors.inkPrimary} />
-                : <Text style={s.admitText}>Admit Next ({pending.length} waiting)</Text>}
-            </LinearGradient>
-          </Pressable>
-
-          <ScrollView
-            style={s.scroll}
-            contentContainerStyle={[s.scrollContent, { paddingBottom: insets.bottom + 24 }]}
-            showsVerticalScrollIndicator={false}
-            refreshControl={<BrandedRefreshControl refreshing={refreshing} onRefresh={() => reload(true)} />}
-          >
-            {offered.length > 0 && (
-              <>
-                <Text style={s.sectionLabel}>Spot Offered</Text>
-                {offered.map(entry => (
-                  <WaitlistEntryRow key={entry.id} entry={entry} isOffered />
-                ))}
-              </>
-            )}
-
-            {pending.length > 0 && (
-              <>
-                <Text style={s.sectionLabel}>
-                  Waiting ({pending.length}) · {pendingByGender.women} women · {pendingByGender.men} men
-                  {pendingByGender.other ? ` · ${pendingByGender.other} others` : ''}
-                </Text>
-                {pending.map(entry => (
-                  <WaitlistEntryRow key={entry.id} entry={entry} isOffered={false} />
-                ))}
-              </>
-            )}
-          </ScrollView>
-        </>
-      )}
+      ) : null}
     </View>
   )
 }

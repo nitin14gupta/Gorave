@@ -1,6 +1,16 @@
+/**
+ * Reads the server's timestamps, e.g. "2026-10-21 08:57:02.277848+00".
+ * Hermes can't parse the space, a bare "+00" offset or more than 3 decimal
+ * places, so all three are normalised first.
+ */
 export function parseServerDate(iso: string | null | undefined): Date | null {
   if (!iso) return null
-  const d = new Date(iso.replace(' ', 'T').replace(/([+-]\d{2})$/, '$1:00'))
+  const d = new Date(
+    iso.trim()
+      .replace(' ', 'T')
+      .replace(/(\.\d{3})\d+/, '$1')
+      .replace(/([+-]\d{2})$/, '$1:00'),
+  )
   return isNaN(d.getTime()) ? null : d
 }
 

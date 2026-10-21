@@ -3,7 +3,13 @@
 Every screen in the app, grouped by flow, plus the admin panel and a pointer to
 the website's page list. Use it as the checklist for the UI pass.
 
-**UI pass column:** ✅ redesigned in the current pass · ⬜ not yet.
+**UI pass column:** ✅ redesigned in the current pass · 🧪 in the A/B lab, waiting for a pick · ⬜ not yet.
+
+**How the A/B lab works:** a screen in the lab shows a small **A | B** pill at
+the top (dev builds only). Flip it, pick one, and the other layout plus the pill
+get deleted. The variants live in `client/src/components/lab/<screen>/`; the
+pill is `components/lab/LabSwitch.tsx` and the picks are remembered in
+`store/labStore.ts`.
 
 House rules for the pass:
 - Real photos and custom SVG where they help.
@@ -11,6 +17,9 @@ House rules for the pass:
 - Neutral glass and surfaces, not tinted "AI" colour blocks.
 - Motion runs once and stays calm. No pulsing, no looping, no popping.
 - Event photos are always 4:5 (`EVENT_IMAGE_ASPECT` in `client/src/constants/eventImage.ts`).
+- Layouts should feel like real big apps (Airbnb, Luma, DICE, Apple Wallet), never "AI" glows or gradient blobs.
+- A screen with a photo on top gets parallax: `hooks/useParallaxHero.ts` (photo at half speed, stretch on pull-down, title fades as it leaves).
+- A screen without a photo gets an iOS-style large title that folds into the top bar on scroll.
 
 Routes live in `client/src/app/` (Expo Router). `(group)` folders don't show in the URL.
 
@@ -54,15 +63,15 @@ Routes live in `client/src/app/` (Expo Router). `(group)` folders don't show in 
 |---|---|---|---|---|
 | 16 | Event page | `(events)/[id]/index` | 4:5 hero with parallax, details, masked address card, crowd split bars, people, RSVP bar (Join / Request / Waitlist / Ticket) | ✅ |
 | 17 | Event map | `(events)/[id]/map` | Where it is (approximate until you're in) and nearby events | ✅ |
-| 18 | Book | `(events)/[id]/book` | Pick tickets and pay method (Razorpay, UPI QR or wallet) | ⬜ |
-| 19 | Payment | `(events)/[id]/payment` | Razorpay checkout | ⬜ |
-| 20 | UPI QR payment | `(events)/[id]/qr-payment` | Pay by UPI QR, then confirmation | ⬜ |
+| 18 | Book | `(events)/[id]/book` | Poster with parallax, then the maroon ticket you're buying (date, price, unpunched), the bill as a receipt, wallet toggle, fixed pay bar | ✅ |
+| 19 | Payment | `(events)/[id]/payment` | The amount on the maroon ticket with the bill folding inside it, the app you used last as one big row with a Pay pill, every UPI app as an icon grid, then QR and UPI ID | ✅ |
+| 20 | UPI QR payment | `(events)/[id]/qr-payment` | A counter standee on the maroon ticket: brand, amount, the QR on cream, UPI at the foot, a big countdown, send to a friend to pay | ✅ |
 | 21 | Request sent | `(events)/[id]/requested` | After "Request to join" on a free event: what happens next, requests left, withdraw | ✅ |
-| 22 | Waitlist | `(events)/[id]/waitlist` | Join the waitlist when it's full | ⬜ |
-| 23 | On the waitlist | `(events)/[id]/waitlist-joined` | Your place, leave the waitlist | ⬜ |
-| 24 | Ticket | `(events)/[id]/ticket` | QR ticket, full address, event info | ⬜ |
-| 25 | Rate the night | `(events)/[id]/review` | Review the event and host after it ends | ⬜ |
-| 26 | Reviews | `(events)/[id]/reviews` | All reviews for an event | ⬜ |
+| 22 | Manage waitlist (host) | `(events)/[id]/waitlist` | Large title that folds into the top bar, waiting / offered / spots-left counts, the crowd-mix bar, the numbered queue, and "Add a spot for the next person". Opened from the "N on the waitlist" chip on the host's event page | ✅ |
+| 23 | On the waitlist | `(events)/[id]/waitlist-joined` | Poster with parallax, your place set huge with the queue drawn as seats, what happens next, leave | ✅ |
+| 24 | Ticket | `(events)/[id]/ticket` | Poster on top with parallax, then the website's maroon ticket stub: date set big, cream QR with the logo, directions, save, share | ✅ |
+| 25 | Rate the night | `(events)/[id]/review` | Event photo with parallax, five big stars with a word for each, an optional note | ✅ |
+| 26 | Reviews | `(events)/[id]/reviews` | Event photo with parallax and the score set huge over it, 5-to-1 bars, star filter chips, a clean list with hairline dividers. Opened from My Events, Past, Reviews | ✅ |
 
 ### 5. Events (as a host)
 
@@ -70,8 +79,8 @@ Routes live in `client/src/app/` (Expo Router). `(group)` folders don't show in 
 |---|---|---|---|---|
 | 27 | Create event | `(events)/create` | 5 steps: Basics → When (age, crowd mix) → Where (city, address, pin) → Pricing → Photos (4:5 cropper), with a live preview | ✅ crowd mix, photos |
 | 28 | Event is live | `(events)/published` | Your invite card, copy link, share to WhatsApp, Gorave chat or more | ✅ |
-| 29 | Edit event | `(events)/[id]/edit` | Change details (ratio and age lock once guests join) | ⬜ |
-| 30 | Join requests | `(events)/[id]/requests` | Accept or decline requests, with quota bars | ⬜ |
+| 29 | Edit event | `(events)/[id]/edit` | Opened from the ⋯ on your own event. A listing editor: the cover with parallax, one row per part (Basics, When and who, Where, Price, Photos) showing what's set, each opening on its own page, save bar that says when there are unsaved changes | ✅ |
+| 30 | Join requests | `(events)/[id]/requests` | A guest list: folding large title, the room drawn seat by seat in the crowd-mix colours, filters (All, Women, Men, Been before), rows you swipe right to let in or left to decline, "Let in all who fit" | ✅ |
 | 31 | Guest list | `(events)/[id]/attendees` | Who's going, gender counts, manage | ⬜ |
 | 32 | Check-in scanner | `(events)/[id]/scanner` | Scan guests' QR tickets at the door | ⬜ |
 
@@ -148,6 +157,22 @@ Routes live in `client/src/app/` (Expo Router). `(group)` folders don't show in 
 | Media preview | Chat, photo pickers | ⬜ |
 | Permission sheet | Mic, camera, location, contacts | ⬜ |
 | Empty states | Every list (`components/ui/EmptyState.tsx`, still icons) | ✅ |
+
+---
+
+## Parallax and scroll plan (proposed, not built yet)
+
+Where motion on scroll earns its place, so photos stay big without pushing
+content down:
+
+| Screen | Proposal |
+|---|---|
+| Home (12) | The top block (greeting + Create event) folds away as you scroll; rows of posters reveal one at a time as they enter |
+| Events list (13) | Featured event as a full-width 4:5 poster with parallax at the top of the list, then the two-column grid |
+| Someone's profile (36) and your Profile (15) | First photo full-bleed with parallax, name over it, folding into the top bar like the event page |
+| Chat conversation (45) | Header with the person's photo shrinks into a small avatar bar as you scroll up |
+| Settings and lists (51 to 68) | Large titles that fold into the top bar, no photos |
+| Calendar (55) | Month header pins while days scroll under it |
 
 ---
 

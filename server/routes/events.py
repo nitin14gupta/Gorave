@@ -381,6 +381,10 @@ def list_events(
     start_date: Optional[str] = Query(default=None),
     end_date: Optional[str] = Query(default=None),
     limit: int = Query(default=30, le=200),
+    # Discovery feeds (events tab, Trending): only events you could still
+    # join. Leaves out your own events, ones you're already in, waiting on or
+    # were declined from, and women-only / men-only events that aren't for you.
+    discover: bool = Query(default=False),
     current_user: dict = Depends(get_current_user),
 ):
     viewer_id = current_user["id"]
@@ -404,6 +408,25 @@ def list_events(
     if city_row:
         filters.append("e.city = %s")
         filter_params.append(city_row["name"])
+
+    if discover:
+        filters.append("e.host_id != %s::uuid")
+        filters.append(
+            "NOT EXISTS (SELECT 1 FROM event_attendees ea WHERE ea.event_id = e.id AND ea.user_id = %s::uuid"
+            " AND ea.status IN ('going', 'waitlist', 'requested', 'declined'))"
+        )
+        filter_params.extend([viewer_id, viewer_id])
+        with get_db() as (gcur, _):
+            gcur.execute("SELECT gender FROM users WHERE id = %s", (viewer_id,))
+            grow = gcur.fetchone()
+        gender = (grow or {}).get("gender")
+        # women_pct 100 = women only, 0 = men only, NULL or a split = everyone.
+        if gender == "Female":
+            filters.append("(e.women_pct IS NULL OR e.women_pct <> 0)")
+        elif gender == "Male":
+            filters.append("(e.women_pct IS NULL OR e.women_pct <> 100)")
+        else:
+            filters.append("(e.women_pct IS NULL OR e.women_pct NOT IN (0, 100))")
 
     if category:
         filters.append("e.event_type = %s")

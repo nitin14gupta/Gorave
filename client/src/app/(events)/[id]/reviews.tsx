@@ -1,7 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react'
 import {
-  ActivityIndicator,
-  FlatList,
   Pressable,
   StyleSheet,
   Text,
@@ -11,9 +9,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { ArrowLeft, Star } from 'lucide-react-native'
 import { Colors, FontFamily, Spacing } from '@/constants'
-import { BrandedLoader, BrandedRefreshControl } from '@/components/ui'
-import { StarRow, RatingDistribution, RatingFilterRow, ReviewCard } from '@/components/reviews/ReviewParts'
-import ApiService, { type ReviewItem } from '@/api/apiService'
+import { BrandedLoader } from '@/components/ui'
+import ApiService, { type EventDetail, type ReviewItem } from '@/api/apiService'
+import { ReviewsView } from '@/components/reviews/ReviewsView'
 
 const PAGE_SIZE = 10
 
@@ -32,6 +30,9 @@ export default function ReviewsScreen() {
   const [activeRating, setActiveRating] = useState<number | null>(null)
   const [reviews, setReviews] = useState<ReviewItem[]>([])
   const [hasMore, setHasMore] = useState(true)
+  const [event, setEvent] = useState<EventDetail | null>(null)
+
+  useEffect(() => { if (id) ApiService.getEvent(id).then(setEvent).catch(() => {}) }, [id])
 
   const fetchFirstPage = useCallback((isRefresh: boolean) => {
     if (!id) return
@@ -64,6 +65,28 @@ export default function ReviewsScreen() {
       .finally(() => setLoadingMore(false))
   }, [id, activeRating, loadingMore, hasMore, reviews.length])
 
+  // Loaded with reviews: the layout owns the whole screen, header included.
+  if (!(loading && reviews.length === 0) && !(loadError && reviews.length === 0) && !(count === 0 && !activeRating)) {
+    return (
+      <View style={s.root}>
+        <ReviewsView
+          event={event}
+          avg={avgRating}
+          count={count}
+          distribution={distribution}
+          reviews={reviews}
+          activeRating={activeRating}
+          onFilter={setActiveRating}
+          refreshing={refreshing}
+          onRefresh={() => fetchFirstPage(true)}
+          onEndReached={loadMore}
+          loadingMore={loadingMore}
+          onBack={() => router.back()}
+        />
+      </View>
+    )
+  }
+
   return (
     <View style={[s.root, { paddingTop: insets.top }]}>
       {/* Header */}
@@ -82,7 +105,7 @@ export default function ReviewsScreen() {
       ) : loadError && reviews.length === 0 ? (
         <View style={s.center}>
           <Star size={48} color={Colors.inkDisabled} strokeWidth={1.2} />
-          <Text style={s.emptyTitle}>Couldn't load reviews</Text>
+          <Text style={s.emptyTitle}>Couldn’t load reviews</Text>
           <Text style={s.emptySub}>Something went wrong.</Text>
           <Pressable style={s.retryBtn} onPress={() => fetchFirstPage(false)}>
             <Text style={s.retryText}>Try again</Text>
@@ -95,46 +118,7 @@ export default function ReviewsScreen() {
           <Text style={s.emptySub}>Reviews appear here once attendees rate the event.</Text>
         </View>
       ) : (
-        <FlatList
-          data={reviews}
-          keyExtractor={r => r.id}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
-          onEndReachedThreshold={0.4}
-          onEndReached={loadMore}
-          refreshControl={
-            <BrandedRefreshControl refreshing={refreshing} onRefresh={() => fetchFirstPage(true)} />
-          }
-          ListHeaderComponent={
-            <View>
-              <View style={s.summary}>
-                <View style={s.summaryTop}>
-                  <View style={s.summaryLeft}>
-                    <Text style={s.avg}>{avgRating?.toFixed(1) ?? '—'}</Text>
-                    <StarRow rating={Math.round(avgRating ?? 0)} />
-                    <Text style={s.countText}>{count} {count === 1 ? 'review' : 'reviews'}</Text>
-                  </View>
-                  <RatingDistribution distribution={distribution} total={count} />
-                </View>
-              </View>
-              <RatingFilterRow activeRating={activeRating} onSelect={setActiveRating} distribution={distribution} />
-              <Text style={s.whatPeopleSay}>What people say</Text>
-            </View>
-          }
-          renderItem={({ item }) => <ReviewCard item={item} />}
-          ListEmptyComponent={
-            !loading ? (
-              <View style={s.filteredEmpty}>
-                <Text style={s.emptySub}>No {activeRating}-star reviews yet.</Text>
-              </View>
-            ) : null
-          }
-          ListFooterComponent={loadingMore ? (
-            <View style={s.footerLoader}>
-              <ActivityIndicator color={Colors.inkSecondary} />
-            </View>
-          ) : null}
-        />
+        null
       )}
     </View>
   )
@@ -155,51 +139,8 @@ const s = StyleSheet.create({
   iconBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
   title: { fontFamily: FontFamily.headingBold, fontSize: 17, color: Colors.inkPrimary },
 
-  summary: {
-    paddingHorizontal: Spacing.screenPadding,
-    paddingTop: 24,
-    paddingBottom: 20,
-    gap: 20,
-  },
-  summaryTop: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 28,
-  },
-  summaryLeft: {
-    alignItems: 'flex-start',
-    gap: 4,
-  },
-  avg: {
-    fontFamily: FontFamily.headingBold,
-    fontSize: 44,
-    color: Colors.inkPrimary,
-    letterSpacing: -1.5,
-    lineHeight: 48,
-  },
-  countText: {
-    fontFamily: FontFamily.bodyRegular,
-    fontSize: 13,
-    color: Colors.inkSecondary,
-    marginTop: 2,
-  },
-  whatPeopleSay: {
-    fontFamily: FontFamily.headingBold,
-    fontSize: 18,
-    color: Colors.inkPrimary,
-    paddingHorizontal: Spacing.screenPadding,
-    marginBottom: 16,
-  },
 
-  footerLoader: {
-    paddingVertical: 20,
-    alignItems: 'center',
-  },
 
-  filteredEmpty: {
-    paddingHorizontal: Spacing.screenPadding,
-    paddingVertical: 20,
-  },
 
   center: {
     flex: 1,

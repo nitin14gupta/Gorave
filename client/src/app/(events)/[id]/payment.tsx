@@ -1,9 +1,7 @@
 import { useState, useEffect } from 'react'
-import { View, Text, StyleSheet, Pressable, ScrollView } from 'react-native'
+import { View, Text, StyleSheet } from 'react-native'
 import { useLocalSearchParams, useRouter } from 'expo-router'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import RazorpayCustomUI from 'react-native-customui'
-import { ArrowLeft, CheckCircle } from 'lucide-react-native'
 import { Colors, FontFamily } from '@/constants'
 import { BrandedLoader } from '@/components/ui'
 import ApiService from '@/api/apiService'
@@ -15,12 +13,10 @@ import { useLastPaymentStore } from '@/store/lastPaymentStore'
 import { UpiIdSheet } from '@/components/upi/UpiIdSheet'
 import { PaymentFailedSheet } from '@/components/upi/PaymentFailedSheet'
 import { PaymentWalletSuccessOverlay } from '@/components/events/PaymentWalletSuccessOverlay'
-import { PaymentOrderSummary } from '@/components/events/PaymentOrderSummary'
-import { PaymentMethodSelector } from '@/components/events/PaymentMethodSelector'
+import { PaymentView } from '@/components/events/PaymentView'
 
 export default function PaymentScreen() {
   const { id, wallet: walletParam } = useLocalSearchParams<{ id: string; wallet?: string }>()
-  const insets   = useSafeAreaInsets()
   const router   = useRouter()
   const showPill = usePillStore(s => s.show)
 
@@ -42,7 +38,6 @@ export default function PaymentScreen() {
   const [rzpKey, setRzpKey]         = useState('')
   const [showWalletAnim, setShowWalletAnim] = useState(false)
   const [failedMsg, setFailedMsg]   = useState<string | null>(null)
-  const [billExpanded, setBillExpanded] = useState(false)
 
   const amountToPay = Math.max(0, total - walletApplied)
 
@@ -247,47 +242,23 @@ export default function PaymentScreen() {
   // ── Main UI ───────────────────────────────────────────────────────────────
 
   return (
-    <View style={[s.root, { paddingTop: insets.top }]}>
-      <View style={s.header}>
-        <Pressable onPress={() => router.back()} style={s.backBtn} hitSlop={8}>
-          <ArrowLeft size={22} color={Colors.inkPrimary} strokeWidth={2} />
-        </Pressable>
-        <Text style={s.headerTitle}>Payment</Text>
-        <View style={{ width: 40 }} />
-      </View>
-
-      <ScrollView
-        style={s.scroll}
-        contentContainerStyle={[s.content, { paddingBottom: insets.bottom + 40 }]}
-        showsVerticalScrollIndicator={false}
-      >
-        <PaymentOrderSummary
-          eventTitle={eventTitle}
-          ticketPrice={ticketPrice}
-          platformFee={platformFee}
-          amountToPay={amountToPay}
-          walletApplied={walletApplied}
-          expanded={billExpanded}
-          onToggle={() => setBillExpanded(v => !v)}
-        />
-
-        <PaymentMethodSelector
-          amountToPay={amountToPay}
-          upiApps={upiApps}
-          upiAppsLoading={upiAppsLoading}
-          recommendedApp={recommendedApp}
-          paying={paying}
-          onWalletPay={doWalletPay}
-          onUpiApp={handleUpiApp}
-          onQrPress={handleQrPress}
-          onEnterUpiId={() => setUpiSheetOpen(true)}
-        />
-
-        <View style={s.secureRow}>
-          <CheckCircle size={13} color={Colors.inkDisabled} strokeWidth={1.6} />
-          <Text style={s.secureText}>Secure payment · Instant wallet refund if event is cancelled in your Gorave Wallet</Text>
-        </View>
-      </ScrollView>
+    <View style={s.root}>
+      <PaymentView
+        eventTitle={eventTitle ?? ''}
+        ticketPrice={ticketPrice}
+        platformFee={platformFee}
+        walletApplied={walletApplied}
+        amountToPay={amountToPay}
+        upiApps={upiApps}
+        upiAppsLoading={upiAppsLoading}
+        recommendedApp={recommendedApp}
+        recommendedIsLast={!!recommendedApp && recommendedApp.package_name === lastPackageName}
+        onWalletPay={doWalletPay}
+        onUpiApp={handleUpiApp}
+        onQrPress={handleQrPress}
+        onEnterUpiId={() => setUpiSheetOpen(true)}
+        onBack={() => router.back()}
+      />
 
       <UpiIdSheet
         visible={upiSheetOpen}
@@ -309,16 +280,5 @@ export default function PaymentScreen() {
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: Colors.background },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 16 },
-
-  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingBottom: 8 },
-  backBtn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
-  headerTitle: { flex: 1, textAlign: 'center', fontFamily: FontFamily.headingBold, fontSize: 18, color: Colors.inkPrimary },
-
-  scroll: { flex: 1 },
-  content: { paddingHorizontal: 16, gap: 12 },
-
-  secureRow: { flexDirection: 'row', alignItems: 'center', gap: 6, justifyContent: 'center', marginTop: 8 },
-  secureText: { fontFamily: FontFamily.bodyRegular, fontSize: 11, color: Colors.inkDisabled, textAlign: 'center' },
-
   payingMsg: { fontFamily: FontFamily.bodyMedium, fontSize: 15, color: Colors.inkSecondary, textAlign: 'center' },
 })

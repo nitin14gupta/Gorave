@@ -2,7 +2,7 @@ import React from 'react'
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native'
 import { LinearGradient } from 'expo-linear-gradient'
 import { useRouter } from 'expo-router'
-import { ChevronRight, Hourglass, Inbox, PartyPopper, QrCode, ScanLine, Star, Users } from 'lucide-react-native'
+import { ChevronRight, Hourglass, Inbox, PartyPopper, QrCode, ScanLine, Star, Users, ListOrdered } from 'lucide-react-native'
 import { Colors, FontFamily, withOpacity } from '@/constants'
 import { hSuccess, hTap } from '@/lib/haptics'
 import { PrimaryButton, TickingCountdown } from '@/components/ui'
@@ -102,6 +102,16 @@ export function EventRsvpBar({
                 {pending > 0 ? `${pending} request${pending === 1 ? '' : 's'} to review` : 'Join requests'}
               </Text>
               {pending > 0 && <View style={styles.requestsDot} />}
+              <ChevronRight size={14} color={Colors.inkSecondary} strokeWidth={2} />
+            </Pressable>
+          )}
+          {!isPast && (event.waitlist_count ?? 0) > 0 && (
+            <Pressable
+              style={styles.requestsChip}
+              onPress={() => { hTap(); router.push(`/(events)/${eventId}/waitlist` as any) }}
+            >
+              <ListOrdered size={15} color={Colors.inkPrimary} strokeWidth={2} />
+              <Text style={styles.requestsChipText}>{event.waitlist_count} on the waitlist</Text>
               <ChevronRight size={14} color={Colors.inkSecondary} strokeWidth={2} />
             </Pressable>
           )}
