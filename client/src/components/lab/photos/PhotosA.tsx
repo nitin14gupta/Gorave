@@ -14,8 +14,8 @@ const SMALL = Math.floor((W - 40 - GAP * 2) / 3)
 const BIG = SMALL * 2 + GAP
 
 /**
- * A · The grid. Hinge's photo editor: your main photo takes a big tile,
- * the other five sit around it. Tap a tile to add or swap, the cross to
+ * A · The grid. Hinge's photo editor: your main photo takes a big square,
+ * the other five squares sit around it (profile photos are 1:1). Tap a tile to add or swap, the cross to
  * remove, the star to make it your main photo.
  */
 export function PhotosA(p: PhotosViewProps) {
@@ -63,10 +63,9 @@ export function PhotosA(p: PhotosViewProps) {
 
 function Tile({ item, size, main, p }: { item: PhotoItem | undefined; size: number; main?: boolean; p: PhotosViewProps }) {
   if (!item) return null
-  const h = Math.round(size * 1.25)
   const filled = !!item.uri
   return (
-    <Pressable style={[s.tile, { width: size, height: main ? Math.round((SMALL * 1.25) * 2 + GAP) : h }, !filled && s.empty]} onPress={() => { hTap(); p.onSlot(item.id) }}>
+    <Pressable style={[s.tile, { width: size, height: size }, !filled && s.empty]} onPress={() => { hTap(); p.onSlot(item.id) }}>
       {filled ? (
         <>
           <Image source={{ uri: item.uri! }} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="memory-disk" />

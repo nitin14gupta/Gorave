@@ -12,7 +12,7 @@ const W = Dimensions.get('window').width
 export const FOLLOW_CARD_W = Math.floor((W - 32 - 10) / 2)
 
 /**
- * B · Faces. People as portrait cards two a row, the way you'd browse
+ * B · Faces. People as square photo cards two a row, the way you'd browse
  * people at a party rather than read a list: photo first, name on it, one
  * button under it.
  */
@@ -46,7 +46,7 @@ export const FollowCardB = memo(function FollowCardB(p: FollowItemProps) {
 
 const s = StyleSheet.create({
   wrap: { width: FOLLOW_CARD_W, gap: 8, marginBottom: 14 },
-  photo: { width: FOLLOW_CARD_W, height: Math.round(FOLLOW_CARD_W * 1.25), borderRadius: 18, overflow: 'hidden', backgroundColor: Colors.surfaceMuted, alignItems: 'center', justifyContent: 'center' },
+  photo: { width: FOLLOW_CARD_W, height: FOLLOW_CARD_W, borderRadius: 18, overflow: 'hidden', backgroundColor: Colors.surfaceMuted, alignItems: 'center', justifyContent: 'center' },
   initial: { fontFamily: FontFamily.displayExtraBold, fontSize: 40, color: Colors.inkDisabled },
   shade: { position: 'absolute', left: 0, right: 0, bottom: 0, height: '45%' },
   text: { position: 'absolute', left: 12, right: 12, bottom: 10 },

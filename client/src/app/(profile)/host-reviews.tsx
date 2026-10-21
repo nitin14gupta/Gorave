@@ -9,14 +9,16 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { ArrowLeft, Star } from 'lucide-react-native'
+import { LabSwitch } from '@/components/lab/LabSwitch'
+import { useLabVariant } from '@/store/labStore'
+import { HostReviewsA } from '@/components/lab/hostReviews/HostReviewsA'
+import { HostReviewsB } from '@/components/lab/hostReviews/HostReviewsB'
 import { Colors, FontFamily, Spacing } from '@/constants'
-import { AppHeader, APP_HEADER_BAR_HEIGHT, HeaderIconBtn, BrandedLoader, SortSheet, BrandedRefreshControl } from '@/components/ui'
+import { AppHeader, APP_HEADER_BAR_HEIGHT, HeaderIconBtn, BrandedLoader } from '@/components/ui'
 import { useHeaderScroll } from '@/hooks/useHeaderScroll'
-import { ReviewCard } from '@/components/reviews/ReviewParts'
-import { HostReviewsSummary } from '@/components/reviews/HostReviewsSummary'
 import { useAuthStore } from '@/store/auth'
 import { usePillStore } from '@/store/pillStore'
-import ApiService, { type HostReviewItem, type HostReviewEvent } from '@/api/apiService'
+import ApiService, { type ExtendedProfile, type HostReviewItem, type HostReviewEvent } from '@/api/apiService'
 
 const PAGE_SIZE = 10
 
@@ -40,7 +42,9 @@ export default function HostReviewsScreen() {
   const [activeRating, setActiveRating] = useState<number | null>(null)
   const [reviews, setReviews] = useState<HostReviewItem[]>([])
   const [hasMore, setHasMore] = useState(true)
-  const [eventSheetOpen, setEventSheetOpen] = useState(false)
+  const Layout = useLabVariant('host-reviews') === 'b' ? HostReviewsB : HostReviewsA
+  const [profile, setProfile] = useState<ExtendedProfile | null>(null)
+  useEffect(() => { if (id) ApiService.getUserProfile(id).then(setProfile).catch(() => {}) }, [id])
 
   const fetchFirstPage = useCallback((isRefresh: boolean) => {
     if (!id) return
@@ -73,78 +77,47 @@ export default function HostReviewsScreen() {
       .finally(() => setLoadingMore(false))
   }, [id, activeEventId, activeRating, loadingMore, hasMore, reviews.length])
 
+  if (!(loading && reviews.length === 0) && !(count === 0 && !activeEventId && !activeRating)) {
+    return (
+      <View style={s.root}>
+        <Layout
+          name={(name ? decodeURIComponent(name) : '') || profile?.name || 'Host'}
+          photo={profile?.photos?.[0]?.url ?? null}
+          avg={avgRating}
+          count={count}
+          distribution={distribution}
+          events={events}
+          reviews={reviews}
+          activeEventId={activeEventId}
+          onEvent={setActiveEventId}
+          activeRating={activeRating}
+          onRating={setActiveRating}
+          refreshing={refreshing}
+          onRefresh={() => fetchFirstPage(true)}
+          onEndReached={loadMore}
+          loadingMore={loadingMore}
+          onBack={() => router.back()}
+        />
+        <LabSwitch screen="host-reviews" />
+      </View>
+    )
+  }
+
   return (
     <View style={s.root}>
       <AppHeader
-        title={name ? `${name}'s Reviews` : 'Host Reviews'}
+        title={name ? `${name}'s reviews` : 'Host reviews'}
         hideProgress={hideProgress}
         leftAction={<HeaderIconBtn onPress={() => router.back()}><ArrowLeft size={18} color={Colors.inkPrimary} strokeWidth={1.8} /></HeaderIconBtn>}
       />
-
-      {loading && reviews.length === 0 ? (
-        <View style={[s.center, { paddingTop: headerHeight }]}>
-          <BrandedLoader />
-        </View>
-      ) : count === 0 && !activeEventId && !activeRating ? (
+      {loading ? (
+        <View style={[s.center, { paddingTop: headerHeight }]}><BrandedLoader /></View>
+      ) : (
         <View style={[s.center, { paddingTop: headerHeight }]}>
           <Star size={48} color={Colors.inkDisabled} strokeWidth={1.2} />
           <Text style={s.emptyTitle}>No reviews yet</Text>
-          <Text style={s.emptySub}>Reviews appear here once attendees rate their events.</Text>
+          <Text style={s.emptySub}>Reviews appear here once guests rate their nights.</Text>
         </View>
-      ) : (
-        <FlatList
-          data={reviews}
-          keyExtractor={r => r.id}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingTop: headerHeight, paddingBottom: insets.bottom + 24 }}
-          onScroll={onScroll}
-          scrollEventThrottle={16}
-          onEndReachedThreshold={0.4}
-          onEndReached={loadMore}
-          refreshControl={
-            <BrandedRefreshControl refreshing={refreshing} onRefresh={() => fetchFirstPage(true)} />
-          }
-          ListHeaderComponent={
-            <HostReviewsSummary
-              avgRating={avgRating}
-              count={count}
-              distribution={distribution}
-              events={events}
-              isOwnProfile={isOwnProfile}
-              activeEventId={activeEventId}
-              activeRating={activeRating}
-              onSelectEvent={setActiveEventId}
-              onSelectRating={setActiveRating}
-              onOpenEventSheet={() => setEventSheetOpen(true)}
-            />
-          }
-          renderItem={({ item }) => <ReviewCard item={item} subtitle={item.event_title} eventId={item.event_id} />}
-          ListEmptyComponent={
-            !loading ? (
-              <View style={s.filteredEmpty}>
-                <Text style={s.emptySub}>
-                  {activeRating ? `No ${activeRating}-star reviews${activeEventId ? ' for this event' : ''} yet.` : 'No reviews for this event yet.'}
-                </Text>
-              </View>
-            ) : null
-          }
-          ListFooterComponent={loadingMore ? (
-            <View style={s.footerLoader}>
-              <ActivityIndicator color={Colors.inkSecondary} />
-            </View>
-          ) : null}
-        />
-      )}
-
-      {isOwnProfile && (
-        <SortSheet
-          visible={eventSheetOpen}
-          title="Filter by event"
-          options={[{ key: 'all', label: 'All events' }, ...events.map(ev => ({ key: ev.id, label: ev.title }))]}
-          selected={activeEventId ?? 'all'}
-          onSelect={key => setActiveEventId(key === 'all' ? null : key)}
-          onClose={() => setEventSheetOpen(false)}
-        />
       )}
     </View>
   )

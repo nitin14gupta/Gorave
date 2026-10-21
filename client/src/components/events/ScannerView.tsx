@@ -233,7 +233,7 @@ const s = StyleSheet.create({
   cardOk: { backgroundColor: OK },
   cardBad: { backgroundColor: BAD },
   cardWarn: { backgroundColor: WARN },
-  cardPhoto: { width: 64, height: 80, borderRadius: 14 },
+  cardPhoto: { width: 72, height: 72, borderRadius: 16 },
   cardIcon: { backgroundColor: 'rgba(0,0,0,0.2)', alignItems: 'center', justifyContent: 'center' },
   cardKicker: { fontFamily: FontFamily.bodySemiBold, fontSize: 11, letterSpacing: 1.6, color: withOpacity(Colors.white, 0.85) },
   cardName: { fontFamily: FontFamily.displayExtraBold, fontSize: 24, letterSpacing: -0.4, color: Colors.white, marginTop: 2 },

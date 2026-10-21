@@ -101,7 +101,7 @@ const s = StyleSheet.create({
   barTitle: { fontFamily: FontFamily.headingBold, fontSize: 17, color: Colors.inkPrimary },
 
   caption: { fontFamily: FontFamily.bodySemiBold, fontSize: 11, letterSpacing: 1.4, textTransform: 'uppercase', color: Colors.inkDisabled, textAlign: 'center', marginTop: 8, marginBottom: 10 },
-  preview: { alignSelf: 'center', width: PREVIEW_W, height: Math.round(PREVIEW_W * 1.25), borderRadius: 22, overflow: 'hidden', backgroundColor: Colors.surface },
+  preview: { alignSelf: 'center', width: PREVIEW_W, height: PREVIEW_W, borderRadius: 22, overflow: 'hidden', backgroundColor: Colors.surface },
   previewEmpty: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   dots: { position: 'absolute', top: 8, left: 10, right: 10, flexDirection: 'row', gap: 4 },
   dot: { flex: 1, height: 3, borderRadius: 2, backgroundColor: withOpacity(Colors.white, 0.4) },
@@ -115,7 +115,7 @@ const s = StyleSheet.create({
   section: { fontFamily: FontFamily.headingBold, fontSize: 16, color: Colors.inkPrimary },
   count: { fontFamily: FontFamily.bodyRegular, fontSize: 12, color: Colors.inkSecondary },
   strip: { gap: 10, paddingHorizontal: 20 },
-  thumb: { width: THUMB, height: Math.round(THUMB * 1.25), borderRadius: 12, overflow: 'hidden', backgroundColor: Colors.surface, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: 'transparent' },
+  thumb: { width: THUMB, height: THUMB, borderRadius: 12, overflow: 'hidden', backgroundColor: Colors.surface, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: 'transparent' },
   thumbOn: { borderColor: Colors.inkPrimary },
   thumbEmpty: { borderStyle: 'dashed', borderColor: withOpacity(Colors.inkPrimary, 0.2), borderWidth: 1.5 },
   busy: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.4)', alignItems: 'center', justifyContent: 'center' },

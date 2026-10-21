@@ -1,54 +1,16 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { View, Text, StyleSheet, FlatList } from 'react-native'
+import { View } from 'react-native'
 import { router } from 'expo-router'
 import { useFocusEffect } from 'expo-router'
-import { ArrowLeft, Users } from 'lucide-react-native'
 import { hTap } from '@/lib/haptics'
-import { Colors, FontFamily } from '@/constants'
+import { Colors } from '@/constants'
 import ApiService from '@/api/apiService'
 import type { DiscoverUser } from '@/api/apiService'
 import { useSearchHistoryStore } from '@/store/searchHistoryStore'
-import { AppHeader, HeaderIconBtn, SearchBar } from '@/components/ui'
-import { PeopleListSkeleton } from '@/components/profile/PeopleListSkeleton'
-import { SearchHistoryList } from '@/components/profile/SearchHistoryList'
-import { SearchResultRow } from '@/components/profile/SearchResultRow'
-
-function SuggestedList({ onTap }: { onTap: (user: DiscoverUser) => void }) {
-  const [suggested, setSuggested] = useState<DiscoverUser[]>([])
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    ApiService.getSuggestedUsers()
-      .then(res => setSuggested(res.users))
-      .catch(e => console.warn('[search] getSuggestedUsers failed:', e?.message ?? e))
-      .finally(() => setLoading(false))
-  }, [])
-
-  if (loading) return <PeopleListSkeleton />
-
-  if (suggested.length === 0) {
-    return (
-      <View style={s.center}>
-        <Users size={52} color={Colors.inkDisabled} strokeWidth={1.2} />
-        <Text style={s.emptyTitle}>Find people</Text>
-        <Text style={s.emptySub}>Search by name or @username</Text>
-      </View>
-    )
-  }
-
-  return (
-    <FlatList
-      data={suggested}
-      keyExtractor={u => u.id}
-      contentContainerStyle={s.listContent}
-      showsVerticalScrollIndicator={false}
-      ListHeaderComponent={<Text style={s.suggestedLabel}>Suggested for you</Text>}
-      renderItem={({ item }) => (
-        <SearchResultRow user={item} onTap={() => onTap(item)} />
-      )}
-    />
-  )
-}
+import { LabSwitch } from '@/components/lab/LabSwitch'
+import { useLabVariant } from '@/store/labStore'
+import { SearchA } from '@/components/lab/search/SearchA'
+import { SearchB } from '@/components/lab/search/SearchB'
 
 export default function SearchScreen() {
   const [query, setQuery] = useState('')
@@ -56,7 +18,16 @@ export default function SearchScreen() {
   const [loading, setLoading] = useState(false)
   const [searched, setSearched] = useState(false)
   const [searchError, setSearchError] = useState(false)
-  const [focused, setFocused] = useState(false)
+  const Layout = useLabVariant('search') === 'b' ? SearchB : SearchA
+  const [suggested, setSuggested] = useState<DiscoverUser[]>([])
+  const [suggestedLoading, setSuggestedLoading] = useState(true)
+
+  useEffect(() => {
+    ApiService.getSuggestedUsers()
+      .then(res => setSuggested(res.users))
+      .catch(e => console.warn('[search] getSuggestedUsers failed:', e?.message ?? e))
+      .finally(() => setSuggestedLoading(false))
+  }, [])
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const { history, add, remove, clear } = useSearchHistoryStore()
@@ -118,79 +89,26 @@ export default function SearchScreen() {
     router.push(`/(profile)/${user.id}` as any)
   }
 
-  const showHistory = !searched && query === '' && history.length > 0
-
   return (
-    <View style={s.root}>
-      <AppHeader
-        title="Search"
-        leftAction={<HeaderIconBtn onPress={() => router.back()}><ArrowLeft size={18} color={Colors.inkPrimary} strokeWidth={2} /></HeaderIconBtn>}
+    <View style={{ flex: 1, backgroundColor: Colors.background }}>
+      <Layout
+        query={query}
+        onQuery={setQuery}
+        onSubmit={() => runSearch(query)}
+        loading={loading}
+        searched={searched}
+        error={searchError}
+        results={results}
+        suggested={suggested}
+        suggestedLoading={suggestedLoading}
+        recent={history}
+        onOpen={handleResultTap}
+        onOpenRecent={r => router.push(`/(profile)/${r.id}` as any)}
+        onRemoveRecent={id => { hTap(); remove(id) }}
+        onClearRecent={() => { hTap(); clear() }}
+        onBack={() => router.back()}
       />
-
-      <View style={s.searchWrap}>
-        <SearchBar
-          variant="glass"
-          value={query}
-          onChangeText={setQuery}
-          onFocus={() => setFocused(true)}
-          onBlur={() => setFocused(false)}
-          focused={focused}
-          placeholder="Search people by name or username..."
-          onSubmitEditing={() => runSearch(query)}
-        />
-      </View>
-
-      {loading ? (
-        <PeopleListSkeleton />
-      ) : showHistory ? (
-        <SearchHistoryList
-          history={history}
-          onTap={(user) => router.push(`/(profile)/${user.id}` as any)}
-          onRemove={(id) => { hTap(); remove(id) }}
-          onClear={() => { hTap(); clear() }}
-        />
-      ) : !searched ? (
-        <SuggestedList onTap={handleResultTap} />
-      ) : searchError ? (
-        <View style={s.center}>
-          <Text style={s.emptyTitle}>Search failed</Text>
-          <Text style={s.emptySub}>Check your connection and try again</Text>
-        </View>
-      ) : results.length === 0 ? (
-        <View style={s.center}>
-          <Text style={s.emptyTitle}>No results</Text>
-          <Text style={s.emptySub}>Try a different name or username</Text>
-        </View>
-      ) : (
-        <FlatList
-          data={results}
-          keyExtractor={u => u.id}
-          contentContainerStyle={s.listContent}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-          renderItem={({ item }) => (
-            <SearchResultRow user={item} onTap={() => handleResultTap(item)} />
-          )}
-        />
-      )}
+      <LabSwitch screen="search" top={60} />
     </View>
   )
 }
-
-// ── Styles ────────────────────────────────────────────────────────────────────
-
-const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: Colors.background },
-
-  searchWrap: { paddingHorizontal: 20, paddingBottom: 12 },
-
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 10, padding: 32 },
-  emptyTitle: { fontFamily: FontFamily.headingBold, fontSize: 18, color: Colors.inkPrimary },
-  emptySub: { fontFamily: FontFamily.bodyRegular, fontSize: 14, color: Colors.inkSecondary, textAlign: 'center' },
-
-  listContent: { paddingBottom: 32 },
-  suggestedLabel: {
-    fontFamily: FontFamily.bodySemiBold, fontSize: 13, color: Colors.inkSecondary,
-    paddingHorizontal: 20, paddingTop: 4, paddingBottom: 10,
-  },
-})

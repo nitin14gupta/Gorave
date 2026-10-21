@@ -99,12 +99,12 @@ Routes live in `client/src/app/` (Expo Router). `(group)` folders don't show in 
 | 36 | Someone's profile | `(profile)/[id]` | Photos, voice intro, interests, hosted events, send a vibe, follow | ⬜ |
 | 37 | Edit profile | `(profile)/edit` | Name, bio, interests, badges, voice intro card | ✅ voice |
 | 38 | Record new intro | `(profile)/voice` | Same orb recorder as onboarding, saves and goes back | ✅ |
-| 39 | Edit photos | `(profile)/edit-photos` | Reorder, add and remove photos | ⬜ |
-| 40 | Change city | `(profile)/location` | Move to another city | ⬜ |
-| 41 | Followers / following | `(profile)/follows` | Lists with follow back | ⬜ |
-| 42 | Host reviews | `(profile)/host-reviews` | Every review a host has received | ⬜ |
-| 43 | My QR | `(profile)/qr` | Your profile QR to share or scan | ⬜ |
-| 44 | Search people | `(profile)/search` | Find people by name or handle | ⬜ |
+| 39 | Edit photos | `(profile)/edit-photos` | Square photos (profile photos are 1:1). **A** Hinge grid: big main square, five smaller, star to make main, cross to remove · **B** your profile card as others see it, a numbered strip in order, Make main / Swap / Remove | 🧪 |
+| 40 | Change city | `(profile)/location` | **A** photo cards for the 8 main cities (the website's city photos), then the rest as a list · **B** wide postcard banners per city, search with Near me, others as a list | 🧪 |
+| 41 | Followers / following | `(profile)/follows` | **A** clean Instagram rows with a Follows you tag and one clear button · **B** square photo cards two a row with the button under | 🧪 |
+| 42 | Host reviews | `(profile)/host-reviews` | **A** host photo with parallax and the score huge, bars, event and star chips, each review says which night · **B** compact host card, reviews grouped under each event with its own score | 🧪 |
+| 43 | My QR | `(profile)/qr` | **A** a maroon profile pass with a cream QR, like the ticket · **B** your photo full-screen with a white QR card and your face on its edge | 🧪 |
+| 44 | Search people | `(profile)/search` | **A** Instagram search: recent people as a row of faces, suggestions and results as rows · **B** Find people: recent as pills, suggestions as square photo cards | 🧪 |
 
 ### 8. Chat
 
