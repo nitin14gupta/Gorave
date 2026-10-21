@@ -1,17 +1,19 @@
-import { View, Text, StyleSheet, ActivityIndicator, ScrollView } from 'react-native'
+import { View, StyleSheet, ActivityIndicator } from 'react-native'
 import { router } from 'expo-router'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { AppHeader, APP_HEADER_BAR_HEIGHT, HeaderIconBtn, Screen, PhotoSlot, PrimaryButton } from '@/components/ui'
+import { AppHeader, HeaderIconBtn, Screen } from '@/components/ui'
 import { ArrowLeft } from 'lucide-react-native'
 import { MediaPreviewModal } from '@/components/chat/MediaPreviewModal'
-import { useEditPhotos, MIN_PHOTOS } from '@/hooks/useEditPhotos'
-import { useHeaderScroll } from '@/hooks/useHeaderScroll'
-import { Colors, FontFamily, Spacing } from '@/constants'
+import { useEditPhotos, MIN_PHOTOS, PHOTO_SLOTS } from '@/hooks/useEditPhotos'
+import { useProfile } from '@/hooks/useProfile'
+import { Colors } from '@/constants'
+import { LabSwitch } from '@/components/lab/LabSwitch'
+import { useLabVariant } from '@/store/labStore'
+import { PhotosA } from '@/components/lab/photos/PhotosA'
+import { PhotosB } from '@/components/lab/photos/PhotosB'
 
 export default function EditPhotosScreen() {
-  const { hideProgress, onScroll } = useHeaderScroll()
-  const insets = useSafeAreaInsets()
-  const headerHeight = APP_HEADER_BAR_HEIGHT + insets.top
+  const Layout = useLabVariant('photos') === 'b' ? PhotosB : PhotosA
+  const { profile } = useProfile()
   const {
     loading,
     saving,
@@ -19,6 +21,8 @@ export default function EditPhotosScreen() {
     canSave,
     onSlotPress,
     removePhoto,
+    makeMain,
+    validPhotoCount,
     handleSave,
     pendingMedia,
     confirmPendingPhotos,
@@ -37,41 +41,23 @@ export default function EditPhotosScreen() {
   }
 
   return (
-    <Screen top={false}>
-      <AppHeader title="Edit Photos" hideProgress={hideProgress} leftAction={<HeaderIconBtn onPress={() => router.back()}><ArrowLeft size={18} color={Colors.inkPrimary} strokeWidth={2} /></HeaderIconBtn>} />
-
-      <ScrollView
-        contentContainerStyle={[styles.content, { paddingTop: headerHeight + 12 }]}
-        showsVerticalScrollIndicator={false}
-        onScroll={onScroll}
-        scrollEventThrottle={16}
-      >
-        <Text style={styles.hintText}>
-          Your first photo is your main profile picture. Add at least {MIN_PHOTOS} photos, up to 6. Tap a photo to remove it.
-        </Text>
-
-        <View style={styles.grid}>
-          {items.map((item, idx) => (
-            <PhotoSlot
-              key={item.id}
-              item={item}
-              index={idx}
-              onSlotPress={onSlotPress}
-              retryUpload={() => { }}
-              removePhoto={removePhoto}
-            />
-          ))}
-        </View>
-      </ScrollView>
-
-      <View style={styles.footer}>
-        <PrimaryButton
-          label="Save Changes"
-          onPress={handleSave}
-          disabled={!canSave}
-          loading={saving}
-        />
-      </View>
+    <View style={styles.root}>
+      <Layout
+        items={items}
+        count={validPhotoCount}
+        min={MIN_PHOTOS}
+        max={PHOTO_SLOTS}
+        onSlot={onSlotPress}
+        onRemove={removePhoto}
+        onMakeMain={makeMain}
+        canSave={canSave}
+        saving={saving}
+        onSave={handleSave}
+        onBack={() => router.back()}
+        name={profile?.name ?? ''}
+        city={profile?.city ?? null}
+      />
+      <LabSwitch screen="photos" />
 
       <MediaPreviewModal
         media={pendingMedia}
@@ -82,39 +68,11 @@ export default function EditPhotosScreen() {
         actionLabel="Add"
         titleLabel="Ready to add?"
       />
-    </Screen>
+    </View>
   )
 }
 
 const styles = StyleSheet.create({
-  center: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  content: {
-    paddingHorizontal: Spacing.screenPadding,
-    paddingBottom: 40,
-    paddingTop: 12,
-  },
-  hintText: {
-    fontFamily: FontFamily.bodyRegular,
-    fontSize: 14,
-    color: Colors.inkSecondary,
-    marginBottom: 24,
-    lineHeight: 20,
-  },
-  grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-  },
-  footer: {
-    paddingHorizontal: Spacing.screenPadding,
-    paddingTop: 12,
-    paddingBottom: Spacing.screenPadding,
-    borderTopWidth: 1,
-    borderTopColor: Colors.divider,
-    backgroundColor: Colors.background,
-  },
+  root: { flex: 1, backgroundColor: Colors.background },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
 })

@@ -4,7 +4,9 @@ import { FlashList } from '@shopify/flash-list'
 import { Users } from 'lucide-react-native'
 import { Colors, FontFamily } from '@/constants'
 import { BrandedRefreshControl } from '@/components/ui'
-import { UserFollowCard } from '@/components/profile/UserFollowCard'
+import { useLabVariant } from '@/store/labStore'
+import { FollowRowA } from '@/components/lab/follows/FollowRowA'
+import { FollowCardB } from '@/components/lab/follows/FollowCardB'
 import { PeopleListSkeleton } from '@/components/profile/PeopleListSkeleton'
 import type { FollowUser } from '@/api/apiService'
 import type { useFollowsList } from '@/hooks/useFollowsList'
@@ -31,6 +33,7 @@ const emptyText = (type: PaneType, list: FollowsList) =>
       : (list.isMyProfile ? "You're not vibing anyone yet" : 'Not vibing anyone yet')
 
 export function FollowsPane({ type, list, sorted, bottomInset, onFollow, onUnfollow, onRemove, onDots }: Props) {
+  const grid = useLabVariant('follows') === 'b'
   if (list.loading) return <PeopleListSkeleton />
 
   if (list.error && sorted.length === 0) {
@@ -46,23 +49,26 @@ export function FollowsPane({ type, list, sorted, bottomInset, onFollow, onUnfol
 
   return (
     <FlashList
+      key={grid ? 'grid' : 'list'}
       data={sorted}
       keyExtractor={u => u.id}
-      renderItem={({ item }) => (
-        <UserFollowCard
-          user={item}
-          type={type}
-          isMyProfile={list.isMyProfile}
-          onFollow={onFollow}
-          onUnfollow={() => onUnfollow(item)}
-          onRemove={() => onRemove(item)}
-          onDots={onDots}
-        />
-      )}
+      numColumns={grid ? 2 : 1}
+      renderItem={({ item }) => {
+        const props = {
+          user: item,
+          type,
+          isMyProfile: list.isMyProfile,
+          onFollow,
+          onUnfollow: () => onUnfollow(item),
+          onRemove: () => onRemove(item),
+          onDots,
+        }
+        return grid ? <View style={s.cell}><FollowCardB {...props} /></View> : <FollowRowA {...props} />
+      }}
       ItemSeparatorComponent={null}
       onEndReached={list.loadMore}
       onEndReachedThreshold={0.4}
-      contentContainerStyle={{ paddingBottom: bottomInset + 16 }}
+      contentContainerStyle={{ paddingBottom: bottomInset + 16, paddingTop: grid ? 12 : 4, paddingHorizontal: grid ? 16 : 0 }}
       refreshControl={
         <BrandedRefreshControl
           refreshing={list.refreshing}
@@ -87,6 +93,7 @@ export function FollowsPane({ type, list, sorted, bottomInset, onFollow, onUnfol
 const s = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32, gap: 12 },
   loadingMore: { paddingVertical: 20, alignItems: 'center' },
+  cell: { flex: 1, alignItems: 'center' },
   emptyTitle: {
     fontFamily: FontFamily.bodySemiBold, fontSize: 15,
     color: Colors.inkSecondary, textAlign: 'center',

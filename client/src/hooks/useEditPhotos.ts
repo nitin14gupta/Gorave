@@ -192,6 +192,21 @@ export function useEditPhotos() {
     })
   }
 
+  // Move a photo to the front, making it the main profile photo.
+  const makeMain = (id: string) => {
+    setItems(prev => {
+      const idx = prev.findIndex(i => i.id === id)
+      if (idx <= 0 || !prev[idx].uri) return prev
+      const filled = prev.filter(i => i.uri)
+      const moved = [prev[idx], ...filled.filter(i => i.id !== id)]
+      return Array.from({ length: PHOTO_SLOTS }, (_, index) =>
+        index < moved.length
+          ? { ...moved[index], id: `photo-${index}` }
+          : { id: `photo-${index}`, uri: null, state: 'idle' as SlotState, serverUrl: null, remoteId: undefined },
+      )
+    })
+  }
+
   const removePhoto = (id: string) => {
     const item = itemsRef.current.find(i => i.id === id)
     if (!item?.uri) return
@@ -285,6 +300,7 @@ export function useEditPhotos() {
     validPhotoCount,
     onSlotPress,
     removePhoto,
+    makeMain,
     handleSave,
     pendingMedia,
     confirmPendingPhotos,
