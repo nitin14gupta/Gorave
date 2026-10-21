@@ -2,10 +2,7 @@ import { useState } from 'react'
 import { View } from 'react-native'
 import { router } from 'expo-router'
 import { hSuccess } from '@/lib/haptics'
-import { LabSwitch } from '@/components/lab/LabSwitch'
-import { useLabVariant } from '@/store/labStore'
-import { CityA } from '@/components/lab/city/CityA'
-import { CityB } from '@/components/lab/city/CityB'
+import { CityPickerView } from '@/components/profile/CityPickerView'
 import { useLocation } from '@/hooks/useLocation'
 import { setLocation } from '@/api/user'
 import { useOnboardingStore } from '@/store/onboarding'
@@ -13,7 +10,6 @@ import { usePillStore } from '@/store/pillStore'
 import { Colors } from '@/constants'
 
 export default function ProfileLocationScreen() {
-  const Layout = useLabVariant('city') === 'b' ? CityB : CityA
   const { filtered, query, setQuery, selectedCity, detecting, selectCity, detectLocation } = useLocation()
   const store = useOnboardingStore()
   const showPill = usePillStore(s => s.show)
@@ -33,7 +29,7 @@ export default function ProfileLocationScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: Colors.background }}>
-      <Layout
+      <CityPickerView
         cities={filtered}
         query={query}
         onQuery={setQuery}
@@ -45,7 +41,6 @@ export default function ProfileLocationScreen() {
         onSave={() => { hSuccess(); handleSave() }}
         onBack={() => router.back()}
       />
-      <LabSwitch screen="city" />
     </View>
   )
 }

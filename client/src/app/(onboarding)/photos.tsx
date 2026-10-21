@@ -1,9 +1,10 @@
-import { View, Text, StyleSheet, Pressable, Dimensions, ScrollView } from 'react-native'
+import { View, Text, StyleSheet, ScrollView } from 'react-native'
 import { router } from 'expo-router'
-import { OutlineButton, StepDots, PrimaryButton, Screen, PhotoSlot, GlowLinesBackground } from '@/components/ui'
+import { OutlineButton, StepDots, PrimaryButton, Screen, GlowLinesBackground } from '@/components/ui'
+import { PhotoGrid } from '@/components/profile/EditPhotosView'
 import { MediaPreviewModal } from '@/components/chat/MediaPreviewModal'
 import { usePhotos, MIN_PHOTOS } from '@/hooks/usePhotos'
-import { Colors, FontFamily, Spacing, Radius } from '@/constants'
+import { Colors, FontFamily, Spacing } from '@/constants'
 
 export default function PhotosScreen() {
   const {
@@ -12,13 +13,13 @@ export default function PhotosScreen() {
     hasMinPhotos,
     onSlotPress,
     removePhoto,
+    makeMain,
     handleNext,
     pendingMedia,
     confirmPendingPhotos,
     cancelPendingPhotos,
     removePendingPhoto,
     updatePendingPhoto,
-    retryUpload,
   } = usePhotos()
 
   return (
@@ -27,23 +28,14 @@ export default function PhotosScreen() {
       <Screen transparent>
       <View style={styles.header}>
         <Text style={styles.title}>Add your photos</Text>
-        <Text style={styles.subtitle}>Add at least {MIN_PHOTOS} photos</Text>
+        <Text style={styles.subtitle}>Add at least {MIN_PHOTOS}. The first one is what people see first.</Text>
       </View>
 
       <ScrollView
         contentContainerStyle={styles.grid}
         showsVerticalScrollIndicator={false}
       >
-        {items.map((item, index) => (
-          <PhotoSlot
-            key={item.id}
-            item={item}
-            index={index}
-            onSlotPress={onSlotPress}
-            retryUpload={retryUpload}
-            removePhoto={removePhoto}
-          />
-        ))}
+        <PhotoGrid items={items} onSlot={onSlotPress} onRemove={removePhoto} onMakeMain={makeMain} />
       </ScrollView>
 
       <StepDots step={2} />
@@ -52,7 +44,7 @@ export default function PhotosScreen() {
         <OutlineButton label="Back" onPress={() => router.back()} style={styles.backBtn} />
         <View style={styles.nextBtn}>
           <PrimaryButton
-            label="Next →"
+            label="Next"
             onPress={handleNext}
             disabled={!hasMinPhotos}
             loading={nextLoading}
@@ -90,13 +82,7 @@ const styles = StyleSheet.create({
     color: Colors.inkSecondary,
   },
 
-  grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-    paddingHorizontal: Spacing.screenPadding,
-    paddingBottom: 16,
-  },
+  grid: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 16 },
 
   footer: {
     flexDirection: 'row',

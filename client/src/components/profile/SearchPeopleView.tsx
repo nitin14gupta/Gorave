@@ -4,14 +4,36 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { ArrowLeft, Search, X } from 'lucide-react-native'
 import { Colors, FontFamily, withOpacity } from '@/constants'
 import type { DiscoverUser } from '@/api/apiService'
-import { whoLine, type SearchViewProps } from './types'
+
+export interface RecentPerson { id: string; name: string | null; username: string | null; avatar: string | null }
+
+export interface SearchViewProps {
+  query: string
+  onQuery: (q: string) => void
+  onSubmit: () => void
+  loading: boolean
+  /** A search has run for the current query. */
+  searched: boolean
+  error: boolean
+  results: DiscoverUser[]
+  suggested: DiscoverUser[]
+  suggestedLoading: boolean
+  recent: RecentPerson[]
+  onOpen: (u: DiscoverUser) => void
+  onOpenRecent: (r: RecentPerson) => void
+  onRemoveRecent: (id: string) => void
+  onClearRecent: () => void
+  onBack: () => void
+}
+
+export const whoLine = (u: DiscoverUser) => [u.age ? String(u.age) : null, u.city].filter(Boolean).join(' · ')
 
 /**
- * A · Instagram search. A search pill up top; before you type, the people
+ * Search people, Instagram style. A search pill up top; before you type, the people
  * you opened recently sit as a row of faces, then suggestions as plain
  * rows. Results are the same clean rows.
  */
-export function SearchA(p: SearchViewProps) {
+export function SearchPeopleView(p: SearchViewProps) {
   const insets = useSafeAreaInsets()
   const typing = p.query.trim().length > 0
 

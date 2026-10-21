@@ -6,13 +6,9 @@ import { MediaPreviewModal } from '@/components/chat/MediaPreviewModal'
 import { useEditPhotos, MIN_PHOTOS, PHOTO_SLOTS } from '@/hooks/useEditPhotos'
 import { useProfile } from '@/hooks/useProfile'
 import { Colors } from '@/constants'
-import { LabSwitch } from '@/components/lab/LabSwitch'
-import { useLabVariant } from '@/store/labStore'
-import { PhotosA } from '@/components/lab/photos/PhotosA'
-import { PhotosB } from '@/components/lab/photos/PhotosB'
+import { EditPhotosView } from '@/components/profile/EditPhotosView'
 
 export default function EditPhotosScreen() {
-  const Layout = useLabVariant('photos') === 'b' ? PhotosB : PhotosA
   const { profile } = useProfile()
   const {
     loading,
@@ -42,7 +38,7 @@ export default function EditPhotosScreen() {
 
   return (
     <View style={styles.root}>
-      <Layout
+      <EditPhotosView
         items={items}
         count={validPhotoCount}
         min={MIN_PHOTOS}
@@ -57,7 +53,6 @@ export default function EditPhotosScreen() {
         name={profile?.name ?? ''}
         city={profile?.city ?? null}
       />
-      <LabSwitch screen="photos" />
 
       <MediaPreviewModal
         media={pendingMedia}

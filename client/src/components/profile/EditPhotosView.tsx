@@ -5,23 +5,37 @@ import { ArrowLeft, Plus, Star, X } from 'lucide-react-native'
 import { Colors, FontFamily, withOpacity } from '@/constants'
 import { PrimaryButton } from '@/components/ui'
 import { hTap } from '@/lib/haptics'
-import type { PhotoItem } from '@/hooks/useEditPhotos'
-import type { PhotosViewProps } from './types'
+/** Any photo slot: edit-profile and onboarding both use this shape. */
+export interface GridPhoto { id: string; uri: string | null; state: string }
 
 const W = Dimensions.get('window').width
 const GAP = 10
 const SMALL = Math.floor((W - 40 - GAP * 2) / 3)
 const BIG = SMALL * 2 + GAP
 
+export interface PhotosViewProps {
+  items: GridPhoto[]
+  count: number
+  min: number
+  max: number
+  onSlot: (id: string) => void
+  onRemove: (id: string) => void
+  onMakeMain: (id: string) => void
+  canSave: boolean
+  saving: boolean
+  onSave: () => void
+  onBack: () => void
+  name: string
+  city: string | null
+}
+
 /**
- * A · The grid. Hinge's photo editor: your main photo takes a big square,
+ * Edit photos, as a grid. Hinge's photo editor: your main photo takes a big square,
  * the other five squares sit around it (profile photos are 1:1). Tap a tile to add or swap, the cross to
  * remove, the star to make it your main photo.
  */
-export function PhotosA(p: PhotosViewProps) {
+export function EditPhotosView(p: PhotosViewProps) {
   const insets = useSafeAreaInsets()
-  const [main, ...rest] = p.items
-
   return (
     <View style={[s.root, { paddingTop: insets.top }]}>
       <View style={s.bar}>
@@ -35,16 +49,7 @@ export function PhotosA(p: PhotosViewProps) {
       <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 24 }} showsVerticalScrollIndicator={false}>
         <Text style={s.lede}>Your first photo is the one people see first. Add at least {p.min}.</Text>
 
-        <View style={s.top}>
-          <Tile item={main} size={BIG} main p={p} />
-          <View style={{ gap: GAP }}>
-            <Tile item={rest[0]} size={SMALL} p={p} />
-            <Tile item={rest[1]} size={SMALL} p={p} />
-          </View>
-        </View>
-        <View style={[s.row, { marginTop: GAP }]}>
-          {rest.slice(2, 5).map(it => <Tile key={it.id} item={it} size={SMALL} p={p} />)}
-        </View>
+        <PhotoGrid items={p.items} onSlot={p.onSlot} onRemove={p.onRemove} onMakeMain={p.onMakeMain} />
 
         <View style={s.tips}>
           <Text style={s.tipsTitle}>What works</Text>
@@ -61,7 +66,32 @@ export function PhotosA(p: PhotosViewProps) {
   )
 }
 
-function Tile({ item, size, main, p }: { item: PhotoItem | undefined; size: number; main?: boolean; p: PhotosViewProps }) {
+type GridHandlers = { onSlot: (id: string) => void; onRemove: (id: string) => void; onMakeMain: (id: string) => void }
+
+/**
+ * The six photo squares: the main one big, five around it. Tap to add or
+ * swap, the cross to remove, the star to make it the main photo. Used by
+ * Edit photos and the onboarding photos step. Lay it out 20px from the edges.
+ */
+export function PhotoGrid({ items, ...p }: GridHandlers & { items: GridPhoto[] }) {
+  const [main, ...rest] = items
+  return (
+    <View>
+      <View style={s.top}>
+        <Tile item={main} size={BIG} main p={p} />
+        <View style={{ gap: GAP }}>
+          <Tile item={rest[0]} size={SMALL} p={p} />
+          <Tile item={rest[1]} size={SMALL} p={p} />
+        </View>
+      </View>
+      <View style={[s.row, { marginTop: GAP }]}>
+        {rest.slice(2, 5).map(it => <Tile key={it.id} item={it} size={SMALL} p={p} />)}
+      </View>
+    </View>
+  )
+}
+
+function Tile({ item, size, main, p }: { item: GridPhoto | undefined; size: number; main?: boolean; p: GridHandlers }) {
   if (!item) return null
   const filled = !!item.uri
   return (

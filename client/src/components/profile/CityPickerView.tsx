@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { Dimensions, FlatList, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
 import { Image } from 'expo-image'
 import { LinearGradient } from 'expo-linear-gradient'
@@ -7,31 +8,57 @@ import { Check, LocateFixed, Search, X } from 'lucide-react-native'
 import { CITY_PHOTOS, Colors, FontFamily, withOpacity } from '@/constants'
 import { PrimaryButton } from '@/components/ui'
 import { hSelection, hTap } from '@/lib/haptics'
-import type { CityOption, CityViewProps } from './types'
 
 const W = Dimensions.get('window').width
 const BANNER_H = Math.round((W - 32) * 0.36)
 
+export interface CityOption { name: string; state: string }
+
+export interface CityViewProps {
+  cities: CityOption[]
+  query: string
+  onQuery: (q: string) => void
+  selected: string | null
+  onSelect: (name: string) => void
+  detecting: boolean
+  onDetect: () => void
+  saving?: boolean
+  onSave?: () => void
+  /** Shows the close button when given. */
+  onBack?: () => void
+  title?: string
+  subtitle?: string
+  /** Replaces the default save button, e.g. onboarding's Back / Continue. */
+  footer?: ReactNode
+  /** Shown when the list is empty (loading failed, no match). */
+  empty?: ReactNode
+  /** Sit on the screen behind it (onboarding's background) with no own inset. */
+  embedded?: boolean
+}
+
 /**
- * B · Postcards. Every city with a photo is a wide postcard banner you
+ * Pick your city, as postcards. Every city with a photo is a wide postcard banner you
  * scroll through, the selected one marked; cities without a photo follow as
  * a compact list. Search sits fixed at the top like a travel app.
  */
-export function CityB(p: CityViewProps) {
+export function CityPickerView(p: CityViewProps) {
   const insets = useSafeAreaInsets()
   const withPhoto = p.cities.filter(c => CITY_PHOTOS[c.name])
   const rest = p.cities.filter(c => !CITY_PHOTOS[c.name])
   const data: (CityOption & { photo: boolean })[] = [...withPhoto.map(c => ({ ...c, photo: true })), ...rest.map(c => ({ ...c, photo: false }))]
 
   return (
-    <View style={[s.root, { paddingTop: insets.top }]}>
+    <View style={[s.root, p.embedded ? s.embedded : { paddingTop: insets.top }]}>
       <View style={s.head}>
         <View style={s.headRow}>
-          <Text style={s.title}>Where are you?</Text>
-          <Pressable style={s.close} onPress={p.onBack} hitSlop={8}>
-            <X size={18} color={Colors.inkPrimary} strokeWidth={2} />
-          </Pressable>
+          <Text style={s.title}>{p.title ?? 'Where are you?'}</Text>
+          {p.onBack ? (
+            <Pressable style={s.close} onPress={p.onBack} hitSlop={8}>
+              <X size={18} color={Colors.inkPrimary} strokeWidth={2} />
+            </Pressable>
+          ) : null}
         </View>
+        {p.subtitle ? <Text style={s.subtitle}>{p.subtitle}</Text> : null}
         <View style={s.search}>
           <Search size={16} color={Colors.inkDisabled} strokeWidth={2} />
           <TextInput style={s.input} value={p.query} onChangeText={p.onQuery} placeholder="Search a city" placeholderTextColor={Colors.inkDisabled} />
@@ -49,6 +76,7 @@ export function CityB(p: CityViewProps) {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 24, paddingTop: 4 }}
+          ListEmptyComponent={p.empty ? <>{p.empty}</> : null}
           renderItem={({ item, index }) => {
             const on = p.selected === item.name
             if (item.photo) {
@@ -77,9 +105,11 @@ export function CityB(p: CityViewProps) {
             )
           }}
         />
-        <View style={[s.footer, { paddingBottom: insets.bottom + 12 }]}>
-          <PrimaryButton label={p.selected ? `Set ${p.selected}` : 'Pick a city'} onPress={p.onSave} disabled={!p.selected} loading={p.saving} />
-        </View>
+        {p.footer ?? (
+          <View style={[s.footer, { paddingBottom: insets.bottom + 12 }]}>
+            <PrimaryButton label={p.selected ? `Set ${p.selected}` : 'Pick a city'} onPress={() => p.onSave?.()} disabled={!p.selected} loading={p.saving} />
+          </View>
+        )}
       </KeyboardAvoidingView>
     </View>
   )
@@ -87,6 +117,8 @@ export function CityB(p: CityViewProps) {
 
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: Colors.background },
+  embedded: { backgroundColor: 'transparent' },
+  subtitle: { fontFamily: FontFamily.bodyRegular, fontSize: 14, color: Colors.inkSecondary, marginTop: -8 },
   head: { paddingHorizontal: 16, paddingTop: 10, paddingBottom: 12, gap: 14 },
   headRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   title: { fontFamily: FontFamily.displayExtraBold, fontSize: 30, letterSpacing: -0.7, color: Colors.inkPrimary },

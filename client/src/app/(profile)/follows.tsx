@@ -13,7 +13,6 @@ import { FollowsSheets } from '@/components/profile/FollowsSheets'
 import ApiService from '@/api/apiService'
 import type { FollowUser } from '@/api/apiService'
 import { usePillStore } from '@/store/pillStore'
-import { LabSwitch } from '@/components/lab/LabSwitch'
 
 type SortKey = 'default' | 'az' | 'za' | 'earliest'
 const SORT_OPTIONS: SortOption<SortKey>[] = [
@@ -178,7 +177,6 @@ export default function FollowsScreen() {
         }}
         onCloseConfirmSheet={() => setConfirmTarget(null)}
       />
-      <LabSwitch screen="follows" top={4} />
     </View>
   )
 }

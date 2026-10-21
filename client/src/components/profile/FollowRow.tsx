@@ -5,14 +5,35 @@ import { router } from 'expo-router'
 import { MoreHorizontal } from 'lucide-react-native'
 import { Colors, FontFamily, withOpacity } from '@/constants'
 import { hTap } from '@/lib/haptics'
-import { followAction, type FollowItemProps } from './types'
+import type { FollowUser } from '@/api/apiService'
+
+export interface FollowItemProps {
+  user: FollowUser
+  type: 'followers' | 'following'
+  isMyProfile: boolean
+  onFollow: (id: string) => void
+  onUnfollow: (id: string) => void
+  onRemove: (id: string) => void
+  onDots: (user: FollowUser) => void
+}
+
+/** What the button on a person does, by list and whose list it is. */
+export function followAction(p: FollowItemProps): { label: string; filled: boolean; run: () => void } | null {
+  const u = p.user
+  if (u.is_me) return null
+  if (p.isMyProfile && p.type === 'followers') return { label: 'Remove', filled: false, run: () => p.onRemove(u.id) }
+  if (p.isMyProfile && p.type === 'following') return { label: 'Following', filled: false, run: () => p.onUnfollow(u.id) }
+  return u.is_following
+    ? { label: 'Following', filled: false, run: () => p.onUnfollow(u.id) }
+    : { label: u.follows_back ? 'Follow back' : 'Follow', filled: true, run: () => p.onFollow(u.id) }
+}
 
 /**
- * A · The clean row. Instagram's followers list: face, name, handle and
+ * A person in a followers or following list, Instagram style. Instagram's followers list: face, name, handle and
  * city, a quiet "Follows you" note, and one button that says exactly what
  * it does. Everything else hides behind the three dots.
  */
-export const FollowRowA = memo(function FollowRowA(p: FollowItemProps) {
+export const FollowRow = memo(function FollowRow(p: FollowItemProps) {
   const u = p.user
   const act = followAction(p)
   return (

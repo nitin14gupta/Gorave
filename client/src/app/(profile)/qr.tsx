@@ -5,16 +5,15 @@ import { buildProfileShareUrl } from '@/lib/deepLink'
 import { Colors } from '@/constants'
 import { useQrShare } from '@/hooks/useQrShare'
 import { ShareToChatSheet } from '@/components/ui'
-import { LabSwitch } from '@/components/lab/LabSwitch'
-import { useLabVariant } from '@/store/labStore'
-import { MyQrA } from '@/components/lab/qr/MyQrA'
-import { MyQrB } from '@/components/lab/qr/MyQrB'
+import { MyQrView } from '@/components/profile/MyQrView'
+import { useProfile } from '@/hooks/useProfile'
 
 export default function ProfileQrScreen() {
   const { userId, username, name, avatar, city, interests } = useLocalSearchParams<{
     userId: string; username?: string; name?: string; avatar?: string; city?: string; interests?: string
   }>()
-  const Layout = useLabVariant('my-qr') === 'b' ? MyQrB : MyQrA
+  const { profile } = useProfile(userId)
+  const photos = profile?.photos?.map(p => p.url).filter(Boolean) ?? (avatar ? [avatar] : [])
   const [chatShareOpen, setChatShareOpen] = useState(false)
 
   const shareUrl = buildProfileShareUrl(userId, username)
@@ -23,19 +22,18 @@ export default function ProfileQrScreen() {
 
   return (
     <View style={s.root}>
-      <Layout
+      <MyQrView
         cardRef={cardRef}
         shareUrl={shareUrl}
         name={name || handle}
         handle={username ? `@${username}` : ''}
-        avatar={avatar || null}
+        photos={photos}
         city={city || null}
         onShare={handleShare}
         onSave={handleSave}
         onChat={() => setChatShareOpen(true)}
         onClose={() => router.back()}
       />
-      <LabSwitch screen="my-qr" />
 
       <ShareToChatSheet
         visible={chatShareOpen}

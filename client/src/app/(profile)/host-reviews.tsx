@@ -9,10 +9,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { ArrowLeft, Star } from 'lucide-react-native'
-import { LabSwitch } from '@/components/lab/LabSwitch'
-import { useLabVariant } from '@/store/labStore'
-import { HostReviewsA } from '@/components/lab/hostReviews/HostReviewsA'
-import { HostReviewsB } from '@/components/lab/hostReviews/HostReviewsB'
+import { HostReviewsView } from '@/components/reviews/HostReviewsView'
 import { Colors, FontFamily, Spacing } from '@/constants'
 import { AppHeader, APP_HEADER_BAR_HEIGHT, HeaderIconBtn, BrandedLoader } from '@/components/ui'
 import { useHeaderScroll } from '@/hooks/useHeaderScroll'
@@ -42,7 +39,6 @@ export default function HostReviewsScreen() {
   const [activeRating, setActiveRating] = useState<number | null>(null)
   const [reviews, setReviews] = useState<HostReviewItem[]>([])
   const [hasMore, setHasMore] = useState(true)
-  const Layout = useLabVariant('host-reviews') === 'b' ? HostReviewsB : HostReviewsA
   const [profile, setProfile] = useState<ExtendedProfile | null>(null)
   useEffect(() => { if (id) ApiService.getUserProfile(id).then(setProfile).catch(() => {}) }, [id])
 
@@ -80,7 +76,7 @@ export default function HostReviewsScreen() {
   if (!(loading && reviews.length === 0) && !(count === 0 && !activeEventId && !activeRating)) {
     return (
       <View style={s.root}>
-        <Layout
+        <HostReviewsView
           name={(name ? decodeURIComponent(name) : '') || profile?.name || 'Host'}
           photo={profile?.photos?.[0]?.url ?? null}
           avg={avgRating}
@@ -98,7 +94,6 @@ export default function HostReviewsScreen() {
           loadingMore={loadingMore}
           onBack={() => router.back()}
         />
-        <LabSwitch screen="host-reviews" />
       </View>
     )
   }

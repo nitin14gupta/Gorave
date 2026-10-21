@@ -42,10 +42,10 @@ Routes live in `client/src/app/` (Expo Router). `(group)` folders don't show in 
 |---|---|---|---|---|
 | 5 | Age check | `(onboarding)/index` | Confirm you're 18+ | ⬜ |
 | 6 | About you | `(onboarding)/profile` | Name, date of birth, gender (set once) | ⬜ |
-| 7 | Photos | `(onboarding)/photos` | Add profile photos | ⬜ |
+| 7 | Photos | `(onboarding)/photos` | The same photo grid as Edit photos: main square big, five around it, star to make main | ✅ |
 | 8 | Voice intro | `(onboarding)/voice` | Tap the orb, record up to 30s, play back, retake or skip | ✅ |
 | 9 | Interests | `(onboarding)/interests` | Pick what you're into | ⬜ |
-| 10 | City | `(onboarding)/location` | Choose your city | ⬜ |
+| 10 | City | `(onboarding)/location` | The same postcard city picker as Change city | ✅ |
 | 11 | All set | `(onboarding)/complete` | Finish and enter the app | ⬜ |
 
 ### 3. Main tabs
@@ -99,12 +99,12 @@ Routes live in `client/src/app/` (Expo Router). `(group)` folders don't show in 
 | 36 | Someone's profile | `(profile)/[id]` | Photos, voice intro, interests, hosted events, send a vibe, follow | ⬜ |
 | 37 | Edit profile | `(profile)/edit` | Name, bio, interests, badges, voice intro card | ✅ voice |
 | 38 | Record new intro | `(profile)/voice` | Same orb recorder as onboarding, saves and goes back | ✅ |
-| 39 | Edit photos | `(profile)/edit-photos` | Square photos (profile photos are 1:1). **A** Hinge grid: big main square, five smaller, star to make main, cross to remove · **B** your profile card as others see it, a numbered strip in order, Make main / Swap / Remove | 🧪 |
-| 40 | Change city | `(profile)/location` | **A** photo cards for the 8 main cities (the website's city photos), then the rest as a list · **B** wide postcard banners per city, search with Near me, others as a list | 🧪 |
-| 41 | Followers / following | `(profile)/follows` | **A** clean Instagram rows with a Follows you tag and one clear button · **B** square photo cards two a row with the button under | 🧪 |
-| 42 | Host reviews | `(profile)/host-reviews` | **A** host photo with parallax and the score huge, bars, event and star chips, each review says which night · **B** compact host card, reviews grouped under each event with its own score | 🧪 |
-| 43 | My QR | `(profile)/qr` | **A** a maroon profile pass with a cream QR, like the ticket · **B** your photo full-screen with a white QR card and your face on its edge | 🧪 |
-| 44 | Search people | `(profile)/search` | **A** Instagram search: recent people as a row of faces, suggestions and results as rows · **B** Find people: recent as pills, suggestions as square photo cards | 🧪 |
+| 39 | Edit photos | `(profile)/edit-photos` | Hinge-style grid of squares (profile photos are 1:1): the main one big, five around it, star to make main, cross to remove. Onboarding's photo step uses the same grid | ✅ |
+| 40 | Change city | `(profile)/location` | Wide postcard banners for the cities with photos, search with Near me, the rest as a list. Onboarding's city step uses the same view | ✅ |
+| 41 | Followers / following | `(profile)/follows` | Clean Instagram rows: face, name, handle and city, a Follows you tag, one clear button, more behind the dots | ✅ |
+| 42 | Host reviews | `(profile)/host-reviews` | Host photo with parallax and the score huge, 5-to-1 bars, event and star chips, each review says which night it was for | ✅ |
+| 43 | My QR | `(profile)/qr` | Pick a style like Instagram: the maroon pass, or any of your photos behind a white card with your face on its edge. Save and Share send what's showing | ✅ |
+| 44 | Search people | `(profile)/search` | Instagram search: recent people as a row of faces, suggestions and results as rows | ✅ |
 
 ### 8. Chat
 

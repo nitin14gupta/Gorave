@@ -7,10 +7,7 @@ import { Colors } from '@/constants'
 import ApiService from '@/api/apiService'
 import type { DiscoverUser } from '@/api/apiService'
 import { useSearchHistoryStore } from '@/store/searchHistoryStore'
-import { LabSwitch } from '@/components/lab/LabSwitch'
-import { useLabVariant } from '@/store/labStore'
-import { SearchA } from '@/components/lab/search/SearchA'
-import { SearchB } from '@/components/lab/search/SearchB'
+import { SearchPeopleView } from '@/components/profile/SearchPeopleView'
 
 export default function SearchScreen() {
   const [query, setQuery] = useState('')
@@ -18,7 +15,6 @@ export default function SearchScreen() {
   const [loading, setLoading] = useState(false)
   const [searched, setSearched] = useState(false)
   const [searchError, setSearchError] = useState(false)
-  const Layout = useLabVariant('search') === 'b' ? SearchB : SearchA
   const [suggested, setSuggested] = useState<DiscoverUser[]>([])
   const [suggestedLoading, setSuggestedLoading] = useState(true)
 
@@ -91,7 +87,7 @@ export default function SearchScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: Colors.background }}>
-      <Layout
+      <SearchPeopleView
         query={query}
         onQuery={setQuery}
         onSubmit={() => runSearch(query)}
@@ -108,7 +104,6 @@ export default function SearchScreen() {
         onClearRecent={() => { hTap(); clear() }}
         onBack={() => router.back()}
       />
-      <LabSwitch screen="search" top={60} />
     </View>
   )
 }
