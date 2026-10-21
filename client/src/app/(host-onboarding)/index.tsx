@@ -1,15 +1,10 @@
 import { useEffect, useState } from 'react'
-import { View, Text, StyleSheet, Platform, ScrollView, Keyboard } from 'react-native'
-import { KeyboardAvoidingView } from 'react-native-keyboard-controller'
+import { View, Text, StyleSheet, Platform, Keyboard } from 'react-native'
 import { router } from 'expo-router'
-import Animated, { FadeInDown } from 'react-native-reanimated'
 import { hTap, hSuccess } from '@/lib/haptics'
-import { OutlineButton, PrimaryButton, Screen, BrandedLoader, StepDots } from '@/components/ui'
+import { Screen, BrandedLoader } from '@/components/ui'
 import { CacheKeys, Colors, FontFamily, Spacing } from '@/constants'
 import {
-  WelcomeStep,
-  BadgesStep,
-  WhatToExpectStep,
   HostAgreementStep,
   PayoutStep,
   DuplicatePayoutSheet,
@@ -20,13 +15,14 @@ import { useSignatureCaptureStore } from '@/store/signatureCaptureStore'
 import { setCached } from '@/lib/queryCache'
 import { useVpaValidation } from '@/hooks/useVpaValidation'
 import { useIfscLookup } from '@/hooks/useIfscLookup'
+import { HostWizardView } from '@/components/host-onboarding/HostWizardView'
 
 const TOTAL_STEPS = 5
 const AGREEMENT_STEP = 4
 const FINISHING_DELAY_MS = 900
 const ACCOUNT_NUMBER_REGEX = /^\d{9,18}$/
 
-const STEP_CTA = ['Get started', 'Continue', "Understood, let's go", 'Sign & Continue', 'Save & Finish']
+const STEP_CTA = ['Get started', 'Continue', 'Continue', 'Sign and continue', 'Save and finish']
 
 export default function HostOnboardingScreen() {
   const showPill = usePillStore(s => s.show)
@@ -164,98 +160,59 @@ export default function HostOnboardingScreen() {
     return (
       <Screen style={styles.finishingRoot}>
         <BrandedLoader size={48} />
-        <Text style={styles.finishingTitle}>You're all set!</Text>
-        <Text style={styles.finishingSub}>Setting up your host account…</Text>
+        <Text style={styles.finishingTitle}>You&apos;re a host now</Text>
+        <Text style={styles.finishingSub}>Taking you to create your first event…</Text>
       </Screen>
     )
   }
 
   const isPayoutStep = step === TOTAL_STEPS
   const isAgreementStep = step === AGREEMENT_STEP
-  // Both need real scroll room (long text / a signature canvas) instead of
-  // the earlier steps' vertically-centered single screen.
-  const needsScroll = isAgreementStep || isPayoutStep
   const continueDisabled = (isPayoutStep && !canSubmit) || (isAgreementStep && !signatureUri)
 
-  const body = (
-    <Animated.View key={step} entering={FadeInDown.duration(350).springify()} style={styles.stepContent}>
-      {step === 1 && <WelcomeStep />}
-      {step === 2 && <BadgesStep />}
-      {step === 3 && <WhatToExpectStep />}
-      {step === AGREEMENT_STEP && (
-        <HostAgreementStep onSignatureChange={setSignatureUri} />
-      )}
-      {step === 5 && (
-        <PayoutStep
-          activeTab={activeTab}
-          onTabChange={tab => setActiveTab(tab as 'UPI' | 'Bank Account')}
-          upiId={upiId}
-          onUpiIdChange={setUpiId}
-          checking={checking}
-          vpaResult={vpaResult}
-          vpaError={vpaError}
-          holderName={holderName}
-          onHolderNameChange={setHolderName}
-          accountNumber={accountNumber}
-          onAccountNumberChange={setAccountNumber}
-          confirmAccountNumber={confirmAccountNumber}
-          onConfirmAccountNumberChange={setConfirmAccountNumber}
-          ifscCode={ifscCode}
-          onIfscCodeChange={setIfscCode}
-          bankLookupLoading={bankLookupLoading}
-          bankInfo={bankInfo}
-          ifscError={ifscError}
-          accountNumberMismatch={accountNumberMismatch}
-        />
-      )}
-    </Animated.View>
-  )
-
   return (
-    <Screen>
-      {needsScroll ? (
-        <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-          <ScrollView
-            contentContainerStyle={styles.scrollContent}
-            keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator={false}
-          >
-            {body}
-          </ScrollView>
-
-          {!keyboardVisible && <StepDots step={step} total={TOTAL_STEPS} />}
-          <View style={styles.footer}>
-            <OutlineButton label="Back" onPress={handleBack} style={styles.backBtn} disabled={saving || agreementSaving} />
-            <View style={styles.nextBtn}>
-              <PrimaryButton
-                label={STEP_CTA[step - 1]}
-                onPress={handleContinue}
-                loading={isPayoutStep ? saving : agreementSaving}
-                disabled={continueDisabled}
-              />
-            </View>
-          </View>
-        </KeyboardAvoidingView>
-      ) : (
-        <>
-          <View style={styles.body}>{body}</View>
-
-          <StepDots step={step} total={TOTAL_STEPS} />
-          <View style={styles.footer}>
-            <OutlineButton label="Back" onPress={handleBack} style={styles.backBtn} />
-            <View style={styles.nextBtn}>
-              <PrimaryButton label={STEP_CTA[step - 1]} onPress={handleContinue} />
-            </View>
-          </View>
-        </>
-      )}
+    <View style={styles.flex}>
+      <HostWizardView
+        step={step}
+        total={TOTAL_STEPS}
+        cta={STEP_CTA[step - 1]}
+        ctaDisabled={continueDisabled}
+        ctaLoading={isPayoutStep ? saving : isAgreementStep ? agreementSaving : false}
+        onBack={handleBack}
+        onContinue={handleContinue}
+        keyboardVisible={keyboardVisible}
+        agreement={<HostAgreementStep onSignatureChange={setSignatureUri} />}
+        payout={
+          <PayoutStep
+            activeTab={activeTab}
+            onTabChange={tab => setActiveTab(tab as 'UPI' | 'Bank Account')}
+            upiId={upiId}
+            onUpiIdChange={setUpiId}
+            checking={checking}
+            vpaResult={vpaResult}
+            vpaError={vpaError}
+            holderName={holderName}
+            onHolderNameChange={setHolderName}
+            accountNumber={accountNumber}
+            onAccountNumberChange={setAccountNumber}
+            confirmAccountNumber={confirmAccountNumber}
+            onConfirmAccountNumberChange={setConfirmAccountNumber}
+            ifscCode={ifscCode}
+            onIfscCodeChange={setIfscCode}
+            bankLookupLoading={bankLookupLoading}
+            bankInfo={bankInfo}
+            ifscError={ifscError}
+            accountNumberMismatch={accountNumberMismatch}
+          />
+        }
+      />
 
       <DuplicatePayoutSheet
         visible={duplicateError !== null}
         message={duplicateError ?? ''}
         onClose={() => setDuplicateError(null)}
       />
-    </Screen>
+    </View>
   )
 }
 

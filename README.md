@@ -1,5 +1,4 @@
 # Gorave
-
 Gorave is a social events app for India. People find house parties, rooftop
 nights, game nights, dinners and music nights in their city, then request or
 book a spot. Hosts create an event in a few steps, choose who gets in and run

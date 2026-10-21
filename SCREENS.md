@@ -81,16 +81,16 @@ Routes live in `client/src/app/` (Expo Router). `(group)` folders don't show in 
 | 28 | Event is live | `(events)/published` | Your invite card, copy link, share to WhatsApp, Gorave chat or more | ✅ |
 | 29 | Edit event | `(events)/[id]/edit` | Opened from the ⋯ on your own event. A listing editor: the cover with parallax, one row per part (Basics, When and who, Where, Price, Photos) showing what's set, each opening on its own page, save bar that says when there are unsaved changes | ✅ |
 | 30 | Join requests | `(events)/[id]/requests` | A guest list: folding large title, the room drawn seat by seat in the crowd-mix colours, filters (All, Women, Men, Been before), rows you swipe right to let in or left to decline, "Let in all who fit" | ✅ |
-| 31 | Guest list | `(events)/[id]/attendees` | Who's going, gender counts, manage | ⬜ |
-| 32 | Check-in scanner | `(events)/[id]/scanner` | Scan guests' QR tickets at the door | ⬜ |
+| 31 | Guest list | `(events)/[id]/attendees` | The door list: event photo with parallax, in / to come / waiting counts with an arrival bar and the crowd mix, filters, everyone still to come first then everyone in with their time, the waitlist, and the scanner button | ✅ |
+| 32 | Check-in scanner | `(events)/[id]/scanner` | Full-screen camera with a rounded scan window cut into the shade, live in-count, torch button (turns off when you leave), a big result card with the guest's photo (green in, yellow already in, red not valid), guest list slides up for checking in by hand | ✅ |
 
 ### 6. Host onboarding
 
 | # | Screen | Route | What it does | UI pass |
 |---|---|---|---|---|
-| 33 | Become a host | `(host-onboarding)/index` | Steps to start hosting, ends on "You're all set" | ⬜ |
-| 34 | Host agreement | `(host-onboarding)/agreement` | Read and accept the host agreement | ⬜ |
-| 35 | Signature | `(host-onboarding)/signature-sheet` | Sign with your finger | ⬜ |
+| 33 | Become a host | `(host-onboarding)/index` | Story segments across the top; welcome, how it works and badges each open on one of the website's own party photos (`client/assets/images/host/`), then the agreement and payouts | ✅ |
+| 34 | Host agreement | `(host-onboarding)/agreement` | Clause cards you tick as you read, a progress bar, Sign unlocks at 5 of 5, then your signature with your name. Same view is step 4 of onboarding | ✅ |
+| 35 | Signature | `(host-onboarding)/signature-sheet` | White ink on the dark pad above a signature line with your name, Undo, Clear, Use this signature. Only the ink is saved | ✅ |
 
 ### 7. People and profiles
 

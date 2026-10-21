@@ -24,7 +24,7 @@ function renderBackdrop(props: BottomSheetBackdropProps) {
   return <BottomSheetBackdrop {...props} disappearsOnIndex={-1} appearsOnIndex={0} pressBehavior="close" opacity={0.55} />
 }
 
-// Pill toggle instead of a checkbox row — matches AttendeeFilterPills'
+// Pill toggle instead of a checkbox row — matches the app's filter pills'
 // language elsewhere in the app. Neutral (white-on-dark) when active, not
 // brand-colored — orange stays reserved for the single Apply CTA below.
 function TogglePill({ Icon, label, active, onPress }: {

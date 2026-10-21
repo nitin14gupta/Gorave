@@ -1,20 +1,17 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
-import { Linking, Pressable, StyleSheet, Text, View } from 'react-native'
+import { Linking, StyleSheet, View } from 'react-native'
 import { useCameraPermissions } from 'expo-camera'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useLocalSearchParams, useRouter } from 'expo-router'
-import { ArrowLeft, CheckCircle } from 'lucide-react-native'
-import { hTap } from '@/lib/haptics'
-import { Colors, FontFamily, withOpacity } from '@/constants'
-import ApiService, { type EventAttendee } from '@/api/apiService'
+import { Colors } from '@/constants'
+import ApiService, { type EventAttendee, type EventDetail } from '@/api/apiService'
 import { usePillStore } from '@/store/pillStore'
-import { ScannerCameraView, type ScanResult } from '@/components/events/ScannerCameraView'
-import { AttendeeCheckinList } from '@/components/events/AttendeeCheckinList'
+import { ScannerView, type ScanResult } from '@/components/events/ScannerView'
 
 export default function ScannerScreen() {
   const { id } = useLocalSearchParams<{ id: string }>()
-  const insets = useSafeAreaInsets()
   const router = useRouter()
+  const [event, setEvent] = useState<EventDetail | null>(null)
+  const [resultGuest, setResultGuest] = useState<EventAttendee | null>(null)
 
   const [permission, requestPermission] = useCameraPermissions()
   const [attendees, setAttendees] = useState<EventAttendee[]>([])
@@ -42,6 +39,7 @@ export default function ScannerScreen() {
   }, [id])
 
   useEffect(() => { loadAttendees() }, [loadAttendees])
+  useEffect(() => { if (id) ApiService.getEvent(id).then(setEvent).catch(() => {}) }, [id])
 
   const handleRefresh = useCallback(async () => {
     if (!id) return
@@ -65,6 +63,7 @@ export default function ScannerScreen() {
     if (!data || scanCooldown.current || scanning) return
     scanCooldown.current = true
     setScanning(true)
+    setResultGuest(attendees.find(a => a.ticket_token === data) ?? null)
     try {
       const res = await ApiService.checkinAttendee(id!, data, 'qr_scan')
       showResult(res)
@@ -87,7 +86,7 @@ export default function ScannerScreen() {
       setScanning(false)
       setTimeout(() => { scanCooldown.current = false }, 3000)
     }
-  }, [id, scanning])
+  }, [id, scanning, attendees])
 
   const handleManualCheckin = async (attendee: EventAttendee) => {
     if (checkingIn || !attendee.ticket_token) return
@@ -100,7 +99,7 @@ export default function ScannerScreen() {
         setAttendees(prev => prev.map(a =>
           a.id === attendee.id ? { ...a, checked_in_at: new Date().toISOString() } : a
         ))
-        showPill(`Manually checked in ${res.name} — this is logged`, 'default')
+        showPill(`Checked in ${res.name} by hand. This is logged.`, 'default')
       }
     } catch (e: any) {
       showPill(e?.message || "Check-in didn't work, try again", 'error')
@@ -121,48 +120,27 @@ export default function ScannerScreen() {
   const checkedInCount = attendees.filter(a => !!a.checked_in_at).length
 
   return (
-    <View style={[s.root, { paddingTop: insets.top }]}>
-      <View style={s.header}>
-        <Pressable style={s.headerBtn} onPress={() => router.back()}>
-          <ArrowLeft size={20} color={Colors.inkPrimary} />
-        </Pressable>
-        <Text style={s.headerTitle}>Check-in Scanner</Text>
-        <View style={s.checkedBadge}>
-          <CheckCircle size={14} color={Colors.accentGreen} />
-          <Text style={s.checkedBadgeText}>{checkedInCount}</Text>
-        </View>
-      </View>
-
-      <View style={s.cameraSection}>
-        {permission?.granted === false && permission?.canAskAgain === false ? (
-          <View style={[s.camera, s.noPermission]}>
-            <Text style={s.noPermText}>
-              Camera access is off. Enable it in Settings to scan tickets.
-            </Text>
-            <Pressable style={s.settingsLink} onPress={() => { hTap(); Linking.openSettings() }}>
-              <Text style={s.settingsLinkText}>Open Settings</Text>
-            </Pressable>
-          </View>
-        ) : (
-          <ScannerCameraView
-            granted={!!permission?.granted}
-            onRequestPermission={requestPermission}
-            onBarcodeScanned={handleBarcodeScanned}
-            scanning={scanning}
-            scanResult={scanResult}
-          />
-        )}
-      </View>
-
-      <AttendeeCheckinList
-        query={query}
-        onQueryChange={setQuery}
-        loading={loadingAttendees}
+    <View style={s.root}>
+      <ScannerView
+        eventTitle={event?.title ?? ''}
+        granted={!!permission?.granted}
+        blocked={permission?.granted === false && permission?.canAskAgain === false}
+        onRequestPermission={requestPermission}
+        onOpenSettings={() => Linking.openSettings()}
+        onBarcodeScanned={handleBarcodeScanned}
+        scanning={scanning}
+        result={scanResult}
+        resultGuest={resultGuest}
         attendees={filtered}
-        refreshing={refreshing}
-        onRefresh={handleRefresh}
+        loading={loadingAttendees}
+        query={query}
+        onQuery={setQuery}
         checkingIn={checkingIn}
         onCheckin={handleManualCheckin}
+        refreshing={refreshing}
+        onRefresh={handleRefresh}
+        checkedIn={checkedInCount}
+        onBack={() => router.back()}
       />
     </View>
   )
@@ -170,20 +148,4 @@ export default function ScannerScreen() {
 
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: Colors.background },
-  header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 16, paddingVertical: 12,
-    borderBottomWidth: 1, borderBottomColor: Colors.divider,
-  },
-  headerBtn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
-  headerTitle: { fontFamily: FontFamily.headingBold, fontSize: 17, color: Colors.inkPrimary },
-  checkedBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: withOpacity(Colors.accentGreen, 0.12), borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4 },
-  checkedBadgeText: { fontFamily: FontFamily.bodyMedium, fontSize: 13, color: Colors.accentGreen },
-
-  cameraSection: { height: 260 },
-  camera: { flex: 1 },
-  noPermission: { alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.elevated, gap: 12 },
-  noPermText: { fontFamily: FontFamily.bodyRegular, fontSize: 14, color: Colors.inkSecondary, textAlign: 'center', paddingHorizontal: 32 },
-  settingsLink: { paddingHorizontal: 20, paddingVertical: 10, borderRadius: 20, backgroundColor: Colors.surfaceMuted },
-  settingsLinkText: { fontFamily: FontFamily.bodySemiBold, fontSize: 14, color: Colors.inkPrimary },
 })

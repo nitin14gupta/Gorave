@@ -62,7 +62,7 @@ export default function HostAgreementCatchUpScreen() {
       </KeyboardAvoidingWrapper>
 
       <View style={s.footer}>
-        <PrimaryButton label="Sign & Continue" onPress={handleContinue} disabled={!signatureUri} loading={saving} />
+        <PrimaryButton label="Sign and continue" onPress={handleContinue} disabled={!signatureUri} loading={saving} />
       </View>
     </View>
   )

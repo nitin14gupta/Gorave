@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import ApiService, { type EventAttendee, type EventDetail } from '@/api/apiService'
-import { parseAttendeeDate } from '@/components/events/AttendeeRow'
+import { parseServerDate } from '@/lib/dates'
 import { genderBucket } from '@/lib/crowdMix'
 
 export type ScannerStatus = 'open' | 'not_yet' | 'ended'
@@ -34,9 +34,9 @@ export function useAttendees(id: string | undefined) {
   const scannerStatus = useMemo((): ScannerStatus => {
     if (!event) return 'not_yet'
     const now = Date.now()
-    const start = parseAttendeeDate(event.date_time).getTime()
+    const start = (parseServerDate(event.date_time)?.getTime() ?? 0)
     const end = event.end_time
-      ? parseAttendeeDate(event.end_time).getTime()
+      ? (parseServerDate(event.end_time)?.getTime() ?? 0)
       : start + 6 * 60 * 60 * 1000
     const openAt = start - 3 * 60 * 60 * 1000
     if (now > end) return 'ended'

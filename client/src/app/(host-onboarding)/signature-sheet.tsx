@@ -1,200 +1,112 @@
 import { View, Text, StyleSheet, Pressable } from 'react-native'
-import React, { useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import DrawPad, { DrawPadHandle } from 'expo-drawpad'
 import { captureRef } from 'react-native-view-shot'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { StackedButton } from '@/components/stacked-button'
-import { RotateCw, Stamp, Undo } from 'lucide-react-native'
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
-} from 'react-native-reanimated'
+import { Eraser, Undo2 } from 'lucide-react-native'
+import { useSharedValue } from 'react-native-reanimated'
 import { router, Stack } from 'expo-router'
 import { hTap, hSuccess } from '@/lib/haptics'
 import { useSignatureCaptureStore } from '@/store/signatureCaptureStore'
+import { useProfile } from '@/hooks/useProfile'
 import { Colors, FontFamily, withOpacity } from '@/constants'
 
-const AnimatedPressable = Animated.createAnimatedComponent(Pressable)
-
-function ButtonCluster({ text, icon, color }: { text: string; icon?: React.ReactElement; color: string }) {
-  return (
-    <View style={styles.btnCluster}>
-      {icon}
-      <Text style={[styles.btnText, { color }]} numberOfLines={1}>
-        {text}
-      </Text>
-    </View>
-  )
-}
-
+/**
+ * Sign with your finger: white ink on the dark pad, above a signature line
+ * with your name. Only the ink is captured and uploaded.
+ */
 export default function HostAgreementSignatureSheet() {
-  const { top } = useSafeAreaInsets()
+  const { bottom } = useSafeAreaInsets()
   const setSignatureUri = useSignatureCaptureStore(s => s.setUri)
-  const currentIndex = useSharedValue(0)
+  const { profile } = useProfile()
   const padRef = useRef<DrawPadHandle>(null)
   const canvasRef = useRef<View>(null)
   const pathLength = useSharedValue(0)
   const [hasDrawn, setHasDrawn] = useState(false)
+  const [saving, setSaving] = useState(false)
 
-  const handleCancel = () => {
+  const ink = Colors.inkPrimary
+
+  const clear = () => { hTap(); padRef.current?.erase(); setHasDrawn(false) }
+  const undo = () => {
     hTap()
-    router.back()
+    padRef.current?.undo()
+    setTimeout(() => { if (pathLength.value === 0) setHasDrawn(false) }, 0)
   }
-
-  const handleReset = () => {
-    hTap()
-    padRef.current?.erase()
-    setHasDrawn(false)
-  }
-
-  const handleConfirm = async () => {
-    if (!hasDrawn || !canvasRef.current) {
-      currentIndex.value = 0
-      return
-    }
+  const confirm = async () => {
+    if (!hasDrawn || !canvasRef.current || saving) return
+    setSaving(true)
     try {
       const uri = await captureRef(canvasRef, { format: 'png', quality: 1, result: 'tmpfile' })
       hSuccess()
       setSignatureUri(uri)
       router.back()
     } catch {
-      currentIndex.value = 0
+      setSaving(false)
     }
   }
-
-  const handleUndo = () => {
-    if (currentIndex.value === 2) {
-      currentIndex.value = 0
-      return
-    }
-    if (padRef.current) {
-      padRef.current.undo()
-      setTimeout(() => {
-        if (pathLength.value === 0) {
-          currentIndex.value = 1
-          setHasDrawn(false)
-        }
-      }, 0)
-    }
-  }
-
-  const undoAnimatedStyle = useAnimatedStyle(() => ({
-    opacity: withSpring(pathLength.value > 0 ? 1 : 0.5),
-  }))
 
   return (
     <>
-      <Stack.Screen
-        options={{
-          headerLeft: () => (
-            <AnimatedPressable
-              onPress={handleUndo}
-              style={[styles.headerBtn, undoAnimatedStyle]}
-              hitSlop={8}
-            >
-              <Undo size={22} color={Colors.inkSecondary} strokeWidth={2} />
-            </AnimatedPressable>
-          ),
-        }}
-      />
-      <View style={[styles.container, { paddingTop: top }]}>
-        <View
-          style={{ flex: 1 }}
-          onTouchStart={() => {
-            if (currentIndex.get() === 2) {
-              currentIndex.value = 0
-            }
-          }}
-        >
-          {/* collapsable={false} — Android strips a plain View from the
-              native tree during capture without it, leaving a blank
-              screenshot (same note as useImageShare.ts). */}
-          <View ref={canvasRef} style={styles.canvas} collapsable={false}>
+      <Stack.Screen options={{ title: 'Sign here' }} />
+      <View style={[s.container, { paddingBottom: bottom + 16 }]}>
+        <View style={s.pad}>
+          <View pointerEvents="none" style={s.baseWrap}>
+            <Text style={[s.x, { color: ink }]}>×</Text>
+            <View style={[s.base, { backgroundColor: withOpacity(ink, 0.6) }]} />
+            <Text style={[s.name, { color: withOpacity(ink, 0.55) }]}>{profile?.name ?? ''}</Text>
+          </View>
+          {!hasDrawn ? (
+            <View pointerEvents="none" style={s.hintWrap}>
+              <Text style={[s.hint, { color: withOpacity(ink, 0.4) }]}>Sign above the line</Text>
+            </View>
+          ) : null}
+          {/* Only the ink is captured (transparent behind it), so the
+              agreement can lay it on its own paper and line.
+              collapsable={false}: Android strips a plain View from the
+              native tree during capture without it. */}
+          <View ref={canvasRef} collapsable={false} style={StyleSheet.absoluteFill}>
             <DrawPad
               ref={padRef}
-              stroke={Colors.inkPrimary}
-              strokeWidth={2.5}
+              stroke={ink}
+              strokeWidth={2.8}
               pathLength={pathLength}
-              onDrawStart={() => { currentIndex.set(0); setHasDrawn(true) }}
+              onDrawStart={() => setHasDrawn(true)}
             />
           </View>
         </View>
 
-        <View style={{ height: 50 }}>
-          <StackedButton.Provider
-            currentIndex={currentIndex}
-            itemStyles={styles.itemStyle}
-            gap={12}
-            initialIndex={1}
-          >
-            <StackedButton.Container>
-              <StackedButton.Item
-                style={styles.resetItem}
-                expandedElement={
-                  <ButtonCluster text="Cancel" color={Colors.background} />
-                }
-                expandedStyle={styles.confirmItem}
-                onPress={handleCancel}
-                handleConfirmation={handleReset}
-              >
-                <ButtonCluster
-                  text="Reset"
-                  icon={<RotateCw size={18.5} color={Colors.inkPrimary} strokeWidth={2} />}
-                  color={Colors.inkPrimary}
-                />
-              </StackedButton.Item>
-              <StackedButton.Item
-                style={styles.confirmItem}
-                expandedElement={
-                  <ButtonCluster
-                    text="Confirm Signature"
-                    icon={<Stamp size={18.5} color={Colors.background} strokeWidth={2} />}
-                    color={Colors.background}
-                  />
-                }
-                handleConfirmation={() => {}}
-                onPress={handleConfirm}
-              >
-                <ButtonCluster
-                  text="Confirm"
-                  icon={<Stamp size={18.5} color={Colors.background} strokeWidth={2} />}
-                  color={Colors.background}
-                />
-              </StackedButton.Item>
-            </StackedButton.Container>
-          </StackedButton.Provider>
+        <View style={s.tools}>
+          <Pressable style={[s.tool, !hasDrawn && { opacity: 0.4 }]} onPress={undo} disabled={!hasDrawn} hitSlop={6}>
+            <Undo2 size={17} color={Colors.inkPrimary} strokeWidth={2} />
+            <Text style={s.toolText}>Undo</Text>
+          </Pressable>
+          <Pressable style={[s.tool, !hasDrawn && { opacity: 0.4 }]} onPress={clear} disabled={!hasDrawn} hitSlop={6}>
+            <Eraser size={17} color={Colors.inkPrimary} strokeWidth={2} />
+            <Text style={s.toolText}>Clear</Text>
+          </Pressable>
+          <Pressable style={[s.use, !hasDrawn && { opacity: 0.35 }]} onPress={confirm} disabled={!hasDrawn || saving}>
+            <Text style={s.useText}>{saving ? 'Saving…' : 'Use this signature'}</Text>
+          </Pressable>
         </View>
       </View>
     </>
   )
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, padding: 26, gap: 12, backgroundColor: Colors.surface },
-  btnCluster: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  btnText: { fontSize: 15, fontFamily: FontFamily.bodySemiBold },
-  headerBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  canvas: {
-    flex: 1,
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    overflow: 'hidden',
-  },
-  itemStyle: {
-    borderRadius: 25,
-    borderCurve: 'continuous',
-    alignItems: 'center',
-    justifyContent: 'center',
-    height: 50,
-    paddingVertical: 16,
-  },
-  resetItem: { flex: 1, backgroundColor: withOpacity(Colors.white, 0.08), borderRadius: 25 },
-  confirmItem: { flex: 1, backgroundColor: Colors.inkPrimary, borderRadius: 25 },
+const s = StyleSheet.create({
+  container: { flex: 1, padding: 18, gap: 14, backgroundColor: Colors.surface },
+  pad: { flex: 1, borderRadius: 22, overflow: 'hidden', borderWidth: 1, borderColor: Colors.divider, backgroundColor: Colors.background },
+  baseWrap: { position: 'absolute', left: 24, right: 24, bottom: 34 },
+  x: { position: 'absolute', left: 0, bottom: 10, fontFamily: FontFamily.headingBold, fontSize: 22 },
+  base: { height: 1.5 },
+  name: { fontFamily: FontFamily.bodyMedium, fontSize: 12, marginTop: 6 },
+  hintWrap: { position: 'absolute', left: 0, right: 0, top: '38%', alignItems: 'center' },
+  hint: { fontFamily: FontFamily.bodySemiBold, fontSize: 15 },
+
+  tools: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  tool: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 50, paddingHorizontal: 14, borderRadius: 25, backgroundColor: withOpacity(Colors.inkPrimary, 0.07) },
+  toolText: { fontFamily: FontFamily.bodySemiBold, fontSize: 14, color: Colors.inkPrimary },
+  use: { flex: 1, height: 50, borderRadius: 25, backgroundColor: Colors.inkPrimary, alignItems: 'center', justifyContent: 'center' },
+  useText: { fontFamily: FontFamily.bodySemiBold, fontSize: 15, color: Colors.background },
 })
