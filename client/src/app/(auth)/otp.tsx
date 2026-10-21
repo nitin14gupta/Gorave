@@ -1,12 +1,11 @@
 import { useState, useEffect } from 'react'
-import { View, Text, StyleSheet, Pressable } from 'react-native'
+import { View } from 'react-native'
 import { router, useLocalSearchParams } from 'expo-router'
-import { hTap } from '@/lib/haptics'
-import { Pencil } from 'lucide-react-native'
-import { BackButton, OTPInput, PrimaryButton, Screen, KeyboardAvoidingWrapper, DeletedAccountSheet, LogoMark, GlowLinesBackground } from '@/components/ui'
+import { DeletedAccountSheet } from '@/components/ui'
+import { OtpView } from '@/components/auth/OtpView'
 import { useAuth } from '@/hooks/useAuth'
 import { useCountdown } from '@/hooks/useCountdown'
-import { Colors, FontFamily, Spacing } from '@/constants'
+import { Colors } from '@/constants'
 
 export default function OTPScreen() {
   const { phone } = useLocalSearchParams<{ phone: string }>()
@@ -41,9 +40,9 @@ export default function OTPScreen() {
       setAttempts(next)
       setError(true)
       if (next >= 3) {
-        setErrorMsg('Too many attempts — request a new code.')
+        setErrorMsg('Too many tries. Send yourself a new code.')
       } else {
-        setErrorMsg(e?.message || 'Incorrect code. Try again.')
+        setErrorMsg(e?.message || 'That code did not match. Try again.')
       }
       setCode('')
     } finally {
@@ -69,128 +68,23 @@ export default function OTPScreen() {
   }
 
   return (
-    <View style={styles.rootWrap}>
-      <GlowLinesBackground />
-      <Screen transparent>
-        <DeletedAccountSheet
-          visible={deletedOn !== null}
-          deletedOn={deletedOn ?? ''}
-          onClose={() => setDeletedOn(null)}
-        />
-        <View style={styles.topRow}>
-          <BackButton transparent onPress={() => router.back()} />
-          <LogoMark size={20} opacity={0.7} style={styles.topLogo} />
-        </View>
-        <KeyboardAvoidingWrapper transparent>
-          <View style={styles.inner}>
-            <Text style={styles.title}>Enter the code</Text>
-            <View style={styles.sentRow}>
-              <Text style={styles.sentText}>Sent to +91 {phone}</Text>
-              <Pressable onPress={() => router.back()}>
-                <Pencil size={14} color={Colors.inkSecondary} strokeWidth={2} />
-              </Pressable>
-            </View>
-
-            <OTPInput
-              value={code}
-              onChange={setCode}
-              error={error}
-              autoFocus
-            />
-
-            {errorMsg ? (
-              <Text style={styles.errorMsg}>{errorMsg}</Text>
-            ) : null}
-
-            <View style={styles.resendArea}>
-              {!isExpired && !tooManyAttempts ? (
-                <Text style={styles.countdown}>
-                  Resend code in{' '}
-                  <Text style={styles.countdownTimer}>
-                    0:{String(seconds).padStart(2, '0')}
-                  </Text>
-                </Text>
-              ) : (
-                <Pressable onPress={() => { hTap(); handleResend() }}>
-                  <Text style={styles.resendBtn}>Resend code</Text>
-                </Pressable>
-              )}
-            </View>
-          </View>
-
-          <View style={styles.footer}>
-            <PrimaryButton
-              label="Continue"
-              onPress={handleVerify}
-              disabled={!isComplete || tooManyAttempts}
-              loading={loading}
-            />
-          </View>
-        </KeyboardAvoidingWrapper>
-      </Screen>
+    <View style={{ flex: 1, backgroundColor: Colors.background }}>
+      <DeletedAccountSheet visible={deletedOn !== null} deletedOn={deletedOn ?? ''} onClose={() => setDeletedOn(null)} />
+      <OtpView
+        phone={phone}
+        code={code}
+        onCode={c => { setCode(c); if (error) { setError(false); setErrorMsg('') } }}
+        error={error}
+        errorMsg={errorMsg}
+        loading={loading}
+        seconds={seconds}
+        canResend={isExpired || tooManyAttempts}
+        tooMany={tooManyAttempts}
+        onResend={handleResend}
+        onEditNumber={() => router.back()}
+        onBack={() => router.back()}
+        onVerify={handleVerify}
+      />
     </View>
   )
 }
-
-const styles = StyleSheet.create({
-  rootWrap: { flex: 1, backgroundColor: Colors.background },
-  topRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  topLogo: {
-    marginRight: Spacing.screenPadding,
-  },
-  inner: {
-    flex: 1,
-    paddingHorizontal: Spacing.screenPadding,
-    paddingTop: 20,
-  },
-  title: {
-    fontFamily: FontFamily.headingBold,
-    fontSize: 28,
-    letterSpacing: -0.28,
-    color: Colors.inkPrimary,
-    marginBottom: 8,
-  },
-  sentRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 38,
-  },
-  sentText: {
-    fontFamily: FontFamily.bodyRegular,
-    fontSize: 14,
-    color: Colors.inkSecondary,
-  },
-  errorMsg: {
-    fontFamily: FontFamily.bodyRegular,
-    fontSize: 13,
-    color: Colors.destructive,
-    marginTop: 12,
-  },
-  resendArea: {
-    marginTop: 28,
-    alignItems: 'center',
-  },
-  countdown: {
-    fontFamily: FontFamily.bodyRegular,
-    fontSize: 14,
-    color: Colors.inkSecondary,
-  },
-  countdownTimer: {
-    fontFamily: FontFamily.bodySemiBold,
-    color: Colors.inkPrimary,
-  },
-  resendBtn: {
-    fontFamily: FontFamily.bodySemiBold,
-    fontSize: 14,
-    color: Colors.inkSecondary,
-  },
-  footer: {
-    paddingHorizontal: Spacing.screenPadding,
-    paddingBottom: 16,
-  },
-})

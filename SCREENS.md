@@ -31,10 +31,10 @@ Routes live in `client/src/app/` (Expo Router). `(group)` folders don't show in 
 
 | # | Screen | Route | What it does | UI pass |
 |---|---|---|---|---|
-| 1 | Launch redirect | `index.tsx` | Sends you to sign in, onboarding or home depending on your session | ⬜ |
-| 2 | Welcome | `(auth)/index` | "Find your vibe": Get started / I already have an account | ⬜ |
-| 3 | Phone number | `(auth)/phone` | Enter your mobile number | ⬜ |
-| 4 | OTP | `(auth)/otp` | Enter the code sent by SMS | ⬜ |
+| 1 | Launch / splash | `index.tsx` | Kept as it was (the breathing logo and loader) | ✅ |
+| 2 | Welcome | `(auth)/index` | Twelve party posters (free Unsplash photos, 4:5) scattered like invites across the top and off the edges, the brand in a small pill, "Every good night starts with an invite." and the buttons. Posters settle in once | ✅ |
+| 3 | Phone number | `(auth)/phone` | Your number in big display digits with a +91 chip; tap anywhere on it to bring the keyboard back | ✅ |
+| 4 | OTP | `(auth)/otp` | Six big boxes, shakes once on a wrong code, fills from the SMS; tap the boxes to bring the keyboard back | ✅ |
 
 ### 2. Onboarding (new users)
 

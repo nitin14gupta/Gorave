@@ -27,12 +27,11 @@ export interface HostWizardProps {
 
 const { height: H } = Dimensions.get('window')
 const PHOTO_H = Math.round(H * 0.42)
-// The website's own photos (website/public/img/areas), resized for the app,
-// so hosting looks the same on gorave.in and in the app.
+// Photos from the welcome posters (assets/images/welcome), one per step.
 const PHOTOS = [
-  require('../../../assets/images/host/welcome.webp'),   // a living-room party
-  require('../../../assets/images/host/host-door.webp'), // the host at the door
-  require('../../../assets/images/host/rooftop.webp'),   // a rooftop night
+  require('../../../assets/images/welcome/confetti.webp'),   // step 1: throw the night
+  require('../../../assets/images/welcome/dj-night.webp'),   // step 2: it's your night to run
+  require('../../../assets/images/welcome/girls-night.webp'), // step 3: earn your badge
 ]
 
 /**
