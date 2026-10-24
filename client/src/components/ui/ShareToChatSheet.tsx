@@ -2,9 +2,10 @@ import { useEffect, useRef, useState } from 'react'
 import { View, Text, StyleSheet, Pressable, ActivityIndicator } from 'react-native'
 import { Image } from 'expo-image'
 import {
-  BottomSheetModal, BottomSheetView, BottomSheetFlatList, BottomSheetBackdrop,
+  BottomSheetModal, BottomSheetView, BottomSheetFlatList, BottomSheetBackdrop, BottomSheetFooter,
 } from '@gorhom/bottom-sheet'
-import type { BottomSheetBackdropProps } from '@gorhom/bottom-sheet'
+import type { BottomSheetBackdropProps, BottomSheetFooterProps } from '@gorhom/bottom-sheet'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { AutoSkeletonView } from 'react-native-auto-skeleton'
 import { Check, Send, Users } from 'lucide-react-native'
 import { hSuccess, hSelection } from '@/lib/haptics'
@@ -15,7 +16,7 @@ import ApiService, { type Conversation } from '@/api/apiService'
 import { SearchBar } from './SearchBar'
 import { PrimaryButton } from './PrimaryButton'
 
-const SNAP_POINTS = ['74%']
+const SNAP_POINTS = ['82%']
 
 interface Props {
   visible: boolean
@@ -37,9 +38,9 @@ function renderBackdrop(props: BottomSheetBackdropProps) {
 function TargetTile({ conv, selected, onPress }: { conv: Conversation; selected: boolean; onPress: () => void }) {
   return (
     <Pressable style={t.root} onPress={onPress}>
-      <View style={t.avatarWrap}>
+      <View style={[t.avatarWrap, selected && t.avatarWrapOn]}>
         {conv.partner_avatar ? (
-          <Image source={{ uri: conv.partner_avatar }} style={t.avatar} cachePolicy="memory-disk" priority="low" transition={150} />
+          <Image source={{ uri: conv.partner_avatar }} style={[t.avatar, selected && t.avatarDim]} cachePolicy="memory-disk" priority="low" transition={150} />
         ) : (
           <View style={[t.avatar, t.avatarFallback]}>
             <Text style={t.avatarInitial}>{(conv.partner_name ?? '?').charAt(0).toUpperCase()}</Text>
@@ -58,25 +59,28 @@ function TargetTile({ conv, selected, onPress }: { conv: Conversation; selected:
 
 const t = StyleSheet.create({
   root: { width: '33.333%', alignItems: 'center', paddingVertical: 12, gap: 8 },
-  avatarWrap: { width: 76, height: 76 },
-  avatar: { width: 76, height: 76, borderRadius: 38 },
+  // Square, like every people photo in the app; picked ones get a ring.
+  avatarWrap: { width: 80, height: 80, borderRadius: 24, padding: 3, borderWidth: 2.5, borderColor: 'transparent' },
+  avatarWrapOn: { borderColor: Colors.inkPrimary },
+  avatar: { width: '100%', height: '100%', borderRadius: 19 },
+  avatarDim: { opacity: 0.85 },
   avatarFallback: { backgroundColor: Colors.surfaceMuted, alignItems: 'center', justifyContent: 'center' },
   avatarInitial: { fontFamily: FontFamily.headingBold, fontSize: 26, color: Colors.inkPrimary },
   checkBadge: {
-    position: 'absolute', bottom: -2, right: -2,
-    width: 24, height: 24, borderRadius: 12,
-    backgroundColor: Colors.brandOrange,
+    position: 'absolute', bottom: -6, right: -6,
+    width: 26, height: 26, borderRadius: 13,
+    backgroundColor: Colors.inkPrimary,
     alignItems: 'center', justifyContent: 'center',
     borderWidth: 2, borderColor: Colors.elevated,
   },
-  name: { fontFamily: FontFamily.bodyMedium, fontSize: 12, color: Colors.inkSecondary, maxWidth: 84, textAlign: 'center' },
+  name: { fontFamily: FontFamily.bodySemiBold, fontSize: 12, color: Colors.inkPrimary, maxWidth: 84, textAlign: 'center' },
 })
 
 // ── Skeleton ──────────────────────────────────────────────────────────────────
 
 function TargetsSkeleton() {
   return (
-    <AutoSkeletonView isLoading animationType="gradient" defaultRadius={38} gradientColors={[Colors.skeletonBase, Colors.skeletonHighlight]}>
+    <AutoSkeletonView isLoading animationType="gradient" defaultRadius={22} gradientColors={[Colors.skeletonBase, Colors.skeletonHighlight]}>
       <View style={st.skGrid}>
         {Array.from({ length: 9 }).map((_, i) => (
           <View key={i} style={t.root}>
@@ -95,6 +99,7 @@ function ShareToChatSheetCore({
   onClose, contentType, metadata, previewTitle, previewSubtitle, previewImage,
 }: Omit<Props, 'visible'>) {
   const sheetRef = useRef<BottomSheetModal>(null)
+  const insets = useSafeAreaInsets()
   const showPill = usePillStore(s => s.show)
   // 18 up front, then lazy-loaded as the grid is scrolled — same pattern as
   // Instagram's share sheet instead of pulling the entire mutual pool at once.
@@ -136,7 +141,7 @@ function ShareToChatSheetCore({
       showPill(ids.length === 1 ? 'Sent!' : `Sent to ${ids.length} people`, 'default')
       onClose()
     } else if (failed < ids.length) {
-      showPill(`Sent to ${ids.length - failed}, ${failed} failed — try again for the rest`, 'error')
+      showPill(`Sent to ${ids.length - failed}, ${failed} failed. Try again for the rest`, 'error')
       onClose()
     } else {
       // Total failure — keep the sheet open with the selection intact so the
@@ -147,7 +152,7 @@ function ShareToChatSheetCore({
 
   const Header = (
     <View style={st.header}>
-      <Text style={st.title}>Send in Chat</Text>
+      <Text style={st.title}>Send to friends</Text>
 
       <View style={st.preview}>
         {previewImage ? (
@@ -167,23 +172,25 @@ function ShareToChatSheetCore({
     </View>
   )
 
-  const Footer = (
-    <View>
-      {loadingMore && (
-        <View style={st.loadingMoreRow}>
-          <ActivityIndicator size="small" color={Colors.inkSecondary} />
-        </View>
-      )}
-      <View style={st.footer}>
+  const Loading = loadingMore ? (
+    <View style={st.loadingMoreRow}>
+      <ActivityIndicator size="small" color={Colors.inkSecondary} />
+    </View>
+  ) : <View style={{ height: 96 }} />
+
+  // Pinned to the bottom of the sheet, so Send is always in reach.
+  const renderFooter = (props: BottomSheetFooterProps) => (
+    <BottomSheetFooter {...props}>
+      <View style={[st.footer, { paddingBottom: insets.bottom + 12 }]}>
         <PrimaryButton
-          label={selected.size > 0 ? `Send to ${selected.size}` : 'Select people to send'}
+          label={selected.size > 0 ? `Send to ${selected.size}` : 'Pick people to send to'}
           disabled={selected.size === 0}
           loading={sending}
           onPress={handleSend}
           icon={<Send size={18} color={Colors.background} strokeWidth={2.2} />}
         />
       </View>
-    </View>
+    </BottomSheetFooter>
   )
 
   return (
@@ -196,6 +203,7 @@ function ShareToChatSheetCore({
       backdropComponent={renderBackdrop}
       backgroundStyle={st.bg}
       handleIndicatorStyle={st.handle}
+      footerComponent={pool.length ? renderFooter : undefined}
     >
       {loading ? (
         <BottomSheetView style={st.container}>
@@ -219,7 +227,7 @@ function ShareToChatSheetCore({
           keyboardShouldPersistTaps="handled"
           contentContainerStyle={st.listContent}
           ListHeaderComponent={Header}
-          ListFooterComponent={Footer}
+          ListFooterComponent={Loading}
           onEndReachedThreshold={0.5}
           onEndReached={() => { if (!isSearching) loadMore() }}
           renderItem={({ item }) => (
@@ -244,19 +252,19 @@ export function ShareToChatSheet(props: Props) {
 }
 
 const st = StyleSheet.create({
-  bg: { backgroundColor: Colors.elevated },
+  bg: { backgroundColor: Colors.elevated, borderRadius: 28 },
   handle: { backgroundColor: withOpacity(Colors.inkPrimary, 0.18) },
 
   container: { flex: 1 },
   header: { paddingHorizontal: 20, paddingTop: 4, paddingBottom: 12, gap: 14 },
-  title: { fontFamily: FontFamily.headingBold, fontSize: 18, color: Colors.inkPrimary },
+  title: { fontFamily: FontFamily.displayExtraBold, fontSize: 26, letterSpacing: -0.6, color: Colors.inkPrimary },
 
   preview: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
     backgroundColor: withOpacity(Colors.inkPrimary, 0.05),
-    borderRadius: 14, padding: 10,
+    borderRadius: 18, padding: 10, borderWidth: 1, borderColor: Colors.divider,
   },
-  previewImg: { width: 44, height: 44, borderRadius: 10 },
+  previewImg: { width: 48, height: 60, borderRadius: 10 },
   previewImgFallback: { backgroundColor: Colors.surfaceMuted, alignItems: 'center', justifyContent: 'center' },
   previewTitle: { fontFamily: FontFamily.bodySemiBold, fontSize: 14, color: Colors.inkPrimary },
   previewSub: { fontFamily: FontFamily.bodyRegular, fontSize: 12, color: Colors.inkSecondary, marginTop: 1 },
@@ -272,5 +280,5 @@ const st = StyleSheet.create({
   emptyText: { fontFamily: FontFamily.bodyRegular, fontSize: 13, color: Colors.inkSecondary, textAlign: 'center' },
 
   loadingMoreRow: { paddingVertical: 12, alignItems: 'center' },
-  footer: { paddingHorizontal: 8, paddingTop: 10, paddingBottom: 12 },
+  footer: { paddingHorizontal: 20, paddingTop: 12, backgroundColor: Colors.elevated, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: Colors.divider },
 })

@@ -35,16 +35,22 @@ export function HomeTopBar() {
   )
 }
 
-/** What's on in your city, soonest first, that you could still join. */
+/** This week in your city: the next 7 days, soonest first, that you could still join. */
 export function useTonight(city: string | null | undefined) {
   const [events, setEvents] = useState<EventSummary[]>([])
   useFocusEffect(useCallback(() => {
     if (!city) return
     let alive = true
-    ApiService.getEvents({ city, discover: true, limit: 12 })
+    ApiService.getEvents({ city, discover: true, limit: 30 })
       .then(list => {
         if (!alive) return
-        setEvents([...list].sort((a, b) => (parseServerDate(a.date_time)?.getTime() ?? 0) - (parseServerDate(b.date_time)?.getTime() ?? 0)).slice(0, 8))
+        const weekOut = Date.now() + 7 * 24 * 60 * 60 * 1000
+        setEvents(
+          list
+            .filter(e => (parseServerDate(e.date_time)?.getTime() ?? Infinity) <= weekOut)
+            .sort((a, b) => (parseServerDate(a.date_time)?.getTime() ?? 0) - (parseServerDate(b.date_time)?.getTime() ?? 0))
+            .slice(0, 8),
+        )
       })
       .catch(() => {})
     return () => { alive = false }
@@ -94,7 +100,7 @@ export function TonightCarousel({ events, city }: { events: EventSummary[]; city
   return (
     <View style={{ gap: 12 }}>
       <View style={s.headRow}>
-        <Text style={s.head}>On in {city ?? 'your city'}</Text>
+        <Text style={s.head}>This week in {city ?? 'your city'}</Text>
         <Pressable onPress={() => router.push('/(tabs)/events' as any)} hitSlop={8}><Text style={s.seeAll}>See all</Text></Pressable>
       </View>
       <Animated.ScrollView

@@ -4,6 +4,7 @@ import { router, useFocusEffect } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { ArrowLeft, Bookmark } from 'lucide-react-native'
 import { AppHeader, APP_HEADER_BAR_HEIGHT, HeaderIconBtn, PrimaryButton, BrandedRefreshControl } from '@/components/ui'
+import { ScrollFade } from '@/components/ui/ScrollFade'
 import { useHeaderScroll } from '@/hooks/useHeaderScroll'
 import ApiService, { type EventSummary } from '@/api/apiService'
 import { EventCard } from '@/components/events/EventCard'
@@ -34,6 +35,7 @@ export default function HotlistScreen() {
   useFocusEffect(useCallback(() => { load() }, [load]))
 
   const cols = 2
+  const [scrolled, setScrolled] = useState(false)
   const cellW = eventGridCellWidth(Spacing.screenPadding)
 
   return (
@@ -63,7 +65,7 @@ export default function HotlistScreen() {
           columnWrapperStyle={cols > 1 ? { gap: EVENT_GRID_GAP } : undefined}
           keyExtractor={e => e.id}
           contentContainerStyle={[s.list, { paddingTop: headerHeight + 8 }]}
-          onScroll={onScroll}
+          onScroll={e => { onScroll(e); setScrolled(e.nativeEvent.contentOffset.y > 8) }}
           scrollEventThrottle={16}
           refreshControl={<BrandedRefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
           renderItem={({ item }) => (
@@ -73,6 +75,7 @@ export default function HotlistScreen() {
           )}
         />
       )}
+      <ScrollFade visible={scrolled} height={insets.top + 90} />
     </View>
   )
 }

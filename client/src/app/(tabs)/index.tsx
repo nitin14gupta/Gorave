@@ -8,6 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { PartyPopper } from 'lucide-react-native'
 import { EmptyState, PrimaryButton, BrandedRefreshControl } from '@/components/ui'
 import { HomeTopBar, TonightCarousel, useTonight } from '@/components/home/HomeParts'
+import { ScrollFade } from '@/components/ui/ScrollFade'
 import { TemplateFan } from '@/components/home/TemplateFan'
 import { ActiveEventsSection, type ActiveEventsSectionHandle } from '@/components/home/ActiveEventsSection'
 import { MyEventsSection, type MyEventsSectionHandle } from '@/components/home/MyEventsSection'
@@ -31,7 +32,7 @@ export default function HomeScreen() {
   const { syncUnreadCount, hydrate: hydrateNotifStore } = useNotifStore()
   const lastBackRef = useRef(0)
   const showPill = usePillStore(s => s.show)
-  const { scrollHandler } = useHeaderAndTabBarScroll()
+  const { scrollHandler, scrollY } = useHeaderAndTabBarScroll()
   const tonight = useTonight(profile?.city)
   useExpandTabBarOnFocus()
   const insets = useSafeAreaInsets()
@@ -145,6 +146,7 @@ export default function HomeScreen() {
           />
         )}
       </Animated.ScrollView>
+      <ScrollFade scrollY={scrollY} height={insets.top + 90} />
     </View>
   )
 }

@@ -71,7 +71,7 @@ export function MediaPreviewModal({ media, onSend, onCancel, onRemove, onUpdate,
         cropperStatusBarLight: false, // For dark status bar (light icons)
         cropperToolbarWidgetColor: Colors.inkPrimary, // White text/icons in header
         cropperActiveWidgetColor: Colors.background, // Neutral dark color for active buttons (scale/rotate)
-        cropperChooseColor: Colors.brandOrange, // iOS Choose button
+        cropperChooseColor: Colors.inkPrimary, // iOS Choose button
         cropperCancelColor: Colors.inkPrimary, // iOS Cancel button
         hideBottomControls: false, // Ensure scale/rotate bottom bar is visible
         enableRotationGesture: true, // Allow two-finger rotation
@@ -108,13 +108,18 @@ export function MediaPreviewModal({ media, onSend, onCancel, onRemove, onUpdate,
     <Modal visible animationType="fade" statusBarTranslucent>
       <View style={[mp.root, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
         <View style={mp.header}>
-          <Pressable style={mp.iconBtn} onPress={onCancel} hitSlop={10}>
-            <X size={22} color={Colors.inkPrimary} strokeWidth={2.5} />
+          <Pressable style={mp.glass} onPress={onCancel} hitSlop={10}>
+            <X size={20} color={Colors.inkPrimary} strokeWidth={2.4} />
           </Pressable>
-          {multi && (
-            <Text style={mp.headerTitle}>{activeIndex + 1} of {media.length}</Text>
-          )}
-          <View style={mp.iconBtn} />
+          {multi ? (
+            <View style={mp.countPill}><Text style={mp.headerTitle}>{activeIndex + 1} of {media.length}</Text></View>
+          ) : <View />}
+          {onUpdate && media[activeIndex]?.type !== 'video' ? (
+            <Pressable style={mp.cropPill} onPress={() => handleCrop(media[activeIndex].uri, activeIndex)} hitSlop={6}>
+              <Crop size={16} color={Colors.inkPrimary} strokeWidth={2.2} />
+              <Text style={mp.cropText}>Crop</Text>
+            </Pressable>
+          ) : <View style={mp.glass} />}
         </View>
 
         <FlatList
@@ -132,14 +137,9 @@ export function MediaPreviewModal({ media, onSend, onCancel, onRemove, onUpdate,
               {item.type === 'video'
                 ? <VideoPreview uri={item.uri} active={index === activeIndex} />
                 : (
-                  <>
-                    <Image source={{ uri: item.uri }} style={mp.media} contentFit="contain" />
-                    {onUpdate && index === activeIndex && (
-                      <Pressable style={mp.cropOverlayBtn} onPress={() => handleCrop(item.uri, index)}>
-                        <Crop size={24} color={Colors.inkPrimary} strokeWidth={2.5} />
-                      </Pressable>
-                    )}
-                  </>
+                  <View style={mp.frame}>
+                    <Image source={{ uri: item.uri }} style={StyleSheet.absoluteFill} contentFit="contain" />
+                  </View>
                 )
               }
             </View>
@@ -183,9 +183,8 @@ export function MediaPreviewModal({ media, onSend, onCancel, onRemove, onUpdate,
         )}
 
         <View style={mp.footer}>
-          <Text style={mp.hint}>
-            {multi ? `${media.length} selected` : titleLabel}
-          </Text>
+          <Text style={mp.hint}>{titleLabel}</Text>
+          {multi ? <Text style={mp.hintSub}>{media.length} selected · swipe to check each one</Text> : null}
           <View style={mp.sendBtn}>
             <PrimaryButton
               label={`${actionLabel}${multi ? ` ${media.length}` : ''}`}
@@ -216,18 +215,15 @@ const mp = StyleSheet.create({
     paddingHorizontal: 12,
     height: 48,
   },
-  iconBtn: {
+  glass: {
     width: 40, height: 40, borderRadius: 20,
     alignItems: 'center', justifyContent: 'center',
+    backgroundColor: withOpacity(Colors.inkPrimary, 0.1),
   },
-  cropOverlayBtn: {
-    position: 'absolute',
-    right: 20,
-    bottom: 20,
-    width: 50, height: 50, borderRadius: 25,
-    backgroundColor: withOpacity(Colors.background, 0.5),
-    alignItems: 'center', justifyContent: 'center',
-  },
+  countPill: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999, backgroundColor: withOpacity(Colors.inkPrimary, 0.1) },
+  cropPill: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 40, paddingHorizontal: 14, borderRadius: 20, backgroundColor: withOpacity(Colors.inkPrimary, 0.1) },
+  cropText: { fontFamily: FontFamily.bodySemiBold, fontSize: 14, color: Colors.inkPrimary },
+  frame: { width: SW - 32, flex: 1, marginVertical: 12, borderRadius: 24, overflow: 'hidden', backgroundColor: withOpacity(Colors.inkPrimary, 0.04) },
   headerTitle: {
     fontFamily: FontFamily.bodySemiBold,
     fontSize: 14,
@@ -248,7 +244,7 @@ const mp = StyleSheet.create({
     width: THUMB_SIZE, height: THUMB_SIZE, borderRadius: 10,
     borderWidth: 2, borderColor: 'transparent',
   },
-  thumbActive: { borderColor: Colors.brandOrange },
+  thumbActive: { borderColor: Colors.inkPrimary },
   thumbPlayBadge: {
     position: 'absolute',
     top: 0, left: 0, right: 0, bottom: 0,
@@ -272,10 +268,11 @@ const mp = StyleSheet.create({
     gap: 10,
   },
   hint: {
-    fontFamily: FontFamily.bodyRegular,
-    fontSize: 13,
-    color: withOpacity(Colors.inkPrimary, 0.45),
-    letterSpacing: 0.2,
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 22,
+    letterSpacing: -0.4,
+    color: Colors.inkPrimary,
   },
+  hintSub: { fontFamily: FontFamily.bodyRegular, fontSize: 13, color: Colors.inkSecondary, marginTop: -6 },
   sendBtn: { width: '100%' },
 })

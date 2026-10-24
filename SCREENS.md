@@ -149,13 +149,13 @@ Routes live in `client/src/app/` (Expo Router). `(group)` folders don't show in 
 
 | Sheet | Where | UI pass |
 |---|---|---|
-| Event quick peek | Long-press any event card | ⬜ |
+| Event quick peek | Long-press any event card | ✅ big poster, host, Open / Share / Host |
 | Confirm sheets (withdraw, last chance, leave waitlist, unblock) | `components/ui/ConfirmSheet.tsx` | ✅ |
-| City picker | Events tab, create flow | ⬜ |
+| City picker | Events tab, create flow | ✅ photo postcards for popular cities, then the list |
 | Event preview (as a card / full page) | Create flow | ✅ |
-| Share to chat | Event page, published screen | ⬜ |
-| Media preview | Chat, photo pickers | ⬜ |
-| Permission sheet | Mic, camera, location, contacts | ⬜ |
+| Share to chat | Event page, published screen | ✅ square faces, ring when picked, Send pinned |
+| Media preview | Chat, photo pickers | ✅ framed photo, Crop pill, neutral |
+| Permission sheet | Mic, camera, location, contacts | ✅ icon for what is needed, 3 steps to turn it on |
 | Empty states | Every list (`components/ui/EmptyState.tsx`, still icons) | ✅ |
 
 ---

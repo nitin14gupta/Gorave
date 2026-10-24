@@ -5,7 +5,6 @@ import type { BottomSheetBackdropProps } from '@gorhom/bottom-sheet'
 import { hSuccess, hTap } from '@/lib/haptics'
 import { Colors, FontFamily, withOpacity } from '@/constants'
 import { PrimaryButton } from './PrimaryButton'
-import { OutlineButton } from './OutlineButton'
 
 interface Props {
   visible: boolean
@@ -47,12 +46,12 @@ function ConfirmSheetCore({ title, body, confirmLabel, destructive, onConfirm, o
         <Text style={s.body}>{body}</Text>
         {children}
         {destructive ? (
-          <OutlineButton
-            label={confirmLabel}
-            destructive
-            onPress={() => { onConfirm(); onClose() }}
-            style={s.btn}
-          />
+          <Pressable
+            style={({ pressed }) => [s.btn, s.danger, pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] }]}
+            onPress={() => { hTap(); onConfirm(); onClose() }}
+          >
+            <Text style={s.dangerText}>{confirmLabel}</Text>
+          </Pressable>
         ) : (
           <PrimaryButton
             label={confirmLabel}
@@ -60,7 +59,7 @@ function ConfirmSheetCore({ title, body, confirmLabel, destructive, onConfirm, o
             style={s.btn}
           />
         )}
-        <Pressable style={s.cancelBtn} onPress={() => { hTap(); onClose() }}>
+        <Pressable style={({ pressed }) => [s.cancelBtn, pressed && { opacity: 0.8 }]} onPress={() => { hTap(); onClose() }}>
           <Text style={s.cancelText}>{cancelLabel}</Text>
         </Pressable>
       </BottomSheetView>
@@ -74,13 +73,16 @@ export function ConfirmSheet({ visible, ...rest }: Props) {
 }
 
 const s = StyleSheet.create({
-  bg: { backgroundColor: Colors.surface },
+  bg: { backgroundColor: Colors.surface, borderRadius: 28 },
   handleIndicator: { backgroundColor: withOpacity(Colors.inkPrimary, 0.18) },
-  content: { paddingHorizontal: 20, paddingBottom: 36, paddingTop: 8, gap: 12 },
-  title: { fontFamily: FontFamily.headingBold, fontSize: 18, color: Colors.inkPrimary, textAlign: 'center' },
-  body: { fontFamily: FontFamily.bodyRegular, fontSize: 14, color: Colors.inkSecondary, textAlign: 'center', lineHeight: 20 },
-  btn: { height: 52, borderRadius: 999, marginTop: 4 },
-  cancelBtn: { height: 48, alignItems: 'center', justifyContent: 'center' },
-  cancelText: { fontFamily: FontFamily.bodyMedium, fontSize: 15, color: Colors.inkSecondary },
+  content: { paddingHorizontal: 20, paddingBottom: 36, paddingTop: 10, gap: 10 },
+  title: { fontFamily: FontFamily.displayExtraBold, fontSize: 24, letterSpacing: -0.5, color: Colors.inkPrimary, textAlign: 'center' },
+  body: { fontFamily: FontFamily.bodyRegular, fontSize: 15, color: Colors.inkSecondary, textAlign: 'center', lineHeight: 21, marginBottom: 6 },
+  btn: { height: 54, borderRadius: 999, marginTop: 4 },
+  // Solid red with white text for anything you can't easily undo.
+  danger: { backgroundColor: Colors.destructive, alignItems: 'center', justifyContent: 'center' },
+  dangerText: { fontFamily: FontFamily.headingBold, fontSize: 16, color: Colors.white },
+  cancelBtn: { height: 54, borderRadius: 999, alignItems: 'center', justifyContent: 'center', backgroundColor: withOpacity(Colors.inkPrimary, 0.08) },
+  cancelText: { fontFamily: FontFamily.bodySemiBold, fontSize: 16, color: Colors.inkPrimary },
   icon: { alignSelf: 'center', marginBottom: 2 },
 })

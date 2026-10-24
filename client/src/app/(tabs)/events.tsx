@@ -26,6 +26,7 @@ import { useEventViewModeStore } from "@/store/eventViewModeStore";
 import { useExpandTabBarOnFocus } from "@/hooks/useExpandTabBarOnFocus";
 import { useHeaderAndTabBarScroll } from "@/hooks/useHeaderAndTabBarScroll";
 import { CityPickerSheet } from "@/components/ui/CityPickerSheet";
+import { ScrollFade } from "@/components/ui/ScrollFade";
 import { useCities } from "@/hooks/useCities";
 
 const PREVIEW_MAX = 8;
@@ -40,7 +41,7 @@ export default function EventsScreen() {
   const cityRow = cities.find((c) => c.name === city);
   const cityFocus = cityRow && (cityRow.lat !== 0 || cityRow.lng !== 0) ? { lat: cityRow.lat, lng: cityRow.lng } : null;
   const [viewMode, setViewModeState] = useState<"map" | "list">("map");
-  const { hideProgress, scrollHandler } = useHeaderAndTabBarScroll();
+  const { hideProgress, scrollHandler, scrollY } = useHeaderAndTabBarScroll();
   useExpandTabBarOnFocus();
 
   useEffect(() => {
@@ -325,6 +326,8 @@ export default function EventsScreen() {
             renderItem={renderListItem}
           />
         )}
+
+        <ScrollFade scrollY={scrollY} height={insets.top + 100} />
 
         {!isEmpty && (
           <View style={styles.cardViewToggle}>

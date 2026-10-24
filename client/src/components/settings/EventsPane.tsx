@@ -1,9 +1,10 @@
-import { useEffect, type ReactNode, type ReactElement } from 'react'
+import { useEffect, useState, type ReactNode, type ReactElement } from 'react'
 import { View, Text, StyleSheet, FlatList, ActivityIndicator } from 'react-native'
 import { router } from 'expo-router'
 import { Colors, FontFamily, EVENT_GRID_GAP, eventGridCellWidth } from '@/constants'
 import { EventListCard, EventListCardSkeleton, PrimaryButton, BrandedRefreshControl } from '@/components/ui'
 import { EventCardSkeletonList } from '@/components/events/EventCard'
+import { ScrollFade } from '@/components/ui/ScrollFade'
 import type { useMyEventsPage } from '@/hooks/useMyEventsPage'
 import type { EventSummary } from '@/api/apiService'
 
@@ -26,6 +27,7 @@ export function EventsPane({
   // Cards sit two per row; the compact list is one per row.
   const cols = viewMode === 'card' ? 2 : 1
   const cellW = eventGridCellWidth(16)
+  const [scrolled, setScrolled] = useState(false)
 
   if (page.loading) {
     return (
@@ -51,6 +53,7 @@ export function EventsPane({
   }
 
   return (
+    <View style={{ flex: 1 }}>
     <FlatList
       key={`cols-${cols}`}
       data={page.events}
@@ -59,6 +62,8 @@ export function EventsPane({
       keyExtractor={e => e.id}
       contentContainerStyle={s.listContent}
       showsVerticalScrollIndicator={false}
+      onScroll={e => setScrolled(e.nativeEvent.contentOffset.y > 8)}
+      scrollEventThrottle={16}
       onEndReached={page.loadMore}
       onEndReachedThreshold={0.4}
       refreshControl={
@@ -81,6 +86,8 @@ export function EventsPane({
         )
       )}
     />
+    <ScrollFade visible={scrolled} height={56} />
+    </View>
   )
 }
 
