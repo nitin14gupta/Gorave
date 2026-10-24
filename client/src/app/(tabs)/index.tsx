@@ -5,10 +5,11 @@ import {
 import Animated from 'react-native-reanimated'
 import { useFocusEffect, router } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { Heart, PartyPopper, Search } from 'lucide-react-native'
-import { AppHeader, APP_HEADER_BAR_HEIGHT, HeaderIconBtn, EmptyState, PrimaryButton, BrandedRefreshControl } from '@/components/ui'
-import { HomeGradientBackdrop } from '@/components/home/HomeGradientBackdrop'
-import { NotificationPopBadge } from '@/components/home/NotificationPopBadge'
+import { PartyPopper } from 'lucide-react-native'
+import { EmptyState, PrimaryButton, BrandedRefreshControl } from '@/components/ui'
+import { LabSwitch } from '@/components/lab/LabSwitch'
+import { useLabVariant } from '@/store/labStore'
+import { HomeTopBar, TonightCarousel, WeekStrip, useTonight } from '@/components/lab/home/HomeParts'
 import { TemplateFan } from '@/components/home/TemplateFan'
 import { ActiveEventsSection, type ActiveEventsSectionHandle } from '@/components/home/ActiveEventsSection'
 import { MyEventsSection, type MyEventsSectionHandle } from '@/components/home/MyEventsSection'
@@ -32,10 +33,11 @@ export default function HomeScreen() {
   const { syncUnreadCount, hydrate: hydrateNotifStore } = useNotifStore()
   const lastBackRef = useRef(0)
   const showPill = usePillStore(s => s.show)
-  const { hideProgress, scrollHandler } = useHeaderAndTabBarScroll()
+  const { scrollHandler } = useHeaderAndTabBarScroll()
+  const variant = useLabVariant('home')
+  const tonight = useTonight(profile?.city)
   useExpandTabBarOnFocus()
   const insets = useSafeAreaInsets()
-  const headerHeight = APP_HEADER_BAR_HEIGHT + insets.top
 
   const [myEventsEmpty, setMyEventsEmpty] = useState<boolean | null>(null)
   const [waitlistEmpty, setWaitlistEmpty] = useState<boolean | null>(null)
@@ -94,48 +96,47 @@ export default function HomeScreen() {
 
   const firstName = profile?.name?.split(' ')[0] ?? 'there'
 
+  const create = (
+    <View style={{ gap: 10 }}>
+      <TemplateFan onCreatePress={() => { hTap(); router.push('/(events)/create' as any) }} />
+      <PrimaryButton
+        label="Create event"
+        size="small"
+        style={styles.createBtn}
+        onPress={() => { hTap(); router.push('/(events)/create' as any) }}
+      />
+    </View>
+  )
+  const mine = (
+    <>
+      <ActiveEventsSection ref={activeEventsRef} />
+      <MyEventsSection ref={myEventsRef} onEmptyChange={setMyEventsEmpty} />
+      <WaitlistSection ref={waitlistRef} onEmptyChange={setWaitlistEmpty} />
+      <PendingReviewsSection ref={pendingReviewsRef} onEmptyChange={setPendingReviewsEmpty} />
+      <RecentlyViewedSection onEmptyChange={setRecentEmpty} />
+    </>
+  )
+
   return (
     <View style={styles.root}>
-      <HomeGradientBackdrop />
-      <AppHeader
-        showLogo
-        transparent
-        hideProgress={hideProgress}
-        rightAction={
-          <View style={{ flexDirection: 'row', gap: 4 }}>
-            <HeaderIconBtn onPress={() => { hTap(); router.push('/(profile)/search' as any) }}>
-              <Search size={20} color={Colors.inkPrimary} strokeWidth={1.8} />
-            </HeaderIconBtn>
-            <HeaderIconBtn onPress={() => router.push('/(settings)/notifications' as any)}>
-              <View>
-                <Heart size={20} color={Colors.inkPrimary} strokeWidth={1.8} />
-                <NotificationPopBadge />
-              </View>
-            </HeaderIconBtn>
-          </View>
-        }
-      />
-
       <Animated.ScrollView
-        contentContainerStyle={[styles.content, { paddingTop: headerHeight }]}
+        contentContainerStyle={[styles.content, { paddingTop: insets.top + 4 }]}
         showsVerticalScrollIndicator={false}
         onScroll={scrollHandler}
         scrollEventThrottle={16}
-        refreshControl={<BrandedRefreshControl refreshing={refreshing} onRefresh={handleRefresh} progressViewOffset={headerHeight} />}
+        refreshControl={<BrandedRefreshControl refreshing={refreshing} onRefresh={handleRefresh} progressViewOffset={insets.top} />}
       >
-        <TemplateFan onCreatePress={() => { hTap(); router.push('/(events)/create' as any) }} />
-        <PrimaryButton
-          label="Create event"
-          size="small"
-          style={styles.createBtn}
-          onPress={() => { hTap(); router.push('/(events)/create' as any) }}
-        />
+        <HomeTopBar />
+        <Text style={styles.hello}>Hey, {firstName}.</Text>
 
-        <ActiveEventsSection ref={activeEventsRef} />
-        <MyEventsSection ref={myEventsRef} onEmptyChange={setMyEventsEmpty} />
-        <WaitlistSection ref={waitlistRef} onEmptyChange={setWaitlistEmpty} />
-        <PendingReviewsSection ref={pendingReviewsRef} onEmptyChange={setPendingReviewsEmpty} />
-        <RecentlyViewedSection onEmptyChange={setRecentEmpty} />
+        {/* Lab: A shows your week under the greeting, B leaves it out. */}
+        {variant === 'b' ? null : <WeekStrip />}
+
+        <Text style={styles.hostHead}>Host your own night</Text>
+        {create}
+        {mine}
+        <TonightCarousel events={tonight} city={profile?.city} />
+
         <PromoCarousel />
         <TrendingSection ref={trendingRef} onEmptyChange={setTrendingEmpty} />
 
@@ -149,14 +150,17 @@ export default function HomeScreen() {
           />
         )}
       </Animated.ScrollView>
+      <LabSwitch screen="home" top={insets.top + 4} />
     </View>
   )
 }
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: Colors.background },
-  content: { paddingHorizontal: 16, paddingBottom: ComponentSize.navBar + 24, gap: 14 },
+  content: { paddingHorizontal: 16, paddingBottom: ComponentSize.navBar + 24, gap: 18 },
 
+  hello: { fontFamily: FontFamily.displayExtraBold, fontSize: 34, letterSpacing: -1, color: Colors.inkPrimary, marginTop: 4 },
+  hostHead: { fontFamily: FontFamily.displayExtraBold, fontSize: 24, letterSpacing: -0.5, color: Colors.inkPrimary, marginTop: 8 },
   createBtn: {
     alignSelf: 'center',
     marginTop: 2,

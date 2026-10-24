@@ -20,6 +20,8 @@ export function useHeaderAndTabBarScroll() {
   const minimizeProgress = useTabBarMinimized()
   const minimizeTarget = useSharedValue(0)
   const minimizeLastY = useSharedValue(0)
+  // Raw scroll offset (can go negative on pull-down), for parallax headers.
+  const scrollY = useSharedValue(0)
 
   const setHeaderHidden = (hidden: boolean) => {
     headerHidden.current = hidden
@@ -39,6 +41,7 @@ export function useHeaderAndTabBarScroll() {
 
   const scrollHandler = useAnimatedScrollHandler({
     onScroll: (event) => {
+      scrollY.value = event.contentOffset.y
       // Mirrors expo-glass-tabs' internal useMinimizeOnScroll — reimplemented
       // here (rather than used directly) because it needs to share this one
       // scroll handler with the header-fade logic below.
@@ -64,5 +67,5 @@ export function useHeaderAndTabBarScroll() {
     },
   })
 
-  return { hideProgress, scrollHandler, scrollEventThrottle: 16 }
+  return { hideProgress, scrollHandler, scrollY, scrollEventThrottle: 16 }
 }

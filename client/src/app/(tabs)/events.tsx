@@ -9,8 +9,6 @@ import {
   View,
 } from "react-native";
 import Animated from "react-native-reanimated";
-import { LinearGradient } from "expo-linear-gradient";
-import { HomeGradientBackdrop } from "@/components/home/HomeGradientBackdrop";
 import { EventsMapView } from "@/components/maps";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -197,23 +195,6 @@ export default function EventsScreen() {
           style={{ flex: 1 }}
         />
 
-        {/* Aurora glow — same backdrop colors as home, dialed way down so it reads as a soft overlay, not a cover over the map */}
-        <HomeGradientBackdrop opacity={0.28} height={insets.top + 110} />
-        <LinearGradient
-          colors={[Colors.inkPrimary, "transparent"]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={styles.leftGlow}
-          pointerEvents="none"
-        />
-        <LinearGradient
-          colors={[Colors.inkPrimary, "transparent"]}
-          start={{ x: 1, y: 0 }}
-          end={{ x: 0, y: 0 }}
-          style={styles.rightGlow}
-          pointerEvents="none"
-        />
-
         <LocationWarning />
 
         <MapFloatingHeader
@@ -360,8 +341,6 @@ export default function EventsScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: Colors.background },
 
-  leftGlow: { position: "absolute", top: 0, bottom: 0, left: 0, width: 90, opacity: 0.28 },
-  rightGlow: { position: "absolute", top: 0, bottom: 0, right: 0, width: 90, opacity: 0.28 },
 
   listContent: { padding: 16, paddingBottom: ComponentSize.navBar + 16, gap: 16 },
 

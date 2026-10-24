@@ -7,7 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { ArrowLeft, MoreHorizontal } from 'lucide-react-native'
 import type { ExtendedProfile } from '@/api/apiService'
 import { Colors, FontFamily, withOpacity } from '@/constants'
-import { BrandedRefreshControl } from '@/components/ui'
+import { BrandedRefreshControl, StepDots } from '@/components/ui'
 import { UserProfileStatsRow } from '@/components/profile/UserProfileStatsRow'
 import { UserProfileBadgesInterests } from '@/components/profile/UserProfileBadgesInterests'
 import { UserProfileVoiceIntro } from '@/components/profile/UserProfileVoiceIntro'
@@ -108,8 +108,8 @@ export function UserProfileView(p: UserProfileViewProps) {
           <LinearGradient pointerEvents="none" colors={['transparent', 'rgba(0,0,0,0.78)']} style={s.bottomShade} />
 
           {p.photos.length > 1 ? (
-            <View pointerEvents="none" style={[s.bars, { top: insets.top + 8 }]}>
-              {p.photos.map((ph, i) => <View key={ph.id} style={[s.bar, i === idx && s.barOn]} />)}
+            <View pointerEvents="none" style={[s.bars, { width: p.photos.length * 12 + 8 }]}>
+              <StepDots step={idx + 1} total={p.photos.length} variant="overlay" style={{ bottom: 0 }} />
             </View>
           ) : null}
 
@@ -192,10 +192,9 @@ const s = StyleSheet.create({
   noPhotoText: { fontFamily: FontFamily.displayExtraBold, fontSize: 96, color: Colors.inkDisabled },
   topShade: { position: 'absolute', left: 0, right: 0, top: 0, height: 140 },
   bottomShade: { position: 'absolute', left: 0, right: 0, bottom: 0, height: '45%' },
-  bars: { position: 'absolute', left: 14, right: 14, flexDirection: 'row', gap: 4 },
-  bar: { flex: 1, height: 3, borderRadius: 2, backgroundColor: withOpacity(Colors.white, 0.35) },
-  barOn: { backgroundColor: Colors.white },
-  nameBlock: { position: 'absolute', left: 20, right: 20, bottom: 40 },
+  // The springy StepDots, bottom right of the photo; the one you're on stretches.
+  bars: { position: 'absolute', right: 20, bottom: 46, height: 6 },
+  nameBlock: { position: 'absolute', left: 20, right: 84, bottom: 40 },
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   name: { flexShrink: 1, fontFamily: FontFamily.displayExtraBold, fontSize: 36, letterSpacing: -1, color: Colors.white },
   badge: { width: 26, height: 26 },

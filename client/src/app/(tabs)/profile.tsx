@@ -1,40 +1,28 @@
 import { useEffect, useState, useCallback } from 'react'
 import { View, Text, StyleSheet, Pressable } from 'react-native'
-import Animated from 'react-native-reanimated'
 import { router } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { hTap } from '@/lib/haptics'
-import { Pencil, Plus, Settings, Share } from 'lucide-react-native'
 import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio'
-import { AppHeader, APP_HEADER_BAR_HEIGHT, HeaderIconBtn, BrandedLoader, BrandedRefreshControl, PrimaryButton } from '@/components/ui'
-import { ProfileAvatarHeader } from '@/components/profile/ProfileAvatarHeader'
-import { ProfileStatsRow } from '@/components/profile/ProfileStatsRow'
-import { ProfileBioVoiceCard } from '@/components/profile/ProfileBioVoiceCard'
-import { ProfileDetailsChips } from '@/components/profile/ProfileDetailsChips'
-import { ProfilePhotoGrid } from '@/components/profile/ProfilePhotoGrid'
+import { BrandedLoader } from '@/components/ui'
 import { useProfile } from '@/hooks/useProfile'
 import { useAuthStore } from '@/store/auth'
-import { Colors, ComponentSize, FontFamily, Spacing, HOST_BADGE_IMAGES } from '@/constants'
+import { Colors, FontFamily, HOST_BADGE_IMAGES } from '@/constants'
 import { useImageViewer } from '@/hooks/useImageViewer'
 import { MediaViewerModal } from '@/components/chat/MediaViewerModal'
 import { useHeaderAndTabBarScroll } from '@/hooks/useHeaderAndTabBarScroll'
 import { useExpandTabBarOnFocus } from '@/hooks/useExpandTabBarOnFocus'
+import { buildProfileShareUrl } from '@/lib/deepLink'
+import { MyProfileView } from '@/components/profile/MyProfileView'
 
-const GENDER_DISPLAY: Record<string, string> = {
-  Male: 'Male',
-  Female: 'Female',
-  'Non-binary': 'Non-binary',
-  'Prefer not to say': '—',
-}
 
 export default function ProfileScreen() {
   const { profile, loading, error, refresh } = useProfile()
   const { viewingMedia, openMedia, closeMedia } = useImageViewer()
   const [refreshing, setRefreshing] = useState(false)
-  const { hideProgress, scrollHandler } = useHeaderAndTabBarScroll()
+  const { scrollHandler, scrollY } = useHeaderAndTabBarScroll()
   useExpandTabBarOnFocus()
   const insets = useSafeAreaInsets()
-  const headerHeight = APP_HEADER_BAR_HEIGHT + insets.top
 
   const player = useAudioPlayer(null)
   const status = useAudioPlayerStatus(player)
@@ -89,107 +77,50 @@ export default function ProfileScreen() {
     )
   }
 
-  const name = profile?.name ?? '—'
-  const gender = profile?.gender ? GENDER_DISPLAY[profile.gender] ?? profile.gender : null
-  const city = profile?.city ?? null
-  const bio = profile?.bio ?? null
-  const otherBadges = profile?.badges ?? []
   const interests = profile?.interests ?? []
   const photos = profile?.photos ?? []
   const hostBadgeName = profile?.host_badges?.[0] ?? null
   const hostBadgeImage = hostBadgeName ? HOST_BADGE_IMAGES[hostBadgeName] : null
   const vibers = profile?.vibers_count ?? 0
   const vibing = profile?.vibing_count ?? 0
-  const avgRating = profile?.host_avg_rating ?? null
-  const reviewCount = profile?.host_review_count ?? 0
+  const age = profile?.dob ? Math.floor((new Date().getTime() - new Date(profile.dob).getTime()) / 3.156e10) : null
+
+  const openFollows = (type: 'followers' | 'following') =>
+    router.push({ pathname: '/(profile)/follows', params: { userId: profile.id, type, name: encodeURIComponent(profile.name ?? ''), vibersCount: vibers, vibingCount: vibing } } as any)
 
   return (
     <View style={styles.root}>
-      <AppHeader
-        title="Profile"
-        hideProgress={hideProgress}
-        leftAction={
-          <HeaderIconBtn onPress={() => { hTap(); router.push('/(events)/create' as any) }}>
-            <Plus size={20} color={Colors.inkSecondary} strokeWidth={1.8} />
-          </HeaderIconBtn>
-        }
-        rightAction={
-          <HeaderIconBtn onPress={() => router.push('/(settings)')} disableAnimation>
-            <Settings size={18} color={Colors.inkSecondary} strokeWidth={1.5} />
-          </HeaderIconBtn>
-        }
+      <MyProfileView
+        profile={profile}
+        photos={photos}
+        age={age}
+        hostBadgeImage={hostBadgeImage}
+        refreshing={refreshing}
+        onRefresh={handleRefresh}
+        scrollHandler={scrollHandler}
+        scrollY={scrollY}
+        voicePlaying={status.playing}
+        onToggleVoice={toggleVoice}
+        onOpenPhoto={i => openMedia(photos.map(ph => ({ url: ph.url, type: 'image' as const })), i)}
+        onEdit={() => router.push('/(profile)/edit')}
+        onShare={() => router.push({
+          pathname: '/(profile)/qr',
+          params: {
+            userId: profile.id,
+            username: profile.username ?? '',
+            name: profile.name ?? '',
+            avatar: photos[0]?.url ?? '',
+            city: profile.city ?? '',
+            interests: interests.join(','),
+          },
+        } as any)}
+        onSettings={() => router.push('/(settings)')}
+        onCreate={() => router.push('/(events)/create' as any)}
+        onVibers={() => openFollows('followers')}
+        onVibing={() => openFollows('following')}
+        onReviews={() => router.push({ pathname: '/(profile)/host-reviews', params: { id: profile.id, name: encodeURIComponent(profile.name ?? '') } } as any)}
+        shareUrl={buildProfileShareUrl(profile.id, profile.username)}
       />
-
-      <Animated.ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={[styles.scroll, { paddingTop: headerHeight }]}
-        refreshControl={<BrandedRefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
-        onScroll={scrollHandler}
-        scrollEventThrottle={16}
-      >
-
-        <ProfileAvatarHeader
-          name={name}
-          gender={gender}
-          city={city}
-          avatarUrl={photos[0]?.url ?? null}
-          hostBadgeImage={hostBadgeImage}
-          onAvatarLongPress={() => photos[0] && openMedia([{ url: photos[0].url, type: 'image' }], 0)}
-        />
-
-        <View style={styles.actionsRow}>
-          <Pressable onPress={() => router.push('/(profile)/edit')} style={styles.actionBtnSecondary}>
-            <Pencil size={18} color={Colors.inkPrimary} strokeWidth={1.8} />
-            <Text style={styles.actionBtnTextSecondary}>Edit Profile</Text>
-          </Pressable>
-          <View style={{ flex: 1 }}>
-            <PrimaryButton
-              label="Share Profile"
-              icon={<Share size={18} color={Colors.background} strokeWidth={2} />}
-              onPress={() => {
-                hTap()
-                router.push({
-                  pathname: '/(profile)/qr',
-                  params: {
-                    userId: profile.id,
-                    username: profile.username ?? '',
-                    name: profile.name ?? '',
-                    avatar: photos[0]?.url ?? '',
-                    city: profile.city ?? '',
-                    interests: interests.join(','),
-                  },
-                } as any)
-              }}
-            />
-          </View>
-        </View>
-
-        <ProfileStatsRow
-          vibers={vibers}
-          vibing={vibing}
-          avgRating={avgRating}
-          reviewCount={reviewCount}
-          onVibersPress={() => router.push({ pathname: '/(profile)/follows', params: { userId: profile.id, type: 'followers', name: encodeURIComponent(profile.name ?? ''), vibersCount: vibers, vibingCount: vibing } } as any)}
-          onVibingPress={() => router.push({ pathname: '/(profile)/follows', params: { userId: profile.id, type: 'following', name: encodeURIComponent(profile.name ?? ''), vibersCount: vibers, vibingCount: vibing } } as any)}
-          onReviewsPress={() => router.push({ pathname: '/(profile)/host-reviews', params: { id: profile.id, name: encodeURIComponent(profile.name ?? '') } } as any)}
-        />
-
-        <ProfileBioVoiceCard
-          bio={bio}
-          voiceUrl={profile?.voice_url ?? null}
-          playing={status.playing}
-          onTogglePlay={toggleVoice}
-        />
-
-        <ProfileDetailsChips badges={otherBadges} interests={interests} />
-
-        <ProfilePhotoGrid
-          photos={photos}
-          onPhotoPress={(i) => openMedia(photos.map(p => ({ url: p.url, type: 'image' as const })), i)}
-        />
-
-        <View style={{ height: 36 }} />
-      </Animated.ScrollView>
 
       {viewingMedia && (
         <MediaViewerModal
@@ -206,27 +137,5 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: Colors.background },
   loader: { flex: 1, backgroundColor: Colors.background, alignItems: 'center', justifyContent: 'center' },
-  scroll: { paddingBottom: ComponentSize.navBar + 32 },
 
-  actionsRow: {
-    flexDirection: 'row',
-    gap: 12,
-    paddingHorizontal: Spacing.screenPadding,
-    marginBottom: 24,
-  },
-  actionBtnSecondary: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    backgroundColor: Colors.surface,
-    height: 52,
-    borderRadius: 26,
-  },
-  actionBtnTextSecondary: {
-    fontFamily: FontFamily.bodySemiBold,
-    fontSize: 15,
-    color: Colors.inkPrimary,
-  },
 })

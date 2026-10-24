@@ -20,6 +20,7 @@ import { useAuthStore } from '@/store/auth'
 import ApiService from '@/api/apiService'
 import { Colors, ComponentSize, FontFamily, Radius, withOpacity } from '@/constants'
 import { isRecentlyActive } from '@/lib/formatLastSeen'
+import { ChatTop } from '@/components/chat/ChatVibeBanner'
 import type { Conversation } from '@/api/apiService'
 
 function formatTime(iso: string | null): string {
@@ -316,7 +317,9 @@ export default function ChatScreen() {
           scrollEventThrottle={16}
           refreshControl={<BrandedRefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
           contentContainerStyle={s.listContent}
-          ListHeaderComponent={null}
+          ListHeaderComponent={
+            <View style={{ paddingHorizontal: 20, paddingTop: 14, paddingBottom: 6 }}><ChatTop vibes={pendingVibes} onOpenVibes={() => setInboxOpen(true)} /></View>
+          }
           onEndReachedThreshold={0.4}
           onEndReached={() => {
             if (hasMore && !loadingMore) loadMore()
