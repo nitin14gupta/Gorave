@@ -42,7 +42,7 @@ export default function EmergencyContactsScreen() {
           <EmptyState
             icon={<ShieldAlert size={48} color={Colors.inkDisabled} strokeWidth={1.2} />}
             title="No emergency contacts yet"
-            subtitle="Add people we can alert with your live location if something feels wrong at an event."
+            subtitle="Add people we can alert with a map link to where you are if something feels wrong at an event."
             ctaLabel="Add Contact"
             ctaIcon={<UserPlus size={17} color={Colors.background} strokeWidth={2.2} />}
             onCtaPress={goAddContact}
@@ -59,7 +59,10 @@ export default function EmergencyContactsScreen() {
           ItemSeparatorComponent={() => <View style={s.sep} />}
           ListHeaderComponent={
             <>
-              <Text style={s.subtitle}>Choose people you want us to alert in case of an emergency.</Text>
+              <Text style={s.subtitle}>These people hear from us only if you send SOS. Here is the text they would get:</Text>
+              <View style={s.preview}>
+                <Text style={s.previewText}>SOS from you via Gorave: I may need assistance at your event. My current location: maps.google.com/?q=...</Text>
+              </View>
               {maxReached ? (
                 <Text style={s.maxNote}>Maximum of {MAX_EMERGENCY_CONTACTS} contacts reached</Text>
               ) : (
@@ -100,13 +103,18 @@ const s = StyleSheet.create({
     fontFamily: FontFamily.bodyRegular, fontSize: 13, color: Colors.inkSecondary,
     paddingHorizontal: Spacing.screenPadding, paddingBottom: 14, lineHeight: 19,
   },
+  preview: {
+    marginHorizontal: Spacing.screenPadding, marginBottom: 16, padding: 14, borderRadius: 18, borderBottomLeftRadius: 4,
+    backgroundColor: Colors.surface, borderWidth: 1, borderColor: Colors.divider,
+  },
+  previewText: { fontFamily: FontFamily.bodyRegular, fontSize: 13, lineHeight: 19, color: Colors.inkPrimary },
   addRow: {
     flexDirection: 'row', alignItems: 'center', gap: 14,
     paddingHorizontal: Spacing.screenPadding, height: 56,
   },
   addIcon: {
     width: 36, height: 36, borderRadius: 18,
-    backgroundColor: withOpacity(Colors.accentGreen, 0.14),
+    backgroundColor: withOpacity(Colors.inkPrimary, 0.07),
     alignItems: 'center', justifyContent: 'center',
   },
   addLabel: { fontFamily: FontFamily.bodySemiBold, fontSize: 15, color: Colors.inkPrimary },

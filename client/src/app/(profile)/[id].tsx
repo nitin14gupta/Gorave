@@ -1,25 +1,18 @@
 import { useState, useEffect, useCallback } from "react";
-import { View, Text, StyleSheet, ScrollView, Pressable } from "react-native";
+import { View, Text, StyleSheet, Pressable } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { hMedium, hSuccess } from "@/lib/haptics";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ArrowLeft, Ghost } from "lucide-react-native";
 import { useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
-import { VibeRequestModal, VibeIcebreakerModal, ProfileMenuSheet, BrandedLoader, BrandedRefreshControl } from "@/components/ui";
+import { VibeRequestModal, VibeIcebreakerModal, ProfileMenuSheet, BrandedLoader } from "@/components/ui";
 import ApiService, { ExtendedProfile } from "@/api/apiService";
 import { Colors, FontFamily, HOST_BADGE_IMAGES } from "@/constants";
 import { usePillStore } from "@/store/pillStore";
 import { useVibeStore } from "@/store/vibeStore";
 import { useImageViewer } from "@/hooks/useImageViewer";
+import { UserProfileView } from "@/components/profile/UserProfileView";
 import { MediaViewerModal } from "@/components/chat/MediaViewerModal";
-import { ProfileHeaderBar } from "@/components/profile/ProfileHeaderBar";
-import { ProfilePhotoCarousel } from "@/components/profile/ProfilePhotoCarousel";
-import { ProfileNameHeader } from "@/components/profile/ProfileNameHeader";
-import { UserProfileStatsRow } from "@/components/profile/UserProfileStatsRow";
-import { UserProfileBlockedOverlay } from "@/components/profile/UserProfileBlockedOverlay";
-import { UserProfileBadgesInterests } from "@/components/profile/UserProfileBadgesInterests";
-import { UserProfileVoiceIntro } from "@/components/profile/UserProfileVoiceIntro";
-import { UserProfileCtaBar } from "@/components/profile/UserProfileCtaBar";
 
 export default function UserProfileScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -227,97 +220,42 @@ export default function UserProfileScreen() {
   const hostBadgeImage = hostBadgeName ? HOST_BADGE_IMAGES[hostBadgeName] : null;
 
   return (
-    <View style={[s.root, { paddingBottom: insets.bottom }]}>
-      <ProfileHeaderBar
-        topInset={insets.top}
+    <View style={s.root}>
+      <UserProfileView
+        profile={profile}
+        photos={photos}
+        age={age}
+        hostBadgeImage={hostBadgeImage}
+        blockedByMe={blockedByMe}
+        onUnblock={handleUnblock}
+        refreshing={refreshing}
+        onRefresh={handleRefresh}
         onBack={() => router.back()}
         onMenu={() => setMenuOpen(true)}
-      />
-
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 120 }}
-        refreshControl={
-          <BrandedRefreshControl
-            refreshing={refreshing}
-            onRefresh={handleRefresh}
-          />
-        }
-      >
-        <ProfilePhotoCarousel
-          photos={photos}
-          name={profile.name}
-          onOpenPhoto={(index) =>
-            openMedia(photos.map((p) => ({ url: p.url, type: "image" })), index)
-          }
-        />
-
-        <View style={s.body}>
-          <ProfileNameHeader
-            name={profile.name}
-            age={age}
-            username={profile.username}
-            city={profile.city}
-            mutualCount={profile.mutual_count ?? 0}
-            hostBadgeImage={hostBadgeImage}
-          />
-
-          {!blockedByMe && (
-            <UserProfileStatsRow
-              userId={profile.id}
-              name={profile.name}
-              vibersCount={profile.vibers_count ?? 0}
-              vibingCount={profile.vibing_count ?? 0}
-              hostAvgRating={profile.host_avg_rating}
-              hostReviewCount={profile.host_review_count ?? 0}
-            />
-          )}
-
-          {blockedByMe && <UserProfileBlockedOverlay onUnblock={handleUnblock} />}
-
-          {!blockedByMe && profile.bio ? <Text style={s.bio}>{profile.bio}</Text> : null}
-
-          {!blockedByMe && (
-            <UserProfileBadgesInterests badges={profile.badges} interests={profile.interests} />
-          )}
-
-          {!blockedByMe && profile.voice_url ? (
-            <UserProfileVoiceIntro playing={voiceStatus.playing} onTogglePlay={handleVoiceTogglePlay} />
-          ) : null}
-        </View>
-      </ScrollView>
-
-      {!blockedByMe && (
-        <UserProfileCtaBar
-          insetsBottom={insets.bottom}
-          isConnected={isConnected}
-          theySentVibe={theySentVibe}
-          isPending={isPending}
-          isCooldown={isCooldown}
-          cooldownUntil={profile.cooldown_until}
-          following={following}
-          onMessagePress={() => {
+        onOpenPhoto={index => openMedia(photos.map(p => ({ url: p.url, type: "image" })), index)}
+        voicePlaying={voiceStatus.playing}
+        onToggleVoice={handleVoiceTogglePlay}
+        insetsBottom={insets.bottom}
+        cta={{
+          isConnected,
+          theySentVibe,
+          isPending,
+          isCooldown,
+          cooldownUntil: profile.cooldown_until,
+          following,
+          onMessage: () => {
             if (profile.conversation_id) {
               router.push(`/(chat)/${profile.conversation_id}` as any);
             } else {
               showPill("Send them a vibe first to start chatting", "error");
             }
-          }}
-          onAcceptPress={() => {
-            hSuccess();
-            setAcceptModalOpen(true);
-          }}
-          onSendVibePress={() => {
-            hMedium();
-            setVibeModalOpen(true);
-          }}
-          onCooldownExpiredPress={() => {
-            hMedium();
-            setVibeModalOpen(true);
-          }}
-          onFollowTogglePress={handleFollowToggle}
-        />
-      )}
+          },
+          onAccept: () => { hSuccess(); setAcceptModalOpen(true); },
+          onSendVibe: () => { hMedium(); setVibeModalOpen(true); },
+          onCooldownExpired: () => { hMedium(); setVibeModalOpen(true); },
+          onFollowToggle: handleFollowToggle,
+        }}
+      />
 
       <VibeRequestModal
         visible={vibeModalOpen}

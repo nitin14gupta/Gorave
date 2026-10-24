@@ -87,7 +87,7 @@ export default function BlockedUsersScreen() {
   return (
     <View style={s.root}>
       <AppHeader
-        title="Blocked Users"
+        title="Blocked people"
         hideProgress={hideProgress}
         leftAction={<HeaderIconBtn onPress={() => router.back()}><ArrowLeft size={18} color={Colors.inkPrimary} strokeWidth={2} /></HeaderIconBtn>}
       />
@@ -99,7 +99,7 @@ export default function BlockedUsersScreen() {
       ) : blocked.length === 0 ? (
         <View style={[s.center, { paddingTop: headerHeight }]}>
           <ShieldOff size={48} color={Colors.inkDisabled} strokeWidth={1.2} />
-          <Text style={s.emptyTitle}>No blocked users</Text>
+          <Text style={s.emptyTitle}>No one blocked</Text>
           <Text style={s.emptySub}>Users you block won't appear in your feed or be able to contact you.</Text>
         </View>
       ) : (

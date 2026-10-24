@@ -22,6 +22,9 @@ import { PlaybackWave, OutlineButton } from '@/components/ui'
 import { LinkPreviewCard } from './LinkPreviewCard'
 import { isUrlOnly, normalizeUrl } from '@/lib/linkify'
 
+// Your messages are a neutral grey bubble.
+const mine = { bg: withOpacity(Colors.inkPrimary, 0.14), text: Colors.inkPrimary, time: withOpacity(Colors.inkPrimary, 0.45) }
+
 // ── Reply preview ─────────────────────────────────────────────────────────────
 
 type ReplyIcon = { Icon: any; label: string }
@@ -124,7 +127,7 @@ const VoiceBubble = forwardRef<VoiceBubbleHandle, {
   const durationStr = `${mins}:${secs}`
 
   return (
-    <View style={[vb.bubble, isMine ? vb.bubbleMine : vb.bubbleTheirs]}>
+    <View style={[vb.bubble, isMine ? vb.bubbleMine : vb.bubbleTheirs, isMine && { backgroundColor: mine.bg, borderColor: 'transparent' }]}>
       <View style={[vb.playBtn, isPending && { opacity: 0.4 }]}>
         {status.playing
           ? <Pause size={16} color={Colors.background} strokeWidth={2.5} />
@@ -136,7 +139,7 @@ const VoiceBubble = forwardRef<VoiceBubbleHandle, {
       </View>
       {isPending
         ? <ActivityIndicator size="small" color={Colors.inkSecondary} />
-        : <Text style={[vb.duration, { color: isMine ? Colors.inkPrimary : Colors.inkSecondary }]}>
+        : <Text style={[vb.duration, { color: isMine ? mine.text : Colors.inkSecondary }]}>
             {durationStr}
           </Text>
       }
@@ -609,6 +612,7 @@ export function MessageBubble({
           <Animated.View style={[
             s.bubble,
             isMine ? s.bubbleMine : s.bubbleTheirs,
+            isMine && { backgroundColor: mine.bg },
             isPending && s.bubblePending,
             isFailed && s.bubbleFailed,
             hasReply && s.bubbleWithReply,
@@ -619,10 +623,10 @@ export function MessageBubble({
             {isLinkMessage && msg.content ? (
               <LinkPreviewCard url={normalizeUrl(msg.content)} isMine={isMine} />
             ) : (
-              <Text style={[s.text, isMine && s.textMine]}>{msg.content}</Text>
+              <Text style={[s.text, isMine && { color: mine.text }]}>{msg.content}</Text>
             )}
             {!isLinkMessage && (
-              <Animated.Text style={[s.timeInner, timeRevealStyle]}>
+              <Animated.Text style={[s.timeInner, isMine && { color: mine.time }, timeRevealStyle]}>
                 {timeStr}
               </Animated.Text>
             )}

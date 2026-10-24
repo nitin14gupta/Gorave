@@ -148,8 +148,8 @@ const s = StyleSheet.create({
   filterBadge: {
     position: 'absolute', top: -4, right: -4,
     minWidth: 16, height: 16, borderRadius: 8, paddingHorizontal: 3,
-    backgroundColor: Colors.brandOrange,
+    backgroundColor: Colors.inkPrimary,
     alignItems: 'center', justifyContent: 'center',
   },
-  filterBadgeText: { fontFamily: FontFamily.bodySemiBold, fontSize: 10, color: Colors.inkPrimary },
+  filterBadgeText: { fontFamily: FontFamily.bodySemiBold, fontSize: 10, color: Colors.background },
 })

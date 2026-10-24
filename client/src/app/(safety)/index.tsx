@@ -1,14 +1,14 @@
-import { useCallback, useMemo } from 'react'
+import { useCallback } from 'react'
 import { View, Text, StyleSheet, ScrollView } from 'react-native'
 import { router, useFocusEffect } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { LinearGradient } from 'expo-linear-gradient'
-import { ArrowLeft, Siren, UserRoundPlus, LifeBuoy } from 'lucide-react-native'
+import { ArrowLeft } from 'lucide-react-native'
 import { AppHeader, APP_HEADER_BAR_HEIGHT, HeaderIconBtn } from '@/components/ui'
-import { SafetyMenuRow } from '@/components/safety/SafetyMenuRow'
+import { SafetyView } from '@/components/safety/SafetyView'
+import { useActiveEvent } from '@/components/safety/useActiveEvent'
 import { useHeaderScroll } from '@/hooks/useHeaderScroll'
 import { useEmergencyContacts } from '@/hooks/useEmergencyContacts'
-import { Colors, FontFamily, Spacing, withOpacity } from '@/constants'
+import { Colors, Spacing } from '@/constants'
 
 export default function SafetyHubScreen() {
   const { hideProgress, onScroll } = useHeaderScroll()
@@ -18,10 +18,7 @@ export default function SafetyHubScreen() {
 
   useFocusEffect(useCallback(() => { load() }, [load]))
 
-  const contactsSubtitle = useMemo(
-    () => (contacts.length ? contacts.map(c => c.name).join(', ') : "We'll alert them in case of an emergency."),
-    [contacts],
-  )
+  const activeEvent = useActiveEvent()
 
   return (
     <View style={s.root}>
@@ -37,34 +34,13 @@ export default function SafetyHubScreen() {
         scrollEventThrottle={16}
         contentContainerStyle={[s.content, { paddingTop: headerHeight + 8 }]}
       >
-        <LinearGradient
-          colors={[withOpacity(Colors.accentGreen, 0.16), withOpacity(Colors.accentGreen, 0)]}
-          style={s.banner}
-        >
-          <Siren size={32} color={Colors.accentGreen} strokeWidth={1.6} />
-        </LinearGradient>
-
-        <Text style={s.sectionTitle}>Safety preferences</Text>
-        <View style={s.card}>
-          <SafetyMenuRow
-            icon={<UserRoundPlus size={22} color={Colors.inkSecondary} strokeWidth={1.6} />}
-            title="Emergency Contacts"
-            subtitle={contactsSubtitle}
-            onPress={() => router.push('/(safety)/contacts' as any)}
-            showSeparator={false}
-          />
-        </View>
-
-        <Text style={s.sectionTitle}>More safety support</Text>
-        <View style={s.card}>
-          <SafetyMenuRow
-            icon={<LifeBuoy size={22} color={Colors.inkSecondary} strokeWidth={1.6} />}
-            title="Help & FAQ"
-            subtitle="Get answers or reach support"
-            onPress={() => router.push('/(settings)/help' as any)}
-            showSeparator={false}
-          />
-        </View>
+        <SafetyView
+          contacts={contacts}
+          activeEvent={activeEvent}
+          onContacts={() => router.push('/(safety)/contacts' as any)}
+          onAddContact={() => router.push('/(safety)/contacts-choose' as any)}
+          onHelp={() => router.push('/(settings)/help' as any)}
+        />
       </ScrollView>
     </View>
   )
@@ -72,19 +48,5 @@ export default function SafetyHubScreen() {
 
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: Colors.background },
-  content: { paddingHorizontal: Spacing.screenPadding, paddingBottom: 40, gap: 8 },
-  banner: {
-    height: 110, borderRadius: 20,
-    alignItems: 'center', justifyContent: 'center',
-    marginBottom: 8,
-  },
-  sectionTitle: {
-    fontFamily: FontFamily.bodyMedium, fontSize: 11, letterSpacing: 0.88,
-    color: Colors.inkSecondary, marginTop: 12, marginBottom: 2, marginLeft: 4,
-  },
-  card: {
-    backgroundColor: Colors.surface,
-    borderRadius: 16,
-    overflow: 'hidden',
-  },
+  content: { paddingHorizontal: Spacing.screenPadding, paddingBottom: 40 },
 })

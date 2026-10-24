@@ -164,12 +164,13 @@ const s = StyleSheet.create({
     borderRadius: Radius.card + 8,
     padding: 12,
   },
+  // Top-right, above the chevron column, so it never covers the title.
   hotlistBtn: {
-    position: 'absolute', top: 17, left: 105,
-    width: 22, height: 22, borderRadius: 11,
+    position: 'absolute', top: 12, right: 12,
+    width: 26, height: 26, borderRadius: 13,
   },
   sosBtn: {
-    position: 'absolute', top: 16, left: 102,
+    position: 'absolute', bottom: 12, right: 12,
   },
   cardOuter: {
     borderRadius: Radius.card + 8,

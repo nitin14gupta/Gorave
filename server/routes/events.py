@@ -385,6 +385,8 @@ def list_events(
     # join. Leaves out your own events, ones you're already in, waiting on or
     # were declined from, and women-only / men-only events that aren't for you.
     discover: bool = Query(default=False),
+    # Only this person's events (their profile page).
+    host_id: Optional[str] = Query(default=None),
     current_user: dict = Depends(get_current_user),
 ):
     viewer_id = current_user["id"]
@@ -404,6 +406,10 @@ def list_events(
 
     filters = ["e.is_published = TRUE", "e.is_cancelled = FALSE", "e.date_time > NOW()"]
     filter_params: list = []
+
+    if host_id:
+        filters.append("e.host_id = %s::uuid")
+        filter_params.append(host_id)
 
     if city_row:
         filters.append("e.city = %s")

@@ -66,8 +66,7 @@ export default function NotificationSettingsScreen() {
     <Screen>
       <View style={s.header}>
         <BackButton onPress={() => router.back()} />
-        <Text style={s.title}>Notification Settings</Text>
-        <View style={s.headerEnd} />
+
       </View>
 
       {loading || !prefs ? (
@@ -76,10 +75,10 @@ export default function NotificationSettingsScreen() {
         </View>
       ) : (
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={s.content}>
-          <Text style={s.sectionLabel}>PUSH NOTIFICATIONS</Text>
+          <Text style={s.big}>What should we{'\n'}tell you about?</Text>
           <Text style={s.sectionHint}>
             Choose what you get notified about. Turning these off only affects push
-            notifications — you'll still see everything in your notifications list.
+            notifications. You'll still see everything in your notifications list.
           </Text>
           <View style={s.card}>
             {CATEGORIES.map((cat, i) => (
@@ -115,6 +114,7 @@ const s = StyleSheet.create({
     textAlign: 'center',
   },
   headerEnd: { width: 40 },
+  big: { fontFamily: FontFamily.displayExtraBold, fontSize: 34, lineHeight: 37, letterSpacing: -1, color: Colors.inkPrimary, marginTop: 4, marginBottom: 10 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   content: {
     paddingHorizontal: Spacing.screenPadding,

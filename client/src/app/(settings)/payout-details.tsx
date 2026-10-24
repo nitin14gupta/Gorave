@@ -1,12 +1,19 @@
 import { useCallback, useState } from 'react'
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native'
 import { router, useFocusEffect } from 'expo-router'
-import { ArrowLeft, Landmark, CheckCircle2 } from 'lucide-react-native'
-import { AppHeader, HeaderIconBtn, PrimaryButton } from '@/components/ui'
+import { ArrowLeft, Landmark, Lock } from 'lucide-react-native'
+import { AppHeader, APP_HEADER_BAR_HEIGHT, HeaderIconBtn, PrimaryButton } from '@/components/ui'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { TicketPaper } from '@/components/events/TicketView'
 import ApiService, { type PayoutDetailsResponse } from '@/api/apiService'
-import { Colors, FontFamily, Radius, withOpacity } from '@/constants'
+import { Colors, FontFamily, withOpacity } from '@/constants'
 
+/**
+ * Where your ticket earnings go, shown as a card in the same maroon as the
+ * ticket and the QR pass, with only the masked details on it.
+ */
 export default function PayoutDetailsScreen() {
+  const insets = useSafeAreaInsets()
   const [details, setDetails] = useState<PayoutDetailsResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -22,65 +29,61 @@ export default function PayoutDetailsScreen() {
 
   useFocusEffect(load)
 
+  const isUpi = details?.payout_method === 'upi'
+  const bank = details?.bank_masked
+
   return (
     <View style={s.root}>
       <AppHeader
-        title="Payout Details"
+        title="Payout details"
         leftAction={<HeaderIconBtn onPress={() => router.back()}><ArrowLeft size={18} color={Colors.inkPrimary} strokeWidth={2} /></HeaderIconBtn>}
       />
 
       {loading ? (
-        <View style={s.center}>
-          <ActivityIndicator color={Colors.inkSecondary} />
-        </View>
+        <View style={s.center}><ActivityIndicator color={Colors.inkSecondary} /></View>
       ) : error ? (
         <View style={s.center}>
-          <Landmark size={48} color={Colors.inkDisabled} strokeWidth={1.2} />
-          <Text style={s.emptyTitle}>Couldn't load payout details</Text>
+          <Landmark size={44} color={Colors.inkDisabled} strokeWidth={1.2} />
+          <Text style={s.emptyTitle}>Couldn&apos;t load payout details</Text>
           <Text style={s.emptySub}>{error}</Text>
           <PrimaryButton label="Retry" size="small" style={s.emptyCta} onPress={load} />
         </View>
       ) : !details?.payout_method ? (
         <View style={s.center}>
-          <Landmark size={48} color={Colors.inkDisabled} strokeWidth={1.2} />
+          <Landmark size={44} color={Colors.inkDisabled} strokeWidth={1.2} />
           <Text style={s.emptyTitle}>No payout details yet</Text>
-          <Text style={s.emptySub}>Add your bank or UPI details so we know where to send your ticket earnings.</Text>
-          <PrimaryButton
-            label="Add Payout Details"
-            size="small"
-            style={s.emptyCta}
-            onPress={() => router.push('/(host-onboarding)' as any)}
-          />
+          <Text style={s.emptySub}>Add your bank or UPI so we know where to send your ticket earnings.</Text>
+          <PrimaryButton label="Add payout details" size="small" style={s.emptyCta} onPress={() => router.push('/(host-onboarding)' as any)} />
         </View>
       ) : (
-        <View style={s.content}>
-          <Text style={s.sectionLabel}>PAYOUT METHOD</Text>
+        <View style={[s.content, { paddingTop: APP_HEADER_BAR_HEIGHT + insets.top + 12 }]}>
           <View style={s.card}>
-            <View style={s.row}>
-              <View style={s.iconWrap}>
-                <CheckCircle2 size={18} color={Colors.accentGreen} strokeWidth={2} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={s.rowLabel}>
-                  {details.payout_method === 'upi' ? 'UPI' : 'Bank Account'}
-                </Text>
-                {details.payout_method === 'upi' && details.upi_id_masked ? (
-                  <Text style={s.rowValue}>{details.upi_id_masked}</Text>
-                ) : details.bank_masked ? (
-                  <>
-                    <Text style={s.rowValue}>{details.bank_masked.account_holder_name}</Text>
-                    <Text style={s.rowSub}>
-                      {details.bank_masked.bank_name} · {details.bank_masked.account_number_masked}
-                    </Text>
-                    <Text style={s.rowSub}>{details.bank_masked.ifsc_code}</Text>
-                  </>
-                ) : null}
-              </View>
+            <TicketPaper />
+            <View style={s.cardTop}>
+              <Text style={s.cardKind}>{isUpi ? 'UPI' : 'BANK ACCOUNT'}</Text>
+              <Landmark size={20} color={withOpacity(Colors.white, 0.7)} strokeWidth={1.6} />
             </View>
+            <Text style={s.cardMain} numberOfLines={1}>
+              {isUpi ? details.upi_id_masked : bank?.account_number_masked}
+            </Text>
+            {!isUpi && bank ? (
+              <View style={s.cardBottom}>
+                <View>
+                  <Text style={s.cardLabel}>HOLDER</Text>
+                  <Text style={s.cardValue} numberOfLines={1}>{bank.account_holder_name}</Text>
+                </View>
+                <View style={{ alignItems: 'flex-end' }}>
+                  <Text style={s.cardLabel}>{bank.bank_name}</Text>
+                  <Text style={s.cardValue}>{bank.ifsc_code}</Text>
+                </View>
+              </View>
+            ) : null}
           </View>
-          <Text style={s.footnote}>
-            Payout details are encrypted and only used to send you ticket earnings after your events.
-          </Text>
+
+          <View style={s.note}>
+            <Lock size={14} color={Colors.inkSecondary} strokeWidth={2} />
+            <Text style={s.noteText}>Encrypted, and only used to send you ticket earnings after your events.</Text>
+          </View>
         </View>
       )}
     </View>
@@ -91,40 +94,18 @@ const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: Colors.background },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, padding: 32 },
   emptyTitle: { fontFamily: FontFamily.headingBold, fontSize: 18, color: Colors.inkPrimary },
-  emptySub: {
-    fontFamily: FontFamily.bodyRegular, fontSize: 14, color: Colors.inkSecondary,
-    textAlign: 'center', lineHeight: 20,
-  },
+  emptySub: { fontFamily: FontFamily.bodyRegular, fontSize: 14, color: Colors.inkSecondary, textAlign: 'center', lineHeight: 20 },
   emptyCta: { marginTop: 4, minWidth: 180 },
-  content: { padding: 20 },
-  sectionLabel: {
-    fontFamily: FontFamily.bodyMedium,
-    fontSize: 11,
-    letterSpacing: 0.88,
-    color: Colors.inkSecondary,
-    marginBottom: 8,
-    marginLeft: 4,
-  },
-  card: {
-    backgroundColor: Colors.surface,
-    borderRadius: Radius.card,
-    padding: 16,
-  },
-  row: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
-  iconWrap: {
-    width: 36, height: 36, borderRadius: 18,
-    backgroundColor: withOpacity(Colors.accentGreen, 0.12),
-    alignItems: 'center', justifyContent: 'center',
-  },
-  rowLabel: { fontFamily: FontFamily.bodyMedium, fontSize: 12, color: Colors.inkSecondary, marginBottom: 2 },
-  rowValue: { fontFamily: FontFamily.headingBold, fontSize: 16, color: Colors.inkPrimary },
-  rowSub: { fontFamily: FontFamily.bodyRegular, fontSize: 13, color: Colors.inkSecondary, marginTop: 2 },
-  footnote: {
-    fontFamily: FontFamily.bodyRegular,
-    fontSize: 12,
-    color: Colors.inkDisabled,
-    marginTop: 14,
-    lineHeight: 18,
-    marginHorizontal: 4,
-  },
+  content: { paddingHorizontal: 20 },
+
+  card: { height: 210, borderRadius: 24, overflow: 'hidden', padding: 22, justifyContent: 'space-between' },
+  cardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  cardKind: { fontFamily: FontFamily.bodySemiBold, fontSize: 12, letterSpacing: 1.6, color: withOpacity(Colors.white, 0.7) },
+  cardMain: { fontFamily: FontFamily.displayExtraBold, fontSize: 26, letterSpacing: 1, color: Colors.white },
+  cardBottom: { flexDirection: 'row', justifyContent: 'space-between', gap: 12 },
+  cardLabel: { fontFamily: FontFamily.bodySemiBold, fontSize: 10, letterSpacing: 1.2, color: withOpacity(Colors.white, 0.55), textTransform: 'uppercase' },
+  cardValue: { fontFamily: FontFamily.bodySemiBold, fontSize: 14, color: Colors.white, marginTop: 2, maxWidth: 180 },
+
+  note: { flexDirection: 'row', gap: 8, alignItems: 'center', marginTop: 16, paddingHorizontal: 4 },
+  noteText: { flex: 1, fontFamily: FontFamily.bodyRegular, fontSize: 12.5, lineHeight: 18, color: Colors.inkSecondary },
 })

@@ -35,15 +35,15 @@ const ACTION_ICON: Record<string, any> = {
 const AnimatedPressable = ReanimatedView.createAnimatedComponent(Pressable)
 
 const TYPE_FALLBACK: Record<string, { Icon: any; bg: string; color: string }> = {
-  host_onboarding_complete: { Icon: PartyPopper, bg: withOpacity(Colors.accentGold, 0.16), color: Colors.accentGold },
-  report_submitted: { Icon: ShieldCheck, bg: withOpacity(Colors.inkPrimary, 0.16), color: Colors.inkPrimary },
-  host_badge_earned: { Icon: Trophy, bg: withOpacity(Colors.accentGold, 0.16), color: Colors.accentGold },
-  review_milestone: { Icon: Trophy, bg: withOpacity(Colors.accentGold, 0.16), color: Colors.accentGold },
+  host_onboarding_complete: { Icon: PartyPopper, bg: withOpacity(Colors.inkPrimary, 0.07), color: Colors.inkPrimary },
+  report_submitted: { Icon: ShieldCheck, bg: withOpacity(Colors.inkPrimary, 0.07), color: Colors.inkPrimary },
+  host_badge_earned: { Icon: Trophy, bg: withOpacity(Colors.inkPrimary, 0.07), color: Colors.inkPrimary },
+  review_milestone: { Icon: Trophy, bg: withOpacity(Colors.inkPrimary, 0.07), color: Colors.inkPrimary },
   // Neutral, not brand-colored — a filled orange star here would read as an
   // already-given rating rather than a prompt to go leave one.
   event_review_prompt: { Icon: Star, bg: Colors.surface, color: Colors.inkDisabled },
   event_missed: { Icon: Frown, bg: Colors.surface, color: Colors.inkDisabled },
-  spot_opened: { Icon: Inbox, bg: withOpacity(Colors.brandOrange, 0.16), color: Colors.brandOrange },
+  spot_opened: { Icon: Inbox, bg: withOpacity(Colors.inkPrimary, 0.07), color: Colors.inkPrimary },
   request_expired: { Icon: Frown, bg: Colors.surface, color: Colors.inkDisabled },
   request_declined: { Icon: Frown, bg: Colors.surface, color: Colors.inkDisabled },
 }

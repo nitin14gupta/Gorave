@@ -8,6 +8,11 @@ export interface PhoneViewProps {
   onTerms: () => void
   onPrivacy: () => void
   supportEmail: string
+  /** Reuse outside sign-in (e.g. confirming your number to delete the account). */
+  title?: string
+  sub?: string
+  ctaLabel?: string
+  hideLegal?: boolean
 }
 
 export interface OtpViewProps {
@@ -24,6 +29,7 @@ export interface OtpViewProps {
   onEditNumber: () => void
   onBack: () => void
   onVerify: () => void
+  title?: string
 }
 
 /** "98765 43210" */

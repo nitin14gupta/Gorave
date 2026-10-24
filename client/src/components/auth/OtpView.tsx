@@ -34,7 +34,7 @@ export function OtpView(p: OtpViewProps) {
 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <View style={s.body}>
-          <Text style={s.title}>Enter the{'\n'}code</Text>
+          <Text style={s.title}>{p.title ?? "Enter the\ncode"}</Text>
           <Pressable style={s.sent} onPress={p.onEditNumber} hitSlop={6}>
             <Text style={s.sentText}>Sent to +91 {groupPhone(p.phone)}</Text>
             <Pencil size={13} color={Colors.inkSecondary} strokeWidth={2} />

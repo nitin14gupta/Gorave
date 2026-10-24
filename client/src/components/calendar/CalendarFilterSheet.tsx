@@ -4,7 +4,6 @@ import {
   BottomSheetModal, BottomSheetFlatList, BottomSheetTextInput, BottomSheetBackdrop,
 } from '@gorhom/bottom-sheet'
 import type { BottomSheetBackdropProps } from '@gorhom/bottom-sheet'
-import { LinearGradient } from 'expo-linear-gradient'
 import { ChevronLeft, ChevronRight, Check, MapPin, Search, PartyPopper, Users, Clock3 } from 'lucide-react-native'
 import { hTap, hSelection, hSuccess } from '@/lib/haptics'
 import { Colors, FontFamily, Radius, Spacing, withOpacity } from '@/constants'
@@ -147,9 +146,9 @@ function CalendarFilterSheetCore({ filters, onApply, onClose }: Omit<Props, 'vis
           </View>
 
           <Pressable onPress={apply} style={s.applyWrap}>
-            <LinearGradient colors={[Colors.brandOrange, Colors.brandCoral]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={s.applyBtn}>
-              <Text style={s.applyText}>Apply Filters</Text>
-            </LinearGradient>
+            <View style={[s.applyBtn, { backgroundColor: Colors.inkPrimary }]}>
+              <Text style={[s.applyText, { color: Colors.background }]}>Apply filters</Text>
+            </View>
           </Pressable>
         </>
       ) : (

@@ -1,9 +1,11 @@
 import { View, Text, StyleSheet, Pressable, ScrollView } from 'react-native'
-import { ChevronLeft, ChevronRight, CalendarHeart, TriangleAlert } from 'lucide-react-native'
+import { Image } from 'expo-image'
+import { ChevronLeft, ChevronRight, TriangleAlert } from 'lucide-react-native'
+import { POSTER } from '@/components/ui/ParallaxScreen'
 import { PrimaryButton, OutlineButton, EventListCard, EventListCardSkeleton } from '@/components/ui'
 import type { DayEvents } from '@/hooks/useCalendarEvents'
 import { isEventActive } from '@/lib/dates'
-import { Colors, FontFamily, Spacing, Radius, withOpacity } from '@/constants'
+import { Colors, FontFamily, Spacing, Radius } from '@/constants'
 import { hTap } from '@/lib/haptics'
 
 const MONTH_NAMES = [
@@ -105,11 +107,12 @@ export function CalendarDayPanel({
         </ScrollView>
       ) : (
         <View style={s.emptyWrap}>
-          <View style={s.emptyIconWrap}>
-            <CalendarHeart size={28} color={Colors.inkPrimary} strokeWidth={1.6} />
+          <View style={s.emptyPosters}>
+            <Image source={POSTER.danceFloor} style={[s.emptyPoster, { transform: [{ rotate: '-6deg' }], marginRight: -28 }]} contentFit="cover" />
+            <Image source={POSTER.cheers} style={[s.emptyPoster, { transform: [{ rotate: '5deg' }], zIndex: 1 }]} contentFit="cover" />
           </View>
           <Text style={s.emptyTitle}>Got plans?</Text>
-          <Text style={s.emptySub}>It seems not. Let's change that.</Text>
+          <Text style={s.emptySub}>Nothing on this day yet. Let&apos;s change that.</Text>
           <View style={s.emptyActions}>
             <View style={{ flex: 1 }}>
               <PrimaryButton label="Create Event" size="small" onPress={() => { hTap(); onCreateEvent() }} />
@@ -150,12 +153,8 @@ const s = StyleSheet.create({
   cardsCol: { gap: 10 },
 
   emptyWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32, gap: 6 },
-  emptyIconWrap: {
-    width: 64, height: 64, borderRadius: 32,
-    backgroundColor: withOpacity(Colors.inkPrimary, 0.12),
-    alignItems: 'center', justifyContent: 'center',
-    marginBottom: 8,
-  },
+  emptyPosters: { flexDirection: 'row', marginBottom: 14 },
+  emptyPoster: { width: 84, height: 105, borderRadius: 12, backgroundColor: Colors.surfaceMuted },
   emptyTitle: { fontFamily: FontFamily.headingBold, fontSize: 20, color: Colors.inkPrimary },
   emptySub: { fontFamily: FontFamily.bodyRegular, fontSize: 14, color: Colors.inkSecondary, textAlign: 'center', marginBottom: 18 },
   emptyActions: { flexDirection: 'row', gap: 10, width: '100%' },

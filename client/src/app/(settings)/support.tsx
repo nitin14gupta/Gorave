@@ -1,36 +1,29 @@
 import { useState } from 'react'
-import {
-  View, Text, StyleSheet, Pressable, TextInput,
-  ScrollView, Linking,
-} from 'react-native'
+import { View, Text, StyleSheet, Pressable, TextInput, ScrollView, Linking } from 'react-native'
 import * as Clipboard from 'expo-clipboard'
 import { router } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { ArrowLeft, Mail, ChevronRight } from 'lucide-react-native'
-import { AppHeader, APP_HEADER_BAR_HEIGHT, HeaderIconBtn, PrimaryButton } from '@/components/ui'
+import { ArrowLeft, Mail, Wallet, CreditCard, PartyPopper, UserCog, MessageCircleQuestion } from 'lucide-react-native'
+import { PrimaryButton } from '@/components/ui'
 import { Colors, FontFamily, SUPPORT_EMAIL, withOpacity } from '@/constants'
 import ApiService from '@/api/apiService'
 import { usePillStore } from '@/store/pillStore'
 import { hTap, hSuccess } from '@/lib/haptics'
-import { useHeaderScroll } from '@/hooks/useHeaderScroll'
 
 const TOPICS = [
-  { id: 'refund',    label: 'Wallet refund to bank',     subject: 'Wallet Refund Request' },
-  { id: 'payment',  label: 'Payment issue',              subject: 'Payment Issue' },
-  { id: 'event',    label: 'Issue with an event',        subject: 'Event Issue' },
-  { id: 'account',  label: 'Account / profile problem',  subject: 'Account Issue' },
-  { id: 'other',    label: 'Something else',             subject: 'Support Request' },
-]
+  { id: 'refund', label: 'Refund to my bank', subject: 'Wallet Refund Request', Icon: Wallet },
+  { id: 'payment', label: 'Payment issue', subject: 'Payment Issue', Icon: CreditCard },
+  { id: 'event', label: 'An event', subject: 'Event Issue', Icon: PartyPopper },
+  { id: 'account', label: 'My account', subject: 'Account Issue', Icon: UserCog },
+  { id: 'other', label: 'Something else', subject: 'Support Request', Icon: MessageCircleQuestion },
+] as const
 
 export default function SupportScreen() {
-  const insets   = useSafeAreaInsets()
-  const { hideProgress, onScroll } = useHeaderScroll()
-  const headerHeight = APP_HEADER_BAR_HEIGHT + insets.top
+  const insets = useSafeAreaInsets()
   const showPill = usePillStore(s => s.show)
-
   const [selectedTopic, setSelectedTopic] = useState<string | null>(null)
-  const [message, setMessage]             = useState('')
-  const [sending, setSending]             = useState(false)
+  const [message, setMessage] = useState('')
+  const [sending, setSending] = useState(false)
 
   const topic = TOPICS.find(t => t.id === selectedTopic)
   const canSend = !!selectedTopic && message.trim().length > 10
@@ -40,16 +33,12 @@ export default function SupportScreen() {
     hTap()
     setSending(true)
     try {
-      // Save to backend first
       await ApiService.submitSupport(topic.id, message.trim())
       hSuccess()
-      // Also open mail app so they have a copy
-      const subject = encodeURIComponent(`[Gorave] ${topic.subject}`)
-      const body    = encodeURIComponent(message.trim())
-      const url     = `mailto:${SUPPORT_EMAIL}?subject=${subject}&body=${body}`
-      const canOpen = await Linking.canOpenURL(url)
-      if (canOpen) await Linking.openURL(url)
-      showPill('Support request sent! We\'ll reply within 1–2 business days.', 'default')
+      // Also open the mail app, so they keep a copy.
+      const url = `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(`[Gorave] ${topic.subject}`)}&body=${encodeURIComponent(message.trim())}`
+      if (await Linking.canOpenURL(url)) await Linking.openURL(url)
+      showPill("Sent. We'll reply within 1 to 2 business days.", 'default')
       router.back()
     } catch {
       showPill('Failed to send. Please try again or email us directly.', 'error')
@@ -59,66 +48,39 @@ export default function SupportScreen() {
   }
 
   return (
-    <View style={s.root}>
-      <AppHeader
-        title="Contact Support"
-        hideProgress={hideProgress}
-        leftAction={<HeaderIconBtn onPress={() => router.back()}><ArrowLeft size={18} color={Colors.inkPrimary} strokeWidth={2} /></HeaderIconBtn>}
-      />
+    <View style={[s.root, { paddingTop: insets.top }]}>
+      <View style={s.bar}>
+        <Pressable style={s.iconBtn} onPress={() => router.back()} hitSlop={8}>
+          <ArrowLeft size={20} color={Colors.inkPrimary} strokeWidth={2} />
+        </Pressable>
+      </View>
 
       <ScrollView
-        style={s.scroll}
-        contentContainerStyle={[s.content, { paddingTop: headerHeight, paddingBottom: insets.bottom + 40 }]}
+        contentContainerStyle={[s.content, { paddingBottom: insets.bottom + 40 }]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
-        onScroll={onScroll}
-        scrollEventThrottle={16}
       >
-        {/* Hero */}
-        <View style={s.heroRow}>
-          <View style={s.heroIcon}>
-            <Mail size={28} color={Colors.inkPrimary} strokeWidth={1.8} />
-          </View>
-          <View style={s.heroText}>
-            <Text style={s.heroTitle}>We're here to help</Text>
-            <Text style={s.heroSub}>We reply within 1–2 business days</Text>
-          </View>
+        <Text style={s.title}>What do you{'\n'}need help with?</Text>
+        <Text style={s.sub}>A real person reads this. We reply within 1 to 2 business days.</Text>
+
+        <View style={s.grid}>
+          {TOPICS.map(({ id, label, Icon }) => {
+            const on = selectedTopic === id
+            return (
+              <Pressable key={id} style={[s.tile, on && s.tileOn]} onPress={() => { hTap(); setSelectedTopic(id) }}>
+                <Icon size={20} color={on ? Colors.background : Colors.inkPrimary} strokeWidth={1.8} />
+                <Text style={[s.tileText, on && s.tileTextOn]}>{label}</Text>
+              </Pressable>
+            )
+          })}
         </View>
 
-        {/* Topic picker */}
-        <Text style={s.sectionLabel}>WHAT'S THE ISSUE?</Text>
-        <View style={s.topicCard}>
-          {TOPICS.map((t, i) => (
-            <Pressable
-              key={t.id}
-              style={[
-                s.topicRow,
-                i < TOPICS.length - 1 && s.topicBorder,
-                selectedTopic === t.id && s.topicRowSelected,
-              ]}
-              onPress={() => { hTap(); setSelectedTopic(t.id) }}
-            >
-              <View style={[s.radio, selectedTopic === t.id && s.radioSelected]}>
-                {selectedTopic === t.id && <View style={s.radioDot} />}
-              </View>
-              <Text style={[s.topicLabel, selectedTopic === t.id && s.topicLabelSelected]}>
-                {t.label}
-              </Text>
-              {selectedTopic !== t.id && (
-                <ChevronRight size={16} color={Colors.inkDisabled} strokeWidth={1.8} />
-              )}
-            </Pressable>
-          ))}
-        </View>
-
-        {/* Message */}
-        <Text style={s.sectionLabel}>DESCRIBE YOUR ISSUE</Text>
         <View style={s.inputCard}>
           <TextInput
             style={s.input}
             value={message}
             onChangeText={setMessage}
-            placeholder="Tell us what happened, what you expected, and any relevant details (e.g. event name, amount, date)…"
+            placeholder="What happened? Add the event name, amount or date if it helps."
             placeholderTextColor={Colors.inkDisabled}
             multiline
             maxLength={1000}
@@ -127,27 +89,23 @@ export default function SupportScreen() {
           <Text style={s.charCount}>{message.length}/1000</Text>
         </View>
 
-        {/* Refund note */}
-        {selectedTopic === 'refund' && (
-          <View style={s.noteCard}>
-            <Text style={s.noteText}>
-              For wallet refund requests, please mention your registered phone number and the event(s) you were refunded for. We process bank transfers manually and typically take 5–10 business days.
-            </Text>
-          </View>
-        )}
+        {selectedTopic === 'refund' ? (
+          <Text style={s.note}>
+            Mention your phone number and the events you were refunded for. Bank transfers are done by hand and usually take 5 to 10 business days.
+          </Text>
+        ) : null}
 
-        {/* Send button */}
         <PrimaryButton
-          label="Send via Email"
+          label="Send"
           onPress={handleSend}
           disabled={!canSend}
           loading={sending}
           icon={<Mail size={16} color={Colors.background} strokeWidth={2} />}
-          style={s.sendBtn}
+          style={{ marginTop: 8 }}
         />
 
-        <Text style={s.directEmail}>
-          Or write directly to{' '}
+        <Text style={s.direct}>
+          Or write to{' '}
           <Text
             style={s.emailLink}
             onPress={() => Linking.openURL(`mailto:${SUPPORT_EMAIL}`)}
@@ -168,38 +126,23 @@ export default function SupportScreen() {
 
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: Colors.background },
+  bar: { paddingHorizontal: 12, paddingVertical: 6 },
+  iconBtn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
+  content: { paddingHorizontal: 24, paddingTop: 12, gap: 14 },
+  title: { fontFamily: FontFamily.displayExtraBold, fontSize: 36, lineHeight: 39, letterSpacing: -1, color: Colors.inkPrimary },
+  sub: { fontFamily: FontFamily.bodyRegular, fontSize: 15, lineHeight: 21, color: Colors.inkSecondary, marginBottom: 10 },
 
-  scroll: { flex: 1 },
-  content: { paddingHorizontal: 16, gap: 12 },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  tile: { width: '48.5%', gap: 10, padding: 14, borderRadius: 18, backgroundColor: Colors.surface, borderWidth: 1, borderColor: Colors.divider },
+  tileOn: { backgroundColor: Colors.inkPrimary, borderColor: Colors.inkPrimary },
+  tileText: { fontFamily: FontFamily.bodySemiBold, fontSize: 14, color: Colors.inkPrimary },
+  tileTextOn: { color: Colors.background },
 
-  heroRow: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 8 },
-  heroIcon: { width: 56, height: 56, borderRadius: 28, backgroundColor: withOpacity(Colors.inkPrimary, 0.12), alignItems: 'center', justifyContent: 'center' },
-  heroText: { flex: 1 },
-  heroTitle: { fontFamily: FontFamily.headingBold, fontSize: 18, color: Colors.inkPrimary },
-  heroSub: { fontFamily: FontFamily.bodyRegular, fontSize: 13, color: Colors.inkSecondary, marginTop: 2 },
-
-  sectionLabel: { fontFamily: FontFamily.bodyMedium, fontSize: 11, letterSpacing: 0.88, color: Colors.inkSecondary, marginLeft: 2, marginTop: 4 },
-
-  topicCard: { backgroundColor: Colors.surface, borderRadius: 16, overflow: 'hidden' },
-  topicRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: 14 },
-  topicBorder: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: Colors.divider },
-  topicRowSelected: {},
-  topicLabel: { flex: 1, fontFamily: FontFamily.bodyRegular, fontSize: 15, color: Colors.inkPrimary },
-  topicLabelSelected: { fontFamily: FontFamily.bodyMedium, color: Colors.inkPrimary },
-
-  radio: { width: 20, height: 20, borderRadius: 10, borderWidth: 2, borderColor: Colors.inkDisabled, alignItems: 'center', justifyContent: 'center' },
-  radioSelected: { borderColor: Colors.inkPrimary },
-  radioDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: Colors.inkPrimary },
-
-  inputCard: { backgroundColor: Colors.surface, borderRadius: 16, padding: 16 },
-  input: { fontFamily: FontFamily.bodyRegular, fontSize: 15, color: Colors.inkPrimary, lineHeight: 22, minHeight: 120 },
+  inputCard: { backgroundColor: Colors.surface, borderRadius: 18, borderWidth: 1, borderColor: Colors.divider, padding: 16, marginTop: 6 },
+  input: { fontFamily: FontFamily.bodyRegular, fontSize: 15, color: Colors.inkPrimary, lineHeight: 22, minHeight: 130 },
   charCount: { fontFamily: FontFamily.bodyRegular, fontSize: 11, color: Colors.inkDisabled, textAlign: 'right', marginTop: 8 },
+  note: { fontFamily: FontFamily.bodyRegular, fontSize: 13, lineHeight: 19, color: Colors.inkSecondary, padding: 14, borderRadius: 14, backgroundColor: withOpacity(Colors.inkPrimary, 0.05) },
 
-  noteCard: { backgroundColor: withOpacity(Colors.inkPrimary, 0.07), borderRadius: 12, borderWidth: 1, borderColor: withOpacity(Colors.inkPrimary, 0.18), padding: 14 },
-  noteText: { fontFamily: FontFamily.bodyRegular, fontSize: 13, color: Colors.inkSecondary, lineHeight: 19 },
-
-  sendBtn: { marginTop: 4 },
-
-  directEmail: { fontFamily: FontFamily.bodyRegular, fontSize: 12, color: Colors.inkDisabled, textAlign: 'center', marginTop: 4 },
+  direct: { fontFamily: FontFamily.bodyRegular, fontSize: 12, color: Colors.inkDisabled, textAlign: 'center', marginTop: 4 },
   emailLink: { color: Colors.inkPrimary, fontFamily: FontFamily.bodyMedium },
 })

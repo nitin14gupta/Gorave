@@ -25,8 +25,8 @@ export function PhoneView(p: PhoneViewProps) {
 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <View style={s.body}>
-          <Text style={s.title}>What&apos;s your{'\n'}number?</Text>
-          <Text style={s.sub}>We&apos;ll text you a code to sign in.</Text>
+          <Text style={s.title}>{p.title ?? "What's your\nnumber?"}</Text>
+          <Text style={s.sub}>{p.sub ?? "We'll text you a code to sign in."}</Text>
 
           {/* The real field lies invisibly over the big number, so a tap always
               lands on it and the keyboard reopens, even after it was dismissed. */}
@@ -55,10 +55,12 @@ export function PhoneView(p: PhoneViewProps) {
         </View>
 
         <View style={[s.footer, { paddingBottom: insets.bottom + 12 }]}>
-          <PrimaryButton label="Send code" onPress={p.onContinue} disabled={p.phone.length !== 10} loading={p.loading} />
-          <Text style={s.legal}>
+          <PrimaryButton label={p.ctaLabel ?? 'Send code'} onPress={p.onContinue} disabled={p.phone.length !== 10} loading={p.loading} />
+          {p.hideLegal ? null : (
+            <Text style={s.legal}>
             By continuing you agree to our <Text style={s.link} onPress={p.onTerms}>Terms</Text> and <Text style={s.link} onPress={p.onPrivacy}>Privacy Policy</Text>, and to get event texts from Gorave. Message rates may apply. Help: {p.supportEmail}
           </Text>
+          )}
         </View>
       </KeyboardAvoidingView>
     </View>

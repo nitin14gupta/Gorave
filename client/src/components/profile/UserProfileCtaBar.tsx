@@ -47,25 +47,24 @@ export function UserProfileCtaBar({
       ) : theySentVibe ? (
         <View style={{ flex: 1.6 }}>
           <PrimaryButton
-            label="Accept Vibe"
+            label="Accept vibe"
             icon={<Check size={18} color={Colors.background} strokeWidth={2.5} />}
             onPress={onAcceptPress}
           />
         </View>
       ) : isPending ? (
-        // A sent vibe is a success, not a dead end — read it that way: a
-        // warm brand-tinted pill with the flame lit, not the same flat grey
-        // "disabled" treatment as an actual blocked state like cooldown.
+        // A sent vibe is a success, not a dead end: a solid neutral pill with
+        // the flame lit, not the flat grey of a blocked state like cooldown.
         <Pressable style={[s.ctaBtn, s.ctaBtnPending]} disabled>
-          <Flame size={18} color={Colors.brandOrange} fill={Colors.brandOrange} strokeWidth={1.8} />
-          <Text style={s.ctaBtnPendingText}>Vibe Sent</Text>
+          <Flame size={18} color={Colors.inkPrimary} fill={Colors.inkPrimary} strokeWidth={1.8} />
+          <Text style={s.ctaBtnPendingText}>Vibe sent</Text>
         </Pressable>
       ) : isCooldown && cooldownUntil ? (
         <CooldownPill cooldownUntil={cooldownUntil} onExpiredPress={onCooldownExpiredPress} />
       ) : (
         <View style={{ flex: 1.6 }}>
           <PrimaryButton
-            label="Send Vibe"
+            label="Send vibe"
             icon={<Flame size={18} color={Colors.background} fill={Colors.background} strokeWidth={2} />}
             onPress={onSendVibePress}
           />
@@ -127,13 +126,13 @@ const s = StyleSheet.create({
   },
   ctaBtnPending: {
     flex: 1.6,
-    backgroundColor: withOpacity(Colors.brandOrange, 0.14),
+    backgroundColor: Colors.surface,
     borderWidth: 1,
-    borderColor: withOpacity(Colors.brandOrange, 0.3),
+    borderColor: Colors.divider,
   },
   ctaBtnPendingText: {
     fontFamily: FontFamily.bodySemiBold,
     fontSize: 16,
-    color: Colors.brandOrange,
+    color: Colors.inkPrimary,
   },
 });

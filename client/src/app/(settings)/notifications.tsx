@@ -7,7 +7,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 import { router } from 'expo-router'
 import { useFocusEffect } from 'expo-router'
 import { hTap } from '@/lib/haptics'
-import { ArrowLeft } from 'lucide-react-native'
+import { ArrowLeft, Settings2 } from 'lucide-react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import ApiService, { AppNotification } from '@/api/apiService'
 import { Colors, FontFamily } from '@/constants'
@@ -237,6 +237,7 @@ export default function NotificationsScreen() {
         title="Notifications"
         hideProgress={hideProgress}
         leftAction={<HeaderIconBtn onPress={() => router.back()}><ArrowLeft size={18} color={Colors.inkPrimary} strokeWidth={2} /></HeaderIconBtn>}
+        rightAction={<HeaderIconBtn onPress={() => router.push('/(settings)/notification-settings' as any)}><Settings2 size={18} color={Colors.inkPrimary} strokeWidth={2} /></HeaderIconBtn>}
       />
 
       {loading ? (
@@ -287,11 +288,10 @@ const s = StyleSheet.create({
     paddingBottom: 6,
   },
   sectionHeaderText: {
-    fontFamily: FontFamily.bodySemiBold,
-    fontSize: 12,
-    color: Colors.inkSecondary,
-    letterSpacing: 0.6,
-    textTransform: 'uppercase',
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 22,
+    letterSpacing: -0.4,
+    color: Colors.inkPrimary,
   },
   footerLoader: { alignItems: 'center', paddingVertical: 16 },
 })

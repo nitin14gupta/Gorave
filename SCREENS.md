@@ -40,13 +40,13 @@ Routes live in `client/src/app/` (Expo Router). `(group)` folders don't show in 
 
 | # | Screen | Route | What it does | UI pass |
 |---|---|---|---|---|
-| 5 | Age check | `(onboarding)/index` | Confirm you're 18+ | ⬜ |
-| 6 | About you | `(onboarding)/profile` | Name, date of birth, gender (set once) | ⬜ |
-| 7 | Photos | `(onboarding)/photos` | The same photo grid as Edit photos: main square big, five around it, star to make main | ✅ |
-| 8 | Voice intro | `(onboarding)/voice` | Tap the orb, record up to 30s, play back, retake or skip | ✅ |
-| 9 | Interests | `(onboarding)/interests` | Pick what you're into | ⬜ |
+| 5 | Age check | `(onboarding)/index` | Confirm you're 18+ | ✅ poster fills the screen, title above the buttons |
+| 6 | About you | `(onboarding)/profile` | Name, date of birth, gender (set once) | ✅ big name and date, gender chips, bio in a popup editor |
+| 7 | Photos | `(onboarding)/photos` | The same photo grid as Edit photos: main square big, five around it, star to make main | ✅ same screen as Edit photos |
+| 8 | Voice intro | `(onboarding)/voice` | Tap the orb, record up to 30s, play back, retake or skip | ✅ unchanged |
+| 9 | Interests | `(onboarding)/interests` | Pick what you're into | ✅ poster band, chips |
 | 10 | City | `(onboarding)/location` | The same postcard city picker as Change city | ✅ |
-| 11 | All set | `(onboarding)/complete` | Finish and enter the app | ⬜ |
+| 11 | All set | `(onboarding)/complete` | Finish and enter the app | ✅ your photo with posters fanned behind |
 
 ### 3. Main tabs
 
@@ -96,8 +96,8 @@ Routes live in `client/src/app/` (Expo Router). `(group)` folders don't show in 
 
 | # | Screen | Route | What it does | UI pass |
 |---|---|---|---|---|
-| 36 | Someone's profile | `(profile)/[id]` | Photos, voice intro, interests, hosted events, send a vibe, follow | ⬜ |
-| 37 | Edit profile | `(profile)/edit` | Name, bio, interests, badges, voice intro card | ✅ voice |
+| 36 | Someone's profile | `(profile)/[id]` | Photos, voice intro, interests, hosted events, send a vibe, follow | ✅ cover photo, feed cards, going-to and hosting rails, guest reviews |
+| 37 | Edit profile | `(profile)/edit` | Name, bio, interests, badges, voice intro card | ✅ cover + cards |
 | 38 | Record new intro | `(profile)/voice` | Same orb recorder as onboarding, saves and goes back | ✅ |
 | 39 | Edit photos | `(profile)/edit-photos` | Hinge-style grid of squares (profile photos are 1:1): the main one big, five around it, star to make main, cross to remove. Onboarding's photo step uses the same grid | ✅ |
 | 40 | Change city | `(profile)/location` | Wide postcard banners for the cities with photos, search with Near me, the rest as a list. Onboarding's city step uses the same view | ✅ |
@@ -110,40 +110,40 @@ Routes live in `client/src/app/` (Expo Router). `(group)` folders don't show in 
 
 | # | Screen | Route | What it does | UI pass |
 |---|---|---|---|---|
-| 45 | Conversation | `(chat)/[id]` | Messages, photos, voice notes, event cards, edit, unsend, report | ⬜ |
-| 46 | Pending vibe | `(chat)/pending` | The vibe you sent, waiting for them to reply | ⬜ |
+| 45 | Conversation | `(chat)/[id]` | Messages, photos, voice notes, event cards, edit, unsend, report | ✅ grey bubbles |
+| 46 | Pending vibe | `(chat)/pending` | The vibe you sent, waiting for them to reply | ✅ what happens next |
 
 ### 9. Safety
 
 | # | Screen | Route | What it does | UI pass |
 |---|---|---|---|---|
-| 47 | Safety centre | `(safety)/index` | SOS, emergency contacts, safety tips | ⬜ |
-| 48 | Emergency contacts | `(safety)/contacts` | Your list of trusted contacts | ⬜ |
-| 49 | Choose from contacts | `(safety)/contacts-choose` | Pick from your phone's contacts | ⬜ |
-| 50 | New contact | `(safety)/contacts-new` | Add a contact by hand | ⬜ |
+| 47 | Safety centre | `(safety)/index` | SOS, emergency contacts, safety tips | ✅ tonight + circle |
+| 48 | Emergency contacts | `(safety)/contacts` | Your list of trusted contacts | ✅ SMS preview |
+| 49 | Choose from contacts | `(safety)/contacts-choose` | Pick from your phone's contacts | ✅ unchanged |
+| 50 | New contact | `(safety)/contacts-new` | Add a contact by hand | ✅ big-type, same as sign in |
 
 ### 10. Settings and account
 
 | # | Screen | Route | What it does | UI pass |
 |---|---|---|---|---|
-| 51 | Settings | `(settings)/index` | Account, events, money, safety, help, legal | ⬜ |
+| 51 | Settings | `(settings)/index` | Account, events, money, safety, help, legal | ✅ your photo on top (parallax), quick tiles, delete moved to Account |
 | 52 | My events | `(settings)/my-events` | Events you host: upcoming and past, cards or list | ✅ cards |
 | 53 | Joined events | `(settings)/joined-events` | Events you're going to, with tickets | ✅ cards |
 | 54 | Hotlist | `(settings)/hotlist` | Saved events | ✅ cards |
-| 55 | Calendar | `(settings)/calendar` | Your nights by date | ⬜ |
-| 56 | Notifications | `(settings)/notifications` | Activity feed with inline actions (accept, follow back) | ⬜ |
-| 57 | Notification settings | `(settings)/notification-settings` | Push categories on or off | ⬜ |
-| 58 | Wallet | `(settings)/wallet` | Balance, refunds and history | ⬜ |
-| 59 | Payout details | `(settings)/payout-details` | Bank or UPI for host payouts | ⬜ |
-| 60 | Blocked users | `(settings)/blocked` | Unblock people | ⬜ |
-| 61 | Background | `(settings)/background` | App background choice | ⬜ |
-| 62 | Help & FAQ | `(settings)/help` | Answers by topic | ⬜ |
-| 63 | Contact support | `(settings)/support` | Write to the team | ⬜ |
-| 64 | Send feedback | `(settings)/feedback` | Tell us what to fix | ⬜ |
-| 65 | About | `(settings)/about` | Version and links | ⬜ |
-| 66 | Terms | `(settings)/terms` | Terms of service | ⬜ |
-| 67 | Privacy | `(settings)/privacy` | Privacy policy | ⬜ |
-| 68 | Delete account | `(settings)/delete-account` | Confirm and schedule deletion | ⬜ |
+| 55 | Calendar | `(settings)/calendar` | Your nights by date | ✅ neutral colours, poster empty state |
+| 56 | Notifications | `(settings)/notifications` | Activity feed with inline actions (accept, follow back) | ✅ big day headers, settings gear, neutral icons |
+| 57 | Notification settings | `(settings)/notification-settings` | Push categories on or off | ✅ big title, neutral switches |
+| 58 | Wallet | `(settings)/wallet` | Balance, refunds and history | ✅ poster header, balance on photo |
+| 59 | Payout details | `(settings)/payout-details` | Bank or UPI for host payouts | ✅ maroon card |
+| 60 | Blocked users | `(settings)/blocked` | Unblock people | ✅ copy |
+| 60b | Account | `(settings)/account` | Phone number, blocked, legal, delete account at the bottom | ✅ new |
+| 62 | Help & FAQ | `(settings)/help` | Answers by topic | ✅ poster header, topics, accordion |
+| 63 | Contact support | `(settings)/support` | Write to the team | ✅ big type, topic tiles |
+| 64 | Send feedback | `(settings)/feedback` | Tell us what to fix | ✅ mood picker |
+| 65 | About | `(settings)/about` | Version and links | ✅ poster header |
+| 66 | Terms | `(settings)/terms` | Terms of service | ✅ website page, unchanged |
+| 67 | Privacy | `(settings)/privacy` | Privacy policy | ✅ website page, unchanged |
+| 68 | Delete account | `(settings)/delete-account` | Confirm and schedule deletion | ✅ number and code use the sign-in screens |
 
 ### Sheets and overlays (not routes, still worth a pass)
 

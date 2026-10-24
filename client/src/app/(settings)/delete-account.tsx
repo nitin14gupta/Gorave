@@ -11,7 +11,8 @@ import { DeleteStepDots } from '@/components/settings/DeleteStepDots'
 import { DeleteBlockedEvents } from '@/components/settings/DeleteBlockedEvents'
 import { DeleteWarningStep } from '@/components/settings/DeleteWarningStep'
 import { DeleteLossStep } from '@/components/settings/DeleteLossStep'
-import { DeleteOtpStep } from '@/components/settings/DeleteOtpStep'
+import { PhoneView } from '@/components/auth/PhoneView'
+import { OtpView } from '@/components/auth/OtpView'
 import { DeleteConfirmStep } from '@/components/settings/DeleteConfirmStep'
 import ApiService from '@/api/apiService'
 import { useAuthStore } from '@/store/auth'
@@ -20,7 +21,7 @@ import { hTap, hSuccess } from '@/lib/haptics'
 import { isEventPast } from '@/lib/dates'
 import { useCountdown } from '@/hooks/useCountdown'
 
-const TOTAL_STEPS = 4
+const TOTAL_STEPS = 3
 
 export default function DeleteAccountScreen() {
   const insets   = useSafeAreaInsets()
@@ -31,6 +32,8 @@ export default function DeleteAccountScreen() {
 
   const [step, setStep]               = useState(1)
   const [otpSent, setOtpSent]         = useState(false)
+  const [phoneTyped, setPhoneTyped] = useState('')
+  const [phoneError, setPhoneError] = useState('')
   const [otp, setOtp]                 = useState('')
   const [otpError, setOtpError]       = useState(false)
   const [otpLoading, setOtpLoading]   = useState(false)
@@ -57,7 +60,6 @@ export default function DeleteAccountScreen() {
   )
 
   const rawPhone    = useAuthStore(s => s.phone ?? '')
-  const maskedPhone = `+91 ******${rawPhone.slice(-4)}`
 
   const handleSendOtp = async () => {
     if (otpLoading) return
@@ -65,6 +67,7 @@ export default function DeleteAccountScreen() {
     setOtpLoading(true)
     try {
       await ApiService.sendOTP(rawPhone)
+      setStep(4)
       setOtpSent(true)
       setOtp('')
       setOtpError(false)
@@ -85,7 +88,7 @@ export default function DeleteAccountScreen() {
       await ApiService.verifyOTP(rawPhone, otp)
       hSuccess()
       setOtpVerified(true)
-      setStep(4)
+      setStep(5)
     } catch (e: any) {
       setOtpError(true)
       setOtp('')
@@ -93,6 +96,16 @@ export default function DeleteAccountScreen() {
     } finally {
       setOtpLoading(false)
     }
+  }
+
+  // Step 3: confirm the number on this account (same screen as sign-in).
+  const handleConfirmNumber = () => {
+    if (rawPhone.replace(/\D/g, '').slice(-10) !== phoneTyped) {
+      setPhoneError("That's not the number on this account")
+      return
+    }
+    setPhoneError('')
+    handleSendOtp()
   }
 
   const handleDelete = async () => {
@@ -140,6 +153,46 @@ export default function DeleteAccountScreen() {
     )
   }
 
+  if (step === 3) {
+    return (
+      <PhoneView
+        phone={phoneTyped}
+        onPhone={v => { setPhoneTyped(v); setPhoneError('') }}
+        error={phoneError}
+        loading={otpLoading}
+        onContinue={handleConfirmNumber}
+        onBack={() => setStep(2)}
+        onTerms={() => {}}
+        onPrivacy={() => {}}
+        supportEmail={SUPPORT_EMAIL}
+        title={'Confirm your' + String.fromCharCode(10) + 'number'}
+        sub="Type the number on this account. We'll text you a code to make sure it's you."
+        ctaLabel="Send code"
+        hideLegal
+      />
+    )
+  }
+
+  if (step === 4) {
+    return (
+      <OtpView
+        phone={rawPhone.replace(/\D/g, '').slice(-10)}
+        code={otp}
+        onCode={v => { setOtp(v); setOtpError(false) }}
+        error={otpError}
+        errorMsg={otpError ? 'That code is not right' : ''}
+        loading={otpLoading}
+        seconds={resendSeconds}
+        canResend={canResend}
+        tooMany={false}
+        onResend={handleSendOtp}
+        onEditNumber={() => setStep(3)}
+        onBack={() => setStep(3)}
+        onVerify={handleVerifyOtp}
+      />
+    )
+  }
+
   return (
     <View style={s.root}>
       <AppHeader title="Delete Account" hideProgress={hideProgress} leftAction={backAction} />
@@ -151,7 +204,7 @@ export default function DeleteAccountScreen() {
         onScroll={onScroll}
         scrollEventThrottle={16}
       >
-        <DeleteStepDots current={step} total={TOTAL_STEPS} />
+        <DeleteStepDots current={step === 5 ? 3 : step} total={TOTAL_STEPS} />
 
         {step === 1 && (
           <DeleteWarningStep
@@ -167,23 +220,7 @@ export default function DeleteAccountScreen() {
           />
         )}
 
-        {step === 3 && (
-          <DeleteOtpStep
-            maskedPhone={maskedPhone}
-            otpSent={otpSent}
-            otp={otp}
-            otpError={otpError}
-            otpLoading={otpLoading}
-            canResend={canResend}
-            resendSeconds={resendSeconds}
-            onOtpChange={v => { setOtp(v); setOtpError(false) }}
-            onSendOtp={handleSendOtp}
-            onVerifyOtp={handleVerifyOtp}
-            onCancel={() => router.back()}
-          />
-        )}
-
-        {step === 4 && (
+        {step === 5 && (
           <DeleteConfirmStep
             typed={typed}
             onTypedChange={setTyped}

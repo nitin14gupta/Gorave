@@ -664,6 +664,8 @@ class ApiService {
     limit?: number
     /** Only events you could still join: not yours, not already joined/requested/waitlisted, and no women-only or men-only events that aren't for you */
     discover?: boolean
+    /** Only this person's upcoming events */
+    host_id?: string
   } = {}): Promise<EventSummary[]> {
     const params = new URLSearchParams()
     if (filters.lat != null) params.set('lat', String(filters.lat))
@@ -671,6 +673,7 @@ class ApiService {
     if (filters.radius_km != null) params.set('radius_km', String(filters.radius_km))
     if (filters.city) params.set('city', filters.city)
     if (filters.discover) params.set('discover', 'true')
+    if (filters.host_id) params.set('host_id', filters.host_id)
     if (filters.category) params.set('category', filters.category)
     if (filters.is_free != null) params.set('is_free', String(filters.is_free))
     if (filters.date_range) params.set('date_range', filters.date_range)

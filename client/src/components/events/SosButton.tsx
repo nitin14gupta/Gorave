@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Pressable, StyleSheet, type StyleProp, type ViewStyle } from 'react-native'
+import { Pressable, StyleSheet, Text, type StyleProp, type ViewStyle } from 'react-native'
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated'
 import { router } from 'expo-router'
 import { Siren } from 'lucide-react-native'
@@ -9,9 +9,9 @@ import { useSos } from '@/hooks/useSos'
 import { useHasEmergencyContacts } from '@/hooks/useEmergencyContacts'
 import { useLocationStore } from '@/store/locationStore'
 import { hTap } from '@/lib/haptics'
-import { Colors } from '@/constants'
+import { Colors, FontFamily } from '@/constants'
 
-function useSosFlow(eventId: string) {
+export function useSosFlow(eventId: string) {
   const { sendSos } = useSos(eventId)
   const hasEmergencyContacts = useHasEmergencyContacts()
   const [sosOpen, setSosOpen] = useState(false)
@@ -32,7 +32,7 @@ function useSosFlow(eventId: string) {
       <ConfirmSheet
         visible={sosOpen}
         title="Need help?"
-        body="This will send an SMS to your emergency contacts with your current location and a message that you may need assistance."
+        body="We'll text your emergency contacts once, with a map link to where you are right now and the name of this event."
         confirmLabel="Send SOS"
         destructive
         onConfirm={sendSos}
@@ -94,7 +94,23 @@ export function SosRow({ eventId }: { eventId: string }) {
   )
 }
 
+// Labelled pill for the Happening Now card and the Safety centre.
+export function SosPill({ eventId, style }: { eventId: string; style?: StyleProp<ViewStyle> }) {
+  const { open, sheets } = useSosFlow(eventId)
+  return (
+    <>
+      <Pressable style={[s.pill, style]} onPress={open} hitSlop={6}>
+        <Siren size={15} color={Colors.white} strokeWidth={2.4} />
+        <Text style={s.pillText}>SOS</Text>
+      </Pressable>
+      {sheets}
+    </>
+  )
+}
+
 const s = StyleSheet.create({
+  pill: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, height: 40, paddingHorizontal: 18, borderRadius: 20, backgroundColor: Colors.destructive },
+  pillText: { fontFamily: FontFamily.headingBold, fontSize: 14, letterSpacing: 0.4, color: Colors.white },
   badge: {
     width: 26, height: 26, borderRadius: 13,
     backgroundColor: 'rgba(10,10,10,0.55)',

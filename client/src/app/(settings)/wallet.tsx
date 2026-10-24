@@ -1,60 +1,64 @@
-import { View, Text, StyleSheet, FlatList } from 'react-native'
+import { View, Text, StyleSheet, Pressable, ActivityIndicator } from 'react-native'
 import { router } from 'expo-router'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { ArrowLeft } from 'lucide-react-native'
-import { AppHeader, APP_HEADER_BAR_HEIGHT, HeaderIconBtn, BrandedRefreshControl } from '@/components/ui'
-import { Colors, FontFamily } from '@/constants'
+import { HeadphonesIcon, ChevronRight } from 'lucide-react-native'
+import { BrandedRefreshControl } from '@/components/ui'
+import { ParallaxScreen, POSTER } from '@/components/ui/ParallaxScreen'
+import { Colors, FontFamily, withOpacity } from '@/constants'
 import { useWallet } from '@/hooks/useWallet'
-import { useHeaderScroll } from '@/hooks/useHeaderScroll'
-import { WalletBalanceCard } from '@/components/settings/WalletBalanceCard'
 import { WalletEmptyState } from '@/components/settings/WalletEmptyState'
 import { WalletTransactionRow, WalletTxDivider } from '@/components/settings/WalletTransactionRow'
 
 export default function WalletScreen() {
   const { balance, transactions, loading, refreshing, reload } = useWallet()
-  const { hideProgress, onScroll } = useHeaderScroll()
-  const insets = useSafeAreaInsets()
-  const headerHeight = APP_HEADER_BAR_HEIGHT + insets.top
 
   return (
-    <View style={s.root}>
-      <AppHeader
-        title="Gorave Wallet"
-        hideProgress={hideProgress}
-        leftAction={<HeaderIconBtn onPress={() => router.back()}><ArrowLeft size={18} color={Colors.inkPrimary} strokeWidth={2} /></HeaderIconBtn>}
-      />
+    <ParallaxScreen
+      image={POSTER.cheers}
+      eyebrow="GORAVE WALLET"
+      title="Your credits"
+      onBack={() => router.back()}
+      refreshControl={<BrandedRefreshControl refreshing={refreshing} onRefresh={() => reload(true)} />}
+      heroExtra={
+        loading
+          ? <ActivityIndicator color={Colors.white} style={{ alignSelf: 'flex-start', marginTop: 8 }} />
+          : <Text style={s.balance}>₹{balance}</Text>
+      }
+    >
+      <Text style={s.note}>Credits work on any Gorave event and expire 6 months after you get them.</Text>
 
-      <FlatList
-        data={transactions}
-        keyExtractor={item => item.id}
-        renderItem={({ item }) => <WalletTransactionRow item={item} />}
-        refreshControl={
-          <BrandedRefreshControl
-            refreshing={refreshing}
-            onRefresh={() => reload(true)}
-          />
-        }
-        ListHeaderComponent={
-          <>
-            <WalletBalanceCard balance={balance} loading={loading} />
-            {transactions.length > 0 && <Text style={s.sectionLabel}>TRANSACTIONS</Text>}
-          </>
-        }
-        ListEmptyComponent={!loading ? <WalletEmptyState /> : null}
-        contentContainerStyle={{ paddingTop: headerHeight, paddingBottom: 32 }}
-        showsVerticalScrollIndicator={false}
-        onScroll={onScroll}
-        scrollEventThrottle={16}
-        ItemSeparatorComponent={WalletTxDivider}
-      />
-    </View>
+      <Pressable style={s.info} onPress={() => router.push('/(settings)/support' as any)}>
+        <View style={s.infoIcon}><HeadphonesIcon size={16} color={Colors.inkPrimary} strokeWidth={1.8} /></View>
+        <View style={{ flex: 1 }}>
+          <Text style={s.infoTitle}>Need a bank refund?</Text>
+          <Text style={s.infoSub}>Write to support and we will sort it out.</Text>
+        </View>
+        <ChevronRight size={18} color={Colors.inkDisabled} />
+      </Pressable>
+
+      {transactions.length > 0 ? (
+        <>
+          <Text style={s.label}>HISTORY</Text>
+          <View style={s.list}>
+            {transactions.map((t, i) => (
+              <View key={t.id}>
+                {i > 0 ? <WalletTxDivider /> : null}
+                <WalletTransactionRow item={t} />
+              </View>
+            ))}
+          </View>
+        </>
+      ) : !loading ? <WalletEmptyState /> : null}
+    </ParallaxScreen>
   )
 }
 
 const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: Colors.background },
-  sectionLabel: {
-    fontFamily: FontFamily.bodyMedium, fontSize: 11, letterSpacing: 0.88,
-    color: Colors.inkSecondary, marginTop: 8, marginBottom: 4, marginLeft: 20,
-  },
+  balance: { fontFamily: FontFamily.displayExtraBold, fontSize: 56, letterSpacing: -1.5, color: Colors.white, marginTop: 2 },
+  note: { fontFamily: FontFamily.bodyRegular, fontSize: 13, lineHeight: 19, color: Colors.inkSecondary, marginBottom: 6 },
+  info: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 18, backgroundColor: Colors.surface, borderWidth: 1, borderColor: Colors.divider },
+  infoIcon: { width: 34, height: 34, borderRadius: 17, backgroundColor: withOpacity(Colors.inkPrimary, 0.06), alignItems: 'center', justifyContent: 'center' },
+  infoTitle: { fontFamily: FontFamily.bodySemiBold, fontSize: 14, color: Colors.inkPrimary },
+  infoSub: { fontFamily: FontFamily.bodyRegular, fontSize: 12, color: Colors.inkSecondary, marginTop: 1 },
+  label: { fontFamily: FontFamily.bodySemiBold, fontSize: 11, letterSpacing: 1.4, color: Colors.inkDisabled, marginTop: 16, marginBottom: 2 },
+  list: { borderRadius: 20, overflow: 'hidden', borderWidth: 1, borderColor: Colors.divider },
 })

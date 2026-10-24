@@ -1,11 +1,15 @@
-import { useState, useRef, useCallback } from 'react'
+import { useState, useCallback } from 'react'
 import { View, Text, StyleSheet, TextInput, Pressable, BackHandler } from 'react-native'
+import { OnboardingShell, OnboardingNext } from '@/components/onboarding/OnboardingShell'
+import { POSTER } from '@/components/ui/ParallaxScreen'
+import { hSelection } from '@/lib/haptics'
 import { router } from 'expo-router'
 import { useFocusEffect } from 'expo-router'
-import { Input, GenderSelector, StepDots, PrimaryButton, Screen, KeyboardAvoidingWrapper, DateTimePickerSheet, useDateTimePicker, BioInput, GlowLinesBackground } from '@/components/ui'
+import { DateTimePickerSheet, useDateTimePicker } from '@/components/ui'
+import { BioField } from '@/components/ui/BioField'
 import { useOnboardingStore } from '@/store/onboarding'
 import { createProfile } from '@/api/user'
-import { Colors, FontFamily, Spacing, Radius } from '@/constants'
+import { Colors, FontFamily, withOpacity } from '@/constants'
 import { usePillStore } from '@/store/pillStore'
 import { CalendarDays } from 'lucide-react-native'
 
@@ -35,7 +39,7 @@ export default function ProfileScreen() {
     const day = parseInt(digits.slice(0, 2), 10)
     const month = parseInt(digits.slice(2, 4), 10)
     const year = parseInt(digits.slice(4, 8), 10)
-    if (month < 1 || month > 12) return 'Invalid month — must be 01 to 12'
+    if (month < 1 || month > 12) return 'Invalid month, must be 01 to 12'
     const daysInMonth = new Date(year, month, 0).getDate()
     if (day < 1 || day > daysInMonth) return `Invalid day for this month`
     const today = new Date()
@@ -101,61 +105,56 @@ export default function ProfileScreen() {
   }
 
   return (
-    <View style={styles.rootWrap}>
-      <GlowLinesBackground />
-      <Screen transparent>
-      <View style={styles.header}>
-        <Text style={styles.title}>Let's set up your profile</Text>
-        <Text style={styles.subtitle}>Tell us a little about yourself</Text>
-      </View>
+    <View style={{ flex: 1 }}>
+      <OnboardingShell
+        step={1}
+        poster={POSTER.girlsNight}
+        title={'Tell us\nabout you'}
+        sub="Your name and age show on your profile. Gender is set once."
+        footer={<OnboardingNext onPress={handleNext} loading={loading} />}
+      >
+        <TextInput
+          value={store.name}
+          onChangeText={v => store.setField('name', v)}
+          placeholder="Your name"
+          placeholderTextColor={withOpacity(Colors.inkPrimary, 0.2)}
+          autoCapitalize="words"
+          style={styles.bigInput}
+        />
+        <View style={styles.rule} />
 
-      <KeyboardAvoidingWrapper transparent>
-        <View style={styles.scrollContent}>
-          <Input
-            label="Full Name"
-            placeholder="Rohan Sharma"
-            value={store.name}
-            onChangeText={v => store.setField('name', v)}
-          />
-          <Input
-            label="Date of Birth"
-            placeholder="DD / MM / YYYY"
+        <View style={styles.dobRow}>
+          <TextInput
             value={store.dob}
             onChangeText={handleDOBChange}
             onBlur={handleDOBBlur}
+            placeholder="DD / MM / YYYY"
+            placeholderTextColor={withOpacity(Colors.inkPrimary, 0.2)}
             keyboardType="number-pad"
-            error={dobError}
-            style={styles.field}
-            rightIcon={
-              <Pressable onPress={() => datePicker.open('date', datePicker.value)} hitSlop={8}>
-                <CalendarDays size={18} color={Colors.inkSecondary} strokeWidth={1.8} />
+            style={[styles.bigInput, { flex: 1 }]}
+          />
+          <Pressable style={styles.calBtn} onPress={() => datePicker.open('date', datePicker.value)} hitSlop={8}>
+            <CalendarDays size={18} color={Colors.inkPrimary} strokeWidth={1.8} />
+          </Pressable>
+        </View>
+        <View style={[styles.rule, dobError ? { backgroundColor: Colors.destructive } : null]} />
+        <Text style={dobError ? styles.error : styles.hint}>{dobError || 'Date of birth. You must be 18 or older.'}</Text>
+
+        <Text style={styles.label}>I AM</Text>
+        <View style={styles.chips}>
+          {GENDERS.map(g => {
+            const on = store.gender === g
+            return (
+              <Pressable key={g} style={[styles.chip, on && styles.chipOn]} onPress={() => { hSelection(); store.setField('gender', g) }}>
+                <Text style={[styles.chipText, on && styles.chipTextOn]}>{g}</Text>
               </Pressable>
-            }
-          />
-          <View style={styles.field}>
-            <Text style={styles.fieldLabel}>GENDER</Text>
-            <GenderSelector
-              value={store.gender}
-              onChange={v => store.setField('gender', v)}
-            />
-          </View>
-          <View style={styles.field}>
-            <Text style={styles.fieldLabel}>BIO</Text>
-            <BioInput
-              value={store.bio}
-              onChangeText={v => store.setField('bio', v)}
-            />
-          </View>
+            )
+          })}
         </View>
-        <StepDots step={1} />
-        <View style={styles.footer}>
-          <PrimaryButton
-            label="Next"
-            onPress={handleNext}
-            loading={loading}
-          />
-        </View>
-      </KeyboardAvoidingWrapper>
+
+        <Text style={styles.label}>A LINE ABOUT YOU</Text>
+        <BioField value={store.bio} onChangeText={v => store.setField('bio', v)} />
+      </OnboardingShell>
 
       <DateTimePickerSheet
         visible={datePicker.visible}
@@ -166,35 +165,23 @@ export default function ProfileScreen() {
         onConfirm={(date) => { datePicker.confirm(date); handlePickedDate(date) }}
         onDismiss={datePicker.dismiss}
       />
-      </Screen>
     </View>
   )
 }
 
-const styles = StyleSheet.create({
-  rootWrap: { flex: 1, backgroundColor: Colors.background },
-  header: { paddingHorizontal: Spacing.screenPadding, paddingBottom: 12 },
-  title: {
-    fontFamily: FontFamily.headingBold,
-    fontSize: 24,
-    letterSpacing: -0.24,
-    color: Colors.inkPrimary,
-    marginBottom: 6,
-  },
-  subtitle: {
-    fontFamily: FontFamily.bodyRegular,
-    fontSize: 13,
-    color: Colors.inkSecondary,
-  },
-  scrollContent: { padding: Spacing.screenPadding, paddingTop: 8 },
-  field: { marginTop: Spacing.sectionGap },
-  fieldLabel: {
-    fontFamily: FontFamily.bodyMedium,
-    fontSize: 11,
-    letterSpacing: 0.88,
-    color: Colors.inkSecondary,
-    marginBottom: 6,
-  },
-  footer: { paddingHorizontal: Spacing.screenPadding, paddingBottom: 16 },
-})
+const GENDERS = ['Male', 'Female', 'Non-binary', 'Prefer not to say'] as const
 
+const styles = StyleSheet.create({
+  bigInput: { fontFamily: FontFamily.displayExtraBold, fontSize: 28, letterSpacing: -0.5, color: Colors.inkPrimary, paddingVertical: 4 },
+  rule: { height: 2, borderRadius: 1, backgroundColor: withOpacity(Colors.inkPrimary, 0.15), marginTop: 4 },
+  dobRow: { flexDirection: 'row', alignItems: 'center', marginTop: 22 },
+  calBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: withOpacity(Colors.inkPrimary, 0.06), alignItems: 'center', justifyContent: 'center' },
+  hint: { fontFamily: FontFamily.bodyMedium, fontSize: 12, color: Colors.inkDisabled, marginTop: 8 },
+  error: { fontFamily: FontFamily.bodyMedium, fontSize: 12, color: Colors.destructive, marginTop: 8 },
+  label: { fontFamily: FontFamily.bodySemiBold, fontSize: 11, letterSpacing: 1.4, color: Colors.inkDisabled, marginTop: 26, marginBottom: 10 },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  chip: { paddingHorizontal: 16, height: 40, borderRadius: 20, justifyContent: 'center', borderWidth: 1, borderColor: Colors.divider, backgroundColor: Colors.surface },
+  chipOn: { backgroundColor: Colors.inkPrimary, borderColor: Colors.inkPrimary },
+  chipText: { fontFamily: FontFamily.bodySemiBold, fontSize: 14, color: Colors.inkPrimary },
+  chipTextOn: { color: Colors.background },
+})

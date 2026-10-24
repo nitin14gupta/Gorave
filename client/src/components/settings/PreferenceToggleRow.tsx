@@ -23,8 +23,8 @@ export function PreferenceToggleRow({ icon: Icon, label, description, value, onC
         <Switch
           value={value}
           onValueChange={v => { hSelection(); onChange(v) }}
-          trackColor={{ false: Colors.divider, true: Colors.brandOrange }}
-          thumbColor={Colors.inkPrimary}
+          trackColor={{ false: Colors.divider, true: Colors.inkPrimary }}
+          thumbColor={Colors.white}
         />
       </View>
       {showSeparator && <View style={s.sep} />}

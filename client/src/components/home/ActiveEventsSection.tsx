@@ -1,13 +1,14 @@
 import { SectionHeader } from '@/components/ui/SectionHeader'
 import { forwardRef, memo, useCallback, useImperativeHandle, useRef, useState } from 'react'
-import { View, StyleSheet, FlatList } from 'react-native'
+import { View, Text, Pressable, StyleSheet, FlatList } from 'react-native'
+import { ShieldCheck } from 'lucide-react-native'
 import { router, useFocusEffect } from 'expo-router'
 import ApiService, { type EventSummary } from '@/api/apiService'
 import { getOrFetch, invalidate } from '@/lib/queryCache'
 import { EventCard } from '@/components/events/EventCard'
-import { SosButton } from '@/components/events/SosButton'
+import { SosPill } from '@/components/events/SosButton'
 import { parseServerDate, isEventActive } from '@/lib/dates'
-import { CacheKeys, Colors, FontFamily, withOpacity, EVENT_CARD_CAROUSEL_W } from '@/constants'
+import { CacheKeys, Colors, FontFamily, EVENT_CARD_CAROUSEL_W } from '@/constants'
 
 
 function activeSorted(events: EventSummary[]) {
@@ -20,7 +21,16 @@ const ActiveEventCard = memo(function ActiveEventCard({ event }: { event: EventS
   return (
     <View style={{ width: EVENT_CARD_CAROUSEL_W }}>
       <EventCard event={event} showHost onPress={() => router.push(`/(events)/${event.id}` as any)} />
-      <SosButton eventId={event.id} size={15} style={s.sosBadge} />
+      <View style={s.safety}>
+        <Pressable style={s.safetyInfo} onPress={() => router.push('/(safety)' as any)} hitSlop={6}>
+          <ShieldCheck size={18} color={Colors.inkSecondary} strokeWidth={1.8} />
+          <View style={{ flex: 1 }}>
+            <Text style={s.safetyTitle}>Feeling unsafe?</Text>
+            <Text style={s.safetySub} numberOfLines={1}>SOS texts your contacts where you are</Text>
+          </View>
+        </Pressable>
+        <SosPill eventId={event.id} />
+      </View>
     </View>
   )
 })
@@ -85,10 +95,8 @@ const s = StyleSheet.create({
   wrap: { gap: 10 },
   liveDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: Colors.destructive },
   list: { gap: 12, paddingRight: 4 },
-  // Top right, beside the save button, so it never covers price or details.
-  sosBadge: {
-    position: 'absolute', top: 10, right: 46,
-    width: 30, height: 30, borderRadius: 15,
-    backgroundColor: withOpacity(Colors.background, 0.55),
-  },
+  safety: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 8, paddingLeft: 12, paddingRight: 8, paddingVertical: 8, borderRadius: 20, backgroundColor: Colors.surface, borderWidth: 1, borderColor: Colors.divider },
+  safetyInfo: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  safetyTitle: { fontFamily: FontFamily.bodySemiBold, fontSize: 13, color: Colors.inkPrimary },
+  safetySub: { fontFamily: FontFamily.bodyRegular, fontSize: 11, color: Colors.inkSecondary },
 })

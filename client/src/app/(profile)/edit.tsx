@@ -16,8 +16,9 @@ import { useEditProfile } from '@/hooks/useEditProfile'
 import { useInterests } from '@/hooks/useInterests'
 import { useVoiceEdit } from '@/hooks/useVoiceEdit'
 import { useOnboardingStore } from '@/store/onboarding'
+import { EditLayout } from '@/components/profile/EditProfileLayout'
 import { usePillStore } from '@/store/pillStore'
-import { Colors, FontFamily, Spacing, Radius, withOpacity } from '@/constants'
+import { Colors, FontFamily, Spacing, Radius } from '@/constants'
 
 export default function EditProfileScreen() {
   const {
@@ -82,65 +83,42 @@ export default function EditProfileScreen() {
         scrollEventThrottle={16}
       >
 
-        {/* Photos */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={[styles.label, { marginBottom: 0 }]}>PHOTOS</Text>
-            <Pressable onPress={() => router.push('/(profile)/edit-photos')} hitSlop={8}>
-              <Text style={styles.changeBtnText}>Manage</Text>
-            </Pressable>
-          </View>
-          <ProfileEditPhotoStrip photos={profile?.photos} />
-        </View>
-
-        <ProfileNameField
+        <EditLayout
+          photos={profile?.photos}
           name={name}
-          setName={setName}
-          nameChangedAt={profile?.name_changed_at}
-          onLockedPress={unlockDateLabel => showPill(`Cannot change name until ${unlockDateLabel}`, 'error')}
+          bio={bio}
+          city={city ?? null}
+          interests={selectedInterests}
+          nameField={
+            <ProfileNameField
+              name={name}
+              setName={setName}
+              nameChangedAt={profile?.name_changed_at}
+              onLockedPress={unlockDateLabel => showPill(`Cannot change name until ${unlockDateLabel}`, 'error')}
+            />
+          }
+          usernameField={<ProfileUsernameField username={username} setUsername={setUsername} originalUsername={originalUsername} />}
+          bioField={
+            <View style={styles.section}>
+              <Text style={styles.label}>BIO</Text>
+              <BioInput value={bio} onChangeText={setBio} />
+            </View>
+          }
+          cityField={
+            <View style={styles.section}>
+              <Text style={styles.label}>CITY</Text>
+              <View style={styles.cityRow}>
+                <Text style={styles.cityValue}>{city ?? 'Not set'}</Text>
+                <Pressable onPress={() => router.push('/(profile)/location')} style={styles.changeBtn}>
+                  <Text style={styles.changeBtnText}>Change</Text>
+                </Pressable>
+              </View>
+            </View>
+          }
+          badgeField={<ProfileBadgeSelector availableBadges={availableBadges} selectedBadges={selectedBadges} onToggle={toggleBadge} />}
+          interestField={<ProfileInterestsSection availableInterests={availableInterests} selectedInterests={selectedInterests} atMax={interestsAtMax} onToggle={toggleInterest} />}
+          voiceField={<ProfileVoiceIntroSection voice={voice} hasExistingVoice={!!profile?.voice_url} />}
         />
-
-        <ProfileUsernameField
-          username={username}
-          setUsername={setUsername}
-          originalUsername={originalUsername}
-        />
-
-        {/* Bio */}
-        <View style={styles.section}>
-          <Text style={styles.label}>BIO</Text>
-          <BioInput value={bio} onChangeText={setBio} />
-        </View>
-
-        {/* City */}
-        <View style={styles.section}>
-          <Text style={styles.label}>CITY</Text>
-          <View style={styles.cityRow}>
-            <Text style={styles.cityValue}>{city ?? 'Not set'}</Text>
-            <Pressable onPress={() => router.push('/(profile)/location')} style={styles.changeBtn}>
-              <Text style={styles.changeBtnText}>Change</Text>
-            </Pressable>
-          </View>
-        </View>
-
-        <ProfileBadgeSelector
-          availableBadges={availableBadges}
-          selectedBadges={selectedBadges}
-          onToggle={toggleBadge}
-        />
-
-        <ProfileInterestsSection
-          availableInterests={availableInterests}
-          selectedInterests={selectedInterests}
-          atMax={interestsAtMax}
-          onToggle={toggleInterest}
-        />
-
-        {/* Voice Intro */}
-        <View style={styles.section}>
-          <Text style={styles.label}>VOICE INTRO</Text>
-          <ProfileVoiceIntroSection voice={voice} hasExistingVoice={!!profile?.voice_url} />
-        </View>
 
         <View style={styles.savePad}>
           <PrimaryButton label="Save Changes" onPress={onPressSave} loading={saving} disabled={!canSave} />

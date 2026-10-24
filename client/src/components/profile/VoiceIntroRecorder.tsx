@@ -24,7 +24,7 @@ export function VoiceIntroRecorder({ voice, heading }: { voice: ReturnType<typeo
         <Text style={styles.chipText}>Voice intro</Text>
       </View>
 
-      <Text style={styles.heading}>{heading}</Text>
+      {heading ? <Text style={styles.heading}>{heading}</Text> : null}
 
       <View style={styles.stateZone}>
         {isRecording ? (

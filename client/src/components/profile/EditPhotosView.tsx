@@ -27,6 +27,9 @@ export interface PhotosViewProps {
   onBack: () => void
   name: string
   city: string | null
+  /** Onboarding reuses this screen with its own title and button. */
+  barTitle?: string
+  saveLabel?: string
 }
 
 /**
@@ -42,7 +45,7 @@ export function EditPhotosView(p: PhotosViewProps) {
         <Pressable style={s.iconBtn} onPress={p.onBack} hitSlop={8}>
           <ArrowLeft size={20} color={Colors.inkPrimary} strokeWidth={2} />
         </Pressable>
-        <Text style={s.barTitle}>Photos</Text>
+        <Text style={s.barTitle}>{p.barTitle ?? 'Photos'}</Text>
         <Text style={s.count}>{p.count}/{p.max}</Text>
       </View>
 
@@ -60,7 +63,7 @@ export function EditPhotosView(p: PhotosViewProps) {
       </ScrollView>
 
       <View style={[s.footer, { paddingBottom: insets.bottom + 12 }]}>
-        <PrimaryButton label="Save photos" onPress={p.onSave} disabled={!p.canSave} loading={p.saving} />
+        <PrimaryButton label={p.saveLabel ?? 'Save photos'} onPress={p.onSave} disabled={!p.canSave} loading={p.saving} />
       </View>
     </View>
   )
@@ -95,10 +98,14 @@ function Tile({ item, size, main, p }: { item: GridPhoto | undefined; size: numb
   if (!item) return null
   const filled = !!item.uri
   return (
-    <Pressable style={[s.tile, { width: size, height: size }, !filled && s.empty]} onPress={() => { hTap(); p.onSlot(item.id) }}>
+    // Keyed on filled/empty so the tile remounts when a photo lands in it.
+    // Android sometimes skips drawing a view whose dashed border was just
+    // removed, which left freshly added photos blank. The dashed outline
+    // also lives on its own inner view, never on the tile itself.
+    <Pressable key={filled ? `f-${item.uri}` : 'empty'} style={[s.tile, { width: size, height: size }]} onPress={() => { hTap(); p.onSlot(item.id) }}>
       {filled ? (
         <>
-          <Image source={{ uri: item.uri! }} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="memory-disk" />
+          <Image source={{ uri: item.uri! }} recyclingKey={item.uri!} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy={item.uri!.startsWith('http') ? 'memory-disk' : 'none'} />
           {item.state === 'uploading' ? <View style={s.busy}><ActivityIndicator color={Colors.white} /></View> : null}
           {main ? (
             <View style={s.mainTag}><Text style={s.mainText}>Main</Text></View>
@@ -112,7 +119,7 @@ function Tile({ item, size, main, p }: { item: GridPhoto | undefined; size: numb
           </Pressable>
         </>
       ) : (
-        <View style={s.add}><Plus size={main ? 30 : 22} color={Colors.inkSecondary} strokeWidth={2} /></View>
+        <View style={[s.add, s.empty]}><Plus size={main ? 30 : 22} color={Colors.inkSecondary} strokeWidth={2} /></View>
       )}
     </Pressable>
   )
@@ -129,7 +136,7 @@ const s = StyleSheet.create({
   top: { flexDirection: 'row', gap: GAP },
   row: { flexDirection: 'row', gap: GAP },
   tile: { borderRadius: 16, overflow: 'hidden', backgroundColor: Colors.surface },
-  empty: { borderWidth: 1.5, borderStyle: 'dashed', borderColor: withOpacity(Colors.inkPrimary, 0.2) },
+  empty: { borderRadius: 16, borderWidth: 1.5, borderStyle: 'dashed', borderColor: withOpacity(Colors.inkPrimary, 0.2) },
   add: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   busy: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.4)', alignItems: 'center', justifyContent: 'center' },
   mainTag: { position: 'absolute', left: 8, bottom: 8, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999, backgroundColor: Colors.white },
