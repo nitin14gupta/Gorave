@@ -52,7 +52,7 @@ Routes live in `client/src/app/` (Expo Router). `(group)` folders don't show in 
 
 | # | Screen | Route | What it does | UI pass |
 |---|---|---|---|---|
-| 12 | Home | `(tabs)/index` | Create event, Happening now, You're hosting, You're going, Waitlist, Rate your nights, Recently viewed, Trending in your city | 🧪 host your own night first, big posters lower. A with your week strip · B without |
+| 12 | Home | `(tabs)/index` | Create event, Happening now, You're hosting, You're going, Waitlist, Rate your nights, Recently viewed, Trending in your city | ✅ hello, your week strip, host your own night, your nights, big posters lower |
 | 13 | Events | `(tabs)/events` | Browse by city: map view with photo pins and a preview strip, or a list of poster cards. Filter chips, search, city picker | ✅ poster grid (agenda tried, not kept). Map glows removed |
 | 14 | Chat | `(tabs)/chat` | Conversations, search, unread counts | ✅ vibe banner on top |
 | 15 | Profile | `(tabs)/profile` | Your profile as others see it, plus shortcuts | ✅ your photos on top with parallax, up-next ticket, going and hosting rails |

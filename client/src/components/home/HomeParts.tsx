@@ -10,7 +10,7 @@ import { Colors, FontFamily, withOpacity } from '@/constants'
 import { LogoMark } from '@/components/ui'
 import { NotificationPopBadge } from '@/components/home/NotificationPopBadge'
 import { eventDateParts } from '@/components/events/EventCard'
-import { isEventPast, parseServerDate } from '@/lib/dates'
+import { parseServerDate } from '@/lib/dates'
 import { hTap } from '@/lib/haptics'
 
 const W = Dimensions.get('window').width
@@ -113,51 +113,6 @@ export function TonightCarousel({ events, city }: { events: EventSummary[]; city
   )
 }
 
-/** Your next seven days, with a dot on the ones you have plans. */
-export function WeekStrip() {
-  const [days, setDays] = useState<Record<string, number>>({})
-  useFocusEffect(useCallback(() => {
-    let alive = true
-    Promise.all([ApiService.getMyJoinedEvents().catch(() => []), ApiService.getMyHostedEvents().catch(() => [])])
-      .then(([a, b]) => {
-        if (!alive) return
-        const map: Record<string, number> = {}
-        for (const e of [...a, ...b]) {
-          if (e.is_cancelled || isEventPast(e)) continue
-          const d = parseServerDate(e.date_time)
-          if (!d) continue
-          const k = d.toDateString()
-          map[k] = (map[k] ?? 0) + 1
-        }
-        setDays(map)
-      })
-    return () => { alive = false }
-  }, []))
-
-  const today = new Date()
-  const week = Array.from({ length: 7 }, (_, i) => { const d = new Date(today); d.setDate(today.getDate() + i); return d })
-  const plans = week.reduce((n, d) => n + (days[d.toDateString()] ?? 0), 0)
-
-  return (
-    <View style={{ gap: 12 }}>
-      <Text style={s.weekSub}>{plans ? `${plans} plan${plans === 1 ? '' : 's'} in the next 7 days` : 'Nothing planned this week yet'}</Text>
-      <View style={s.week}>
-        {week.map((d, i) => {
-          const n = days[d.toDateString()] ?? 0
-          const isToday = i === 0
-          return (
-            <Pressable key={i} style={[s.day, n > 0 && s.dayOn]} onPress={() => { hTap(); router.push('/(settings)/calendar' as any) }}>
-              <Text style={[s.dow, n > 0 && s.onText]}>{isToday ? 'Today' : d.toLocaleDateString('en-US', { weekday: 'short' })}</Text>
-              <Text style={[s.num, n > 0 && s.onText]}>{d.getDate()}</Text>
-              <View style={[s.dot, n > 0 && { backgroundColor: Colors.background }]} />
-            </Pressable>
-          )
-        })}
-      </View>
-    </View>
-  )
-}
-
 const s = StyleSheet.create({
   topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', height: 48 },
   brand: { flexDirection: 'row', alignItems: 'center', gap: 8 },
@@ -180,12 +135,4 @@ const s = StyleSheet.create({
   heroPrice: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999, backgroundColor: Colors.white },
   heroPriceText: { fontFamily: FontFamily.headingBold, fontSize: 13, color: Colors.nearBlack },
 
-  weekSub: { fontFamily: FontFamily.bodyMedium, fontSize: 14, color: Colors.inkSecondary },
-  week: { flexDirection: 'row', gap: 6 },
-  day: { flex: 1, alignItems: 'center', gap: 4, paddingVertical: 10, borderRadius: 16, backgroundColor: Colors.surface, borderWidth: 1, borderColor: Colors.divider },
-  dayOn: { backgroundColor: Colors.inkPrimary, borderColor: Colors.inkPrimary },
-  dow: { fontFamily: FontFamily.bodySemiBold, fontSize: 10, color: Colors.inkSecondary },
-  num: { fontFamily: FontFamily.displayExtraBold, fontSize: 18, color: Colors.inkPrimary },
-  onText: { color: Colors.background },
-  dot: { width: 5, height: 5, borderRadius: 3, backgroundColor: 'transparent' },
 })

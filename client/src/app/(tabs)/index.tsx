@@ -7,9 +7,7 @@ import { useFocusEffect, router } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { PartyPopper } from 'lucide-react-native'
 import { EmptyState, PrimaryButton, BrandedRefreshControl } from '@/components/ui'
-import { LabSwitch } from '@/components/lab/LabSwitch'
-import { useLabVariant } from '@/store/labStore'
-import { HomeTopBar, TonightCarousel, WeekStrip, useTonight } from '@/components/lab/home/HomeParts'
+import { HomeTopBar, TonightCarousel, useTonight } from '@/components/home/HomeParts'
 import { TemplateFan } from '@/components/home/TemplateFan'
 import { ActiveEventsSection, type ActiveEventsSectionHandle } from '@/components/home/ActiveEventsSection'
 import { MyEventsSection, type MyEventsSectionHandle } from '@/components/home/MyEventsSection'
@@ -34,7 +32,6 @@ export default function HomeScreen() {
   const lastBackRef = useRef(0)
   const showPill = usePillStore(s => s.show)
   const { scrollHandler } = useHeaderAndTabBarScroll()
-  const variant = useLabVariant('home')
   const tonight = useTonight(profile?.city)
   useExpandTabBarOnFocus()
   const insets = useSafeAreaInsets()
@@ -129,10 +126,8 @@ export default function HomeScreen() {
         <HomeTopBar />
         <Text style={styles.hello}>Hey, {firstName}.</Text>
 
-        {/* Lab: A shows your week under the greeting, B leaves it out. */}
-        {variant === 'b' ? null : <WeekStrip />}
 
-        <Text style={styles.hostHead}>Host your own night</Text>
+        {/* <Text style={styles.hostHead}>Host your own night</Text> */}
         {create}
         {mine}
         <TonightCarousel events={tonight} city={profile?.city} />
@@ -150,7 +145,6 @@ export default function HomeScreen() {
           />
         )}
       </Animated.ScrollView>
-      <LabSwitch screen="home" top={insets.top + 4} />
     </View>
   )
 }

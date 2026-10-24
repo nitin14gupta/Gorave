@@ -14,11 +14,12 @@ import { RateNightView } from '@/components/reviews/RateNightView'
 const MAX_BODY = 300
 
 export default function ReviewScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>()
+  // `rating` comes from tapping a star on the Home card, so it opens pre-picked.
+  const { id, rating: picked } = useLocalSearchParams<{ id: string; rating?: string }>()
   const router = useRouter()
   const showPill = usePillStore(s => s.show)
 
-  const [rating, setRating] = useState(0)
+  const [rating, setRating] = useState(() => Math.min(5, Math.max(0, Number(picked) || 0)))
   const [body, setBody] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [loading, setLoading] = useState(true)
