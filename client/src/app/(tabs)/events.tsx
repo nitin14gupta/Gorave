@@ -317,7 +317,7 @@ export default function EventsScreen() {
             columnWrapperStyle={listCols > 1 ? { gap: EVENT_GRID_GAP } : undefined}
             keyExtractor={(e) => e.id}
             style={{ flex: 1 }}
-            contentContainerStyle={[styles.listContent, { paddingTop: insets.top + LIST_HEADER_CONTENT_HEIGHT + 16 }]}
+            contentContainerStyle={[styles.listContent, { paddingTop: insets.top + LIST_HEADER_CONTENT_HEIGHT }]}
             showsVerticalScrollIndicator={false}
             onScroll={scrollHandler}
             scrollEventThrottle={16}

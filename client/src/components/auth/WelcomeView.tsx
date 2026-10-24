@@ -69,19 +69,7 @@ export function WelcomeView({ onStart, onSignIn }: WelcomeViewProps) {
 
   return (
     <View style={s.root}>
-      <View style={[s.stage, { height: stageH }]}>
-        {ROWS.map((row, i) => (
-          <WallRow key={i} index={i} row={row} stageH={stageH} />
-        ))}
-        {/* Fades the wall into the page colour. It ends in exactly that
-            colour (not "transparent", which tints grey), so there is no seam. */}
-        <LinearGradient
-          pointerEvents="none"
-          colors={[withOpacity(Colors.background, 0), withOpacity(Colors.background, 0.7), Colors.background]}
-          locations={[0, 0.6, 1]}
-          style={s.fade}
-        />
-      </View>
+      <PosterWall height={stageH} />
 
       <View style={[s.brand, { top: insets.top + 10 }]} pointerEvents="none">
         <LogoMark size={18} />
@@ -96,6 +84,29 @@ export function WelcomeView({ onStart, onSignIn }: WelcomeViewProps) {
           <Text style={s.signInText}>I already have an account</Text>
         </Pressable>
       </View>
+    </View>
+  )
+}
+
+/**
+ * The drifting wall of party posters, faded into the page at the bottom.
+ * Welcome opens with it and the onboarding finish closes with it.
+ */
+export function PosterWall({ height, dim = 0 }: { height: number; dim?: number }) {
+  return (
+    <View style={[s.stage, { height }]}>
+      {ROWS.map((row, i) => (
+        <WallRow key={i} index={i} row={row} stageH={height} />
+      ))}
+      {dim ? <View pointerEvents="none" style={[StyleSheet.absoluteFill, { zIndex: 90, backgroundColor: `rgba(0,0,0,${dim})` }]} /> : null}
+      {/* Fades the wall into the page colour. It ends in exactly that
+          colour (not "transparent", which tints grey), so there is no seam. */}
+      <LinearGradient
+        pointerEvents="none"
+        colors={[withOpacity(Colors.background, 0), withOpacity(Colors.background, 0.7), Colors.background]}
+        locations={[0, 0.6, 1]}
+        style={s.fade}
+      />
     </View>
   )
 }
