@@ -5,7 +5,7 @@ import time
 from collections import deque
 from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, WebSocket, WebSocketDisconnect
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional
 from middleware.auth import get_current_user
 from db.config import get_db
@@ -154,8 +154,13 @@ def _user_from_token(token: str) -> dict:
 
 # ── Pydantic models ───────────────────────────────────────────────────────────
 
+# Same cap as Instagram DMs; the app stops typing at it and tells you to
+# send and carry on in a new message.
+MAX_MESSAGE_CHARS = 1000
+
+
 class SendMessageRequest(BaseModel):
-    content: Optional[str] = None
+    content: Optional[str] = Field(None, max_length=MAX_MESSAGE_CHARS)
     content_type: str = "text"
     metadata: Optional[dict] = None
 
@@ -516,7 +521,7 @@ EDIT_WINDOW_MINUTES = 15
 
 
 class EditMessageBody(BaseModel):
-    content: str
+    content: str = Field(..., max_length=MAX_MESSAGE_CHARS)
 
 
 @router.patch("/chat/messages/{msg_id}", status_code=200)

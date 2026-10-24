@@ -164,7 +164,7 @@ export default function ChatScreen() {
   const [inboxOpen, setInboxOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
-  const [pendingAccept, setPendingAccept] = useState<{ vibeId: string; name: string | null } | null>(null)
+  const [pendingAccept, setPendingAccept] = useState<{ vibeId: string; name: string | null; avatar: string | null; message: string | null } | null>(null)
   const [menuTarget, setMenuTarget] = useState<Conversation | null>(null)
   const [blockedIds, setBlockedIds] = useState<Set<string>>(new Set())
   const minimizeScroll = useMinimizeOnScroll()
@@ -349,7 +349,8 @@ export default function ChatScreen() {
         loading={loading && pendingVibes.length === 0}
         onBeginAccept={(vibeId, name) => {
           setInboxOpen(false)
-          setPendingAccept({ vibeId, name })
+          const v = pendingVibes.find(x => x.id === vibeId)
+          setPendingAccept({ vibeId, name, avatar: v?.photos?.[0]?.url ?? null, message: v?.message ?? null })
         }}
         onPass={async (vibeId) => {
           try {
@@ -364,6 +365,8 @@ export default function ChatScreen() {
       <VibeIcebreakerModal
         visible={!!pendingAccept}
         partnerName={pendingAccept?.name ?? null}
+        partnerAvatar={pendingAccept?.avatar}
+        partnerMessage={pendingAccept?.message}
         onSend={async (icebreaker) => {
           if (!pendingAccept) return
           const { vibeId } = pendingAccept

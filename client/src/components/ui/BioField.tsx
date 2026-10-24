@@ -14,6 +14,8 @@ interface Props {
   title?: string
   placeholder?: string
   min?: number
+  /** Character limit. */
+  max?: number
 }
 
 /**
@@ -21,11 +23,11 @@ interface Props {
  * a tap opens the editor with the text box at the top, so the keyboard never
  * covers what you're typing. X closes it, Done keeps it.
  */
-export function BioField({ value, onChangeText, title = 'A line about you', placeholder = 'Weekend DJ, chai over coffee, always first on the dance floor', min = 10 }: Props) {
+export function BioField({ value, onChangeText, title = 'A line about you', placeholder = 'Weekend DJ, chai over coffee, always first on the dance floor', min = 10, max = MAX }: Props) {
   const insets = useSafeAreaInsets()
   const [open, setOpen] = useState(false)
   const [draft, setDraft] = useState(value)
-  const left = MAX - draft.length
+  const left = max - draft.length
 
   const openEditor = () => { hTap(); setDraft(value); setOpen(true) }
   const done = () => { onChangeText(draft.trim()); setOpen(false) }
@@ -51,7 +53,7 @@ export function BioField({ value, onChangeText, title = 'A line about you', plac
           <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
             <TextInput
               value={draft}
-              onChangeText={t => setDraft(t.slice(0, MAX))}
+              onChangeText={t => setDraft(t.slice(0, max))}
               placeholder={placeholder}
               placeholderTextColor={withOpacity(Colors.inkPrimary, 0.25)}
               multiline
@@ -60,7 +62,7 @@ export function BioField({ value, onChangeText, title = 'A line about you', plac
               style={s.input}
             />
             <Text style={[s.count, left < 15 && { color: Colors.inkPrimary }]}>
-              {draft.trim().length < min ? `At least ${min} characters` : `${left} left`}
+              {min > 0 && draft.trim().length < min ? `At least ${min} characters` : `${left} left`}
             </Text>
           </KeyboardAvoidingView>
         </View>

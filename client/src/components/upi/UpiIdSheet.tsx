@@ -1,223 +1,176 @@
 import { useState, useEffect, useRef } from 'react'
-import { View, Text, StyleSheet, Pressable, TextInput, ActivityIndicator, Keyboard } from 'react-native'
-import { BottomSheetModal, BottomSheetView, BottomSheetBackdrop } from '@gorhom/bottom-sheet'
-import type { BottomSheetBackdropProps } from '@gorhom/bottom-sheet'
-import { CheckCircle2, XCircle, X, Bookmark } from 'lucide-react-native'
+import { View, Text, StyleSheet, Pressable, TextInput, ActivityIndicator, Modal, Platform, ScrollView } from 'react-native'
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { Check, CheckCircle2, X, XCircle } from 'lucide-react-native'
 import { Colors, FontFamily, withOpacity } from '@/constants'
 import { hTap, hSuccess } from '@/lib/haptics'
 import ApiService from '@/api/apiService'
 import { useVpaValidation } from '@/hooks/useVpaValidation'
-import { PrimaryButton, OutlineButton } from '@/components/ui'
+import { PrimaryButton } from '@/components/ui'
 
-const SNAP_POINTS = ['66%', '82%']
+// The handles most people's UPI IDs end in. Tapping one finishes the ID.
+const HANDLES = ['@oksbi', '@ybl', '@okhdfcbank', '@okaxis', '@paytm', '@okicici']
 
-function renderBackdrop(props: BottomSheetBackdropProps) {
-  return (
-    <BottomSheetBackdrop
-      {...props}
-      disappearsOnIndex={-1}
-      appearsOnIndex={0}
-      pressBehavior="close"
-      opacity={0.65}
-    />
-  )
-}
-
-function UpiIdSheetCore({
-  rzpKey,
-  onPay,
-  onClose,
-}: {
-  rzpKey: string
-  onPay: (vpa: string) => void
-  onClose: () => void
-}) {
-  const ref = useRef<BottomSheetModal>(null)
+/**
+ * Pay with a UPI ID, full screen so the keyboard never covers it. The ID in
+ * big type at the top, quick handles to finish it, the account name once we
+ * have checked it, and a single Pay with a "remember this ID" tick.
+ */
+function UpiIdSheetCore({ rzpKey, onPay, onClose }: { rzpKey: string; onPay: (vpa: string) => void; onClose: () => void }) {
+  const insets = useSafeAreaInsets()
   const mountedRef = useRef(true)
   const [vpa, setVpa] = useState('')
   const [savedVpa, setSavedVpa] = useState<string | null>(null)
-  const [saving, setSaving] = useState(false)
+  const [remember, setRemember] = useState(true)
+  const [paying, setPaying] = useState(false)
 
   const { validFormat, checking, vpaResult, vpaError } = useVpaValidation(vpa, rzpKey)
   const canPay = validFormat && vpaResult !== null && !vpaError
-  const isAlreadySaved = savedVpa !== null && vpa.trim() === savedVpa
-
-  useEffect(() => { ref.current?.present() }, [])
+  const isSaved = savedVpa !== null && vpa.trim() === savedVpa
+  const hasHandle = vpa.includes('@')
 
   useEffect(() => () => { mountedRef.current = false }, [])
 
-  useEffect(() => {
-    const show = Keyboard.addListener('keyboardDidShow', () => ref.current?.snapToIndex(1))
-    const hide = Keyboard.addListener('keyboardDidHide', () => ref.current?.snapToIndex(0))
-    return () => { show.remove(); hide.remove() }
-  }, [])
-
-  // Load saved UPI ID on mount
+  // Start with the UPI ID you saved last time, if any.
   useEffect(() => {
     let cancelled = false
     ApiService.getSavedUpiId().then(saved => {
-      if (cancelled) return
-      if (saved?.upi_id) {
-        setSavedVpa(saved.upi_id)
-        setVpa(saved.upi_id)
-      }
+      if (cancelled || !saved?.upi_id) return
+      setSavedVpa(saved.upi_id)
+      setVpa(saved.upi_id)
     }).catch(() => {})
     return () => { cancelled = true }
   }, [])
 
-  const handleSaveAndPay = async () => {
-    if (!canPay || !vpaResult) return
+  const pay = async () => {
+    if (!canPay || !vpaResult || paying) return
     hSuccess()
-    setSaving(true)
-    let savedOk = false
-    try {
-      await ApiService.saveUpiId(vpa.trim(), vpaResult.name)
-      savedOk = true
-    } catch {
-      // save failed silently — still proceed with payment
-    } finally {
-      if (mountedRef.current) {
-        if (savedOk) setSavedVpa(vpa.trim())
-        setSaving(false)
-      }
+    const id = vpa.trim()
+    if (remember && !isSaved) {
+      setPaying(true)
+      // A failed save never blocks the payment.
+      await ApiService.saveUpiId(id, vpaResult.name).catch(() => {})
+      if (mountedRef.current) setPaying(false)
     }
-    onPay(vpa.trim())
+    onPay(id)
+  }
+
+  const addHandle = (h: string) => {
+    hTap()
+    const name = vpa.split('@')[0]
+    setVpa(`${name}${h}`)
   }
 
   return (
-    <BottomSheetModal
-      ref={ref}
-      snapPoints={SNAP_POINTS}
-      enablePanDownToClose
-      onDismiss={onClose}
-      backdropComponent={renderBackdrop}
-      backgroundStyle={s.sheetBg}
-      handleIndicatorStyle={s.sheetHandle}
-      keyboardBehavior="interactive"
-      keyboardBlurBehavior="restore"
-      android_keyboardInputMode="adjustResize"
-    >
-      <BottomSheetView style={s.content}>
-        <View style={s.headerRow}>
-          <Text style={s.title}>Enter UPI ID</Text>
-          <Pressable onPress={() => { hTap(); onClose() }} hitSlop={12}>
-            <X size={20} color={Colors.inkSecondary} strokeWidth={1.8} />
+    <Modal visible animationType="slide" presentationStyle="fullScreen" onRequestClose={onClose} statusBarTranslucent>
+      <View style={[s.root, { paddingTop: insets.top + 8 }]}>
+        <View style={s.bar}>
+          <Pressable style={s.close} onPress={() => { hTap(); onClose() }} hitSlop={8}>
+            <X size={20} color={Colors.inkPrimary} strokeWidth={2.2} />
           </Pressable>
         </View>
 
-        <View style={[s.inputWrap, vpaError && s.inputWrapError, vpaResult && s.inputWrapSuccess]}>
-          <TextInput
-            style={s.input}
-            placeholder="yourname@oksbi"
-            placeholderTextColor={Colors.inkDisabled}
-            value={vpa}
-            onChangeText={v => setVpa(v.toLowerCase().trim())}
-            autoCapitalize="none"
-            keyboardType="email-address"
-            autoFocus={!savedVpa}
-            returnKeyType="done"
-          />
-          {isAlreadySaved && !checking && (
-            <View style={s.savedChip}>
-              <Bookmark size={11} color={Colors.inkPrimary} strokeWidth={2} fill={Colors.inkPrimary} />
-              <Text style={s.savedChipText}>Saved</Text>
-            </View>
-          )}
-          {checking && (
-            <ActivityIndicator size="small" color={Colors.inkDisabled} style={s.inputIcon} />
-          )}
-          {!checking && vpaResult && !isAlreadySaved && (
-            <CheckCircle2 size={20} color={Colors.accentGreen} strokeWidth={2} style={s.inputIcon} />
-          )}
-          {!checking && vpaResult && isAlreadySaved && (
-            <CheckCircle2 size={20} color={Colors.accentGreen} strokeWidth={2} style={s.inputIcon} />
-          )}
-          {!checking && vpaError && (
-            <XCircle size={20} color={Colors.destructive} strokeWidth={2} style={s.inputIcon} />
-          )}
-        </View>
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+          <ScrollView contentContainerStyle={s.body} keyboardShouldPersistTaps="handled">
+            <Text style={s.title}>Pay with{'\n'}UPI ID</Text>
+            <Text style={s.sub}>We&apos;ll send a payment request to your UPI app. Approve it there.</Text>
 
-        {vpaResult && (
-          <View style={s.nameRow}>
-            <CheckCircle2 size={13} color={Colors.accentGreen} strokeWidth={2} />
-            <Text style={s.nameText}>{vpaResult.name}</Text>
-          </View>
-        )}
-        {vpaError && (
-          <Text style={s.errorText}>UPI ID not found. Please check and try again.</Text>
-        )}
-        {!vpaResult && !vpaError && (
-          <Text style={s.hint}>e.g. name@oksbi · name@ybl · name@paytm</Text>
-        )}
+            <View style={s.inputRow}>
+              <TextInput
+                style={s.input}
+                placeholder="yourname@oksbi"
+                placeholderTextColor={withOpacity(Colors.inkPrimary, 0.2)}
+                value={vpa}
+                onChangeText={v => setVpa(v.toLowerCase().replace(/\s/g, ''))}
+                autoCapitalize="none"
+                autoCorrect={false}
+                keyboardType="email-address"
+                autoFocus={!savedVpa}
+                returnKeyType="done"
+                onSubmitEditing={pay}
+              />
+              {checking ? <ActivityIndicator size="small" color={Colors.inkSecondary} /> : null}
+              {!checking && vpaResult ? <CheckCircle2 size={22} color={Colors.accentGreen} strokeWidth={2} /> : null}
+              {!checking && vpaError ? <XCircle size={22} color={Colors.destructive} strokeWidth={2} /> : null}
+            </View>
+            <View style={[s.rule, vpaError ? { backgroundColor: Colors.destructive } : vpaResult ? { backgroundColor: Colors.accentGreen } : null]} />
 
-        {canPay && !isAlreadySaved ? (
-          <View style={s.btnRow}>
-            <View style={s.btnFlex1}>
-              <OutlineButton label="Pay" onPress={() => { hSuccess(); onPay(vpa.trim()) }} />
-            </View>
-            <View style={s.btnFlex14}>
-              <PrimaryButton label="Save & Pay" onPress={handleSaveAndPay} loading={saving} />
-            </View>
+            {!hasHandle || !validFormat ? (
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="handled" style={s.handlesBleed} contentContainerStyle={s.handles}>
+                {HANDLES.map(h => (
+                  <Pressable key={h} style={s.handle} onPress={() => addHandle(h)}>
+                    <Text style={s.handleText}>{h}</Text>
+                  </Pressable>
+                ))}
+              </ScrollView>
+            ) : null}
+
+            {vpaResult ? (
+              <View style={s.verified}>
+                <View style={s.verifiedIcon}><Check size={16} color={Colors.white} strokeWidth={3} /></View>
+                <View style={{ flex: 1 }}>
+                  <Text style={s.verifiedLabel}>Verified account</Text>
+                  <Text style={s.verifiedName} numberOfLines={1}>{vpaResult.name}</Text>
+                </View>
+              </View>
+            ) : vpaError ? (
+              <Text style={s.error}>We couldn&apos;t find this UPI ID. Check the spelling and the part after @.</Text>
+            ) : (
+              <Text style={s.hint}>It&apos;s in your UPI app, usually under your profile.</Text>
+            )}
+
+            {canPay && !isSaved ? (
+              <Pressable style={s.remember} onPress={() => { hTap(); setRemember(r => !r) }}>
+                <View style={[s.tick, remember && s.tickOn]}>{remember ? <Check size={13} color={Colors.background} strokeWidth={3} /> : null}</View>
+                <Text style={s.rememberText}>Remember this UPI ID for next time</Text>
+              </Pressable>
+            ) : null}
+            {isSaved ? <Text style={s.hint}>Your saved UPI ID</Text> : null}
+          </ScrollView>
+
+          <View style={[s.footer, { paddingBottom: insets.bottom + 12 }]}>
+            <PrimaryButton label={canPay ? 'Send payment request' : 'Enter your UPI ID'} onPress={pay} disabled={!canPay} loading={paying} />
           </View>
-        ) : (
-          <PrimaryButton
-            label={canPay ? 'Pay' : 'Verify UPI ID first'}
-            onPress={() => { if (canPay) { hSuccess(); onPay(vpa.trim()) } }}
-            disabled={!canPay}
-          />
-        )}
-      </BottomSheetView>
-    </BottomSheetModal>
+        </KeyboardAvoidingView>
+      </View>
+    </Modal>
   )
 }
 
-export function UpiIdSheet({
-  visible,
-  rzpKey,
-  onPay,
-  onClose,
-}: {
-  visible: boolean
-  rzpKey: string
-  onPay: (vpa: string) => void
-  onClose: () => void
-}) {
+export function UpiIdSheet({ visible, rzpKey, onPay, onClose }: { visible: boolean; rzpKey: string; onPay: (vpa: string) => void; onClose: () => void }) {
   if (!visible) return null
   return <UpiIdSheetCore rzpKey={rzpKey} onPay={onPay} onClose={onClose} />
 }
 
 const s = StyleSheet.create({
-  sheetBg: { backgroundColor: Colors.sheetBackground },
-  sheetHandle: { backgroundColor: withOpacity(Colors.inkPrimary, 0.18) },
-  content: { paddingHorizontal: 24, paddingBottom: 40, paddingTop: 12 },
+  root: { flex: 1, backgroundColor: Colors.background },
+  bar: { paddingHorizontal: 16, height: 44, justifyContent: 'center' },
+  close: { width: 38, height: 38, borderRadius: 19, backgroundColor: withOpacity(Colors.inkPrimary, 0.08), alignItems: 'center', justifyContent: 'center' },
+  body: { paddingHorizontal: 24, paddingTop: 12, paddingBottom: 20 },
+  title: { fontFamily: FontFamily.displayExtraBold, fontSize: 38, lineHeight: 41, letterSpacing: -1.1, color: Colors.inkPrimary },
+  sub: { fontFamily: FontFamily.bodyRegular, fontSize: 15, lineHeight: 21, color: Colors.inkSecondary, marginTop: 8, marginBottom: 34 },
 
-  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
-  title: { fontFamily: FontFamily.headingBold, fontSize: 20, color: Colors.inkPrimary },
+  inputRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  input: { flex: 1, fontFamily: FontFamily.displayExtraBold, fontSize: 28, letterSpacing: -0.4, color: Colors.inkPrimary, paddingVertical: 4 },
+  rule: { height: 2, borderRadius: 1, backgroundColor: withOpacity(Colors.inkPrimary, 0.15), marginTop: 6 },
 
-  inputWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: withOpacity(Colors.inkPrimary, 0.05),
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: withOpacity(Colors.inkPrimary, 0.08),
-    paddingHorizontal: 16,
-    marginBottom: 8,
-  },
-  inputWrapError: { borderColor: Colors.destructive },
-  inputWrapSuccess: { borderColor: Colors.accentGreen },
-  input: { flex: 1, paddingVertical: 14, fontFamily: FontFamily.bodyRegular, fontSize: 16, color: Colors.inkPrimary },
-  inputIcon: { marginLeft: 8 },
+  handlesBleed: { marginHorizontal: -24, marginTop: 14 },
+  handles: { paddingHorizontal: 24, gap: 8 },
+  handle: { paddingHorizontal: 14, height: 36, borderRadius: 18, justifyContent: 'center', backgroundColor: withOpacity(Colors.inkPrimary, 0.07) },
+  handleText: { fontFamily: FontFamily.bodySemiBold, fontSize: 13, color: Colors.inkPrimary },
 
-  savedChip: { flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: withOpacity(Colors.inkPrimary, 0.12), borderRadius: 6, paddingHorizontal: 6, paddingVertical: 3, marginLeft: 8 },
-  savedChipText: { fontFamily: FontFamily.bodyMedium, fontSize: 11, color: Colors.inkPrimary },
+  verified: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 18, padding: 14, borderRadius: 18, backgroundColor: withOpacity(Colors.accentGreen, 0.1), borderWidth: 1, borderColor: withOpacity(Colors.accentGreen, 0.35) },
+  verifiedIcon: { width: 30, height: 30, borderRadius: 15, backgroundColor: Colors.accentGreen, alignItems: 'center', justifyContent: 'center' },
+  verifiedLabel: { fontFamily: FontFamily.bodySemiBold, fontSize: 11, letterSpacing: 1.2, textTransform: 'uppercase', color: Colors.inkSecondary },
+  verifiedName: { fontFamily: FontFamily.headingBold, fontSize: 17, color: Colors.inkPrimary, marginTop: 1 },
+  error: { fontFamily: FontFamily.bodyMedium, fontSize: 13, lineHeight: 19, color: Colors.destructive, marginTop: 12 },
+  hint: { fontFamily: FontFamily.bodyMedium, fontSize: 13, color: Colors.inkDisabled, marginTop: 12 },
 
-  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 20 },
-  nameText: { fontFamily: FontFamily.bodyMedium, fontSize: 13, color: Colors.accentGreen },
-  errorText: { fontFamily: FontFamily.bodyRegular, fontSize: 13, color: Colors.destructive, marginBottom: 20 },
-  hint: { fontFamily: FontFamily.bodyRegular, fontSize: 12, color: Colors.inkDisabled, marginBottom: 20 },
+  remember: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 18 },
+  tick: { width: 24, height: 24, borderRadius: 8, borderWidth: 2, borderColor: withOpacity(Colors.inkPrimary, 0.3), alignItems: 'center', justifyContent: 'center' },
+  tickOn: { backgroundColor: Colors.inkPrimary, borderColor: Colors.inkPrimary },
+  rememberText: { fontFamily: FontFamily.bodyMedium, fontSize: 14, color: Colors.inkPrimary },
 
-  btnRow: { flexDirection: 'row', gap: 10 },
-  btnFlex1: { flex: 1 },
-  btnFlex14: { flex: 1.4 },
+  footer: { paddingHorizontal: 20, paddingTop: 10 },
 })

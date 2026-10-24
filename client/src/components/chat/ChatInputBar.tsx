@@ -9,12 +9,16 @@ import { Square, Mic, Send, Trash2, Plus, X, Play, Pause, Pencil } from 'lucide-
 import { RecordingWave, PlaybackWave } from '@/components/ui'
 import { hHeavy, hSuccess, hTap, hError } from '@/lib/haptics'
 import { Colors, FontFamily, withOpacity } from '@/constants'
+import { usePillStore } from '@/store/pillStore'
 import type { Message } from '@/api/apiService'
 import type { RecordedVoice } from '@/hooks/useVoiceRecorder'
 import { ReplyBar } from './ReplyBar'
 import { MediaPickerSheet } from './MediaPickerSheet'
 import { MediaPreviewModal } from './MediaPreviewModal'
 import { useMediaPicker } from '@/hooks/useMediaPicker'
+
+// One chat message holds up to 1,000 characters, same as Instagram and the server.
+const MAX_MESSAGE_CHARS = 1000
 
 export type RecordState = 'idle' | 'recording' | 'preview' | 'sending'
 
@@ -103,6 +107,7 @@ export function ChatInputBar({
   onUnblock, onDeleteChat, onCancelReply, onCancelEdit, onMediaSend, onLayout,
 }: Props) {
   const inputRef = useRef<TextInput>(null)
+  const showPill = usePillStore(st => st.show)
   const sheetRef = useRef<BottomSheetModal>(null)
 
   const { handleCamera, handleLibrary, pendingMedia, confirmSend, cancelPreview, removeFromPreview, updatePreview } = useMediaPicker({ onMediaSend })
@@ -236,7 +241,17 @@ export function ChatInputBar({
               nativeID="chat-input"
               style={s.textInput}
               value={inputText}
-              onChangeText={onTextChange}
+              onChangeText={t => {
+                // One message holds up to 1,000 characters, like Instagram.
+                // Past that, nothing more goes in and a pill says to send it.
+                if (t.length > MAX_MESSAGE_CHARS) {
+                  showPill('That is the limit for one message. Send it and carry on in a new one.')
+                  onTextChange(t.slice(0, MAX_MESSAGE_CHARS))
+                  return
+                }
+                onTextChange(t)
+              }}
+              maxLength={MAX_MESSAGE_CHARS + 1}
               placeholder="Message…"
               placeholderTextColor={Colors.inkDisabled}
               multiline

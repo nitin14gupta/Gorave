@@ -106,6 +106,8 @@ export function VibeReviewModal({ visible, request, onAccept, onPass, onClose }:
       <VibeIcebreakerModal
         visible={showIcebreaker}
         partnerName={request.name}
+        partnerAvatar={request.photos?.[0]?.url ?? null}
+        partnerMessage={request.message}
         onSend={handleIcebreakerSend}
         onClose={() => setShowIcebreaker(false)}
       />

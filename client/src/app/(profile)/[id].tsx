@@ -280,6 +280,7 @@ export default function UserProfileScreen() {
       <VibeIcebreakerModal
         visible={acceptModalOpen}
         partnerName={profile.name}
+        partnerAvatar={photos[0]?.url ?? null}
         onSend={handleAcceptVibe}
         onClose={() => setAcceptModalOpen(false)}
       />

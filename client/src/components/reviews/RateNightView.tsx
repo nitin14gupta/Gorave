@@ -1,4 +1,4 @@
-import { Dimensions, Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
+import { Dimensions, Pressable, StyleSheet, Text, View } from 'react-native'
 import Animated from 'react-native-reanimated'
 import { useParallaxHero } from '@/hooks/useParallaxHero'
 import { Image } from 'expo-image'
@@ -6,6 +6,7 @@ import { LinearGradient } from 'expo-linear-gradient'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { ArrowLeft, Star } from 'lucide-react-native'
 import { Colors, FontFamily, withOpacity } from '@/constants'
+import { BioField } from '@/components/ui/BioField'
 import { PrimaryButton } from '@/components/ui'
 import { eventDateParts } from '@/components/events/EventCard'
 import { hSelection } from '@/lib/haptics'
@@ -68,19 +69,15 @@ export function RateNightView({ event, rating, onRate, body, onBody, maxBody, su
           </View>
           <Text style={[s.word, !rating && s.wordIdle]}>{rating ? RATING_WORDS[rating] : 'Tap a star'}</Text>
 
-          <View style={s.noteBox}>
-            <TextInput
-              style={s.input}
-              value={body}
-              onChangeText={t => t.length <= maxBody && onBody(t)}
-              placeholder="What made the night? The crowd, the music, the host…"
-              placeholderTextColor={Colors.inkDisabled}
-              multiline
-              textAlignVertical="top"
-              maxLength={maxBody}
-            />
-            <Text style={s.count}>{body.length}/{maxBody}</Text>
-          </View>
+          {/* Writing opens its own full-screen editor, so the keyboard never covers it. */}
+          <BioField
+            value={body}
+            onChangeText={onBody}
+            title="Your review"
+            placeholder="What made the night? The crowd, the music, the host…"
+            min={0}
+            max={maxBody}
+          />
           <Text style={s.public}>Your review shows on the event and the host’s profile with your name.</Text>
 
           <PrimaryButton label="Post review" onPress={onSubmit} disabled={rating === 0} loading={submitting} />

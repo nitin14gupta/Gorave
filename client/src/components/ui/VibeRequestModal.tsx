@@ -10,6 +10,8 @@ import type { DiscoverUser } from '@/api/apiService'
 import { PrimaryButton } from './PrimaryButton'
 
 const MAX_CHARS = 150
+// A vibe is a short note, so it stops at 4 lines (the bio allows 5).
+const MAX_LINES = 4
 const SNAP_POINTS = ['86%', '85%']
 
 interface Props {
@@ -99,7 +101,7 @@ function VibeRequestModalCore({ user, onSend, onClose }: Omit<Props, 'visible'>)
           <TextInput
             style={s.input}
             value={message}
-            onChangeText={t => t.length <= MAX_CHARS && setMessage(t)}
+            onChangeText={t => t.length <= MAX_CHARS && t.split('\n').length <= MAX_LINES && setMessage(t)}
             placeholder="What made you want to connect?"
             placeholderTextColor={Colors.inkDisabled}
             multiline
