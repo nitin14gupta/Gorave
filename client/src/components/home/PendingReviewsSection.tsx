@@ -1,12 +1,13 @@
 import { SectionHeader } from '@/components/ui/SectionHeader'
-import { forwardRef, useCallback, useImperativeHandle, useRef, useState } from 'react'
+import { forwardRef, useCallback, useImperativeHandle, useRef, useState, useEffect } from 'react'
 import { Dimensions, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { Image } from 'expo-image'
 import { LinearGradient } from 'expo-linear-gradient'
 import { router, useFocusEffect } from 'expo-router'
 import { Star } from 'lucide-react-native'
 import ApiService, { type EventSummary } from '@/api/apiService'
-import { getOrFetch, invalidate } from '@/lib/queryCache'
+import { invalidate } from '@/lib/queryCache'
+import { fetchMine } from '@/lib/myEventsCache'
 import { parseServerDate, isEventPast } from '@/lib/dates'
 import { hTap } from '@/lib/haptics'
 import { CacheKeys, Colors, FontFamily, withOpacity } from '@/constants'
@@ -36,11 +37,13 @@ export const PendingReviewsSection = forwardRef<PendingReviewsSectionHandle, Pro
   const [events, setEvents] = useState<EventSummary[]>([])
   const mountedRef = useRef(true)
 
+  // The background refresh calls back into load to re-read the fresh copy.
+  const reloadRef = useRef<(force: boolean) => unknown>(() => {})
   const load = useCallback((force: boolean) => {
     // Same cache entry ActiveEventsSection/MyEventsSection already populate —
     // this just derives a different slice of it, no extra network round-trip.
     const fetch = () =>
-      getOrFetch(CacheKeys.homeJoinedEvents, () => ApiService.getMyJoinedEvents(), { ttlMs: 5 * 60_000, persist: false })
+      fetchMine(CacheKeys.homeJoinedEvents, () => ApiService.getMyJoinedEvents(), () => { if (mountedRef.current) reloadRef.current(false) })
     return (force ? invalidate(CacheKeys.homeJoinedEvents).then(fetch) : fetch())
       .then(data => {
         if (!mountedRef.current) return
@@ -50,6 +53,8 @@ export const PendingReviewsSection = forwardRef<PendingReviewsSectionHandle, Pro
       })
       .catch(() => {})
   }, [onEmptyChange])
+
+  useEffect(() => { reloadRef.current = load }, [load])
 
   useImperativeHandle(ref, () => ({
     refresh: () => load(true),

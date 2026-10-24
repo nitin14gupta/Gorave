@@ -157,6 +157,16 @@ Routes live in `client/src/app/` (Expo Router). `(group)` folders don't show in 
 | Media preview | Chat, photo pickers | ✅ framed photo, Crop pill, neutral |
 | Permission sheet | Mic, camera, location, contacts | ✅ icon for what is needed, 3 steps to turn it on |
 | Empty states | Every list (`components/ui/EmptyState.tsx`, still icons) | ✅ |
+| Requested section | Home | ✅ new: events you asked to join, "Waiting for the host" |
+| Send vibe | Someone's profile | ✅ full screen, their photo, ideas from their interests, 4 lines max |
+| Vibe accept | Chat, profile | ✅ full screen "It's a vibe", both faces, their message, ideas |
+| Vibe inbox | Chat flame / banner | ✅ big photo cards, message bubble, Pass / Vibe back |
+| UPI ID | Payment | ✅ full screen, big ID, handle chips, verified card, remember tick |
+| Review text | Rate your night | ✅ opens the full-screen editor |
+| Event options, share event, share details, guest list, report event | Event page | ⬜ |
+| Profile menu, block, report, deleted account | Profiles, chat | ⬜ |
+| Media picker, media viewer, chat search, emoji picker, report message | Chat | ⬜ |
+| Event search, sort, date/time picker, payment overlays, pill/toast, locked, maintenance | Various | ⬜ |
 
 ---
 

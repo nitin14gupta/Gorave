@@ -1,11 +1,12 @@
 import { SectionHeader } from '@/components/ui/SectionHeader'
-import { forwardRef, useCallback, useImperativeHandle, useRef, useState } from 'react'
+import { forwardRef, useCallback, useImperativeHandle, useRef, useState, useEffect } from 'react'
 import { View, Text, StyleSheet, Pressable, FlatList, type ListRenderItemInfo } from 'react-native'
 import { router, useFocusEffect } from 'expo-router'
 import { Clock, ChevronRight } from 'lucide-react-native'
 import ApiService, { type EventSummary } from '@/api/apiService'
 import { EventCard } from '@/components/events/EventCard'
-import { getOrFetch, invalidate } from '@/lib/queryCache'
+import { invalidate } from '@/lib/queryCache'
+import { fetchMine } from '@/lib/myEventsCache'
 import { isEventPast } from '@/lib/dates'
 import { CacheKeys, Colors, FontFamily, EVENT_CARD_CAROUSEL_W } from '@/constants'
 
@@ -53,9 +54,11 @@ export const WaitlistSection = forwardRef<WaitlistSectionHandle, Props>(function
   const [visibleCount, setVisibleCount] = useState(INITIAL_COUNT)
   const mountedRef = useRef(true)
 
+  // The background refresh calls back into load to re-read the fresh copy.
+  const reloadRef = useRef<(force: boolean) => unknown>(() => {})
   const load = useCallback((force: boolean) => {
     const fetch = () =>
-      getOrFetch(CacheKeys.homeWaitlistedEvents, () => ApiService.getMyWaitlistedEvents(), { ttlMs: 5 * 60_000, persist: false })
+      fetchMine(CacheKeys.homeWaitlistedEvents, () => ApiService.getMyWaitlistedEvents(), () => { if (mountedRef.current) reloadRef.current(false) })
     return (force ? invalidate(CacheKeys.homeWaitlistedEvents).then(fetch) : fetch())
       .then(data => {
         if (!mountedRef.current) return
@@ -66,6 +69,8 @@ export const WaitlistSection = forwardRef<WaitlistSectionHandle, Props>(function
       })
       .catch(() => {})
   }, [onEmptyChange])
+
+  useEffect(() => { reloadRef.current = load }, [load])
 
   useImperativeHandle(ref, () => ({
     refresh: () => load(true),

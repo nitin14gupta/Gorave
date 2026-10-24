@@ -33,6 +33,16 @@ export function peekCached<T>(key: string): T | null {
   return entry ? entry.value : null
 }
 
+/** What's cached for this key, fresh or not, and whether it's still fresh. */
+export async function peekEntry<T>(key: string): Promise<{ value: T; fresh: boolean } | null> {
+  const mem = memory.get(key) as Entry<T> | undefined
+  if (mem) return { value: mem.value, fresh: isFresh(mem) }
+  const disk = await readDisk<T>(key)
+  if (!disk) return null
+  memory.set(key, disk)
+  return { value: disk.value, fresh: isFresh(disk) }
+}
+
 export async function invalidate(key: string): Promise<void> {
   memory.delete(key)
   try { await AsyncStorage.removeItem(PREFIX + key) } catch {}

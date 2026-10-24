@@ -1,5 +1,6 @@
 import * as FileSystem from 'expo-file-system/legacy'
 import { API_BASE_URL, WS_BASE_URL, ENDPOINTS, DEFAULT_HEADERS, createAuthHeader } from './config'
+import { invalidateMyEvents } from '@/lib/myEventsCache'
 import { useAuthStore } from '@/store/auth'
 import { useLockStore } from '@/store/lockStore'
 import { useMaintenanceStore } from '@/store/maintenanceStore'
@@ -149,6 +150,12 @@ function friendlyErrorMessage(status: number, err: any): string {
   return friendlyStatusMessage(status)
 }
 
+// A change to your events or a payment makes Home's cached lists stale.
+const touchMine = (endpoint: string) => <T,>(data: T): T => {
+  if (endpoint.startsWith('/events') || endpoint.startsWith('/payments')) invalidateMyEvents()
+  return data
+}
+
 class ApiService {
   // ── Private helpers ────────────────────────────────────────────────────────
 
@@ -273,6 +280,7 @@ class ApiService {
         method: 'GET',
         headers: this.createHeaders(useAuthStore.getState().accessToken ?? token),
       }).then(res => this.handleResponse<T>(res, endpoint, call))
+        .then(touchMine(endpoint))
     return call()
   }
 
@@ -293,6 +301,7 @@ class ApiService {
         headers: this.createHeaders(useAuthStore.getState().accessToken ?? token),
         body: JSON.stringify(body),
       }).then(res => this.handleResponse<T>(res, endpoint, call))
+        .then(touchMine(endpoint))
     return call()
   }
 
@@ -303,6 +312,7 @@ class ApiService {
         headers: this.createHeaders(useAuthStore.getState().accessToken ?? token),
         body: JSON.stringify(body),
       }).then(res => this.handleResponse<T>(res, endpoint, call))
+        .then(touchMine(endpoint))
     return call()
   }
 
@@ -312,6 +322,7 @@ class ApiService {
         method: 'DELETE',
         headers: this.createHeaders(useAuthStore.getState().accessToken ?? token),
       }).then(res => this.handleResponse<T>(res, endpoint, call))
+        .then(touchMine(endpoint))
     return call()
   }
 
@@ -897,6 +908,11 @@ class ApiService {
 
   static async getMyWaitlistedEvents(): Promise<EventSummary[]> {
     return this.get<EventSummary[]>('/events/waitlisted')
+  }
+
+  /** Upcoming events you asked to join that the host hasn't answered yet. */
+  static async getMyRequestedEvents(): Promise<EventSummary[]> {
+    return this.get<EventSummary[]>('/events/requested')
   }
 
   // Hotlist — saved/bookmarked events, separate from RSVP/waitlist.

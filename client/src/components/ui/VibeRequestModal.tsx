@@ -1,9 +1,10 @@
-import { useState, useRef, useEffect } from 'react'
-import { View, Text, TextInput, Pressable, StyleSheet, Keyboard } from 'react-native'
+import { useState } from 'react'
+import { Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
 import { Image } from 'expo-image'
-import { BottomSheetModal, BottomSheetView, BottomSheetBackdrop } from '@gorhom/bottom-sheet'
-import type { BottomSheetBackdropProps } from '@gorhom/bottom-sheet'
-import { Flame } from 'lucide-react-native'
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller'
+import Animated, { FadeInDown } from 'react-native-reanimated'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { Flame, MapPin, X } from 'lucide-react-native'
 import { hMedium, hTap } from '@/lib/haptics'
 import { Colors, FontFamily, withOpacity } from '@/constants'
 import type { DiscoverUser } from '@/api/apiService'
@@ -12,7 +13,7 @@ import { PrimaryButton } from './PrimaryButton'
 const MAX_CHARS = 150
 // A vibe is a short note, so it stops at 4 lines (the bio allows 5).
 const MAX_LINES = 4
-const SNAP_POINTS = ['86%', '85%']
+const PHOTO = 168
 
 interface Props {
   visible: boolean
@@ -21,138 +22,119 @@ interface Props {
   onClose: () => void
 }
 
-function renderBackdrop(props: BottomSheetBackdropProps) {
-  return (
-    <BottomSheetBackdrop
-      {...props}
-      disappearsOnIndex={-1}
-      appearsOnIndex={0}
-      pressBehavior="close"
-      opacity={0.6}
-    />
-  )
+/** First lines built from what they're into, then a couple that always work. */
+function ideasFor(user: DiscoverUser | null): string[] {
+  const picks = (user?.interests ?? []).slice(0, 2).map(i => `You're into ${i} too? What got you into it?`)
+  return [...picks, 'Going anywhere good this weekend?', 'What is the best night out you have had this year?']
 }
 
+/**
+ * Sending someone a vibe. Full screen so the keyboard never covers the box:
+ * their square photo, name and city, a note on what they'll see, the box for
+ * your message (up to 4 lines) and ideas from their interests you can tap.
+ */
 function VibeRequestModalCore({ user, onSend, onClose }: Omit<Props, 'visible'>) {
-  const sheetRef = useRef<BottomSheetModal>(null)
+  const insets = useSafeAreaInsets()
   const [message, setMessage] = useState('')
-
-  useEffect(() => { sheetRef.current?.present() }, [])
-
-  useEffect(() => {
-    const show = Keyboard.addListener('keyboardDidShow', () => sheetRef.current?.snapToIndex(1))
-    const hide = Keyboard.addListener('keyboardDidHide', () => sheetRef.current?.snapToIndex(0))
-    return () => { show.remove(); hide.remove() }
-  }, [])
-
-  const handleSend = () => {
-    const trimmed = message.trim()
-    if (!trimmed) return
-    hMedium()
-    onSend(trimmed)
-    setMessage('')
-  }
-
-  const handleClose = () => {
-    hTap()
-    setMessage('')
-    onClose()
-  }
-
-  const charsLeft = MAX_CHARS - message.length
-  const canSend = message.trim().length > 0
+  const first = (user?.name ?? 'them').split(' ')[0]
   const avatar = user?.photos?.[0]?.url
+  const canSend = message.trim().length > 0
+
+  const send = () => {
+    if (!canSend) return
+    hMedium()
+    onSend(message.trim())
+    setMessage('')
+  }
+  const close = () => { hTap(); setMessage(''); onClose() }
+  const change = (t: string) => {
+    if (t.length > MAX_CHARS || t.split('\n').length > MAX_LINES) return
+    setMessage(t)
+  }
 
   return (
-    <BottomSheetModal
-      ref={sheetRef}
-      snapPoints={SNAP_POINTS}
-      enablePanDownToClose
-      keyboardBehavior="interactive"
-      keyboardBlurBehavior="restore"
-      android_keyboardInputMode="adjustResize"
-      onDismiss={handleClose}
-      backdropComponent={renderBackdrop}
-      backgroundStyle={s.bg}
-      handleIndicatorStyle={s.handleIndicator}
-    >
-      <BottomSheetView style={s.content}>
-        <View style={s.partnerRow}>
-          {avatar ? (
-            <Image source={{ uri: avatar }} style={s.avatar} cachePolicy="memory-disk" priority="high" transition={150} />
-          ) : (
-            <View style={[s.avatar, s.avatarFallback]}>
-              <Text style={s.avatarInitial}>{(user?.name ?? '?').charAt(0)}</Text>
+    <Modal visible animationType="slide" presentationStyle="fullScreen" onRequestClose={close} statusBarTranslucent>
+      <View style={[s.root, { paddingTop: insets.top + 8 }]}>
+        <View style={s.bar}>
+          <Pressable style={s.close} onPress={close} hitSlop={8}>
+            <X size={20} color={Colors.inkPrimary} strokeWidth={2.2} />
+          </Pressable>
+        </View>
+
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+          <ScrollView contentContainerStyle={s.body} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+            <Animated.View entering={FadeInDown.duration(380)} style={s.photoWrap}>
+              <View style={s.photo}>
+                {avatar ? <Image source={{ uri: avatar }} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="memory-disk" priority="high" /> : <Text style={s.init}>{first.charAt(0)}</Text>}
+              </View>
+              <View style={s.flame}><Flame size={20} color={Colors.background} fill={Colors.background} /></View>
+            </Animated.View>
+
+            <Text style={s.title}>Vibe with {first}</Text>
+            {user?.city ? <View style={s.cityRow}><MapPin size={13} color={Colors.inkSecondary} strokeWidth={2} /><Text style={s.city}>{user.city}</Text></View> : null}
+            <Text style={s.sub}>{first} sees this before deciding. Make it about them, not just “hey”.</Text>
+
+            <View style={s.inputCard}>
+              <TextInput
+                style={s.input}
+                value={message}
+                onChangeText={change}
+                placeholder={`What made you want to meet ${first}?`}
+                placeholderTextColor={withOpacity(Colors.inkPrimary, 0.3)}
+                multiline
+                maxLength={MAX_CHARS}
+                autoFocus
+              />
+              <Text style={s.count}>{MAX_CHARS - message.length}</Text>
             </View>
-          )}
-          <View style={s.partnerInfo}>
-            <Text style={s.partnerName}>{user?.name ?? 'Someone'}</Text>
-            {user?.city ? <Text style={s.partnerCity}>{user.city}</Text> : null}
+
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="handled" style={s.ideasBleed} contentContainerStyle={s.ideas}>
+              {ideasFor(user).map(i => (
+                <Pressable key={i} style={s.idea} onPress={() => { hTap(); change(i) }}>
+                  <Text style={s.ideaText}>{i}</Text>
+                </Pressable>
+              ))}
+            </ScrollView>
+          </ScrollView>
+
+          <View style={[s.footer, { paddingBottom: insets.bottom + 12 }]}>
+            <PrimaryButton label="Send vibe" onPress={send} disabled={!canSend} icon={<Flame size={17} color={Colors.background} fill={Colors.background} />} />
           </View>
-          <View style={s.flameBadge}>
-            <Flame size={18} color={Colors.inkPrimary} fill={Colors.inkPrimary} />
-          </View>
-        </View>
-
-        <Text style={s.heading}>Send your vibe</Text>
-        <Text style={s.sub}>Say something genuine — they can see this before deciding</Text>
-
-        <View style={s.inputWrapper}>
-          <TextInput
-            style={s.input}
-            value={message}
-            onChangeText={t => t.length <= MAX_CHARS && t.split('\n').length <= MAX_LINES && setMessage(t)}
-            placeholder="What made you want to connect?"
-            placeholderTextColor={Colors.inkDisabled}
-            multiline
-            maxLength={MAX_CHARS}
-            autoFocus
-          />
-          <Text style={[s.charCount, charsLeft < 20 && s.charCountWarn]}>
-            {charsLeft}
-          </Text>
-        </View>
-
-        <PrimaryButton
-          label="Send Vibe"
-          onPress={handleSend}
-          disabled={!canSend}
-          icon={<Flame size={16} color={Colors.background} fill={Colors.background} />}
-          style={s.sendBtn}
-        />
-
-        <Pressable onPress={handleClose} style={s.cancelBtn}>
-          <Text style={s.cancelText}>Cancel</Text>
-        </Pressable>
-      </BottomSheetView>
-    </BottomSheetModal>
+        </KeyboardAvoidingView>
+      </View>
+    </Modal>
   )
 }
 
-export function VibeRequestModal({ visible, user, onSend, onClose }: Props) {
-  if (!visible || !user) return null
-  return <VibeRequestModalCore user={user} onSend={onSend} onClose={onClose} />
+export function VibeRequestModal({ visible, ...rest }: Props) {
+  if (!visible) return null
+  return <VibeRequestModalCore {...rest} />
 }
 
 const s = StyleSheet.create({
-  bg: { backgroundColor: Colors.surface },
-  handleIndicator: { backgroundColor: withOpacity(Colors.inkPrimary, 0.18) },
-  content: { paddingHorizontal: 20, paddingBottom: 36, paddingTop: 8 },
-  partnerRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 20 },
-  avatar: { width: 52, height: 52, borderRadius: 26},
-  avatarFallback: { backgroundColor: Colors.surface, alignItems: 'center', justifyContent: 'center' },
-  avatarInitial: { fontFamily: FontFamily.headingBold, fontSize: 22, color: Colors.inkPrimary },
-  partnerInfo: { flex: 1, marginLeft: 12 },
-  partnerName: { fontFamily: FontFamily.headingBold, fontSize: 18, color: Colors.inkPrimary },
-  partnerCity: { fontFamily: FontFamily.bodyRegular, fontSize: 13, color: Colors.inkSecondary, marginTop: 2 },
-  flameBadge: { width: 36, height: 36, borderRadius: 18, backgroundColor: withOpacity(Colors.inkPrimary, 0.15), alignItems: 'center', justifyContent: 'center' },
-  heading: { fontFamily: FontFamily.headingBold, fontSize: 22, color: Colors.inkPrimary, marginBottom: 4 },
-  sub: { fontFamily: FontFamily.bodyRegular, fontSize: 13, color: Colors.inkSecondary, marginBottom: 20, lineHeight: 18 },
-  inputWrapper: { backgroundColor: Colors.elevated, borderRadius: 16, borderWidth: 1, borderColor: Colors.grayBorder, padding: 14, marginBottom: 16, minHeight: 100 },
-  input: { fontFamily: FontFamily.bodyRegular, fontSize: 15, color: Colors.inkPrimary, lineHeight: 22, flex: 1 },
-  charCount: { fontFamily: FontFamily.bodyRegular, fontSize: 11, color: Colors.inkDisabled, textAlign: 'right', marginTop: 6 },
-  charCountWarn: { color: Colors.destructive },
-  sendBtn: { marginBottom: 12 },
-  cancelBtn: { alignItems: 'center', paddingVertical: 10 },
-  cancelText: { fontFamily: FontFamily.bodyRegular, fontSize: 14, color: Colors.inkSecondary },
+  root: { flex: 1, backgroundColor: Colors.background },
+  bar: { paddingHorizontal: 16, height: 44, justifyContent: 'center' },
+  close: { width: 38, height: 38, borderRadius: 19, backgroundColor: withOpacity(Colors.inkPrimary, 0.08), alignItems: 'center', justifyContent: 'center' },
+  body: { paddingHorizontal: 24, paddingBottom: 20, alignItems: 'center' },
+
+  photoWrap: { marginTop: 4, marginBottom: 18 },
+  photo: { width: PHOTO, height: PHOTO, borderRadius: 40, overflow: 'hidden', backgroundColor: Colors.surfaceMuted, alignItems: 'center', justifyContent: 'center' },
+  init: { fontFamily: FontFamily.displayExtraBold, fontSize: 60, color: Colors.inkDisabled },
+  flame: { position: 'absolute', right: -8, bottom: -8, width: 46, height: 46, borderRadius: 23, backgroundColor: Colors.inkPrimary, borderWidth: 4, borderColor: Colors.background, alignItems: 'center', justifyContent: 'center' },
+
+  title: { fontFamily: FontFamily.displayExtraBold, fontSize: 34, letterSpacing: -1, color: Colors.inkPrimary, textAlign: 'center' },
+  cityRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 },
+  city: { fontFamily: FontFamily.bodyMedium, fontSize: 14, color: Colors.inkSecondary },
+  sub: { fontFamily: FontFamily.bodyRegular, fontSize: 14, lineHeight: 20, color: Colors.inkSecondary, textAlign: 'center', marginTop: 10, marginBottom: 20 },
+
+  inputCard: { alignSelf: 'stretch', padding: 16, borderRadius: 20, backgroundColor: Colors.surface, borderWidth: 1.5, borderColor: withOpacity(Colors.inkPrimary, 0.2), minHeight: 120 },
+  input: { fontFamily: FontFamily.headingBold, fontSize: 19, lineHeight: 26, color: Colors.inkPrimary, minHeight: 70, textAlignVertical: 'top' },
+  count: { fontFamily: FontFamily.bodyMedium, fontSize: 11, color: Colors.inkDisabled, textAlign: 'right' },
+
+  ideasBleed: { alignSelf: 'stretch', marginHorizontal: -24, marginTop: 12 },
+  ideas: { paddingHorizontal: 24, gap: 8 },
+  idea: { maxWidth: 240, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 16, backgroundColor: withOpacity(Colors.inkPrimary, 0.06) },
+  ideaText: { fontFamily: FontFamily.bodyMedium, fontSize: 13, lineHeight: 18, color: Colors.inkPrimary },
+
+  footer: { paddingHorizontal: 20, paddingTop: 10 },
 })

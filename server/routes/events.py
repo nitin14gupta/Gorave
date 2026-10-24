@@ -865,6 +865,47 @@ def get_waitlisted_events(current_user: dict = Depends(get_current_user)):
         return _apply_location_privacy(cur, _shape_event_rows(cur.fetchall()), uid)
 
 
+@router.get("/requested", response_model=List[EventSummary])
+def get_requested_events(current_user: dict = Depends(get_current_user)):
+    uid = current_user["id"]
+    with get_db() as (cur, _):
+        # Upcoming free events you asked to join that the host hasn't answered yet.
+        cur.execute(
+            """
+            SELECT
+                e.id::text,
+                e.title, e.event_type,
+                e.date_time::text, e.end_time::text,
+                e.location_name, e.location_lat, e.location_lng,
+                e.city, e.area, e.address_line1, e.address_line2, e.pincode, e.join_mode, e.women_pct,
+                e.price_inr, (e.price_inr = 0) AS is_free,
+            e.platform_fee_inr, e.host_commission_inr, e.platform_profit_inr,
+                e.spots_left, e.capacity, e.age_restriction,
+                e.cover_photos, e.is_cancelled,
+                e.host_id::text,
+                NULL::int AS distance_km,
+                u.name AS host_name,
+                (SELECT p.url FROM user_photos p WHERE p.user_id = u.id ORDER BY p.position LIMIT 1) AS host_avatar,
+                COALESCE(u.is_deleted, FALSE) AS host_is_deleted,
+                (SELECT COUNT(*) FROM event_attendees ea2 WHERE ea2.event_id = e.id AND ea2.status = 'going')::int AS attendee_count,
+                (SELECT COALESCE(json_agg(au.avatar_url), '[]'::json) FROM (
+                    SELECT (SELECT p.url FROM user_photos p WHERE p.user_id = eav.user_id ORDER BY p.position LIMIT 1) AS avatar_url
+                    FROM event_attendees eav
+                    WHERE eav.event_id = e.id AND eav.status = 'going'
+                    ORDER BY eav.joined_at ASC LIMIT 3
+                ) au WHERE au.avatar_url IS NOT NULL) AS attendee_avatars,
+                EXISTS(SELECT 1 FROM event_hotlist h WHERE h.user_id = %s::uuid AND h.event_id = e.id) AS is_hotlisted
+            FROM events e
+            JOIN users u ON u.id = e.host_id
+            JOIN event_attendees ea ON ea.event_id = e.id AND ea.user_id = %s::uuid AND ea.status = 'requested'
+            AND e.is_cancelled = FALSE AND COALESCE(e.end_time, e.date_time + interval '6 hours') > NOW()
+            ORDER BY e.date_time ASC
+            """,
+            (uid, uid),
+        )
+        return _apply_location_privacy(cur, _shape_event_rows(cur.fetchall()), uid)
+
+
 # ── Hotlist — events a user has saved/bookmarked, not necessarily going to ───
 # (see event_hotlist table). Zomato-style "save for later", separate from
 # RSVP/waitlist which are about attendance.

@@ -1,0 +1,136 @@
+import { SectionHeader } from '@/components/ui/SectionHeader'
+import { forwardRef, useCallback, useImperativeHandle, useRef, useState, useEffect } from 'react'
+import { View, Text, StyleSheet, Pressable, FlatList, type ListRenderItemInfo } from 'react-native'
+import { router, useFocusEffect } from 'expo-router'
+import { Clock, ChevronRight } from 'lucide-react-native'
+import ApiService, { type EventSummary } from '@/api/apiService'
+import { EventCard } from '@/components/events/EventCard'
+import { invalidate } from '@/lib/queryCache'
+import { fetchMine } from '@/lib/myEventsCache'
+import { isEventPast } from '@/lib/dates'
+import { CacheKeys, Colors, FontFamily, EVENT_CARD_CAROUSEL_W } from '@/constants'
+
+const CARD_GAP = 12
+const INITIAL_COUNT = 6
+const PAGE_SIZE = 6
+
+function upcomingSorted(events: EventSummary[]) {
+  return events.filter(e => !isEventPast(e) && !e.is_cancelled)
+}
+
+function RequestedCard({ event, onPress }: { event: EventSummary; onPress: (id: string) => void }) {
+  return (
+    <View style={{ width: EVENT_CARD_CAROUSEL_W }}>
+      <EventCard
+        event={event}
+        showHost
+        onPress={() => onPress(event.id)}
+        footer={
+          <View style={s.footer}>
+            <Clock size={15} color={Colors.inkSecondary} strokeWidth={2} />
+            <Text style={s.footerText} numberOfLines={1}>Waiting for the host</Text>
+            <ChevronRight size={15} color={Colors.inkSecondary} strokeWidth={2} />
+          </View>
+        }
+      />
+    </View>
+  )
+}
+
+export interface RequestedSectionHandle {
+  /** Force a fresh fetch, bypassing the cache — used by pull-to-refresh. */
+  refresh: () => Promise<void>
+}
+
+interface Props {
+  onEmptyChange?: (empty: boolean) => void
+}
+
+export const RequestedSection = forwardRef<RequestedSectionHandle, Props>(function RequestedSection(
+  { onEmptyChange },
+  ref,
+) {
+  const [events, setEvents] = useState<EventSummary[]>([])
+  const [visibleCount, setVisibleCount] = useState(INITIAL_COUNT)
+  const mountedRef = useRef(true)
+
+  // The background refresh calls back into load to re-read the fresh copy.
+  const reloadRef = useRef<(force: boolean) => unknown>(() => {})
+  const load = useCallback((force: boolean) => {
+    const fetch = () =>
+      fetchMine(CacheKeys.homeRequestedEvents, () => ApiService.getMyRequestedEvents(), () => { if (mountedRef.current) reloadRef.current(false) })
+    return (force ? invalidate(CacheKeys.homeRequestedEvents).then(fetch) : fetch())
+      .then(data => {
+        if (!mountedRef.current) return
+        const sorted = upcomingSorted(data)
+        setEvents(sorted)
+        setVisibleCount(INITIAL_COUNT)
+        onEmptyChange?.(sorted.length === 0)
+      })
+      .catch(() => {})
+  }, [onEmptyChange])
+
+  useEffect(() => { reloadRef.current = load }, [load])
+
+  useImperativeHandle(ref, () => ({
+    refresh: () => load(true),
+  }), [load])
+
+  useFocusEffect(useCallback(() => {
+    mountedRef.current = true
+    load(false)
+    return () => { mountedRef.current = false }
+  }, [load]))
+
+  const handlePress = useCallback((id: string) => router.push(`/(events)/${id}` as any), [])
+
+  const renderItem = useCallback(({ item }: ListRenderItemInfo<EventSummary>) => (
+    <RequestedCard event={item} onPress={handlePress} />
+  ), [handlePress])
+
+  const cardW = EVENT_CARD_CAROUSEL_W
+  const getItemLayout = useCallback((_: unknown, index: number) => ({
+    length: cardW,
+    offset: (cardW + CARD_GAP) * index,
+    index,
+  }), [])
+
+  if (events.length === 0) return null
+
+  const visible = events.slice(0, visibleCount)
+
+  return (
+    <View style={s.wrap}>
+      <SectionHeader title="Requested" />
+      <FlatList
+        data={visible}
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        keyExtractor={e => e.id}
+        contentContainerStyle={s.list}
+        onEndReachedThreshold={0.5}
+        onEndReached={() => setVisibleCount(c => Math.min(c + PAGE_SIZE, events.length))}
+        renderItem={renderItem}
+        getItemLayout={getItemLayout}
+        initialNumToRender={INITIAL_COUNT}
+        maxToRenderPerBatch={PAGE_SIZE}
+        windowSize={5}
+        removeClippedSubviews
+      />
+    </View>
+  )
+})
+
+const s = StyleSheet.create({
+  wrap: { gap: 10 },
+  list: { gap: 12, paddingRight: 4 },
+  footer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: Colors.elevated,
+    paddingVertical: 12,
+  },
+  footerText: { fontFamily: FontFamily.bodySemiBold, fontSize: 13, color: Colors.inkSecondary },
+})

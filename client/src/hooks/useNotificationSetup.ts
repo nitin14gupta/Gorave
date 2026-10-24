@@ -4,6 +4,7 @@ import { Platform } from 'react-native'
 import { useAuthStore } from '@/store/auth'
 import { useNotificationStore } from '@/store/notificationStore'
 import { useNotifStore } from '@/store/notifStore'
+import { invalidateMyEvents } from '@/lib/myEventsCache'
 import ApiService from '@/api/apiService'
 import { EAS_PROJECT_ID } from '@/api/config'
 import { pushDataToTarget } from '@/lib/deepLink'
@@ -90,6 +91,9 @@ export function useNotificationSetup() {
     // unread count right away instead of waiting for the Home tab to next
     // gain focus, so the header's attention-pop fires live like Instagram's.
     const receivedSub = Notifications.addNotificationReceivedListener(() => {
+      // Any push may be about your events (edited, cancelled, accepted,
+      // checked in), so Home re-reads them next time.
+      invalidateMyEvents()
       useNotifStore.getState().hydrate().then(() => {
         ApiService.getUnreadNotificationCount()
           .then(fresh => useNotifStore.getState().syncUnreadCount(fresh))

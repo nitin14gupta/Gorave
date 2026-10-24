@@ -13,6 +13,7 @@ import { TemplateFan } from '@/components/home/TemplateFan'
 import { ActiveEventsSection, type ActiveEventsSectionHandle } from '@/components/home/ActiveEventsSection'
 import { MyEventsSection, type MyEventsSectionHandle } from '@/components/home/MyEventsSection'
 import { WaitlistSection, type WaitlistSectionHandle } from '@/components/home/WaitlistSection'
+import { RequestedSection, type RequestedSectionHandle } from '@/components/home/RequestedSection'
 import { PendingReviewsSection, type PendingReviewsSectionHandle } from '@/components/home/PendingReviewsSection'
 import { RecentlyViewedSection } from '@/components/home/RecentlyViewedSection'
 import { PromoCarousel } from '@/components/home/PromoCarousel'
@@ -39,15 +40,17 @@ export default function HomeScreen() {
 
   const [myEventsEmpty, setMyEventsEmpty] = useState<boolean | null>(null)
   const [waitlistEmpty, setWaitlistEmpty] = useState<boolean | null>(null)
+  const [requestedEmpty, setRequestedEmpty] = useState<boolean | null>(null)
   const [pendingReviewsEmpty, setPendingReviewsEmpty] = useState<boolean | null>(null)
   const [recentEmpty, setRecentEmpty] = useState<boolean | null>(null)
   const [trendingEmpty, setTrendingEmpty] = useState<boolean | null>(null)
-  const allEmpty = myEventsEmpty === true && waitlistEmpty === true && pendingReviewsEmpty === true && recentEmpty === true && trendingEmpty === true
+  const allEmpty = myEventsEmpty === true && waitlistEmpty === true && requestedEmpty === true && pendingReviewsEmpty === true && recentEmpty === true && trendingEmpty === true
 
   const [refreshing, setRefreshing] = useState(false)
   const activeEventsRef = useRef<ActiveEventsSectionHandle>(null)
   const myEventsRef = useRef<MyEventsSectionHandle>(null)
   const waitlistRef = useRef<WaitlistSectionHandle>(null)
+  const requestedRef = useRef<RequestedSectionHandle>(null)
   const pendingReviewsRef = useRef<PendingReviewsSectionHandle>(null)
   const trendingRef = useRef<TrendingSectionHandle>(null)
 
@@ -58,6 +61,7 @@ export default function HomeScreen() {
         activeEventsRef.current?.refresh(),
         myEventsRef.current?.refresh(),
         waitlistRef.current?.refresh(),
+        requestedRef.current?.refresh(),
         pendingReviewsRef.current?.refresh(),
         trendingRef.current?.refresh(),
       ])
@@ -109,6 +113,7 @@ export default function HomeScreen() {
     <>
       <ActiveEventsSection ref={activeEventsRef} />
       <MyEventsSection ref={myEventsRef} onEmptyChange={setMyEventsEmpty} />
+      <RequestedSection ref={requestedRef} onEmptyChange={setRequestedEmpty} />
       <WaitlistSection ref={waitlistRef} onEmptyChange={setWaitlistEmpty} />
       <PendingReviewsSection ref={pendingReviewsRef} onEmptyChange={setPendingReviewsEmpty} />
       <RecentlyViewedSection onEmptyChange={setRecentEmpty} />

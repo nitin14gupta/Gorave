@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { Linking } from 'react-native'
 import * as Clipboard from 'expo-clipboard'
 import { useFocusEffect, useRouter } from 'expo-router'
+import { checkAgainstCache } from '@/lib/myEventsCache'
 import ApiService, { type EventDetail, type EventAttendee, type EventGuest } from '@/api/apiService'
 import { useAuthStore } from '@/store/auth'
 import { useRecentEventsStore } from '@/store/recentEventsStore'
@@ -48,6 +49,7 @@ export function useEventDetail(id: string | undefined) {
     ApiService.getEvent(id)
       .then(ev => {
         setEvent(ev)
+        checkAgainstCache(ev)
         useRecentEventsStore.getState().add(ev)
         if (ev.my_rsvp_status === 'going' || ev.my_rsvp_status === 'waitlist') {
           setRsvpStatus(ev.my_rsvp_status)
@@ -96,6 +98,7 @@ export function useEventDetail(id: string | undefined) {
     try {
       const ev = await ApiService.getEvent(id)
       setEvent(ev)
+      checkAgainstCache(ev)
     } catch (e: any) {
       showPill(e?.message || "Couldn't refresh this event", 'error')
     } finally {

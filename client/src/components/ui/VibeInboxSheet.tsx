@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { View, Text, StyleSheet, Pressable } from 'react-native'
 import { Image } from 'expo-image'
+import { LinearGradient } from 'expo-linear-gradient'
 import { BottomSheetModal, BottomSheetView, BottomSheetFlatList, BottomSheetBackdrop } from '@gorhom/bottom-sheet'
 import type { BottomSheetBackdropProps } from '@gorhom/bottom-sheet'
 import { AutoSkeletonView } from 'react-native-auto-skeleton'
@@ -44,34 +45,38 @@ function renderBackdrop(props: BottomSheetBackdropProps) {
 function RequestCard({ req, onBeginAccept, onPass }: { req: VibeRequest; onBeginAccept: (id: string, name: string | null) => void; onPass: (id: string) => void }) {
   const [actioned, setActioned] = useState<'pending' | 'passed' | null>(null)
   const avatar = req.photos[0]?.url
+  const first = (req.name ?? 'Someone').split(' ')[0]
 
   return (
     <View style={[s.card, actioned && s.cardActioned]}>
-      <Pressable style={s.cardLeft} onPress={() => router.push(`/(profile)/${req.sender_id}` as any)}>
+      <Pressable style={s.photo} onPress={() => router.push(`/(profile)/${req.sender_id}` as any)}>
         {avatar ? (
-          <Image source={{ uri: avatar }} style={s.cardAvatar} cachePolicy="memory-disk" priority="low" transition={150} />
+          <Image source={{ uri: avatar }} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="memory-disk" transition={150} />
         ) : (
-          <View style={[s.cardAvatar, s.cardAvatarFallback]}>
-            <Text style={s.cardAvatarInitial}>{(req.name ?? '?').charAt(0)}</Text>
-          </View>
+          <Text style={s.photoInit}>{first.charAt(0)}</Text>
         )}
-        <View style={s.cardInfo}>
-          <Text style={s.cardName} numberOfLines={1}>{req.name ?? 'Someone'}</Text>
-          {req.city ? <Text style={s.cardCity} numberOfLines={1}>{req.city}</Text> : null}
-          <Text style={s.cardMsg} numberOfLines={2}>"{req.message}"</Text>
+        <LinearGradient pointerEvents="none" colors={['transparent', 'rgba(0,0,0,0.8)']} locations={[0.55, 1]} style={StyleSheet.absoluteFill} />
+        <View style={s.photoInfo}>
+          <Text style={s.photoName} numberOfLines={1}>{req.name ?? 'Someone'}</Text>
+          {req.city ? <Text style={s.photoCity} numberOfLines={1}>{req.city}</Text> : null}
         </View>
       </Pressable>
+
+      <View style={s.bubble}><Text style={s.bubbleText}>{req.message}</Text></View>
+
       {actioned === 'pending' ? (
-        <View style={s.actionedBadge}><Check size={14} color={Colors.onlineGreen} strokeWidth={2.5} /><Text style={s.actionedText}>Accepting…</Text></View>
+        <View style={s.actionedBadge}><Check size={14} color={Colors.onlineGreen} strokeWidth={2.5} /><Text style={s.actionedText}>Opening…</Text></View>
       ) : actioned === 'passed' ? (
-        <View style={[s.actionedBadge, s.actionedBadgePassed]}><Text style={s.actionedText}>Passed</Text></View>
+        <View style={s.actionedBadge}><Text style={s.actionedText}>Passed</Text></View>
       ) : (
         <View style={s.cardActions}>
           <Pressable style={s.passBtn} onPress={() => { hTap(); setActioned('passed'); onPass(req.id) }}>
-            <X size={18} color={Colors.inkSecondary} strokeWidth={2} />
+            <X size={18} color={Colors.inkPrimary} strokeWidth={2.2} />
+            <Text style={s.passText}>Pass</Text>
           </Pressable>
           <Pressable style={s.acceptBtn} onPress={() => { hSuccess(); setActioned('pending'); onBeginAccept(req.id, req.name) }}>
-            <Flame size={16} color={Colors.background} fill={Colors.background} />
+            <Flame size={17} color={Colors.background} fill={Colors.background} />
+            <Text style={s.acceptText}>Vibe back</Text>
           </Pressable>
         </View>
       )}
@@ -87,8 +92,7 @@ function VibeInboxSheetCore({ requests, loading, onBeginAccept, onPass, onClose 
   const Header = (
     <View style={s.headerRow}>
       <View style={s.headerLeft}>
-        <Flame size={20} color={Colors.inkPrimary} fill={Colors.inkPrimary} />
-        <Text style={s.title}>Vibe Requests</Text>
+        <Text style={s.title}>Vibes for you</Text>
         {requests.length > 0 && (
           <View style={s.countBadge}><Text style={s.countBadgeText}>{requests.length}</Text></View>
         )}
@@ -102,7 +106,7 @@ function VibeInboxSheetCore({ requests, loading, onBeginAccept, onPass, onClose 
   return (
     <BottomSheetModal
       ref={sheetRef}
-      snapPoints={['80%']}
+      snapPoints={['92%']}
       enablePanDownToClose
       onDismiss={onClose}
       backdropComponent={renderBackdrop}
@@ -125,8 +129,8 @@ function VibeInboxSheetCore({ requests, loading, onBeginAccept, onPass, onClose 
           {Header}
           <View style={s.emptyBox}>
             <Flame size={40} color={Colors.inkDisabled} strokeWidth={1.2} />
-            <Text style={s.emptyTitle}>No vibe requests</Text>
-            <Text style={s.emptySub}>When someone sends you a vibe, it'll show up here.</Text>
+            <Text style={s.emptyTitle}>No vibes yet</Text>
+            <Text style={s.emptySub}>When someone sends you a vibe, it shows up here.</Text>
           </View>
         </BottomSheetView>
       ) : (
@@ -136,7 +140,7 @@ function VibeInboxSheetCore({ requests, loading, onBeginAccept, onPass, onClose 
           contentContainerStyle={s.listContent}
           showsVerticalScrollIndicator={false}
           ListHeaderComponent={Header}
-          ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
+          ItemSeparatorComponent={() => <View style={{ height: 18 }} />}
           renderItem={({ item }) => <RequestCard req={item} onBeginAccept={onBeginAccept} onPass={onPass} />}
         />
       )}
@@ -150,32 +154,34 @@ export function VibeInboxSheet({ visible, ...rest }: Props) {
 }
 
 const s = StyleSheet.create({
-  bg: { backgroundColor: Colors.sheetBackground },
+  bg: { backgroundColor: Colors.sheetBackground, borderRadius: 28 },
   handleIndicator: { backgroundColor: withOpacity(Colors.inkPrimary, 0.18) },
   fullContent: { paddingHorizontal: 20, paddingBottom: 36, paddingTop: 8 },
   listContent: { paddingHorizontal: 20, paddingBottom: 36, paddingTop: 8 },
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
   headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  title: { fontFamily: FontFamily.headingBold, fontSize: 20, color: Colors.inkPrimary },
+  title: { fontFamily: FontFamily.displayExtraBold, fontSize: 28, letterSpacing: -0.7, color: Colors.inkPrimary },
   countBadge: { width: 22, height: 22, borderRadius: 11, backgroundColor: Colors.inkPrimary, alignItems: 'center', justifyContent: 'center' },
   countBadgeText: { fontFamily: FontFamily.bodySemiBold, fontSize: 11, color: Colors.background },
-  card: { flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.skeletonBase, borderRadius: 16, borderWidth: 1, borderColor: Colors.surfaceMuted, padding: 14, gap: 12 },
+  card: { gap: 12 },
   skCard: { flexDirection: 'row', alignItems: 'center', borderRadius: 16, borderWidth: 1, borderColor: Colors.surfaceMuted, padding: 14, gap: 12 },
-  cardActioned: { opacity: 0.55 },
-  cardLeft: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  cardActioned: { opacity: 0.5 },
   cardAvatar: { width: 52, height: 52, borderRadius: 26 },
-  cardAvatarFallback: { backgroundColor: Colors.surfaceMuted, alignItems: 'center', justifyContent: 'center' },
-  cardAvatarInitial: { fontFamily: FontFamily.headingBold, fontSize: 20, color: Colors.inkPrimary },
   cardInfo: { flex: 1 },
-  cardName: { fontFamily: FontFamily.bodySemiBold, fontSize: 14, color: Colors.inkPrimary },
-  cardCity: { fontFamily: FontFamily.bodyRegular, fontSize: 11, color: Colors.inkSecondary },
-  cardMsg: { fontFamily: FontFamily.bodyRegular, fontSize: 12, color: Colors.inkSecondary, fontStyle: 'italic', marginTop: 3, lineHeight: 16 },
-  cardActions: { flexDirection: 'row', gap: 8 },
-  passBtn: { width: 36, height: 36, borderRadius: 18, borderWidth: 1, borderColor: withOpacity(Colors.inkPrimary, 0.15), alignItems: 'center', justifyContent: 'center' },
-  acceptBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: Colors.accentGreen, alignItems: 'center', justifyContent: 'center' },
-  actionedBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 12, backgroundColor: withOpacity(Colors.onlineGreen, 0.12), borderWidth: 1, borderColor: withOpacity(Colors.onlineGreen, 0.3) },
-  actionedBadgePassed: { backgroundColor: withOpacity(Colors.inkPrimary, 0.05), borderColor: withOpacity(Colors.inkPrimary, 0.1) },
-  actionedText: { fontFamily: FontFamily.bodyRegular, fontSize: 11, color: Colors.inkSecondary },
+  photo: { width: '100%', aspectRatio: 1, borderRadius: 24, overflow: 'hidden', backgroundColor: Colors.surfaceMuted, alignItems: 'center', justifyContent: 'center' },
+  photoInit: { fontFamily: FontFamily.displayExtraBold, fontSize: 72, color: Colors.inkDisabled },
+  photoInfo: { position: 'absolute', left: 16, right: 16, bottom: 14 },
+  photoName: { fontFamily: FontFamily.displayExtraBold, fontSize: 28, letterSpacing: -0.6, color: Colors.white },
+  photoCity: { fontFamily: FontFamily.bodyMedium, fontSize: 13, color: withOpacity(Colors.white, 0.85) },
+  bubble: { alignSelf: 'flex-start', maxWidth: '92%', paddingHorizontal: 14, paddingVertical: 11, borderRadius: 18, borderTopLeftRadius: 6, backgroundColor: Colors.surface, borderWidth: 1, borderColor: Colors.divider },
+  bubbleText: { fontFamily: FontFamily.bodyRegular, fontSize: 15, lineHeight: 21, color: Colors.inkPrimary },
+  cardActions: { flexDirection: 'row', gap: 10 },
+  passBtn: { flex: 1, height: 50, borderRadius: 25, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: withOpacity(Colors.inkPrimary, 0.08) },
+  passText: { fontFamily: FontFamily.bodySemiBold, fontSize: 15, color: Colors.inkPrimary },
+  acceptBtn: { flex: 1.6, height: 50, borderRadius: 25, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: Colors.inkPrimary },
+  acceptText: { fontFamily: FontFamily.headingBold, fontSize: 15, color: Colors.background },
+  actionedBadge: { height: 50, borderRadius: 25, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: withOpacity(Colors.inkPrimary, 0.06) },
+  actionedText: { fontFamily: FontFamily.bodySemiBold, fontSize: 14, color: Colors.inkSecondary },
   emptyBox: { paddingVertical: 40, alignItems: 'center', gap: 10 },
   emptyTitle: { fontFamily: FontFamily.headingBold, fontSize: 18, color: Colors.inkPrimary },
   emptySub: { fontFamily: FontFamily.bodyRegular, fontSize: 13, color: Colors.inkSecondary, textAlign: 'center' },

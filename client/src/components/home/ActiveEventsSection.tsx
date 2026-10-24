@@ -1,10 +1,11 @@
 import { SectionHeader } from '@/components/ui/SectionHeader'
-import { forwardRef, memo, useCallback, useImperativeHandle, useRef, useState } from 'react'
+import { forwardRef, memo, useCallback, useImperativeHandle, useRef, useState, useEffect } from 'react'
 import { View, Text, Pressable, StyleSheet, FlatList } from 'react-native'
 import { ShieldCheck } from 'lucide-react-native'
 import { router, useFocusEffect } from 'expo-router'
 import ApiService, { type EventSummary } from '@/api/apiService'
-import { getOrFetch, invalidate } from '@/lib/queryCache'
+import { invalidate } from '@/lib/queryCache'
+import { fetchMine } from '@/lib/myEventsCache'
 import { EventCard } from '@/components/events/EventCard'
 import { SosPill } from '@/components/events/SosButton'
 import { parseServerDate, isEventActive } from '@/lib/dates'
@@ -51,9 +52,11 @@ export const ActiveEventsSection = forwardRef<ActiveEventsSectionHandle, Props>(
   const [events, setEvents] = useState<EventSummary[]>([])
   const mountedRef = useRef(true)
 
+  // The background refresh calls back into load to re-read the fresh copy.
+  const reloadRef = useRef<(force: boolean) => unknown>(() => {})
   const load = useCallback((force: boolean) => {
     const fetch = () =>
-      getOrFetch(CacheKeys.homeJoinedEvents, () => ApiService.getMyJoinedEvents(), { ttlMs: 5 * 60_000, persist: false })
+      fetchMine(CacheKeys.homeJoinedEvents, () => ApiService.getMyJoinedEvents(), () => { if (mountedRef.current) reloadRef.current(false) })
     return (force ? invalidate(CacheKeys.homeJoinedEvents).then(fetch) : fetch())
       .then(data => {
         if (!mountedRef.current) return
@@ -63,6 +66,8 @@ export const ActiveEventsSection = forwardRef<ActiveEventsSectionHandle, Props>(
       })
       .catch(() => {})
   }, [onEmptyChange])
+
+  useEffect(() => { reloadRef.current = load }, [load])
 
   useImperativeHandle(ref, () => ({
     refresh: () => load(true),

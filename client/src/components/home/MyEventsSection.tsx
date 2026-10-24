@@ -1,7 +1,8 @@
-import { forwardRef, useCallback, useImperativeHandle, useRef, useState } from 'react'
+import { forwardRef, useCallback, useImperativeHandle, useRef, useState, useEffect } from 'react'
 import { useFocusEffect } from 'expo-router'
 import ApiService, { type EventSummary } from '@/api/apiService'
-import { getOrFetch, invalidate } from '@/lib/queryCache'
+import { invalidate } from '@/lib/queryCache'
+import { fetchMine } from '@/lib/myEventsCache'
 import { CacheKeys } from '@/constants'
 import { parseServerDate, isEventPast } from '@/lib/dates'
 import { UpNextSection } from './UpNextSection'
@@ -30,11 +31,13 @@ export const MyEventsSection = forwardRef<MyEventsSectionHandle, Props>(function
   const [hosted, setHosted] = useState<EventSummary[]>([])
   const mountedRef = useRef(true)
 
+  // The background refresh calls back into load to re-read the fresh copy.
+  const reloadRef = useRef<(force: boolean) => unknown>(() => {})
   const load = useCallback((force: boolean) => {
     const fetchJoined = () =>
-      getOrFetch(CacheKeys.homeJoinedEvents, () => ApiService.getMyJoinedEvents(), { ttlMs: 5 * 60_000, persist: false })
+      fetchMine(CacheKeys.homeJoinedEvents, () => ApiService.getMyJoinedEvents(), () => { if (mountedRef.current) reloadRef.current(false) })
     const fetchHosted = () =>
-      getOrFetch(CacheKeys.homeHostedEvents, () => ApiService.getMyHostedEvents(), { ttlMs: 5 * 60_000, persist: false })
+      fetchMine(CacheKeys.homeHostedEvents, () => ApiService.getMyHostedEvents(), () => { if (mountedRef.current) reloadRef.current(false) })
 
     const joinedPromise = force ? invalidate(CacheKeys.homeJoinedEvents).then(fetchJoined) : fetchJoined()
     const hostedPromise = force ? invalidate(CacheKeys.homeHostedEvents).then(fetchHosted) : fetchHosted()
@@ -51,6 +54,8 @@ export const MyEventsSection = forwardRef<MyEventsSectionHandle, Props>(function
       onEmptyChange?.(j.length === 0 && h.length === 0)
     })
   }, [onEmptyChange])
+
+  useEffect(() => { reloadRef.current = load }, [load])
 
   useImperativeHandle(ref, () => ({
     refresh: () => load(true),
