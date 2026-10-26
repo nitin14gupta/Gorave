@@ -145,6 +145,21 @@ Routes live in `client/src/app/` (Expo Router). `(group)` folders don't show in 
 | 67 | Privacy | `(settings)/privacy` | Privacy policy | ✅ website page, unchanged |
 | 68 | Delete account | `(settings)/delete-account` | Confirm and schedule deletion | ✅ number and code use the sign-in screens |
 
+### Conditional states ("not right now" screens)
+
+| State | How to see it | UI pass |
+|---|---|---|
+| Check-in not open yet | Your event, more than 3h away → Scanner | ✅ poster top, live countdown, timeline, guest list button |
+| Editing closed | Your event, under 2h away → ⋯ → Edit | ✅ timeline of when things lock, support note |
+| Too late to cancel | Your event, under 48h away → ⋯ → Cancel | ✅ edit instead / email support |
+| Women only / men only | An event set for the other crowd | ✅ find another night |
+| Age limit | An event above your age | ✅ find another night |
+| Event cancelled | Any cancelled event | ✅ refund card, wallet / another night |
+| Edit screen locked banner | Edit an event under 7h away | ✅ neutral card, accurate copy |
+| Scanner from guest list | Guest list → Scanner, too early or after | ✅ pill says the exact opening time |
+| Chat: blocked / they blocked / deleted account | Open that chat | ✅ card with title, reason, Unblock / Delete chat |
+| Can't delete account while hosting | Settings → Account → Delete account | ✅ "Your guests come first" |
+
 ### Sheets and overlays (not routes, still worth a pass)
 
 | Sheet | Where | UI pass |

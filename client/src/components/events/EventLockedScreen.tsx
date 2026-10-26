@@ -1,8 +1,9 @@
-import React from 'react'
-import { Pressable, StyleSheet, Text, View } from 'react-native'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { ArrowLeft, Clock, Shield, Users } from 'lucide-react-native'
-import { Colors, FontFamily, withOpacity } from '@/constants'
+import { useState } from 'react'
+import { Linking, StyleSheet, Text, View } from 'react-native'
+import { router } from 'expo-router'
+import { CalendarX, Clock, PencilOff, ScanLine, Shield, Users } from 'lucide-react-native'
+import { Colors, FontFamily, SUPPORT_EMAIL, withOpacity } from '@/constants'
+import { EventGateView, gateTime } from './EventGateView'
 import { parseDate } from './eventDetailUtils'
 import type { EventDetail } from '@/api/apiService'
 import type { LockedReason } from '@/hooks/useEventDetail'
@@ -13,89 +14,143 @@ interface Props {
   onBack: () => void
 }
 
-export function EventLockedScreen({ reason, event, onBack }: Props) {
-  const insets = useSafeAreaInsets()
-  const eventStart = parseDate(event.date_time)
+const HOUR = 3600_000
 
-  let title: string
-  let subtitle: string
-  let icon: React.ReactNode
+/**
+ * "You can't do this right now" for an event: check-in not open yet, editing
+ * or cancelling closed, or the event isn't for you (crowd or age). Each says
+ * why, shows when things happen, and offers a next step.
+ */
+export function EventLockedScreen({ reason, event, onBack }: Props) {
+  const start = parseDate(event.date_time)
+  const end = parseDate(event.end_time) ?? (start ? new Date(start.getTime() + 6 * HOUR) : null)
+  const at = (h: number) => (start ? new Date(start.getTime() - h * HOUR) : null)
+  const [now] = useState(() => Date.now())
+  const icon = (I: typeof Clock, color: string = Colors.inkPrimary) => <I size={28} color={color} strokeWidth={1.8} />
+  const toEvents = () => router.navigate('/(tabs)/events' as any)
 
   if (reason === 'checkin') {
-    const opensAt = eventStart
-      ? new Date(eventStart.getTime() - 3 * 3600_000).toLocaleTimeString('en-IN', {
-        hour: '2-digit',
-        minute: '2-digit',
-        day: 'numeric',
-        month: 'short',
-      })
-      : '3 hours before the event'
-    title = 'Check-in not open yet'
-    subtitle = `Scanner unlocks 3 hours before the event starts.\n\nComes alive at ${opensAt}.`
-    icon = <Clock size={40} color={Colors.inkPrimary} strokeWidth={1.5} />
-  } else if (reason === 'edit') {
-    title = 'Editing is closed'
-    subtitle = 'Events can only be edited up to 7 hours before they start.\n\nThis window has passed for this event.'
-    icon = <Clock size={40} color={Colors.inkPrimary} strokeWidth={1.5} />
-  } else if (reason === 'cancel') {
-    title = 'Cancellation is closed'
-    subtitle = 'Events can only be cancelled at least 48 hours in advance.\n\nThis window has passed for this event.'
-    icon = <Clock size={40} color={Colors.inkPrimary} strokeWidth={1.5} />
-  } else if (reason === 'gender') {
+    const opens = at(3)
+    return (
+      <EventGateView
+        event={event}
+        eyebrow="CHECK-IN"
+        title="Check-in isn't open yet"
+        body="The scanner opens 3 hours before your event starts, so tickets can't be scanned early by mistake."
+        icon={icon(ScanLine)}
+        countdownTo={opens}
+        countdownLabel="Scanner opens in"
+        steps={[
+          { label: 'Now', time: gateTime(new Date(now)), done: true },
+          { label: 'Scanner opens', time: gateTime(opens), current: true },
+          { label: 'Event starts', time: gateTime(start) },
+          { label: 'Scanner closes', time: gateTime(end) },
+        ]}
+        actions={[
+          { label: 'See the guest list', onPress: () => router.push(`/(events)/${event.id}/attendees` as any) },
+          { label: 'Back to the event', onPress: onBack, kind: 'secondary' },
+        ]}
+        onBack={onBack}
+      />
+    )
+  }
+
+  if (reason === 'edit') {
+    const closedAt = at(7)
+    return (
+      <EventGateView
+        event={event}
+        eyebrow="EDITING"
+        title="Editing is closed"
+        body="Guests have made plans around your details, so events lock 7 hours before they start. In the last 2 hours nothing can change."
+        icon={icon(PencilOff)}
+        steps={[
+          { label: 'Details locked', time: gateTime(closedAt), done: true },
+          { label: 'Capacity locked', time: gateTime(at(2)), current: true },
+          { label: 'Event starts', time: gateTime(start) },
+        ]}
+        extra={
+          <View style={s.note}>
+            <Text style={s.noteTitle}>Need to tell guests something?</Text>
+            <Text style={s.noteText}>Write to us at {SUPPORT_EMAIL} and we will help you reach them.</Text>
+          </View>
+        }
+        actions={[
+          { label: 'Open the guest list', onPress: () => router.push(`/(events)/${event.id}/attendees` as any) },
+          { label: 'Back to the event', onPress: onBack, kind: 'secondary' },
+        ]}
+        onBack={onBack}
+      />
+    )
+  }
+
+  if (reason === 'cancel') {
+    const canStillEdit = start ? start.getTime() - now > 7 * HOUR : false
+    return (
+      <EventGateView
+        event={event}
+        eyebrow="CANCELLING"
+        title="It's too late to cancel"
+        body="Events can be cancelled up to 48 hours before they start. After that guests are counting on it, so cancelling needs our help."
+        icon={icon(CalendarX)}
+        steps={[
+          { label: 'Last day to cancel', time: gateTime(at(48)), done: true },
+          { label: 'Event starts', time: gateTime(start), current: true },
+        ]}
+        extra={
+          <View style={s.note}>
+            <Text style={s.noteTitle}>Something came up?</Text>
+            <Text style={s.noteText}>
+              {canStillEdit ? 'You can still change the details until 7 hours before. ' : ''}If you really can&apos;t host, write to us and we&apos;ll sort out your guests.
+            </Text>
+          </View>
+        }
+        actions={[
+          ...(canStillEdit ? [{ label: 'Edit details instead', onPress: () => router.push(`/(events)/${event.id}/edit` as any) }] : []),
+          { label: 'Email support', onPress: () => Linking.openURL(`mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(`Need to cancel: ${event.title}`)}`), kind: canStillEdit ? 'secondary' : 'primary' },
+          { label: 'Back to the event', onPress: onBack, kind: 'secondary' },
+        ]}
+        onBack={onBack}
+      />
+    )
+  }
+
+  if (reason === 'gender') {
     const womenOnly = (event.women_pct ?? 0) >= 100
-    title = womenOnly ? 'Women only' : 'Men only'
-    subtitle = `The host has set this event for ${womenOnly ? 'women' : 'men'} only.\n\nThere's plenty more happening this week — check the Events tab.`
-    icon = <Users size={40} color={Colors.inkPrimary} strokeWidth={1.5} />
-  } else {
-    title = `${event.age_restriction}+ Only`
-    subtitle = `This event has an age restriction of ${event.age_restriction}+.\n\nYou must be ${event.age_restriction} or older to attend.`
-    icon = <Shield size={40} color={Colors.destructive} strokeWidth={1.5} />
+    return (
+      <EventGateView
+        event={event}
+        eyebrow="WHO IT'S FOR"
+        title={womenOnly ? 'This one is women only' : 'This one is men only'}
+        body={`The host made this night for ${womenOnly ? 'women' : 'men'} only. There is plenty more on this week.`}
+        icon={icon(Users)}
+        actions={[
+          { label: 'Find another night', onPress: toEvents },
+          { label: 'Back', onPress: onBack, kind: 'secondary' },
+        ]}
+        onBack={onBack}
+      />
+    )
   }
 
   return (
-    <View style={[styles.root, { paddingTop: insets.top + 8, paddingHorizontal: 24 }]}>
-      <Pressable style={styles.lockedBack} onPress={onBack}>
-        <ArrowLeft size={20} color={Colors.inkSecondary} />
-        <Text style={styles.lockedBackText}>Back to Event</Text>
-      </Pressable>
-      <View style={styles.lockedBody}>
-        <View style={[styles.lockedIconWrap, reason === 'age' && { backgroundColor: withOpacity(Colors.destructive, 0.12) }]}>
-          {icon}
-        </View>
-        <Text style={styles.lockedTitle}>{title}</Text>
-        <Text style={styles.lockedSubtitle}>{subtitle}</Text>
-      </View>
-    </View>
+    <EventGateView
+      event={event}
+      eyebrow="AGE LIMIT"
+      title={`This one is ${event.age_restriction}+`}
+      body={`The host set an age limit of ${event.age_restriction}. You'll be able to join nights like this once you're ${event.age_restriction}.`}
+      icon={icon(Shield, Colors.destructive)}
+      actions={[
+        { label: 'Find another night', onPress: toEvents },
+        { label: 'Back', onPress: onBack, kind: 'secondary' },
+      ]}
+      onBack={onBack}
+    />
   )
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: Colors.background },
-  lockedBack: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 40 },
-  lockedBackText: { fontFamily: FontFamily.bodyMedium, fontSize: 15, color: Colors.inkSecondary },
-  lockedBody: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingBottom: 80 },
-  lockedIconWrap: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
-    backgroundColor: withOpacity(Colors.inkPrimary, 0.12),
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 24,
-  },
-  lockedTitle: {
-    fontFamily: FontFamily.headingBold,
-    fontSize: 26,
-    color: Colors.inkPrimary,
-    textAlign: 'center',
-    lineHeight: 32,
-    marginBottom: 14,
-  },
-  lockedSubtitle: {
-    fontFamily: FontFamily.bodyRegular,
-    fontSize: 15,
-    color: Colors.inkSecondary,
-    textAlign: 'center',
-    lineHeight: 23,
-  },
+const s = StyleSheet.create({
+  note: { alignSelf: 'stretch', marginTop: 12, padding: 16, borderRadius: 20, backgroundColor: withOpacity(Colors.inkPrimary, 0.05), gap: 4 },
+  noteTitle: { fontFamily: FontFamily.bodySemiBold, fontSize: 15, color: Colors.inkPrimary },
+  noteText: { fontFamily: FontFamily.bodyRegular, fontSize: 14, lineHeight: 20, color: Colors.inkSecondary },
 })

@@ -6,6 +6,7 @@ import { Colors, FontFamily, Spacing, Radius, withOpacity } from '@/constants'
 import { BrandedLoader, EmptyState } from '@/components/ui'
 import { GuestListView } from '@/components/events/GuestListView'
 import { useAttendees } from '@/hooks/useAttendees'
+import { parseServerDate } from '@/lib/dates'
 import { usePillStore } from '@/store/pillStore'
 
 export default function AttendeesScreen() {
@@ -19,9 +20,13 @@ export default function AttendeesScreen() {
 
   const handleScannerPress = () => {
     if (scannerStatus === 'ended') {
-      showPill('This event has ended, so the scanner is closed', 'error')
+      showPill('The event has ended, so the scanner is closed', 'default')
     } else if (scannerStatus === 'not_yet') {
-      showPill('Scanner opens 3 hours before the event', 'default')
+      const start = parseServerDate(event?.date_time)
+      const opens = start ? new Date(start.getTime() - 3 * 3600_000) : null
+      showPill(opens
+        ? `The scanner opens at ${opens.toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' })}, 3 hours before the event`
+        : 'The scanner opens 3 hours before the event', 'default')
     } else {
       router.push(`/(events)/${id}/scanner` as any)
     }

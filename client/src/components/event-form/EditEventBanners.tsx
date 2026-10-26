@@ -7,8 +7,8 @@ export function LockedBanner({ capacityLocked }: { capacityLocked: boolean }) {
     <View style={s.lockedBanner}>
       <Text style={s.lockedText}>
         {capacityLocked
-          ? 'Editing closed — event starts in under 2 hours'
-          : 'Event is locked for editing. You can still increase capacity to let in waitlisted guests.'}
+          ? 'Editing is closed. The event starts in under 2 hours.'
+          : 'Details are locked because the event starts within 7 hours. You can still raise the capacity to let waitlisted guests in.'}
       </Text>
     </View>
   )
@@ -35,18 +35,18 @@ export function DateShiftBanner({ onCancel, onConfirm }: { onCancel: () => void;
 
 const s = StyleSheet.create({
   lockedBanner: {
-    backgroundColor: withOpacity(Colors.accentGold, 0.12),
-    borderBottomWidth: 1, borderBottomColor: Colors.accentGold,
-    paddingVertical: 10, paddingHorizontal: 20,
+    marginHorizontal: 16, marginTop: 8, borderRadius: 16,
+    backgroundColor: withOpacity(Colors.inkPrimary, 0.06),
+    paddingVertical: 12, paddingHorizontal: 16,
   },
-  lockedText: { fontFamily: FontFamily.bodyMedium, fontSize: 13, color: Colors.accentGold, textAlign: 'center' },
+  lockedText: { fontFamily: FontFamily.bodyMedium, fontSize: 13, lineHeight: 19, color: Colors.inkPrimary },
 
   dateShiftBanner: {
-    backgroundColor: withOpacity(Colors.accentGold, 0.08),
-    borderBottomWidth: 1, borderBottomColor: withOpacity(Colors.accentGold, 0.3),
-    paddingVertical: 14, paddingHorizontal: 20, gap: 8,
+    marginHorizontal: 16, marginTop: 8, borderRadius: 16,
+    backgroundColor: withOpacity(Colors.inkPrimary, 0.06),
+    paddingVertical: 14, paddingHorizontal: 16, gap: 8,
   },
-  dateShiftTitle: { fontFamily: FontFamily.bodySemiBold, fontSize: 14, color: Colors.accentGold },
+  dateShiftTitle: { fontFamily: FontFamily.headingBold, fontSize: 15, color: Colors.inkPrimary },
   dateShiftBody: { fontFamily: FontFamily.bodyRegular, fontSize: 13, color: Colors.inkSecondary, lineHeight: 18 },
   dateShiftBtns: { flexDirection: 'row', gap: 10, marginTop: 4 },
   dateShiftCancel: {
@@ -57,7 +57,7 @@ const s = StyleSheet.create({
   dateShiftCancelText: { fontFamily: FontFamily.bodyMedium, fontSize: 13, color: Colors.inkSecondary },
   dateShiftConfirm: {
     flex: 1, height: 38, borderRadius: 20,
-    backgroundColor: Colors.accentGold,
+    backgroundColor: Colors.inkPrimary,
     alignItems: 'center', justifyContent: 'center',
   },
   dateShiftConfirmText: { fontFamily: FontFamily.bodySemiBold, fontSize: 13, color: Colors.background },

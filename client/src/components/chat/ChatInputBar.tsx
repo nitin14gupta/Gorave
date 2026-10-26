@@ -136,7 +136,8 @@ export function ChatInputBar({
   if (partnerIsDeleted) {
     return (
       <View style={s.blockNotice} onLayout={onLayout}>
-        <Text style={s.blockNoticeText}>This account no longer exists.</Text>
+        <Text style={s.blockNoticeTitle}>This account was deleted</Text>
+        <Text style={s.blockNoticeText}>You can still read your chat, but you can&apos;t reply.</Text>
       </View>
     )
   }
@@ -144,7 +145,8 @@ export function ChatInputBar({
   if (blockStatus === 'they_blocked') {
     return (
       <View style={s.blockNotice} onLayout={onLayout}>
-        <Text style={s.blockNoticeText}>You can't message this person.</Text>
+        <Text style={s.blockNoticeTitle}>You can&apos;t message {(partnerName ?? 'this person').split(' ')[0]} anymore</Text>
+        <Text style={s.blockNoticeText}>This chat stays here so you can still read it.</Text>
       </View>
     )
   }
@@ -152,13 +154,14 @@ export function ChatInputBar({
   if (blockStatus === 'i_blocked') {
     return (
       <View style={s.blockBar} onLayout={onLayout}>
-        <Text style={s.blockBarText}>You blocked this person.</Text>
+        <Text style={s.blockNoticeTitle}>You blocked {(partnerName ?? 'this person').split(' ')[0]}</Text>
+        <Text style={s.blockBarText}>They can&apos;t message you or send you a vibe. Unblock to chat again.</Text>
         <View style={s.blockBtnRow}>
           <Pressable style={s.unblockBtn} onPress={() => { hSuccess(); onUnblock() }}>
             <Text style={s.unblockBtnText}>Unblock</Text>
           </Pressable>
           <Pressable style={s.deleteBtn} onPress={() => { hError(); onDeleteChat() }}>
-            <Text style={s.deleteBtnText}>Delete Chat</Text>
+            <Text style={s.deleteBtnText}>Delete chat</Text>
           </Pressable>
         </View>
       </View>
@@ -278,23 +281,24 @@ export function ChatInputBar({
 }
 
 const s = StyleSheet.create({
-  blockNotice: { paddingHorizontal: 20, paddingVertical: 14, alignItems: 'center' },
-  blockNoticeText: { fontFamily: FontFamily.bodyRegular, fontSize: 14, color: Colors.inkSecondary },
-  blockBar: { paddingHorizontal: 20, paddingTop: 14, paddingBottom: 10, gap: 10 },
-  blockBarText: { fontFamily: FontFamily.bodyRegular, fontSize: 13, color: Colors.inkSecondary, textAlign: 'center' },
-  blockBtnRow: { flexDirection: 'row', gap: 10 },
+  blockNotice: { marginHorizontal: 16, marginVertical: 10, paddingHorizontal: 18, paddingVertical: 16, alignItems: 'center', gap: 4, borderRadius: 20, backgroundColor: withOpacity(Colors.inkPrimary, 0.06) },
+  blockNoticeTitle: { fontFamily: FontFamily.headingBold, fontSize: 16, color: Colors.inkPrimary, textAlign: 'center' },
+  blockNoticeText: { fontFamily: FontFamily.bodyRegular, fontSize: 13, lineHeight: 18, color: Colors.inkSecondary, textAlign: 'center' },
+  blockBar: { marginHorizontal: 16, marginVertical: 10, paddingHorizontal: 18, paddingTop: 16, paddingBottom: 14, gap: 6, borderRadius: 20, backgroundColor: withOpacity(Colors.inkPrimary, 0.06), alignItems: 'center' },
+  blockBarText: { fontFamily: FontFamily.bodyRegular, fontSize: 13, lineHeight: 18, color: Colors.inkSecondary, textAlign: 'center', marginBottom: 6 },
+  blockBtnRow: { flexDirection: 'row', gap: 10, alignSelf: 'stretch' },
   unblockBtn: {
-    flex: 1, height: 40, borderRadius: 12,
-    borderWidth: 1, borderColor: Colors.inkPrimary,
+    flex: 1, height: 46, borderRadius: 23,
+    backgroundColor: Colors.inkPrimary,
     alignItems: 'center', justifyContent: 'center',
   },
-  unblockBtnText: { fontFamily: FontFamily.bodySemiBold, fontSize: 14, color: Colors.inkPrimary },
+  unblockBtnText: { fontFamily: FontFamily.headingBold, fontSize: 15, color: Colors.background },
   deleteBtn: {
-    flex: 1, height: 40, borderRadius: 12,
-    borderWidth: 1, borderColor: Colors.destructive,
+    flex: 1, height: 46, borderRadius: 23,
+    backgroundColor: withOpacity(Colors.inkPrimary, 0.08),
     alignItems: 'center', justifyContent: 'center',
   },
-  deleteBtnText: { fontFamily: FontFamily.bodySemiBold, fontSize: 14, color: Colors.destructive },
+  deleteBtnText: { fontFamily: FontFamily.bodySemiBold, fontSize: 15, color: Colors.destructive },
 
   editBar: {
     flexDirection: 'row',

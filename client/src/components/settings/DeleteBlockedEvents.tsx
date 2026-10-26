@@ -16,13 +16,13 @@ export function DeleteBlockedEvents({ upcomingEvents, onGoToEvents, onBack }: Pr
         <Users size={38} color={Colors.inkPrimary} strokeWidth={1.8} />
       </View>
       <Text style={styles.blockerTitle}>
-        You have {upcomingEvents} upcoming hosted event{upcomingEvents > 1 ? 's' : ''}
+        Your guests come first
       </Text>
       <Text style={styles.blockerBody}>
-        You can't delete your account while you have upcoming events as a host. Cancel your events first, then come back.
+        You are hosting {upcomingEvents} upcoming event{upcomingEvents > 1 ? 's' : ''}. People are counting on {upcomingEvents > 1 ? 'them' : 'it'}, so cancel {upcomingEvents > 1 ? 'them' : 'it'} or wait until {upcomingEvents > 1 ? 'they are' : 'it is'} over, then come back.
       </Text>
       <View style={styles.blockerBtns}>
-        <PrimaryButton label="Go to My Events" onPress={onGoToEvents} />
+        <PrimaryButton label="See my events" onPress={onGoToEvents} />
         <OutlineButton label="Back" onPress={onBack} />
       </View>
     </View>
@@ -32,13 +32,13 @@ export function DeleteBlockedEvents({ upcomingEvents, onGoToEvents, onBack }: Pr
 const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: Spacing.screenPadding, gap: 12 },
   blockerIconWrap: {
-    width: 88, height: 88, borderRadius: 44,
-    backgroundColor: withOpacity(Colors.inkPrimary, 0.1),
+    width: 72, height: 72, borderRadius: 24,
+    backgroundColor: withOpacity(Colors.inkPrimary, 0.08),
     alignItems: 'center', justifyContent: 'center',
     marginBottom: 8,
   },
   blockerTitle: {
-    fontFamily: FontFamily.headingBold, fontSize: 22, letterSpacing: -0.3,
+    fontFamily: FontFamily.displayExtraBold, fontSize: 28, letterSpacing: -0.7,
     color: Colors.inkPrimary, textAlign: 'center',
   },
   blockerBody: {
