@@ -1,14 +1,13 @@
 import { useEffect, useRef } from 'react'
-import { View, Text, StyleSheet } from 'react-native'
+import { View, Text, StyleSheet, Pressable } from 'react-native'
 import { BottomSheetModal, BottomSheetView, BottomSheetBackdrop } from '@gorhom/bottom-sheet'
 import type { BottomSheetBackdropProps } from '@gorhom/bottom-sheet'
 import Animated, { useSharedValue, useAnimatedStyle, withSpring, withTiming, withSequence, withDelay } from 'react-native-reanimated'
 import { XCircle, AlertCircle, RefreshCw, ArrowLeft } from 'lucide-react-native'
 import { Colors, FontFamily, withOpacity } from '@/constants'
 import { hTap } from '@/lib/haptics'
-import { PrimaryButton, OutlineButton } from '@/components/ui'
+import { PrimaryButton } from '@/components/ui'
 
-const SNAP_POINTS = ['52%']
 
 function renderBackdrop(props: BottomSheetBackdropProps) {
   return (
@@ -60,44 +59,43 @@ function PaymentFailedCore({ message, onRetry, onBack }: Omit<Props, 'visible'>)
   return (
     <BottomSheetModal
       ref={ref}
-      snapPoints={SNAP_POINTS}
+      enableDynamicSizing
       enablePanDownToClose={false}
       backdropComponent={renderBackdrop}
       backgroundStyle={s.bg}
       handleIndicatorStyle={s.handle}
     >
       <BottomSheetView style={s.content}>
-        <Animated.View style={iconStyle}>
+        <Animated.View style={[s.iconWrap, iconStyle]}>
           {isCancelled
-            ? <AlertCircle size={52} color={Colors.accentGold} strokeWidth={1.5} />
-            : <XCircle size={52} color={Colors.destructive} strokeWidth={1.5} />
+            ? <AlertCircle size={34} color={Colors.inkPrimary} strokeWidth={1.8} />
+            : <XCircle size={34} color={Colors.destructive} strokeWidth={1.8} />
           }
         </Animated.View>
 
-        <Text style={s.title}>{isCancelled ? 'Payment Cancelled' : 'Payment Failed'}</Text>
+        <Text style={s.title}>{isCancelled ? 'Payment cancelled' : 'Payment didn\'t go through'}</Text>
         <Text style={s.message}>
           {isCancelled
             ? 'You came back without completing the payment. Want to try again?'
-            : (message ?? 'Something went wrong. Your money is safe — no amount was deducted.')
+            : (message ?? 'Something went wrong on the way. If no money left your account, nothing was charged.')
           }
         </Text>
 
         <View style={s.actions}>
           <PrimaryButton
-            label="Try Again"
+            label="Try again"
             onPress={() => { hTap(); onRetry() }}
             icon={<RefreshCw size={16} color={Colors.background} strokeWidth={2} />}
           />
-          <OutlineButton
-            label="Go Back"
-            onPress={() => { hTap(); onBack() }}
-            icon={<ArrowLeft size={16} color={Colors.inkSecondary} strokeWidth={1.8} />}
-          />
+          <Pressable style={[s.secondary]} onPress={() => { hTap(); onBack() }}>
+            <ArrowLeft size={16} color={Colors.inkPrimary} strokeWidth={2} />
+            <Text style={s.secondaryText}>Go back</Text>
+          </Pressable>
         </View>
 
         {!isCancelled && (
           <Text style={s.note}>
-            If any amount was deducted it will be refunded to your source within 5–7 business days.
+            If money did leave your account, it comes back to the same place in 5 to 7 business days.
           </Text>
         )}
       </BottomSheetView>
@@ -111,36 +109,39 @@ export function PaymentFailedSheet({ visible, message, onRetry, onBack }: Props)
 }
 
 const s = StyleSheet.create({
-  bg: { backgroundColor: Colors.sheetBackground },
+  bg: { backgroundColor: Colors.sheetBackground, borderRadius: 28 },
   handle: { backgroundColor: withOpacity(Colors.inkPrimary, 0.1) },
-  content: { paddingHorizontal: 28, paddingBottom: 40, paddingTop: 8, alignItems: 'center' },
+  content: { paddingHorizontal: 24, paddingBottom: 40, paddingTop: 10, alignItems: 'center' },
 
-  iconWrap: { marginTop: 8, marginBottom: 20 },
+  iconWrap: { width: 72, height: 72, borderRadius: 24, alignItems: 'center', justifyContent: 'center', backgroundColor: withOpacity(Colors.inkPrimary, 0.08), marginBottom: 16 },
 
   title: {
-    fontFamily: FontFamily.headingBold,
-    fontSize: 24,
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 26,
+    letterSpacing: -0.6,
     color: Colors.inkPrimary,
-    marginBottom: 10,
+    marginBottom: 8,
     textAlign: 'center',
   },
   message: {
     fontFamily: FontFamily.bodyRegular,
-    fontSize: 14,
+    fontSize: 15,
     color: Colors.inkSecondary,
     textAlign: 'center',
     lineHeight: 21,
-    marginBottom: 28,
+    marginBottom: 24,
   },
 
   actions: { width: '100%', gap: 10 },
+  secondary: { height: 54, borderRadius: 27, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: withOpacity(Colors.inkPrimary, 0.08) },
+  secondaryText: { fontFamily: FontFamily.bodySemiBold, fontSize: 16, color: Colors.inkPrimary },
 
   note: {
     fontFamily: FontFamily.bodyRegular,
-    fontSize: 11,
+    fontSize: 12,
     color: Colors.inkDisabled,
     textAlign: 'center',
-    marginTop: 20,
-    lineHeight: 16,
+    marginTop: 18,
+    lineHeight: 17,
   },
 })

@@ -1,10 +1,11 @@
-import { useState, useRef, useEffect } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import { View, Text, StyleSheet, Pressable, Share } from 'react-native'
 import { BottomSheetModal, BottomSheetView, BottomSheetBackdrop } from '@gorhom/bottom-sheet'
 import type { BottomSheetBackdropProps } from '@gorhom/bottom-sheet'
 import * as Clipboard from 'expo-clipboard'
 import { router } from 'expo-router'
-import { Ban, Flag, Link2, Share2, QrCode, MessageCircle } from 'lucide-react-native'
+import { Image } from 'expo-image'
+import { Ban, Check, Flag, Link2, Share2, QrCode, MessageCircle } from 'lucide-react-native'
 import { hError, hSuccess, hTap } from '@/lib/haptics'
 import { Colors, FontFamily, withOpacity } from '@/constants'
 import { APP_SCHEME } from '@/api/config'
@@ -46,7 +47,7 @@ function ProfileMenuSheetCore({
   useEffect(() => { sheetRef.current?.present() }, [])
 
   const openBlock = () => {
-    isBlocked ? hTap() : hError()
+    if (isBlocked) hTap(); else hError()
     transitioning.current = true
     setBlockOpen(true)
     sheetRef.current?.dismiss()
@@ -123,32 +124,29 @@ function ProfileMenuSheetCore({
         handleIndicatorStyle={s.handleIndicator}
       >
         <BottomSheetView style={s.content}>
-          <Pressable style={s.row} onPress={openBlock}>
-            <Ban size={20} color={isBlocked ? Colors.destructive : Colors.inkPrimary} strokeWidth={1.8} />
-            <Text style={[s.rowText, isBlocked && s.rowTextOrange]}>{isBlocked ? 'Unblock User' : 'Block User'}</Text>
-          </Pressable>
-          <Pressable style={s.row} onPress={openReport}>
-            <Flag size={20} color={Colors.inkPrimary} strokeWidth={1.8} />
-            <Text style={s.rowText}>Report</Text>
-          </Pressable>
-          <Pressable style={s.row} onPress={handleCopyUrl}>
-            <Link2 size={20} color={Colors.inkPrimary} strokeWidth={1.8} />
-            <Text style={s.rowText}>{copied ? 'Copied!' : 'Copy Profile URL'}</Text>
-          </Pressable>
-          <Pressable style={s.row} onPress={handleShare}>
-            <Share2 size={20} color={Colors.inkPrimary} strokeWidth={1.8} />
-            <Text style={s.rowText}>Share Profile</Text>
-          </Pressable>
-          <Pressable style={s.row} onPress={handleQrCode}>
-            <QrCode size={20} color={Colors.inkPrimary} strokeWidth={1.8} />
-            <Text style={s.rowText}>QR Code</Text>
-          </Pressable>
-          <Pressable style={s.row} onPress={openChatShare}>
-            <MessageCircle size={20} color={Colors.inkPrimary} strokeWidth={1.8} />
-            <Text style={s.rowText}>Send in Chat</Text>
-          </Pressable>
-          <View style={s.divider} />
-          <Pressable style={s.cancelRow} onPress={() => { hTap(); onClose() }}>
+          <View style={s.head}>
+            <View style={s.avatar}>
+              {avatarUrl ? <Image source={{ uri: avatarUrl }} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="memory-disk" /> : <Text style={s.init}>{(targetName ?? '?').charAt(0).toUpperCase()}</Text>}
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={s.name} numberOfLines={1}>{targetName ?? 'User'}</Text>
+              {username ? <Text style={s.handle} numberOfLines={1}>@{username}</Text> : null}
+            </View>
+          </View>
+
+          <View style={s.card}>
+            <MenuRow icon={<Share2 size={18} color={Colors.inkPrimary} strokeWidth={1.8} />} label="Share profile" onPress={handleShare} />
+            <MenuRow icon={<MessageCircle size={18} color={Colors.inkPrimary} strokeWidth={1.8} />} label="Send in chat" onPress={openChatShare} border />
+            <MenuRow icon={<QrCode size={18} color={Colors.inkPrimary} strokeWidth={1.8} />} label="QR code" onPress={handleQrCode} border />
+            <MenuRow icon={copied ? <Check size={18} color={Colors.inkPrimary} strokeWidth={2.2} /> : <Link2 size={18} color={Colors.inkPrimary} strokeWidth={1.8} />} label={copied ? 'Link copied' : 'Copy profile link'} onPress={handleCopyUrl} border />
+          </View>
+
+          <View style={s.card}>
+            <MenuRow icon={<Flag size={18} color={Colors.destructive} strokeWidth={1.8} />} label="Report" onPress={openReport} danger />
+            <MenuRow icon={<Ban size={18} color={isBlocked ? Colors.inkPrimary : Colors.destructive} strokeWidth={1.8} />} label={isBlocked ? 'Unblock' : 'Block'} onPress={openBlock} danger={!isBlocked} border />
+          </View>
+
+          <Pressable style={[s.cancel]} onPress={() => { hTap(); onClose() }}>
             <Text style={s.cancelText}>Cancel</Text>
           </Pressable>
         </BottomSheetView>
@@ -182,19 +180,39 @@ function ProfileMenuSheetCore({
   )
 }
 
+function MenuRow({ icon, label, onPress, danger, border }: { icon: React.ReactNode; label: string; onPress: () => void; danger?: boolean; border?: boolean }) {
+  return (
+    <Pressable style={[s.row, border && s.rowBorder]} onPress={onPress}>
+      <View style={[s.rowIcon, danger && s.rowIconDanger]}>{icon}</View>
+      <Text style={[s.rowText, danger && s.rowTextDanger]}>{label}</Text>
+    </Pressable>
+  )
+}
+
 export function ProfileMenuSheet({ visible, ...rest }: Props) {
   if (!visible) return null
   return <ProfileMenuSheetCore {...rest} />
 }
 
 const s = StyleSheet.create({
-  bg: { backgroundColor: Colors.elevated },
+  bg: { backgroundColor: Colors.surface, borderRadius: 28 },
   handleIndicator: { backgroundColor: withOpacity(Colors.inkPrimary, 0.18) },
-  content: { paddingHorizontal: 8, paddingBottom: 36, paddingTop: 8 },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 20, paddingVertical: 16, borderRadius: 12 },
-  rowText: { fontFamily: FontFamily.bodyMedium, fontSize: 16, color: Colors.inkPrimary },
-  rowTextOrange: { color: Colors.destructive },
-  divider: { height: StyleSheet.hairlineWidth, backgroundColor: withOpacity(Colors.inkPrimary, 0.1), marginHorizontal: 20, marginVertical: 4 },
-  cancelRow: { alignItems: 'center', paddingVertical: 14 },
-  cancelText: { fontFamily: FontFamily.bodyMedium, fontSize: 15, color: Colors.inkSecondary },
+  content: { paddingHorizontal: 20, paddingBottom: 36, paddingTop: 8, gap: 12 },
+
+  head: { flexDirection: 'row', alignItems: 'center', gap: 14, marginBottom: 4 },
+  avatar: { width: 56, height: 56, borderRadius: 18, overflow: 'hidden', backgroundColor: Colors.surfaceMuted, alignItems: 'center', justifyContent: 'center' },
+  init: { fontFamily: FontFamily.headingBold, fontSize: 22, color: Colors.inkPrimary },
+  name: { fontFamily: FontFamily.displayExtraBold, fontSize: 24, letterSpacing: -0.5, color: Colors.inkPrimary },
+  handle: { fontFamily: FontFamily.bodyMedium, fontSize: 13, color: Colors.inkSecondary, marginTop: 1 },
+
+  card: { borderRadius: 20, backgroundColor: withOpacity(Colors.inkPrimary, 0.04), borderWidth: 1, borderColor: Colors.divider, overflow: 'hidden' },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 14, paddingVertical: 12 },
+  rowBorder: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: Colors.divider },
+  rowIcon: { width: 36, height: 36, borderRadius: 18, backgroundColor: withOpacity(Colors.inkPrimary, 0.07), alignItems: 'center', justifyContent: 'center' },
+  rowIconDanger: { backgroundColor: withOpacity(Colors.destructive, 0.1) },
+  rowText: { fontFamily: FontFamily.bodySemiBold, fontSize: 15, color: Colors.inkPrimary },
+  rowTextDanger: { color: Colors.destructive },
+
+  cancel: { height: 54, borderRadius: 999, alignItems: 'center', justifyContent: 'center', backgroundColor: withOpacity(Colors.inkPrimary, 0.08), marginTop: 2 },
+  cancelText: { fontFamily: FontFamily.bodySemiBold, fontSize: 16, color: Colors.inkPrimary },
 })

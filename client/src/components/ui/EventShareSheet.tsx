@@ -82,7 +82,10 @@ function EventShareSheetCore({ onClose, eventId, title, dateTimeLabel, coverUrl,
   const flyerRef = useRef<View>(null)
   // No cover photo → drop the photo-based slides, keep only the QR one
   const refs = coverUrl ? [classicRef, qrRef, flyerRef] : [qrRef]
-  const slideTitles = coverUrl ? ['Share Event', 'Share QR', 'Share Flyer'] : ['Share QR']
+  const slideTitles = coverUrl ? ['The poster', 'The QR code', 'The flyer'] : ['The QR code']
+  const slideSubs = coverUrl
+    ? ['Your event photo with the date. Great for stories.', 'Anyone can scan it to open the event.', 'Pick a colour, it carries the link and the host.']
+    : ['Anyone can scan it to open the event.']
   const slideCount = refs.length
 
   const message = `I'm going to "${title}"! 🎉\n${dateTimeLabel}\n${shareUrl}`
@@ -160,7 +163,7 @@ function EventShareSheetCore({ onClose, eventId, title, dateTimeLabel, coverUrl,
     >
       <BottomSheetView style={s.content}>
         <Text style={s.title}>{slideTitles[activeIndex] ?? slideTitles[0]}</Text>
-        <Text style={s.subtitle}>Post to socials or send with the link</Text>
+        <Text style={s.subtitle}>{slideSubs[activeIndex] ?? slideSubs[0]}</Text>
 
         <ScrollView
           horizontal
@@ -229,12 +232,12 @@ function EventShareSheetCore({ onClose, eventId, title, dateTimeLabel, coverUrl,
             <Text style={s.actionLabel}>Save</Text>
           </Pressable>
           <Pressable style={s.actionBtn} onPress={handleShare}>
-            <View style={[s.actionIcon, s.actionIconOutline]}><Share2 size={20} color={Colors.inkPrimary} strokeWidth={2} /></View>
+            <View style={[s.actionIcon, s.actionIconMain]}><Share2 size={21} color={Colors.background} strokeWidth={2.2} /></View>
             <Text style={s.actionLabel}>Share</Text>
           </Pressable>
           <Pressable style={s.actionBtn} onPress={openChatShare}>
-            <View style={[s.actionIcon, s.actionIconOutline]}><MessageCircle size={20} color={Colors.inkPrimary} strokeWidth={2} /></View>
-            <Text style={s.actionLabel}>Chat</Text>
+            <View style={s.actionIcon}><MessageCircle size={20} color={Colors.inkPrimary} strokeWidth={2} /></View>
+            <Text style={s.actionLabel}>Send to friends</Text>
           </Pressable>
         </View>
 
@@ -261,12 +264,13 @@ export function EventShareSheet(props: Props) {
 }
 
 const s = StyleSheet.create({
-  bg: { backgroundColor: Colors.elevated },
+  bg: { backgroundColor: Colors.elevated, borderRadius: 28 },
   handle: { backgroundColor: withOpacity(Colors.inkPrimary, 0.18) },
   content: { paddingTop: 8, paddingBottom: 0, alignItems: 'center' },
   title: {
-    fontFamily: FontFamily.headingBold,
-    fontSize: 20,
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 26,
+    letterSpacing: -0.6,
     color: Colors.inkPrimary,
   },
   subtitle: {
@@ -275,6 +279,8 @@ const s = StyleSheet.create({
     color: Colors.inkSecondary,
     marginTop: 4,
     marginBottom: 20,
+    paddingHorizontal: 24,
+    textAlign: 'center',
   },
   carousel: { width: '100%', height: SHARE_CARD_HEIGHT, flexGrow: 0 },
   slidePlaceholder: {
@@ -347,7 +353,7 @@ const s = StyleSheet.create({
   actionsRow: {
     flexDirection: 'row',
     justifyContent: 'center',
-    gap: 24,
+    gap: 28,
     marginTop: 26,
   },
   actionBtn: { alignItems: 'center', gap: 8 },
@@ -355,17 +361,15 @@ const s = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: withOpacity(Colors.inkPrimary, 0.1),
+    backgroundColor: withOpacity(Colors.inkPrimary, 0.08),
     alignItems: 'center',
     justifyContent: 'center',
   },
-  actionIconOutline: {
-    backgroundColor: 'transparent',
-    borderWidth: 1.5,
-    borderColor: Colors.divider,
+  actionIconMain: {
+    backgroundColor: Colors.inkPrimary,
   },
   actionLabel: {
-    fontFamily: FontFamily.bodyMedium,
+    fontFamily: FontFamily.bodySemiBold,
     fontSize: 13,
     color: Colors.inkPrimary,
   },

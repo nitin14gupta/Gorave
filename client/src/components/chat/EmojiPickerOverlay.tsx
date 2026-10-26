@@ -95,39 +95,39 @@ export function EmojiPickerOverlay({
 
           <View style={s.actionCard}>
             <Pressable style={s.actionRow} onPress={() => runAction(onReply)} hitSlop={2}>
-              <Reply size={19} color={Colors.inkSecondary} strokeWidth={1.8} />
+              <Reply size={19} color={Colors.inkPrimary} strokeWidth={1.8} />
               <Text style={s.actionText}>Reply</Text>
             </Pressable>
             {canCopy && (
               <Pressable style={s.actionRow} onPress={() => runAction(onCopy)} hitSlop={2}>
-                <Copy size={19} color={Colors.inkSecondary} strokeWidth={1.8} />
+                <Copy size={19} color={Colors.inkPrimary} strokeWidth={1.8} />
                 <Text style={s.actionText}>Copy</Text>
               </Pressable>
             )}
             {isMine && canEdit && (
               <Pressable style={s.actionRow} onPress={() => runAction(onEdit)} hitSlop={2}>
-                <Pencil size={19} color={Colors.inkSecondary} strokeWidth={1.8} />
+                <Pencil size={19} color={Colors.inkPrimary} strokeWidth={1.8} />
                 <Text style={s.actionText}>Edit</Text>
               </Pressable>
             )}
             {!isMine && (
               <Pressable style={s.actionRow} onPress={() => runAction(onReport)} hitSlop={2}>
-                <Flag size={19} color={Colors.inkSecondary} strokeWidth={1.8} />
-                <Text style={s.actionText}>Report</Text>
+                <Flag size={19} color={Colors.destructive} strokeWidth={1.8} />
+                <Text style={[s.actionText, s.danger]}>Report</Text>
               </Pressable>
             )}
             {isMine && (
               <Pressable style={s.actionRow} onPress={() => runAction(onUnsend)} hitSlop={2}>
-                <Undo2 size={19} color={Colors.inkSecondary} strokeWidth={1.8} />
-                <Text style={s.actionText}>Unsend</Text>
+                <Undo2 size={19} color={Colors.destructive} strokeWidth={1.8} />
+                <Text style={[s.actionText, s.danger]}>Unsend</Text>
               </Pressable>
             )}
             <Pressable style={s.actionRow} onPress={() => runAction(onDeleteForMe)} hitSlop={2}>
-              <Trash2 size={19} color={Colors.inkSecondary} strokeWidth={1.8} />
-              <Text style={s.actionText}>Delete for me</Text>
+              <Trash2 size={19} color={Colors.destructive} strokeWidth={1.8} />
+              <Text style={[s.actionText, s.danger]}>Delete for me</Text>
             </Pressable>
             <Pressable style={s.actionRow} onPress={() => runAction(onSelectMessage)} hitSlop={2}>
-              <CheckSquare size={19} color={Colors.inkSecondary} strokeWidth={1.8} />
+              <CheckSquare size={19} color={Colors.inkPrimary} strokeWidth={1.8} />
               <Text style={s.actionText}>Select</Text>
             </Pressable>
           </View>
@@ -147,9 +147,9 @@ export function EmojiPickerOverlay({
           skinTonesContainer: Colors.surface,
           category: {
             icon: Colors.inkSecondary,
-            iconActive: Colors.brandOrange,
+            iconActive: Colors.inkPrimary,
             container: Colors.elevated,
-            containerActive: withOpacity(Colors.brandOrange, 0.15),
+            containerActive: withOpacity(Colors.inkPrimary, 0.12),
           },
           search: {
             background: Colors.elevated,
@@ -158,7 +158,7 @@ export function EmojiPickerOverlay({
             icon: Colors.inkSecondary,
           },
           emoji: {
-            selected: withOpacity(Colors.brandOrange, 0.2),
+            selected: withOpacity(Colors.inkPrimary, 0.16),
           },
         }}
       />
@@ -169,7 +169,7 @@ export function EmojiPickerOverlay({
 const s = StyleSheet.create({
   backdrop: {
     ...StyleSheet.absoluteFill,
-    backgroundColor: withOpacity(Colors.background, 0.3),
+    backgroundColor: withOpacity(Colors.background, 0.55),
   },
   menu: {
     position: 'absolute',
@@ -180,7 +180,7 @@ const s = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     alignSelf: 'flex-start',
-    backgroundColor: Colors.skeletonBase,
+    backgroundColor: Colors.surface,
     borderRadius: 32,
     paddingHorizontal: 10,
     paddingVertical: 8,
@@ -201,7 +201,7 @@ const s = StyleSheet.create({
     justifyContent: 'center',
   },
   emojiBtnActive: {
-    backgroundColor: withOpacity(Colors.brandOrange, 0.2),
+    backgroundColor: withOpacity(Colors.inkPrimary, 0.16),
   },
   emojiText: { fontSize: 24 },
   moreBtnWrap: {
@@ -219,9 +219,9 @@ const s = StyleSheet.create({
     lineHeight: 20,
   },
   actionCard: {
-    minWidth: 210,
-    backgroundColor: Colors.skeletonBase,
-    borderRadius: 16,
+    minWidth: 220,
+    backgroundColor: Colors.surface,
+    borderRadius: 20,
     paddingVertical: 4,
     shadowColor: Colors.background,
     shadowOffset: { width: 0, height: 4 },
@@ -235,12 +235,13 @@ const s = StyleSheet.create({
   actionRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    paddingHorizontal: 16,
+    gap: 14,
+    paddingHorizontal: 18,
     height: ACTION_ROW_HEIGHT,
   },
+  danger: { color: Colors.destructive },
   actionText: {
-    fontFamily: FontFamily.bodyMedium,
+    fontFamily: FontFamily.bodySemiBold,
     fontSize: 15,
     color: Colors.inkPrimary,
   },

@@ -46,7 +46,7 @@ function GuestListSkeleton() {
           <View style={sk.subtitle} />
         </View>
       </View>
-      <AutoSkeletonView isLoading animationType="gradient" defaultRadius={8} gradientColors={[Colors.surfaceMuted, '#3a3a3a']}>
+      <AutoSkeletonView isLoading animationType="gradient" defaultRadius={22} gradientColors={[Colors.surfaceMuted, '#3a3a3a']}>
         <View style={s.grid}>
           {Array.from({ length: 12 }).map((_, i) => (
             <GuestTileSkeleton key={i} />
@@ -95,15 +95,15 @@ const GuestTile = memo(function GuestTile({ guest, isMe, isFollowing, onOpenProf
         )}
         {!isMe && (
           <Pressable
-            style={t.heartBtn}
+            style={[t.heartBtn, isFollowing && t.heartBtnOn]}
             hitSlop={8}
             onPress={() => onToggleFollow(guest)}
           >
             <Heart
-              size={16}
-              color={isFollowing ? Colors.brandCoral : Colors.inkPrimary}
-              fill={isFollowing ? Colors.brandCoral : 'transparent'}
-              strokeWidth={2}
+              size={13}
+              color={isFollowing ? Colors.background : Colors.inkPrimary}
+              fill={isFollowing ? Colors.background : 'transparent'}
+              strokeWidth={2.2}
             />
           </Pressable>
         )}
@@ -115,20 +115,26 @@ const GuestTile = memo(function GuestTile({ guest, isMe, isFollowing, onOpenProf
 
 const t = StyleSheet.create({
   root: { width: '33.333%', alignItems: 'center', paddingVertical: 12, gap: 8 },
-  avatarWrap: { width: 76, height: 76 },
-  avatar: { width: 76, height: 76, borderRadius: 38 },
+  // Square, like every people photo in the app.
+  avatarWrap: { width: 80, height: 80 },
+  avatar: { width: 80, height: 80, borderRadius: 22 },
   avatarFallback: { backgroundColor: Colors.elevated, alignItems: 'center', justifyContent: 'center' },
   avatarInitial: { fontFamily: FontFamily.headingBold, fontSize: 26, color: Colors.inkPrimary },
   heartBtn: {
     position: 'absolute',
-    bottom: -2,
-    right: -2,
-    width: 24,
-    height: 24,
+    bottom: -6,
+    right: -6,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: Colors.surface,
+    borderWidth: 2,
+    borderColor: Colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  name: { fontFamily: FontFamily.bodyMedium, fontSize: 12, color: Colors.inkSecondary, maxWidth: 84, textAlign: 'center' },
+  heartBtnOn: { backgroundColor: Colors.inkPrimary },
+  name: { fontFamily: FontFamily.bodySemiBold, fontSize: 12, color: Colors.inkPrimary, maxWidth: 84, textAlign: 'center' },
 })
 
 function GuestListSheetCore({ eventId, guests, total, waitlist = [], canViewFull = true, loading, onClose }: Omit<Props, 'visible'>) {
@@ -172,11 +178,11 @@ function GuestListSheetCore({ eventId, guests, total, waitlist = [], canViewFull
   const Header = (
     <View style={s.header}>
       <View>
-        <Text style={s.title}>Guest List</Text>
-        <Text style={s.subtitle}>{total} going</Text>
+        <Text style={s.title}>Who&apos;s going</Text>
+        <Text style={s.subtitle}>{total} going{waitlist.length ? ` · ${waitlist.length} on the waitlist` : ''}</Text>
       </View>
       <Pressable style={s.closeBtn} onPress={() => { hTap(); onClose() }} hitSlop={8}>
-        <XIcon size={18} color={Colors.inkSecondary} strokeWidth={2} />
+        <XIcon size={18} color={Colors.inkPrimary} strokeWidth={2.2} />
       </Pressable>
     </View>
   )
@@ -216,7 +222,7 @@ function GuestListSheetCore({ eventId, guests, total, waitlist = [], canViewFull
           <Lock size={18} color={Colors.inkPrimary} strokeWidth={2} />
         </View>
         <Text style={s.lockedTitle}>+{lockedCount} more guest{lockedCount === 1 ? '' : 's'}</Text>
-        <Text style={s.lockedSub}>Join the event to see who's going</Text>
+        <Text style={s.lockedSub}>Join the event to see everyone going</Text>
       </View>
     </View>
   ) : null
@@ -227,7 +233,7 @@ function GuestListSheetCore({ eventId, guests, total, waitlist = [], canViewFull
       {waitlist.length > 0 ? (
         <View style={s.waitlistSection}>
           <View style={s.waitlistDivider} />
-          <Text style={s.waitlistTitle}>Waitlist · {waitlist.length}</Text>
+          <Text style={s.waitlistTitle}>On the waitlist · {waitlist.length}</Text>
           <View style={s.waitlistGrid}>
             {waitlist.map(g => (
               <GuestTile
@@ -264,7 +270,7 @@ function GuestListSheetCore({ eventId, guests, total, waitlist = [], canViewFull
           {Header}
           <View style={s.empty}>
             <Users size={40} color={Colors.inkDisabled} strokeWidth={1.2} />
-            <Text style={s.emptyText}>No one's RSVP'd yet</Text>
+            <Text style={s.emptyText}>No one is going yet</Text>
           </View>
           {Footer}
         </BottomSheetView>
@@ -303,7 +309,7 @@ export function GuestListSheet({ visible, eventId, guests, total, waitlist, canV
 }
 
 const s = StyleSheet.create({
-  bg: { backgroundColor: Colors.surface },
+  bg: { backgroundColor: Colors.surface, borderRadius: 28 },
   handleIndicator: { backgroundColor: withOpacity(Colors.inkPrimary, 0.2) },
   container: { flex: 1 },
   header: {
@@ -314,11 +320,11 @@ const s = StyleSheet.create({
     paddingTop: 20,
     paddingBottom: 16,
   },
-  title: { fontFamily: FontFamily.headingBold, fontSize: 22, color: Colors.inkPrimary },
-  subtitle: { fontFamily: FontFamily.bodyRegular, fontSize: 13, color: Colors.inkSecondary, marginTop: 2 },
+  title: { fontFamily: FontFamily.displayExtraBold, fontSize: 28, letterSpacing: -0.7, color: Colors.inkPrimary },
+  subtitle: { fontFamily: FontFamily.bodyMedium, fontSize: 13, color: Colors.inkSecondary, marginTop: 2 },
   closeBtn: {
-    width: 32, height: 32, borderRadius: 16,
-    backgroundColor: Colors.elevated,
+    width: 36, height: 36, borderRadius: 18,
+    backgroundColor: withOpacity(Colors.inkPrimary, 0.08),
     alignItems: 'center', justifyContent: 'center',
   },
   grid: { paddingHorizontal: Spacing.screenPadding - 12, paddingBottom: 32 },
@@ -327,8 +333,8 @@ const s = StyleSheet.create({
   waitlistSection: { paddingHorizontal: 12, marginTop: 8 },
   waitlistDivider: { height: StyleSheet.hairlineWidth, backgroundColor: Colors.divider, marginBottom: 16 },
   waitlistTitle: {
-    fontFamily: FontFamily.bodySemiBold, fontSize: 13, color: Colors.inkSecondary,
-    textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 4,
+    fontFamily: FontFamily.bodySemiBold, fontSize: 11, color: Colors.inkDisabled,
+    textTransform: 'uppercase', letterSpacing: 1.4, marginBottom: 4, paddingHorizontal: 12,
   },
   waitlistGrid: { flexDirection: 'row', flexWrap: 'wrap' },
   lockedSection: {
@@ -364,6 +370,6 @@ const s = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: 6,
   },
-  lockedTitle: { fontFamily: FontFamily.headingBold, fontSize: 16, color: Colors.inkPrimary },
+  lockedTitle: { fontFamily: FontFamily.displayExtraBold, fontSize: 20, letterSpacing: -0.3, color: Colors.inkPrimary },
   lockedSub: { fontFamily: FontFamily.bodyRegular, fontSize: 13, color: Colors.inkSecondary, textAlign: 'center' },
 })

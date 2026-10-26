@@ -1,9 +1,15 @@
 import { useEffect } from 'react'
 import { View, Text, StyleSheet } from 'react-native'
-import Animated, { useSharedValue, useAnimatedStyle, withSpring, withTiming } from 'react-native-reanimated'
-import { CheckCircle } from 'lucide-react-native'
-import { Colors, FontFamily } from '@/constants'
+import Animated, { Easing, useSharedValue, useAnimatedStyle, withDelay, withSpring, withTiming } from 'react-native-reanimated'
+import { Check } from 'lucide-react-native'
+import { Colors, FontFamily, withOpacity } from '@/constants'
+import { TicketPaper } from '@/components/events/TicketView'
+import { hSuccess } from '@/lib/haptics'
 
+/**
+ * Payment went through. A maroon ticket, the same paper as your real one,
+ * drops in and settles once with a single buzz, then the check pops on it.
+ */
 export function PaymentStatusOverlay({
   title = 'Payment Confirmed!',
   subtitle = 'Taking you to your ticket…',
@@ -11,23 +17,29 @@ export function PaymentStatusOverlay({
   title?: string
   subtitle?: string
 }) {
-  const scale   = useSharedValue(0)
-  const opacity = useSharedValue(0)
+  const drop = useSharedValue(0)
+  const check = useSharedValue(0)
 
   useEffect(() => {
-    scale.value   = withSpring(1, { damping: 12, stiffness: 200 })
-    opacity.value = withTiming(1, { duration: 200 })
-  }, [])
+    hSuccess()
+    drop.value = withSpring(1, { damping: 14, stiffness: 140 })
+    check.value = withDelay(320, withTiming(1, { duration: 320, easing: Easing.out(Easing.back(2.4)) }))
+  }, [drop, check])
 
-  const style = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-    opacity: opacity.value,
+  const ticketStyle = useAnimatedStyle(() => ({
+    opacity: Math.min(1, drop.value * 1.6),
+    transform: [{ translateY: (1 - drop.value) * -60 }, { rotate: `${-3 * drop.value}deg` }, { scale: 0.92 + drop.value * 0.08 }],
   }))
+  const checkStyle = useAnimatedStyle(() => ({ opacity: check.value, transform: [{ scale: check.value }] }))
 
   return (
     <View style={s.root}>
-      <Animated.View style={[s.circle, style]}>
-        <CheckCircle size={48} color={Colors.inkPrimary} strokeWidth={2} />
+      <Animated.View style={[s.ticket, ticketStyle]}>
+        <TicketPaper />
+        <Animated.View style={[s.check, checkStyle]}>
+          <Check size={34} color={Colors.background} strokeWidth={3} />
+        </Animated.View>
+        <Text style={s.ticketLabel}>YOU&apos;RE IN</Text>
       </Animated.View>
       <Text style={s.label}>{title}</Text>
       <Text style={s.sub}>{subtitle}</Text>
@@ -36,8 +48,10 @@ export function PaymentStatusOverlay({
 }
 
 const s = StyleSheet.create({
-  root: { ...StyleSheet.absoluteFill, backgroundColor: Colors.background, alignItems: 'center', justifyContent: 'center', gap: 16, zIndex: 50 },
-  circle: { width: 96, height: 96, borderRadius: 48, backgroundColor: Colors.accentGreen, alignItems: 'center', justifyContent: 'center' },
-  label: { fontFamily: FontFamily.headingBold, fontSize: 24, color: Colors.inkPrimary, marginTop: 8 },
-  sub: { fontFamily: FontFamily.bodyRegular, fontSize: 15, color: Colors.inkSecondary },
+  root: { ...StyleSheet.absoluteFill, backgroundColor: Colors.background, alignItems: 'center', justifyContent: 'center', gap: 10, zIndex: 50, paddingHorizontal: 32 },
+  ticket: { width: 220, height: 150, borderRadius: 24, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', gap: 12, marginBottom: 22 },
+  check: { width: 64, height: 64, borderRadius: 32, backgroundColor: Colors.white, alignItems: 'center', justifyContent: 'center' },
+  ticketLabel: { fontFamily: FontFamily.bodySemiBold, fontSize: 11, letterSpacing: 2, color: withOpacity(Colors.white, 0.7) },
+  label: { fontFamily: FontFamily.displayExtraBold, fontSize: 30, letterSpacing: -0.8, color: Colors.inkPrimary, textAlign: 'center' },
+  sub: { fontFamily: FontFamily.bodyRegular, fontSize: 15, color: Colors.inkSecondary, textAlign: 'center' },
 })

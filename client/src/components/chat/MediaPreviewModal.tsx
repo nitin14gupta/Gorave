@@ -111,9 +111,12 @@ export function MediaPreviewModal({ media, onSend, onCancel, onRemove, onUpdate,
           <Pressable style={mp.glass} onPress={onCancel} hitSlop={10}>
             <X size={20} color={Colors.inkPrimary} strokeWidth={2.4} />
           </Pressable>
+          {/* Centred on the screen, not between the two buttons (they differ in width). */}
           {multi ? (
-            <View style={mp.countPill}><Text style={mp.headerTitle}>{activeIndex + 1} of {media.length}</Text></View>
-          ) : <View />}
+            <View style={mp.countWrap} pointerEvents="none">
+              <View style={mp.countPill}><Text style={mp.headerTitle}>{activeIndex + 1} of {media.length}</Text></View>
+            </View>
+          ) : null}
           {onUpdate && media[activeIndex]?.type !== 'video' ? (
             <Pressable style={mp.cropPill} onPress={() => handleCrop(media[activeIndex].uri, activeIndex)} hitSlop={6}>
               <Crop size={16} color={Colors.inkPrimary} strokeWidth={2.2} />
@@ -220,6 +223,7 @@ const mp = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
     backgroundColor: withOpacity(Colors.inkPrimary, 0.1),
   },
+  countWrap: { position: 'absolute', left: 0, right: 0, alignItems: 'center' },
   countPill: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999, backgroundColor: withOpacity(Colors.inkPrimary, 0.1) },
   cropPill: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 40, paddingHorizontal: 14, borderRadius: 20, backgroundColor: withOpacity(Colors.inkPrimary, 0.1) },
   cropText: { fontFamily: FontFamily.bodySemiBold, fontSize: 14, color: Colors.inkPrimary },

@@ -1,71 +1,57 @@
 import { useEffect } from 'react'
 import { View, Text, StyleSheet } from 'react-native'
-import Animated, {
-  useSharedValue, useAnimatedStyle,
-  withSpring, withDelay, withTiming,
-} from 'react-native-reanimated'
+import Animated, { Easing, useSharedValue, useAnimatedStyle, withDelay, withSpring, withTiming } from 'react-native-reanimated'
 import { Wallet } from 'lucide-react-native'
 import { Colors, FontFamily, withOpacity } from '@/constants'
+import { TicketPaper } from '@/components/events/TicketView'
+import { hSuccess } from '@/lib/haptics'
 
-const P_COLORS = [Colors.accentGreen, Colors.accentGold, Colors.accentGreen, Colors.accentGold, Colors.accentGreen, Colors.accentGreen, Colors.accentGold, Colors.accentGold]
-
-function Particle({ index }: { index: number }) {
-  const angle = (index / 8) * Math.PI * 2
-  const dist  = 80 + (index % 3) * 20
-  const pX  = useSharedValue(0)
-  const pY  = useSharedValue(0)
-  const pOp = useSharedValue(0)
-
-  useEffect(() => {
-    pX.value  = withDelay(80, withSpring(Math.cos(angle) * dist, { damping: 12 }))
-    pY.value  = withDelay(80, withSpring(Math.sin(angle) * dist, { damping: 12 }))
-    pOp.value = withDelay(80, withTiming(1, { duration: 150 }))
-    setTimeout(() => { pOp.value = withTiming(0, { duration: 400 }) }, 1000)
-  }, [])
-
-  const style = useAnimatedStyle(() => ({
-    transform: [{ translateX: pX.value }, { translateY: pY.value }],
-    opacity: pOp.value,
-  }))
-
-  return <Animated.View style={[s.particle, { backgroundColor: P_COLORS[index] }, style]} />
-}
-
+/**
+ * Wallet credit used. A maroon card with the amount drops in and settles
+ * once (one buzz), the line under it fades up, then `onDone` moves on.
+ */
 export function PaymentWalletSuccessOverlay({ amount, onDone }: { amount: number; onDone: () => void }) {
-  const scale   = useSharedValue(0)
-  const opacity = useSharedValue(0)
+  const drop = useSharedValue(0)
+  const text = useSharedValue(0)
 
   useEffect(() => {
-    scale.value   = withSpring(1, { damping: 12, stiffness: 200 })
-    opacity.value = withTiming(1, { duration: 200 })
+    hSuccess()
+    drop.value = withSpring(1, { damping: 14, stiffness: 140 })
+    text.value = withDelay(300, withTiming(1, { duration: 360, easing: Easing.out(Easing.cubic) }))
     const t = setTimeout(onDone, 2200)
     return () => clearTimeout(t)
   }, [])
 
-  const circleStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-    opacity: opacity.value,
+  const cardStyle = useAnimatedStyle(() => ({
+    opacity: Math.min(1, drop.value * 1.6),
+    transform: [{ translateY: (1 - drop.value) * -60 }, { rotate: `${-3 * drop.value}deg` }, { scale: 0.92 + drop.value * 0.08 }],
   }))
+  const textStyle = useAnimatedStyle(() => ({ opacity: text.value, transform: [{ translateY: (1 - text.value) * 10 }] }))
 
   return (
     <View style={s.root}>
-      <View style={s.center}>
-        {[0, 1, 2, 3, 4, 5, 6, 7].map(i => <Particle key={i} index={i} />)}
-        <Animated.View style={[s.circle, circleStyle]}>
-          <Wallet size={36} color={Colors.inkPrimary} strokeWidth={2} />
-        </Animated.View>
-        <Text style={s.label}>₹{amount} from Gorave Wallet</Text>
-        <Text style={s.sub}>applied to your booking</Text>
-      </View>
+      <Animated.View style={[s.card, cardStyle]}>
+        <TicketPaper />
+        <View style={s.cardTop}>
+          <Wallet size={18} color={withOpacity(Colors.white, 0.8)} strokeWidth={2} />
+          <Text style={s.cardKind}>GORAVE WALLET</Text>
+        </View>
+        <Text style={s.amount}>₹{amount}</Text>
+      </Animated.View>
+      <Animated.View style={[{ alignItems: 'center' }, textStyle]}>
+        <Text style={s.label}>Paid from your wallet</Text>
+        <Text style={s.sub}>Applied to your booking</Text>
+      </Animated.View>
     </View>
   )
 }
 
 const s = StyleSheet.create({
-  root: { ...StyleSheet.absoluteFill, backgroundColor: withOpacity(Colors.background, 0.85), alignItems: 'center', justifyContent: 'center', zIndex: 100 },
-  center: { alignItems: 'center', justifyContent: 'center' },
-  circle: { width: 100, height: 100, borderRadius: 50, backgroundColor: Colors.accentGreen, alignItems: 'center', justifyContent: 'center', marginBottom: 24 },
-  label: { fontFamily: FontFamily.headingBold, fontSize: 22, color: Colors.inkPrimary, textAlign: 'center' },
-  sub: { fontFamily: FontFamily.bodyRegular, fontSize: 15, color: withOpacity(Colors.inkPrimary, 0.6), marginTop: 6 },
-  particle: { position: 'absolute', width: 10, height: 10, borderRadius: 5 },
+  root: { ...StyleSheet.absoluteFill, backgroundColor: withOpacity(Colors.background, 0.94), alignItems: 'center', justifyContent: 'center', zIndex: 100, paddingHorizontal: 32 },
+  card: { width: 240, height: 150, borderRadius: 24, overflow: 'hidden', padding: 18, justifyContent: 'space-between', marginBottom: 26 },
+  cardTop: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  cardKind: { fontFamily: FontFamily.bodySemiBold, fontSize: 11, letterSpacing: 1.8, color: withOpacity(Colors.white, 0.7) },
+  amount: { fontFamily: FontFamily.displayExtraBold, fontSize: 44, letterSpacing: -1.2, color: Colors.white },
+  label: { fontFamily: FontFamily.displayExtraBold, fontSize: 26, letterSpacing: -0.6, color: Colors.inkPrimary, textAlign: 'center' },
+  sub: { fontFamily: FontFamily.bodyRegular, fontSize: 15, color: Colors.inkSecondary, marginTop: 6 },
 })

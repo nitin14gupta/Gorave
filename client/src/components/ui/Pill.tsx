@@ -6,6 +6,7 @@ import Animated, {
 } from 'react-native-reanimated'
 import { usePillStore } from '@/store/pillStore'
 import { FontFamily, Colors, withOpacity } from '@/constants'
+import { AlertCircle, Check } from 'lucide-react-native'
 import { LogoMark } from './LogoMark'
 
 const { height } = Dimensions.get('window')
@@ -41,14 +42,18 @@ export function PillOverlay() {
     transform: [{ translateY: translateY.value }],
   }))
 
-  const badgeTint = type === 'error' ? withOpacity(Colors.destructive, 0.2) : withOpacity(Colors.inkPrimary, 0.12)
+  const badgeTint = type === 'error' ? withOpacity(Colors.destructive, 0.22) : withOpacity(Colors.inkPrimary, 0.12)
 
   if (!visible && opacity.value === 0) return null
 
   return (
     <Animated.View style={[s.pill, { top: height * 0.75 }, animStyle]} pointerEvents="none">
       <View style={[s.badge, { backgroundColor: badgeTint }]}>
-        <LogoMark size={15} />
+        {type === 'error'
+          ? <AlertCircle size={15} color={Colors.destructive} strokeWidth={2.4} />
+          : type === 'success'
+            ? <Check size={15} color={Colors.inkPrimary} strokeWidth={3} />
+            : <LogoMark size={15} />}
       </View>
       <Text style={s.text}>{message}</Text>
     </Animated.View>
@@ -68,7 +73,9 @@ const s = StyleSheet.create({
     paddingLeft: 8,
     paddingRight: 18,
     paddingVertical: 8,
-    backgroundColor: 'rgba(38,38,38,0.9)',
+    backgroundColor: 'rgba(30,30,30,0.96)',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: withOpacity(Colors.inkPrimary, 0.12),
     shadowColor: Colors.background,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
@@ -83,7 +90,7 @@ const s = StyleSheet.create({
     justifyContent: 'center',
   },
   text: {
-    fontFamily: FontFamily.bodyMedium,
+    fontFamily: FontFamily.bodySemiBold,
     fontSize: 14,
     color: Colors.inkPrimary,
     flexShrink: 1,

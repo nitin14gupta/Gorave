@@ -1,11 +1,12 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect } from 'react'
 import { View, Text, StyleSheet, Modal, FlatList, ScrollView, Pressable } from 'react-native'
 import { router } from 'expo-router'
-import { X, ListFilter } from 'lucide-react-native'
+import { X } from 'lucide-react-native'
 import { hTap, hSelection } from '@/lib/haptics'
-import { Colors, FontFamily, FILTER_CHIPS, matchesChip } from '@/constants'
+import { Colors, FontFamily, FILTER_CHIPS, matchesChip, withOpacity } from '@/constants'
 import { Screen, SearchBar, EventListCard, EventListCardSkeleton, LogoMark } from '@/components/ui'
 import { useEventSearch } from '@/hooks/useEventSearch'
+import { useRecentEventsStore } from '@/store/recentEventsStore'
 import type { EventSummary } from '@/api/apiService'
 
 interface Props {
@@ -17,6 +18,11 @@ interface Props {
   nearbyLoading?: boolean
 }
 
+/**
+ * Search events. A big title and search field, filter chips always in view,
+ * and before you type: what you looked at recently, what you host, and
+ * what's nearby. Results use the same event rows as everywhere else.
+ */
 export function EventSearchModal({ visible, onClose, nearbyEvents, lat, lng, nearbyLoading }: Props) {
   const {
     query, setQuery,
@@ -24,8 +30,7 @@ export function EventSearchModal({ visible, onClose, nearbyEvents, lat, lng, nea
     results, loading, searched, searchError,
     hostedEvents, hostedLoading, fetchHostedOnce,
   } = useEventSearch(lat, lng)
-
-  const [filtersOpen, setFiltersOpen] = useState(false)
+  const recent = useRecentEventsStore(st => st.events)
 
   useEffect(() => {
     if (visible) fetchHostedOnce()
@@ -42,6 +47,10 @@ export function EventSearchModal({ visible, onClose, nearbyEvents, lat, lng, nea
     .filter(e => !hostedIds.has(e.id))
     .filter(e => matchesChip(e, chipKey))
     .slice(0, 12)
+  const recentFiltered = recent
+    .filter(e => !hostedIds.has(e.id))
+    .filter(e => matchesChip(e, chipKey))
+    .slice(0, 4)
 
   const renderCard = useCallback((item: EventSummary) => (
     <View style={s.cardWrap}>
@@ -51,71 +60,75 @@ export function EventSearchModal({ visible, onClose, nearbyEvents, lat, lng, nea
 
   const renderListItem = useCallback(({ item }: { item: EventSummary }) => renderCard(item), [renderCard])
 
+  const browseHeader = (
+    <View style={s.section}>
+      {recentFiltered.length > 0 ? (
+        <>
+          <Text style={s.sectionTitle}>RECENTLY VIEWED</Text>
+          {recentFiltered.map(item => <View key={`r-${item.id}`}>{renderCard(item)}</View>)}
+        </>
+      ) : null}
+      {chipKey === 'all' && hostedEvents.length > 0 ? (
+        <>
+          <Text style={[s.sectionTitle, recentFiltered.length > 0 && s.sectionGap]}>YOU&apos;RE HOSTING</Text>
+          {hostedEvents.map(item => <View key={`h-${item.id}`}>{renderCard(item)}</View>)}
+        </>
+      ) : null}
+      <Text style={[s.sectionTitle, (recentFiltered.length > 0 || hostedEvents.length > 0) && s.sectionGap]}>NEARBY</Text>
+    </View>
+  )
+
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <Screen bottom={false}>
         <View style={s.header}>
-          <Pressable onPress={() => { hTap(); onClose() }} style={s.iconBtn}>
-            <X size={20} color={Colors.inkPrimary} />
+          <Text style={s.title}>Search</Text>
+          <Pressable onPress={() => { hTap(); onClose() }} style={s.iconBtn} hitSlop={8}>
+            <X size={20} color={Colors.inkPrimary} strokeWidth={2.2} />
           </Pressable>
-          <Text style={s.title}>Search Events</Text>
-          <View style={{ width: 38 }} />
         </View>
 
         <SearchBar
           variant="glass"
           value={query}
           onChangeText={setQuery}
-          placeholder="Search by name or location"
+          placeholder="Event name, area or host"
           autoFocus
           style={s.searchWrap}
-          rightSlot={
-            <Pressable
-              onPress={() => { hSelection(); setFiltersOpen(v => !v) }}
-              style={[s.filterIconBtn, (filtersOpen || chipKey !== 'all') && s.filterIconBtnActive]}
-              hitSlop={8}
-            >
-              <ListFilter size={16} color={filtersOpen || chipKey !== 'all' ? Colors.inkPrimary : Colors.glassTextDisabled} strokeWidth={2} />
-            </Pressable>
-          }
         />
 
-        {filtersOpen && (
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            style={s.chipsScroll}
-            contentContainerStyle={s.chipsRow}
-          >
-            {FILTER_CHIPS.map(chip => (
-              <Pressable
-                key={chip.key}
-                onPress={() => { hSelection(); setChipKey(chip.key) }}
-                style={[s.chip, chipKey === chip.key && s.chipActive]}
-              >
-                <Text style={[s.chipText, chipKey === chip.key && s.chipTextActive]}>{chip.label}</Text>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          style={s.chipsScroll}
+          contentContainerStyle={s.chipsRow}
+        >
+          {FILTER_CHIPS.map(chip => {
+            const on = chipKey === chip.key
+            return (
+              <Pressable key={chip.key} onPress={() => { hSelection(); setChipKey(chip.key) }} style={[s.chip, on && s.chipActive]}>
+                <Text style={[s.chipText, on && s.chipTextActive]}>{chip.label}</Text>
               </Pressable>
-            ))}
-          </ScrollView>
-        )}
+            )
+          })}
+        </ScrollView>
 
         {isSearching ? (
           loading ? (
             <View style={s.listContent}>
-              {Array.from({ length: 4 }).map((_, i) => (
-                <EventListCardSkeleton key={i} />
-              ))}
+              {Array.from({ length: 4 }).map((_, i) => <EventListCardSkeleton key={i} />)}
             </View>
           ) : searchError ? (
             <View style={s.center}>
-              <Text style={s.emptyTitle}>Search failed</Text>
-              <Text style={s.emptySub}>Check your connection and try again</Text>
+              <Text style={s.emptyTitle}>Search didn&apos;t go through</Text>
+              <Text style={s.emptySub}>Check your connection and try again.</Text>
             </View>
           ) : searched && results.length === 0 ? (
             <View style={s.center}>
-              <LogoMark size={72} opacity={0.1} style={{ marginBottom: 4 }} />
-              <Text style={s.emptyTitle}>No events found</Text>
-              <Text style={s.emptySub}>Try a different name or location</Text>
+              <LogoMark size={64} opacity={0.1} style={{ marginBottom: 4 }} />
+              <Text style={s.emptyTitle}>Nothing for “{query.trim()}”</Text>
+              <Text style={s.emptySub}>Try a different name, area or host.</Text>
             </View>
           ) : (
             <FlatList
@@ -124,6 +137,7 @@ export function EventSearchModal({ visible, onClose, nearbyEvents, lat, lng, nea
               contentContainerStyle={s.listContent}
               showsVerticalScrollIndicator={false}
               keyboardShouldPersistTaps="handled"
+              ListHeaderComponent={results.length ? <Text style={s.sectionTitle}>{results.length} {results.length === 1 ? 'RESULT' : 'RESULTS'}</Text> : null}
               renderItem={renderListItem}
               initialNumToRender={8}
               maxToRenderPerBatch={8}
@@ -137,24 +151,12 @@ export function EventSearchModal({ visible, onClose, nearbyEvents, lat, lng, nea
             contentContainerStyle={s.listContent}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
-            ListHeaderComponent={
-              chipKey === 'all' && hostedEvents.length > 0 ? (
-                <View style={s.section}>
-                  <Text style={s.sectionTitle}>Hosted ({hostedEvents.length})</Text>
-                  {hostedEvents.map(item => (
-                    <View key={item.id}>{renderCard(item)}</View>
-                  ))}
-                  <Text style={[s.sectionTitle, { marginTop: 8 }]}>Nearby Events</Text>
-                </View>
-              ) : (
-                <Text style={s.sectionTitle}>Nearby Events</Text>
-              )
-            }
+            ListHeaderComponent={browseHeader}
             ListEmptyComponent={
               !hostedLoading && !nearbyLoading ? (
                 <View style={s.center}>
-                  <LogoMark size={72} opacity={0.1} style={{ marginBottom: 4 }} />
-                  <Text style={s.emptyTitle}>No events nearby yet</Text>
+                  <LogoMark size={64} opacity={0.1} style={{ marginBottom: 4 }} />
+                  <Text style={s.emptyTitle}>Nothing nearby yet</Text>
                   <Text style={s.emptySub}>Check back soon, or try a different city.</Text>
                 </View>
               ) : null
@@ -175,47 +177,39 @@ const s = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: 20,
+    paddingTop: 10,
+    paddingBottom: 4,
   },
+  title: { fontFamily: FontFamily.displayExtraBold, fontSize: 34, letterSpacing: -1, color: Colors.inkPrimary },
   iconBtn: {
-    width: 38, height: 38, borderRadius: 19,
-    backgroundColor: Colors.glassSurface,
+    width: 40, height: 40, borderRadius: 20,
+    backgroundColor: withOpacity(Colors.inkPrimary, 0.08),
     alignItems: 'center', justifyContent: 'center',
   },
-  title: { fontFamily: FontFamily.headingBold, fontSize: 17, color: Colors.inkPrimary },
 
-  searchWrap: {
-    marginHorizontal: 16, marginTop: 12, marginBottom: 12,
-  },
-  filterIconBtn: {
-    width: 30, height: 30, borderRadius: 15,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  filterIconBtnActive: { backgroundColor: Colors.brandOrange },
+  searchWrap: { marginHorizontal: 16, marginTop: 10, marginBottom: 10 },
 
-  chipsScroll: { flexGrow: 0, flexShrink: 0, marginBottom: 8 },
+  chipsScroll: { flexGrow: 0, flexShrink: 0, marginBottom: 12 },
   chipsRow: { paddingHorizontal: 16, gap: 8, alignItems: 'center' },
   chip: {
-    paddingHorizontal: 14, paddingVertical: 7,
-    backgroundColor: Colors.glassSurface,
-    borderRadius: 20,
-    borderWidth: 1, borderColor: Colors.glassBorder,
+    paddingHorizontal: 14, height: 36, justifyContent: 'center',
+    backgroundColor: Colors.surface,
+    borderRadius: 18,
+    borderWidth: 1, borderColor: Colors.divider,
   },
-  chipActive: { backgroundColor: Colors.brandOrange, borderColor: Colors.brandOrange },
-  chipText: { fontFamily: FontFamily.bodyMedium, fontSize: 13, color: Colors.inkPrimary },
-  chipTextActive: { color: Colors.inkPrimary, fontFamily: FontFamily.bodySemiBold },
+  chipActive: { backgroundColor: Colors.inkPrimary, borderColor: Colors.inkPrimary },
+  chipText: { fontFamily: FontFamily.bodySemiBold, fontSize: 13, color: Colors.inkPrimary },
+  chipTextActive: { color: Colors.background },
 
   listContent: { paddingHorizontal: 16, paddingBottom: 40, gap: 10 },
   section: { gap: 10 },
-  sectionTitle: {
-    fontFamily: FontFamily.bodySemiBold, fontSize: 13, color: Colors.glassTextSecondary,
-    textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4,
-  },
+  sectionTitle: { fontFamily: FontFamily.bodySemiBold, fontSize: 11, letterSpacing: 1.4, color: Colors.inkDisabled, marginBottom: 2 },
+  sectionGap: { marginTop: 14 },
 
   cardWrap: { marginBottom: 4 },
 
-  center: { alignItems: 'center', justifyContent: 'center', gap: 10, padding: 40 },
-  emptyTitle: { fontFamily: FontFamily.headingBold, fontSize: 18, color: Colors.inkPrimary },
-  emptySub: { fontFamily: FontFamily.bodyRegular, fontSize: 14, color: Colors.glassTextSecondary, textAlign: 'center' },
+  center: { alignItems: 'center', justifyContent: 'center', gap: 8, padding: 40 },
+  emptyTitle: { fontFamily: FontFamily.displayExtraBold, fontSize: 22, letterSpacing: -0.4, color: Colors.inkPrimary, textAlign: 'center' },
+  emptySub: { fontFamily: FontFamily.bodyRegular, fontSize: 14, color: Colors.inkSecondary, textAlign: 'center' },
 })

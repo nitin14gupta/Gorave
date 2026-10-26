@@ -29,7 +29,7 @@ function SmallEventCardBase({
 
   return (
     <Pressable
-      style={({ pressed }) => [s.card, pressed && { opacity: 0.8 }]}
+      style={[s.card]}
       onPress={onPress ?? (() => router.push(`/(events)/${event.id}` as any))}
     >
       <View style={s.imageContainer}>

@@ -7,6 +7,7 @@ import Animated, {
 } from 'react-native-reanimated'
 import { Gesture, GestureDetector } from 'react-native-gesture-handler'
 import { X } from 'lucide-react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Colors, FontFamily, withOpacity } from '@/constants'
 
 const { width: W, height: H } = Dimensions.get('window')
@@ -41,7 +42,12 @@ function VideoViewer({ url, active }: { url: string; active: boolean }) {
   )
 }
 
+/**
+ * Full-screen photo and video viewer: pure black, swipe sideways between
+ * items, swipe down to close. A glass X and a count pill sit on top.
+ */
 export function MediaViewerModal({ visible, items, initialIndex = 0, onClose }: Props) {
+  const insets = useSafeAreaInsets()
   const translateY = useSharedValue(0)
   const bgOpacity = useSharedValue(1)
   const [activeIndex, setActiveIndex] = useState(initialIndex)
@@ -130,49 +136,54 @@ export function MediaViewerModal({ visible, items, initialIndex = 0, onClose }: 
         </Animated.View>
       </GestureDetector>
 
-      {items.length > 1 && (
-        <View style={s.counter}>
-          <Animated.Text style={s.counterText}>{activeIndex + 1} / {items.length}</Animated.Text>
-        </View>
-      )}
-
-      <Pressable style={s.closeBtn} onPress={onClose} hitSlop={12}>
-        <X size={22} color={Colors.inkPrimary} strokeWidth={2} />
-      </Pressable>
+      <View pointerEvents="box-none" style={[s.top, { top: insets.top + 10 }]}>
+        <Pressable style={s.closeBtn} onPress={onClose} hitSlop={12}>
+          <X size={20} color={Colors.white} strokeWidth={2.2} />
+        </Pressable>
+        {items.length > 1 ? (
+          <View style={s.counter}>
+            <Animated.Text style={s.counterText}>{activeIndex + 1} of {items.length}</Animated.Text>
+          </View>
+        ) : null}
+        <View style={s.closeSpacer} />
+      </View>
     </Modal>
   )
 }
 
 const s = StyleSheet.create({
-  bg: { backgroundColor: Colors.background },
+  bg: { backgroundColor: '#000' },
   container: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  closeBtn: {
+  top: {
     position: 'absolute',
-    top: 52,
+    left: 16,
     right: 16,
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: withOpacity(Colors.background, 0.55),
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  closeBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: withOpacity(Colors.white, 0.16),
     alignItems: 'center',
     justifyContent: 'center',
   },
+  closeSpacer: { width: 40 },
   counter: {
-    position: 'absolute',
-    top: 60,
-    alignSelf: 'center',
     paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderRadius: 12,
-    backgroundColor: withOpacity(Colors.background, 0.55),
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: withOpacity(Colors.white, 0.16),
   },
   counterText: {
     fontFamily: FontFamily.bodySemiBold,
-    fontSize: 12,
-    color: Colors.inkPrimary,
+    fontSize: 13,
+    color: Colors.white,
   },
 })

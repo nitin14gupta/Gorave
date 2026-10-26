@@ -11,9 +11,8 @@ import {
 import DateTimePicker, {
   type DateTimePickerEvent,
 } from '@react-native-community/datetimepicker'
-import { LinearGradient } from 'expo-linear-gradient'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { Colors, withOpacity } from '@/constants'
+import { Colors, FontFamily, withOpacity } from '@/constants'
 
 // ── DateTimePickerSheet (iOS sheet wrapper) ───────────────────────────────
 
@@ -97,6 +96,12 @@ export function DateTimePickerSheet({
         ]}
       >
         <View style={s.handle} />
+        <Text style={s.eyebrow}>{mode === 'date' ? 'PICK A DATE' : 'PICK A TIME'}</Text>
+        <Text style={s.value}>
+          {mode === 'date'
+            ? localDate.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' })
+            : localDate.toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' })}
+        </Text>
         <DateTimePicker
           value={localDate}
           mode={mode}
@@ -108,18 +113,16 @@ export function DateTimePickerSheet({
           onChange={(_: DateTimePickerEvent, date?: Date) => {
             if (date) setLocalDate(date)
           }}
-          style={{ height: 200 }}
+          style={{ height: 200, alignSelf: 'stretch' }}
         />
-        <Pressable onPress={confirm} style={s.doneBtn}>
-          <LinearGradient
-            colors={[Colors.brandOrange, Colors.brandCoral]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={s.doneGrad}
-          >
+        <View style={s.actions}>
+          <Pressable onPress={dismiss} style={[s.btn, s.cancel]}>
+            <Text style={s.cancelTxt}>Cancel</Text>
+          </Pressable>
+          <Pressable onPress={confirm} style={[s.btn, s.done]}>
             <Text style={s.doneTxt}>Done</Text>
-          </LinearGradient>
-        </Pressable>
+          </Pressable>
+        </View>
       </Animated.View>
     </Modal>
   )
@@ -167,8 +170,8 @@ const s = StyleSheet.create({
     right: 0,
     bottom: 0,
     backgroundColor: Colors.surface,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
     alignItems: 'center',
     paddingTop: 10,
     paddingHorizontal: 20,
@@ -177,10 +180,16 @@ const s = StyleSheet.create({
     width: 40,
     height: 4,
     borderRadius: 2,
-    backgroundColor: '#3A3A3A',
-    marginBottom: 8,
+    backgroundColor: withOpacity(Colors.inkPrimary, 0.18),
+    marginBottom: 14,
   },
-  doneBtn: { width: '100%', borderRadius: 14, overflow: 'hidden', marginTop: 12 },
-  doneGrad: { paddingVertical: 15, alignItems: 'center' },
-  doneTxt: { color: Colors.inkPrimary, fontSize: 16, fontWeight: '700' },
+  eyebrow: { fontFamily: FontFamily.bodySemiBold, fontSize: 11, letterSpacing: 1.4, color: Colors.inkDisabled },
+  value: { fontFamily: FontFamily.displayExtraBold, fontSize: 26, letterSpacing: -0.6, color: Colors.inkPrimary, marginTop: 4, marginBottom: 4 },
+  actions: { flexDirection: 'row', gap: 10, alignSelf: 'stretch', marginTop: 12 },
+  btn: { flex: 1, height: 54, borderRadius: 27, alignItems: 'center', justifyContent: 'center' },
+  cancel: { backgroundColor: withOpacity(Colors.inkPrimary, 0.08) },
+  done: { backgroundColor: Colors.inkPrimary },
+  pressed: { opacity: 0.85, transform: [{ scale: 0.98 }] },
+  cancelTxt: { fontFamily: FontFamily.bodySemiBold, fontSize: 16, color: Colors.inkPrimary },
+  doneTxt: { fontFamily: FontFamily.headingBold, fontSize: 16, color: Colors.background },
 })

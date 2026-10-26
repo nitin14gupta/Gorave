@@ -47,7 +47,7 @@ function ConfirmSheetCore({ title, body, confirmLabel, destructive, onConfirm, o
         {children}
         {destructive ? (
           <Pressable
-            style={({ pressed }) => [s.btn, s.danger, pressed && { opacity: 0.85, transform: [{ scale: 0.98 }] }]}
+            style={[s.btn, s.danger]}
             onPress={() => { hTap(); onConfirm(); onClose() }}
           >
             <Text style={s.dangerText}>{confirmLabel}</Text>
@@ -59,7 +59,7 @@ function ConfirmSheetCore({ title, body, confirmLabel, destructive, onConfirm, o
             style={s.btn}
           />
         )}
-        <Pressable style={({ pressed }) => [s.cancelBtn, pressed && { opacity: 0.8 }]} onPress={() => { hTap(); onClose() }}>
+        <Pressable style={[s.cancelBtn]} onPress={() => { hTap(); onClose() }}>
           <Text style={s.cancelText}>{cancelLabel}</Text>
         </Pressable>
       </BottomSheetView>

@@ -38,6 +38,14 @@ def send_vibe(body: SendVibeRequest, background_tasks: BackgroundTasks, current_
         if not target or target["is_deleted"]:
             raise HTTPException(status_code=404, detail="User not found")
 
+        # Either side blocking the other stops vibes, same as chat and joining events.
+        cur.execute(
+            "SELECT 1 FROM user_blocks WHERE (blocker_id=%s::uuid AND blocked_id=%s::uuid) OR (blocker_id=%s::uuid AND blocked_id=%s::uuid)",
+            (sender_id, receiver_id, receiver_id, sender_id),
+        )
+        if cur.fetchone():
+            raise HTTPException(status_code=403, detail="You can't send a vibe to this person")
+
         # Check active cooldown
         cur.execute(
             """

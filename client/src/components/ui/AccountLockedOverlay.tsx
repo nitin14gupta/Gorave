@@ -1,38 +1,22 @@
-import { useRef, useEffect, useState } from 'react'
-import { View, Text, StyleSheet } from 'react-native'
-import {
-  BottomSheetModal,
-  BottomSheetView,
-  BottomSheetBackdrop,
-} from '@gorhom/bottom-sheet'
-import type { BottomSheetBackdropProps } from '@gorhom/bottom-sheet'
+import { useState } from 'react'
+import { Linking, View, Text, StyleSheet } from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Lock } from 'lucide-react-native'
-import { Colors, FontFamily, withOpacity } from '@/constants'
+import { Colors, FontFamily, SUPPORT_EMAIL, withOpacity } from '@/constants'
 import { useLockStore } from '@/store/lockStore'
 import { useAuth } from '@/hooks/useAuth'
 import { hTap } from '@/lib/haptics'
 import { PrimaryButton } from './PrimaryButton'
 
-function renderBackdrop(props: BottomSheetBackdropProps) {
-  // pressBehavior="none" — unlike DeletedAccountSheet, this backdrop cannot
-  // be tapped away. Logging out is the only way out.
-  return (
-    <BottomSheetBackdrop
-      {...props}
-      disappearsOnIndex={-1}
-      appearsOnIndex={0}
-      pressBehavior="none"
-      opacity={0.7}
-    />
-  )
-}
-
+/**
+ * The account is locked. A full-screen page you can't get past: what
+ * happened, the reason if we have one, how to reach us, and Log out as the
+ * only way out.
+ */
 function AccountLockedOverlayCore({ reason }: { reason: string }) {
-  const ref = useRef<BottomSheetModal>(null)
+  const insets = useSafeAreaInsets()
   const { handleLogout } = useAuth()
   const [loggingOut, setLoggingOut] = useState(false)
-
-  useEffect(() => { ref.current?.present() }, [])
 
   const onLogOut = async () => {
     if (loggingOut) return
@@ -46,36 +30,32 @@ function AccountLockedOverlayCore({ reason }: { reason: string }) {
   }
 
   return (
-    <BottomSheetModal
-      ref={ref}
-      enableDynamicSizing
-      enablePanDownToClose={false}
-      backdropComponent={renderBackdrop}
-      backgroundStyle={s.bg}
-      handleComponent={null}
-    >
-      <BottomSheetView style={s.content}>
-        <View style={s.iconWrap}>
-          <Lock size={32} color={Colors.destructive} strokeWidth={1.8} />
+    <View style={[s.root, { paddingTop: insets.top + 24, paddingBottom: insets.bottom + 20 }]}>
+      <View style={s.body}>
+        <View style={s.icon}>
+          <Lock size={30} color={Colors.inkPrimary} strokeWidth={1.8} />
         </View>
-
-        <Text style={s.title}>Your account has been locked by the Gorave team.</Text>
-
-        {reason ? <Text style={s.body}>{reason}</Text> : null}
-
-        <Text style={s.sub}>
-          If you think this is a mistake, contact support after logging out.
+        <Text style={s.title}>Your account is locked</Text>
+        <Text style={s.text}>The Gorave team has paused this account, so you can&apos;t use the app for now.</Text>
+        {reason ? (
+          <View style={s.reason}>
+            <Text style={s.reasonLabel}>REASON</Text>
+            <Text style={s.reasonText}>{reason}</Text>
+          </View>
+        ) : null}
+        <Text style={s.text}>
+          Think this is a mistake? Write to{' '}
+          <Text style={s.link} onPress={() => Linking.openURL(`mailto:${SUPPORT_EMAIL}`)}>{SUPPORT_EMAIL}</Text>
+          {' '}from the number on this account.
         </Text>
+      </View>
 
-        <View style={s.logoutBtn}>
-          <PrimaryButton
-            label={loggingOut ? 'Logging out…' : 'Log Out'}
-            onPress={onLogOut}
-            loading={loggingOut}
-          />
-        </View>
-      </BottomSheetView>
-    </BottomSheetModal>
+      <PrimaryButton
+        label={loggingOut ? 'Logging out…' : 'Log out'}
+        onPress={onLogOut}
+        loading={loggingOut}
+      />
+    </View>
   )
 }
 
@@ -87,40 +67,19 @@ export function AccountLockedOverlay() {
 }
 
 const s = StyleSheet.create({
-  bg: { backgroundColor: Colors.surface },
-  content: { paddingHorizontal: 24, paddingBottom: 40, paddingTop: 32, gap: 12, alignItems: 'center' },
-
-  iconWrap: {
-    width: 68, height: 68, borderRadius: 34,
-    backgroundColor: withOpacity(Colors.destructive, 0.12),
-    alignItems: 'center', justifyContent: 'center',
-    marginBottom: 4,
+  root: {
+    position: 'absolute',
+    top: 0, left: 0, right: 0, bottom: 0,
+    zIndex: 10001,
+    backgroundColor: Colors.background,
+    paddingHorizontal: 24,
   },
-
-  title: {
-    fontFamily: FontFamily.headingBold,
-    fontSize: 19,
-    color: Colors.inkPrimary,
-    textAlign: 'center',
-    lineHeight: 25,
-  },
-  body: {
-    fontFamily: FontFamily.bodyMedium,
-    fontSize: 14,
-    color: Colors.inkSecondary,
-    textAlign: 'center',
-    lineHeight: 21,
-  },
-  sub: {
-    fontFamily: FontFamily.bodyRegular,
-    fontSize: 13,
-    color: Colors.inkDisabled,
-    textAlign: 'center',
-    lineHeight: 19,
-  },
-
-  logoutBtn: {
-    width: '100%',
-    marginTop: 8,
-  },
+  body: { flex: 1, justifyContent: 'center', gap: 14 },
+  icon: { width: 72, height: 72, borderRadius: 24, backgroundColor: withOpacity(Colors.inkPrimary, 0.08), alignItems: 'center', justifyContent: 'center', marginBottom: 6 },
+  title: { fontFamily: FontFamily.displayExtraBold, fontSize: 34, lineHeight: 38, letterSpacing: -1, color: Colors.inkPrimary },
+  text: { fontFamily: FontFamily.bodyRegular, fontSize: 15, lineHeight: 22, color: Colors.inkSecondary },
+  reason: { padding: 16, borderRadius: 18, backgroundColor: Colors.surface, borderWidth: 1, borderColor: Colors.divider, gap: 4 },
+  reasonLabel: { fontFamily: FontFamily.bodySemiBold, fontSize: 11, letterSpacing: 1.4, color: Colors.inkDisabled },
+  reasonText: { fontFamily: FontFamily.bodyMedium, fontSize: 15, lineHeight: 21, color: Colors.inkPrimary },
+  link: { fontFamily: FontFamily.bodySemiBold, color: Colors.inkPrimary, textDecorationLine: 'underline' },
 })

@@ -1,4 +1,3 @@
-import { ShimmerText } from '@/components/ui/ShimmerText'
 import { useState } from 'react'
 import { View, Text, StyleSheet, Modal, FlatList, Pressable } from 'react-native'
 import { Image } from 'expo-image'
@@ -6,7 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { ArrowLeft, X } from 'lucide-react-native'
 import { AutoSkeletonView } from 'react-native-auto-skeleton'
 import { hTap } from '@/lib/haptics'
-import { Colors, FontFamily } from '@/constants'
+import { Colors, FontFamily, withOpacity } from '@/constants'
 import { SearchBar, LogoMark } from '@/components/ui'
 import { useChatSearchHistoryStore, type ChatSearchHistoryEntry } from '@/store/chatSearchHistoryStore'
 import { useChatShareTargets } from '@/hooks/useChatShareTargets'
@@ -124,11 +123,12 @@ export function ChatSearchModal({ visible, onClose, conversations, onSelectConve
           <Pressable onPress={handleClose} hitSlop={10} style={s.backBtn}>
             <ArrowLeft size={20} color={Colors.inkPrimary} strokeWidth={2} />
           </Pressable>
+          <Text style={s.title}>Find a chat</Text>
           <SearchBar
             variant="glass"
             value={query}
             onChangeText={setQuery}
-            placeholder="Search conversations..."
+            placeholder="Search by name"
             autoFocus
             style={s.searchBar}
           />
@@ -153,8 +153,8 @@ export function ChatSearchModal({ visible, onClose, conversations, onSelectConve
             ListEmptyComponent={
               <View style={s.emptyWrap}>
                 <LogoMark size={72} opacity={0.1} style={{ marginBottom: 4 }} />
-                <Text style={s.emptyTitle}>No conversations match</Text>
-                <Text style={s.emptyText}>Try a different name or username.</Text>
+                <Text style={s.emptyTitle}>No one by that name</Text>
+                <Text style={s.emptyText}>Check the spelling, or try their username.</Text>
               </View>
             }
           />
@@ -168,7 +168,7 @@ export function ChatSearchModal({ visible, onClose, conversations, onSelectConve
               history.length > 0 ? (
                 <View style={s.section}>
                   <View style={s.sectionHeader}>
-                    <Text style={s.sectionTitle}>Recent</Text>
+                    <Text style={[s.sectionTitle, s.sectionTitleInline]}>RECENT</Text>
                     <Pressable
                       onPress={() => {
                         hTap()
@@ -176,7 +176,7 @@ export function ChatSearchModal({ visible, onClose, conversations, onSelectConve
                       }}
                       hitSlop={8}
                     >
-                      <ShimmerText style={s.sectionAction}>{expanded ? 'Clear all' : 'See all'}</ShimmerText>
+                      <Text style={s.sectionAction}>{expanded ? 'Clear all' : 'See all'}</Text>
                     </Pressable>
                   </View>
                   {recentToShow.map(item => (
@@ -193,10 +193,10 @@ export function ChatSearchModal({ visible, onClose, conversations, onSelectConve
                       onRemove={() => { hTap(); remove(item.id) }}
                     />
                   ))}
-                  <Text style={s.sectionTitle}>Suggested</Text>
+                  <Text style={s.sectionTitle}>SUGGESTED</Text>
                 </View>
               ) : suggestions.length > 0 ? (
-                <Text style={[s.sectionTitle, s.sectionTitleStandalone]}>Suggested</Text>
+                <Text style={[s.sectionTitle, s.sectionTitleStandalone]}>SUGGESTED</Text>
               ) : null
             }
             renderItem={({ item }) => (
@@ -223,20 +223,18 @@ export function ChatSearchModal({ visible, onClose, conversations, onSelectConve
   )
 }
 
+const AVATAR = 52
+
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: Colors.background },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    paddingHorizontal: 16,
-    paddingBottom: 12,
-  },
+  header: { paddingHorizontal: 20, paddingBottom: 10, gap: 12 },
   backBtn: {
-    width: 36, height: 36, borderRadius: 18,
+    width: 40, height: 40, borderRadius: 20,
     alignItems: 'center', justifyContent: 'center',
+    backgroundColor: withOpacity(Colors.inkPrimary, 0.08),
   },
-  searchBar: { flex: 1, height: 44 },
+  title: { fontFamily: FontFamily.displayExtraBold, fontSize: 30, letterSpacing: -0.8, color: Colors.inkPrimary },
+  searchBar: { height: 48 },
   listContent: { paddingBottom: 32 },
   section: { marginBottom: 4 },
   sectionHeader: {
@@ -244,42 +242,45 @@ const s = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingVertical: 10,
+    paddingTop: 14,
+    paddingBottom: 4,
   },
   sectionTitle: {
     fontFamily: FontFamily.bodySemiBold,
-    fontSize: 13,
-    color: Colors.inkSecondary,
-    letterSpacing: 0.3,
+    fontSize: 11,
+    letterSpacing: 1.4,
+    color: Colors.inkDisabled,
     paddingHorizontal: 20,
-    paddingTop: 14,
+    paddingTop: 18,
     paddingBottom: 6,
   },
-  sectionTitleStandalone: { paddingTop: 4 },
-  sectionAction: {
-    fontFamily: FontFamily.bodyMedium,
-    fontSize: 13,
-    color: Colors.inkPrimary,
-  },
+  sectionTitleInline: { paddingHorizontal: 0, paddingTop: 0, paddingBottom: 0 },
+  sectionTitleStandalone: { paddingTop: 8 },
+  sectionAction: { fontFamily: FontFamily.bodySemiBold, fontSize: 13, color: Colors.inkPrimary },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingVertical: 10,
+    paddingVertical: 9,
     gap: 14,
   },
-  avatar: { width: 48, height: 48, borderRadius: 24 },
+  // Square with soft corners, like every people photo in the app.
+  avatar: { width: AVATAR, height: AVATAR, borderRadius: 16 },
   avatarFallback: { backgroundColor: Colors.surfaceMuted, alignItems: 'center', justifyContent: 'center' },
-  avatarInitial: { fontFamily: FontFamily.headingBold, fontSize: 18, color: Colors.inkPrimary },
+  avatarInitial: { fontFamily: FontFamily.headingBold, fontSize: 19, color: Colors.inkPrimary },
   info: { flex: 1, gap: 2 },
-  skAvatar: { width: 48, height: 48, borderRadius: 24, backgroundColor: Colors.surfaceMuted },
+  skAvatar: { width: AVATAR, height: AVATAR, borderRadius: 16, backgroundColor: Colors.surfaceMuted },
   skInfo: { flex: 1, gap: 8 },
   skLineName: { height: 14, width: '50%', borderRadius: 7, backgroundColor: Colors.surfaceMuted },
   skLineUser: { height: 12, width: '32%', borderRadius: 6, backgroundColor: Colors.surfaceMuted },
-  name: { fontFamily: FontFamily.bodySemiBold, fontSize: 15, color: Colors.inkPrimary },
-  username: { fontFamily: FontFamily.bodyRegular, fontSize: 12, color: Colors.inkDisabled },
-  removeBtn: { padding: 4 },
+  name: { fontFamily: FontFamily.bodySemiBold, fontSize: 16, color: Colors.inkPrimary },
+  username: { fontFamily: FontFamily.bodyRegular, fontSize: 13, color: Colors.inkSecondary },
+  removeBtn: {
+    width: 30, height: 30, borderRadius: 15,
+    alignItems: 'center', justifyContent: 'center',
+    backgroundColor: withOpacity(Colors.inkPrimary, 0.06),
+  },
   emptyWrap: { alignItems: 'center', justifyContent: 'center', gap: 6, paddingTop: 80, paddingHorizontal: 32 },
-  emptyTitle: { fontFamily: FontFamily.headingBold, fontSize: 16, color: Colors.inkPrimary, marginTop: 4 },
+  emptyTitle: { fontFamily: FontFamily.displayExtraBold, fontSize: 20, letterSpacing: -0.3, color: Colors.inkPrimary, marginTop: 4 },
   emptyText: { fontFamily: FontFamily.bodyRegular, fontSize: 14, color: Colors.inkSecondary, textAlign: 'center' },
 })

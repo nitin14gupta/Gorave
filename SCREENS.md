@@ -163,10 +163,10 @@ Routes live in `client/src/app/` (Expo Router). `(group)` folders don't show in 
 | Vibe inbox | Chat flame / banner | ✅ big photo cards, message bubble, Pass / Vibe back |
 | UPI ID | Payment | ✅ full screen, big ID, handle chips, verified card, remember tick |
 | Review text | Rate your night | ✅ opens the full-screen editor |
-| Event options, share event, share details, guest list, report event | Event page | ⬜ |
-| Profile menu, block, report, deleted account | Profiles, chat | ⬜ |
-| Media picker, media viewer, chat search, emoji picker, report message | Chat | ⬜ |
-| Event search, sort, date/time picker, payment overlays, pill/toast, locked, maintenance | Various | ⬜ |
+| Event options, share event, share details, guest list, report event | Event page | ✅ big titles, solid red for destructive, square faces, report details in full-screen editor |
+| Profile menu, block, report, deleted account | Profiles, chat | ✅ photo + name on menu, block explains what it does, solid red actions |
+| Media picker, media viewer, chat search, emoji picker, report message | Chat | ✅ big tiles, black viewer with glass buttons, neutral menus, solid red report |
+| Event search, sort, date/time picker, payment overlays, pill/toast, locked, maintenance | Various | ✅ search sections, tick rows, maroon payment moments, full-screen locked and maintenance |
 
 ---
 
