@@ -1,5 +1,6 @@
 import { useCallback, useRef, useEffect, useState } from 'react'
-import { View, Text, Pressable, FlatList, StyleSheet, ActivityIndicator, type ScrollViewProps } from 'react-native'
+import { View, Text, Pressable, FlatList, StyleSheet, ActivityIndicator, type ScrollViewProps, type NativeScrollEvent, type NativeSyntheticEvent, type LayoutChangeEvent } from 'react-native'
+import { useSharedValue, withTiming } from 'react-native-reanimated'
 import { KeyboardGestureArea, KeyboardStickyView } from 'react-native-keyboard-controller'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useLocalSearchParams } from 'expo-router'
@@ -22,6 +23,8 @@ import { ReportMessageSheet } from '@/components/chat/ReportMessageSheet'
 import { ChatScrollView } from '@/components/chat/ChatScrollView'
 import { ChatPartnerPreview } from '@/components/chat/ChatPartnerPreview'
 import { InAppBrowserModal } from '@/components/ui/InAppBrowserModal'
+import { LabSwitch } from '@/components/lab/LabSwitch'
+import { useLabVariant } from '@/store/labStore'
 
 type ListItem =
   | Message
@@ -73,6 +76,35 @@ export default function ChatDetailScreen() {
   const [browserUrl, setBrowserUrl] = useState<string | null>(null)
 
   const screen = useChatScreen(convId)
+
+  // Lab: A = big intro block at the start of the chat, header name appears once
+  // it scrolls away. B = tall header that shrinks as you scroll up.
+  const variant = useLabVariant('chatroom')
+  const scrollY = useSharedValue(0)
+  const identityShown = useSharedValue(1)
+  const metrics = useRef({ offset: 0, contentH: 0, layoutH: 0, introH: 0, shown: 1 })
+  const syncIdentity = useCallback(() => {
+    const m = metrics.current
+    if (!m.introH || !m.layoutH) return
+    // Inverted list: the oldest end (where the intro sits) is at the far offset.
+    const toOldest = Math.max(0, m.contentH - m.layoutH - m.offset)
+    const target = toOldest < m.introH * 0.6 ? 0 : 1
+    if (m.shown === target) return
+    m.shown = target
+    identityShown.set(withTiming(target, { duration: 180 }))
+  }, [identityShown])
+  const handleScroll = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const { contentOffset, contentSize, layoutMeasurement } = e.nativeEvent
+    scrollY.set(Math.max(0, contentOffset.y))
+    metrics.current.offset = contentOffset.y
+    metrics.current.contentH = contentSize.height
+    metrics.current.layoutH = layoutMeasurement.height
+    syncIdentity()
+  }, [scrollY, syncIdentity])
+  const handleIntroLayout = useCallback((e: LayoutChangeEvent) => {
+    metrics.current.introH = e.nativeEvent.layout.height
+    syncIdentity()
+  }, [syncIdentity])
 
   // Auto-scroll to newest message when a new one arrives (skip initial load).
   // Keyed on the newest message's id, not the array length — loadMore appends
@@ -174,6 +206,8 @@ export default function ChatDetailScreen() {
         selectMode={screen.selectMode}
         selectedCount={screen.selectedIds.size}
         onExitSelect={screen.handleExitSelectMode}
+        identityShown={variant === 'a' ? identityShown : undefined}
+        collapseScroll={variant === 'b' ? scrollY : undefined}
       />
 
       <SafeAreaView edges={['bottom']} style={s.body}>
@@ -200,6 +234,10 @@ export default function ChatDetailScreen() {
               showsVerticalScrollIndicator
               onEndReached={screen.loadMore}
               onEndReachedThreshold={0.2}
+              onScroll={handleScroll}
+              scrollEventThrottle={16}
+              onContentSizeChange={(_, h) => { metrics.current.contentH = h; syncIdentity() }}
+              onLayout={e => { metrics.current.layoutH = e.nativeEvent.layout.height; syncIdentity() }}
               onScrollToIndexFailed={info => {
                 flatListRef.current?.scrollToOffset({
                   offset: info.highestMeasuredFrameIndex * 72,
@@ -220,6 +258,8 @@ export default function ChatDetailScreen() {
                     partnerUsername={screen.partnerUsername}
                     partnerAvatar={screen.partnerAvatar}
                     partnerIsDeleted={screen.partnerIsDeleted}
+                    large={variant === 'a'}
+                    onLayout={variant === 'a' ? handleIntroLayout : undefined}
                   />
                 </>
               }
@@ -330,6 +370,7 @@ export default function ChatDetailScreen() {
         url={browserUrl}
         onClose={() => setBrowserUrl(null)}
       />
+      <LabSwitch screen="chatroom" top={96} />
     </View>
   )
 }

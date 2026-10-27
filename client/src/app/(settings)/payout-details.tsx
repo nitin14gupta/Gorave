@@ -2,8 +2,8 @@ import { useCallback, useState } from 'react'
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native'
 import { router, useFocusEffect } from 'expo-router'
 import { ArrowLeft, Landmark, Lock } from 'lucide-react-native'
-import { AppHeader, APP_HEADER_BAR_HEIGHT, HeaderIconBtn, PrimaryButton } from '@/components/ui'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { HeaderIconBtn, PrimaryButton } from '@/components/ui'
+import { LargeTitle, LargeTitleBar, useLargeTitle } from '@/components/ui/LargeTitle'
 import { TicketPaper } from '@/components/events/TicketView'
 import ApiService, { type PayoutDetailsResponse } from '@/api/apiService'
 import { Colors, FontFamily, withOpacity } from '@/constants'
@@ -13,7 +13,7 @@ import { Colors, FontFamily, withOpacity } from '@/constants'
  * ticket and the QR pass, with only the masked details on it.
  */
 export default function PayoutDetailsScreen() {
-  const insets = useSafeAreaInsets()
+  const { scrollY, barHeight } = useLargeTitle()
   const [details, setDetails] = useState<PayoutDetailsResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -34,29 +34,32 @@ export default function PayoutDetailsScreen() {
 
   return (
     <View style={s.root}>
-      <AppHeader
+      <LargeTitleBar
         title="Payout details"
+        scrollY={scrollY}
+        pinned={loading || !!error || !details?.payout_method}
         leftAction={<HeaderIconBtn onPress={() => router.back()}><ArrowLeft size={18} color={Colors.inkPrimary} strokeWidth={2} /></HeaderIconBtn>}
       />
 
       {loading ? (
-        <View style={s.center}><ActivityIndicator color={Colors.inkSecondary} /></View>
+        <View style={[s.center, { paddingTop: barHeight }]}><ActivityIndicator color={Colors.inkSecondary} /></View>
       ) : error ? (
-        <View style={s.center}>
+        <View style={[s.center, { paddingTop: barHeight }]}>
           <Landmark size={44} color={Colors.inkDisabled} strokeWidth={1.2} />
           <Text style={s.emptyTitle}>Couldn&apos;t load payout details</Text>
           <Text style={s.emptySub}>{error}</Text>
           <PrimaryButton label="Retry" size="small" style={s.emptyCta} onPress={load} />
         </View>
       ) : !details?.payout_method ? (
-        <View style={s.center}>
+        <View style={[s.center, { paddingTop: barHeight }]}>
           <Landmark size={44} color={Colors.inkDisabled} strokeWidth={1.2} />
           <Text style={s.emptyTitle}>No payout details yet</Text>
           <Text style={s.emptySub}>Add your bank or UPI so we know where to send your ticket earnings.</Text>
           <PrimaryButton label="Add payout details" size="small" style={s.emptyCta} onPress={() => router.push('/(host-onboarding)' as any)} />
         </View>
       ) : (
-        <View style={[s.content, { paddingTop: APP_HEADER_BAR_HEIGHT + insets.top + 12 }]}>
+        <View style={[s.content, { paddingTop: barHeight }]}>
+          <LargeTitle title="Payout details" scrollY={scrollY} style={s.bigTitle} />
           <View style={s.card}>
             <TicketPaper />
             <View style={s.cardTop}>
@@ -97,6 +100,7 @@ const s = StyleSheet.create({
   emptySub: { fontFamily: FontFamily.bodyRegular, fontSize: 14, color: Colors.inkSecondary, textAlign: 'center', lineHeight: 20 },
   emptyCta: { marginTop: 4, minWidth: 180 },
   content: { paddingHorizontal: 20 },
+  bigTitle: { paddingHorizontal: 0 },
 
   card: { height: 210, borderRadius: 24, overflow: 'hidden', padding: 22, justifyContent: 'space-between' },
   cardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },

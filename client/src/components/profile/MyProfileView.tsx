@@ -3,13 +3,13 @@ import { Dimensions, FlatList, Pressable, StyleSheet, Text, View } from 'react-n
 import { Image } from 'expo-image'
 import { LinearGradient } from 'expo-linear-gradient'
 import Animated, { Extrapolation, interpolate, useAnimatedStyle } from 'react-native-reanimated'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { Plus, Settings, QrCode, Pencil, Eye } from 'lucide-react-native'
+import { Plus, Settings, QrCode, Pencil } from 'lucide-react-native'
 import { Colors, ComponentSize, FontFamily, withOpacity } from '@/constants'
 import { BrandedRefreshControl, StepDots } from '@/components/ui'
 import { ProfileStatsRow } from '@/components/profile/ProfileStatsRow'
 import { hTap } from '@/lib/haptics'
 import { MeSections, useMyNights, type MeViewProps } from './myProfileShared'
+import { ProfileFoldBar } from './ProfileFoldBar'
 
 const W = Dimensions.get('window').width
 
@@ -20,7 +20,6 @@ const W = Dimensions.get('window').width
  * share, your numbers, your next night as a ticket, then the rest.
  */
 export function MyProfileView(p: MeViewProps) {
-  const insets = useSafeAreaInsets()
   const [idx, setIdx] = useState(0)
   const nights = useMyNights(p.profile.id)
   const pr = p.profile
@@ -105,12 +104,12 @@ export function MyProfileView(p: MeViewProps) {
         </View>
       </Animated.ScrollView>
 
-      <Pressable style={[s.glass, { top: insets.top + 18, left: 14 }]} onPress={() => { hTap(); p.onCreate() }} hitSlop={8}>
-        <Plus size={20} color={Colors.white} strokeWidth={2.2} />
-      </Pressable>
-      <Pressable style={[s.glass, { top: insets.top + 18, right: 14 }]} onPress={() => { hTap(); p.onSettings() }} hitSlop={8}>
-        <Settings size={19} color={Colors.white} strokeWidth={2} />
-      </Pressable>
+      <ProfileFoldBar
+        scrollY={p.scrollY}
+        title={`${pr.name ?? 'You'}${p.age ? `, ${p.age}` : ''}`}
+        left={{ label: 'Create event', onPress: () => { hTap(); p.onCreate() }, icon: c => <Plus size={20} color={c} strokeWidth={2.2} /> }}
+        right={{ label: 'Settings', onPress: () => { hTap(); p.onSettings() }, icon: c => <Settings size={19} color={c} strokeWidth={2} /> }}
+      />
     </View>
   )
 }
@@ -131,7 +130,6 @@ const s = StyleSheet.create({
   name: { flexShrink: 1, fontFamily: FontFamily.displayExtraBold, fontSize: 36, letterSpacing: -1, color: Colors.white },
   badge: { width: 26, height: 26 },
   meta: { fontFamily: FontFamily.bodyMedium, fontSize: 14, color: withOpacity(Colors.white, 0.85) },
-  glass: { position: 'absolute', width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(0,0,0,0.4)', alignItems: 'center', justifyContent: 'center' },
 
   sheet: { marginTop: -24, borderTopLeftRadius: 28, borderTopRightRadius: 28, backgroundColor: Colors.background, paddingHorizontal: 16, paddingTop: 18, gap: 16 },
   actions: { flexDirection: 'row', gap: 10 },

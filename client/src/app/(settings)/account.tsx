@@ -2,10 +2,10 @@ import { View, Text, Pressable, StyleSheet, ScrollView } from 'react-native'
 import { router } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { ArrowLeft, Phone, UserX, FileText, Lock } from 'lucide-react-native'
-import { AppHeader, APP_HEADER_BAR_HEIGHT, HeaderIconBtn } from '@/components/ui'
+import { APP_HEADER_BAR_HEIGHT, HeaderIconBtn } from '@/components/ui'
 import { SettingsMenuSection } from '@/components/settings/SettingsMenuSection'
 import { useAuthStore } from '@/store/auth'
-import { useHeaderScroll } from '@/hooks/useHeaderScroll'
+import { LargeTitle, LargeTitleBar, useLargeTitle } from '@/components/ui/LargeTitle'
 import { Colors, FontFamily, Spacing } from '@/constants'
 
 const iconColor = Colors.inkSecondary
@@ -17,24 +17,25 @@ const iconColor = Colors.inkSecondary
  */
 export default function AccountScreen() {
   const insets = useSafeAreaInsets()
-  const { hideProgress, onScroll } = useHeaderScroll()
+  const { scrollY, onScroll } = useLargeTitle()
   const headerHeight = APP_HEADER_BAR_HEIGHT + insets.top
   const phone = useAuthStore(s => s.phone ?? '')
   const masked = phone ? `+91 ${'*'.repeat(6)}${phone.replace(/\D/g, '').slice(-4)}` : ''
 
   return (
     <View style={s.root}>
-      <AppHeader
+      <LargeTitleBar
         title="Account"
-        hideProgress={hideProgress}
+        scrollY={scrollY}
         leftAction={<HeaderIconBtn onPress={() => router.back()}><ArrowLeft size={18} color={Colors.inkPrimary} strokeWidth={2} /></HeaderIconBtn>}
       />
       <ScrollView
         showsVerticalScrollIndicator={false}
         onScroll={onScroll}
         scrollEventThrottle={16}
-        contentContainerStyle={[s.content, { paddingTop: headerHeight + 8, paddingBottom: insets.bottom + 40 }]}
+        contentContainerStyle={[s.content, { paddingTop: headerHeight, paddingBottom: insets.bottom + 40 }]}
       >
+        <LargeTitle title="Account" scrollY={scrollY} style={s.bigTitle} />
         <SettingsMenuSection
           title="SIGN-IN"
           items={[
@@ -61,6 +62,8 @@ export default function AccountScreen() {
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: Colors.background },
   content: { paddingHorizontal: Spacing.screenPadding, gap: 8 },
+  // The list is already padded, so the big title doesn't need its own inset.
+  bigTitle: { paddingHorizontal: 0 },
   delete: { alignSelf: 'center', marginTop: 56, paddingVertical: 12, paddingHorizontal: 16 },
   deleteText: { fontFamily: FontFamily.bodyMedium, fontSize: 13, color: Colors.inkDisabled },
 })

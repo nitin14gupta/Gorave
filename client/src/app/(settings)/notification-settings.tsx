@@ -3,9 +3,10 @@ import { View, Text, StyleSheet, ScrollView, ActivityIndicator } from 'react-nat
 import { router } from 'expo-router'
 import { useFocusEffect } from 'expo-router'
 import {
-  UserPlus, PartyPopper, CalendarClock, Wallet,
+  ArrowLeft, UserPlus, PartyPopper, CalendarClock, Wallet,
 } from 'lucide-react-native'
-import { Screen, BackButton } from '@/components/ui'
+import { Screen, HeaderIconBtn } from '@/components/ui'
+import { LargeTitle, LargeTitleBar, useLargeTitle } from '@/components/ui/LargeTitle'
 import ApiService, { type NotificationPrefs } from '@/api/apiService'
 import { usePillStore } from '@/store/pillStore'
 import { Colors, FontFamily, Spacing } from '@/constants'
@@ -39,6 +40,7 @@ const CATEGORIES: { key: keyof NotificationPrefs; icon: any; label: string; desc
 ]
 
 export default function NotificationSettingsScreen() {
+  const { scrollY, onScroll, barHeight } = useLargeTitle()
   const [prefs, setPrefs] = useState<NotificationPrefs | null>(null)
   const [loading, setLoading] = useState(true)
   const showPill = usePillStore(s => s.show)
@@ -63,19 +65,26 @@ export default function NotificationSettingsScreen() {
   }
 
   return (
-    <Screen>
-      <View style={s.header}>
-        <BackButton onPress={() => router.back()} />
-
-      </View>
+    <Screen top={false}>
+      <LargeTitleBar
+        title="Notification settings"
+        scrollY={scrollY}
+        pinned={loading || !prefs}
+        leftAction={<HeaderIconBtn onPress={() => router.back()}><ArrowLeft size={18} color={Colors.inkPrimary} strokeWidth={2} /></HeaderIconBtn>}
+      />
 
       {loading || !prefs ? (
-        <View style={s.center}>
+        <View style={[s.center, { paddingTop: barHeight }]}>
           <ActivityIndicator color={Colors.inkSecondary} />
         </View>
       ) : (
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={s.content}>
-          <Text style={s.big}>What should we{'\n'}tell you about?</Text>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          onScroll={onScroll}
+          scrollEventThrottle={16}
+          contentContainerStyle={[s.content, { paddingTop: barHeight }]}
+        >
+          <LargeTitle title={'What should we\ntell you about?'} scrollY={scrollY} style={s.bigTitle} />
           <Text style={s.sectionHint}>
             Choose what you get notified about. Turning these off only affects push
             notifications. You&apos;ll still see everything in your notifications list.
@@ -100,21 +109,7 @@ export default function NotificationSettingsScreen() {
 }
 
 const s = StyleSheet.create({
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingRight: Spacing.screenPadding,
-    paddingBottom: 14,
-  },
-  title: {
-    flex: 1,
-    fontFamily: FontFamily.headingBold,
-    fontSize: 18,
-    color: Colors.inkPrimary,
-    textAlign: 'center',
-  },
-  headerEnd: { width: 40 },
-  big: { fontFamily: FontFamily.displayExtraBold, fontSize: 34, lineHeight: 37, letterSpacing: -1, color: Colors.inkPrimary, marginTop: 4, marginBottom: 10 },
+  bigTitle: { paddingHorizontal: 0, paddingBottom: 10 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   content: {
     paddingHorizontal: Spacing.screenPadding,

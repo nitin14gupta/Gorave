@@ -185,19 +185,16 @@ Routes live in `client/src/app/` (Expo Router). `(group)` folders don't show in 
 
 ---
 
-## Parallax and scroll plan (proposed, not built yet)
+## Parallax and scroll
 
-Where motion on scroll earns its place, so photos stay big without pushing
-content down:
-
-| Screen | Proposal |
+| Screen | Status |
 |---|---|
-| Home (12) | The top block (greeting + Create event) folds away as you scroll; rows of posters reveal one at a time as they enter |
-| Events list (13) | Featured event as a full-width 4:5 poster with parallax at the top of the list, then the two-column grid |
-| Someone's profile (36) and your Profile (15) | First photo full-bleed with parallax, name over it, folding into the top bar like the event page |
-| Chat conversation (45) | Header with the person's photo shrinks into a small avatar bar as you scroll up |
-| Settings and lists (51 to 68) | Large titles that fold into the top bar, no photos |
-| Calendar (55) | Month header pins while days scroll under it |
+| Home (12) | Skipped: enough motion already (tunnel fade, This week cards) |
+| Events list (13) | Skipped: no featured event to put on top yet |
+| Someone's profile (36) and your Profile (15) | ✅ photo parallax, name over it, top bar with name fades in (`ProfileFoldBar`) |
+| Chat conversation (45) | 🧪 A Instagram-style intro at the start · B collapsing header (`chatroom`) |
+| Settings and lists | ✅ big titles fold into the top bar (`ui/LargeTitle`): notifications, blocked, account, payout, notification settings, my events, joined, hotlist, emergency contacts |
+| Calendar (55) | 🧪 A pinned month folds to the week · B agenda with sticky days and parallax posters (`calendar`) |
 
 ---
 

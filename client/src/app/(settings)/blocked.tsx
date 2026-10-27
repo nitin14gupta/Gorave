@@ -9,8 +9,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { hError } from '@/lib/haptics'
 import { useFocusEffect } from 'expo-router'
 import { ArrowLeft, ShieldOff } from 'lucide-react-native'
-import { AppHeader, APP_HEADER_BAR_HEIGHT, HeaderIconBtn, BrandedRefreshControl } from '@/components/ui'
-import { useHeaderScroll } from '@/hooks/useHeaderScroll'
+import { APP_HEADER_BAR_HEIGHT, HeaderIconBtn, BrandedRefreshControl } from '@/components/ui'
+import { LargeTitle, LargeTitleBar, useLargeTitle } from '@/components/ui/LargeTitle'
 import ApiService, { BlockedUser } from '@/api/apiService'
 import { Colors, FontFamily, withOpacity } from '@/constants'
 import { ConfirmSheet } from '@/components/ui'
@@ -49,7 +49,7 @@ const BlockedUserRow = memo(function BlockedUserRow({ user, onUnblock }: {
 })
 
 export default function BlockedUsersScreen() {
-  const { hideProgress, onScroll } = useHeaderScroll()
+  const { scrollY, onScroll } = useLargeTitle()
   const insets = useSafeAreaInsets()
   const headerHeight = APP_HEADER_BAR_HEIGHT + insets.top
   const showPill = usePillStore(s => s.show)
@@ -86,9 +86,10 @@ export default function BlockedUsersScreen() {
 
   return (
     <View style={s.root}>
-      <AppHeader
+      <LargeTitleBar
         title="Blocked people"
-        hideProgress={hideProgress}
+        scrollY={scrollY}
+        pinned={loading || blocked.length === 0}
         leftAction={<HeaderIconBtn onPress={() => router.back()}><ArrowLeft size={18} color={Colors.inkPrimary} strokeWidth={2} /></HeaderIconBtn>}
       />
 
@@ -106,7 +107,8 @@ export default function BlockedUsersScreen() {
         <FlatList
           data={blocked}
           keyExtractor={u => u.id}
-          contentContainerStyle={[s.list, { paddingTop: headerHeight + 8 }]}
+          contentContainerStyle={[s.list, { paddingTop: headerHeight }]}
+          ListHeaderComponent={<LargeTitle title="Blocked people" scrollY={scrollY} />}
           onScroll={onScroll}
           scrollEventThrottle={16}
           refreshControl={<BrandedRefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}

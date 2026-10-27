@@ -1,4 +1,5 @@
 import { View, Text, Pressable, StyleSheet } from 'react-native'
+import Animated, { Extrapolation, interpolate, useAnimatedStyle, useSharedValue, type SharedValue } from 'react-native-reanimated'
 import { Image } from 'expo-image'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { router } from 'expo-router'
@@ -25,14 +26,41 @@ interface Props {
   selectMode?: boolean
   selectedCount?: number
   onExitSelect?: () => void
+  /** Lab A: 0 hides the avatar + name (the intro block is on screen), 1 shows them. */
+  identityShown?: SharedValue<number>
+  /** Lab B: scroll offset from the newest message; the header is tall at 0 and compact past ~90. */
+  collapseScroll?: SharedValue<number>
 }
 
 export function ChatHeader({
   partnerName, partnerUsername, partnerAvatar, partnerId, partnerIsDeleted,
   isPartnerOnline, partnerLastSeenAt, isWsConnected, reconnectFailed, onManualReconnect, loading, onMenuPress,
-  selectMode, selectedCount = 0, onExitSelect,
+  selectMode, selectedCount = 0, onExitSelect, identityShown, collapseScroll,
 }: Props) {
   const insets = useSafeAreaInsets()
+  const one = useSharedValue(1)
+  const zero = useSharedValue(0)
+  const shown = identityShown ?? one
+  const scroll = collapseScroll ?? zero
+  const tall = !!collapseScroll
+  // B: 1 = tall at the newest messages, 0 = compact once you scroll up.
+  const identityStyle = useAnimatedStyle(() => ({
+    opacity: shown.value,
+    transform: [{ translateY: (1 - shown.value) * 6 }],
+  }))
+  const avatarStyle = useAnimatedStyle(() => {
+    const e = tall ? interpolate(scroll.value, [0, 90], [1, 0], Extrapolation.CLAMP) : 0
+    const size = 38 + e * 18
+    return { width: size, height: size, borderRadius: 12 + e * 6 }
+  })
+  const nameStyle = useAnimatedStyle(() => {
+    const e = tall ? interpolate(scroll.value, [0, 90], [1, 0], Extrapolation.CLAMP) : 0
+    return { fontSize: 17 + e * 5, lineHeight: 22 + e * 6 }
+  })
+  const padStyle = useAnimatedStyle(() => {
+    const e = tall ? interpolate(scroll.value, [0, 90], [1, 0], Extrapolation.CLAMP) : 0
+    return { paddingBottom: 12 + e * 8 }
+  })
 
   if (selectMode) {
     return (
@@ -49,59 +77,58 @@ export function ChatHeader({
 
   return (
     <>
-      <View style={[s.header, { paddingTop: insets.top + 8 }]}>
+      <Animated.View style={[s.header, { paddingTop: insets.top + 8 }, padStyle]}>
         <Pressable onPress={() => router.back()} style={s.backBtn} hitSlop={8}>
           <ChevronLeft size={24} color={Colors.inkPrimary} strokeWidth={2} />
         </Pressable>
-        <Pressable
-          style={s.center}
-          onPress={() => partnerId && router.push(`/(profile)/${partnerId}` as any)}
-        >
-          {partnerIsDeleted
-            ? (
-              <View style={[s.avatar, s.avatarDeleted]}>
-                <Ghost size={18} color={Colors.inkDisabled} strokeWidth={1.5} />
+        <Animated.View style={[s.center, identityStyle]}>
+          <Pressable
+            style={s.center}
+            onPress={() => partnerId && router.push(`/(profile)/${partnerId}` as any)}
+          >
+            <Animated.View style={[s.avatarBox, avatarStyle]}>
+              {partnerIsDeleted ? (
+                <View style={[StyleSheet.absoluteFill, s.avatarDeleted]}>
+                  <Ghost size={18} color={Colors.inkDisabled} strokeWidth={1.5} />
+                </View>
+              ) : partnerAvatar ? (
+                <Image
+                  source={{ uri: partnerAvatar }}
+                  style={StyleSheet.absoluteFill}
+                  cachePolicy="memory-disk"
+                  priority="high"
+                  transition={150}
+                />
+              ) : (
+                <View style={[StyleSheet.absoluteFill, s.avatarFallback]}>
+                  <Text style={s.avatarInitial}>{(partnerName ?? '?').charAt(0)}</Text>
+                </View>
+              )}
+            </Animated.View>
+            <View style={{ flexShrink: 1 }}>
+              <View style={s.nameRow}>
+                <Animated.Text style={[s.name, partnerIsDeleted && s.nameDeleted, nameStyle]} numberOfLines={1}>{partnerName ?? 'Chat'}</Animated.Text>
+                {isPartnerOnline && !partnerIsDeleted && <View style={s.onlineDot} />}
               </View>
-            )
-            : partnerAvatar
-            ? (
-              <Image
-                source={{ uri: partnerAvatar }}
-                style={s.avatar}
-                cachePolicy="memory-disk"
-                priority="high"
-                transition={150}
-              />
-            )
-            : (
-              <View style={[s.avatar, s.avatarFallback]}>
-                <Text style={s.avatarInitial}>{(partnerName ?? '?').charAt(0)}</Text>
-              </View>
-            )
-          }
-          <View>
-            <View style={s.nameRow}>
-              <Text style={[s.name, partnerIsDeleted && s.nameDeleted]}>{partnerName ?? 'Chat'}</Text>
-              {isPartnerOnline && !partnerIsDeleted && <View style={s.onlineDot} />}
+              <Text style={s.sub}>
+                {partnerIsDeleted
+                  ? 'This account no longer exists'
+                  : partnerUsername
+                  ? `@${partnerUsername}`
+                  : isPartnerOnline
+                  ? 'Active now'
+                  : partnerLastSeenAt
+                  ? formatLastSeen(partnerLastSeenAt)
+                  : 'Tap for profile'
+                }
+              </Text>
             </View>
-            <Text style={s.sub}>
-              {partnerIsDeleted
-                ? 'This account no longer exists'
-                : partnerUsername
-                ? `@${partnerUsername}`
-                : isPartnerOnline
-                ? 'Active now'
-                : partnerLastSeenAt
-                ? formatLastSeen(partnerLastSeenAt)
-                : 'Tap for profile'
-              }
-            </Text>
-          </View>
-        </Pressable>
+          </Pressable>
+        </Animated.View>
         <Pressable onPress={onMenuPress} hitSlop={8}>
           <MoreVertical size={22} color={Colors.inkSecondary} strokeWidth={1.8} />
         </Pressable>
-      </View>
+      </Animated.View>
 
       {reconnectFailed && !loading && (
         <Pressable style={s.reconnectBanner} onPress={onManualReconnect} hitSlop={4}>
@@ -127,7 +154,7 @@ const s = StyleSheet.create({
   },
   backBtn: { padding: 4, marginRight: 8 },
   center: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10 },
-  avatar: { width: 38, height: 38, borderRadius: 19 },
+  avatarBox: { width: 38, height: 38, borderRadius: 12, overflow: 'hidden' },
   avatarFallback: { backgroundColor: Colors.surfaceMuted, alignItems: 'center', justifyContent: 'center' },
   avatarDeleted: { backgroundColor: Colors.surfaceMuted, alignItems: 'center', justifyContent: 'center' },
   avatarInitial: { fontFamily: FontFamily.headingBold, fontSize: 16, color: Colors.inkPrimary },

@@ -3,15 +3,15 @@ import { View, Text, StyleSheet, FlatList, ActivityIndicator } from 'react-nativ
 import { router, useFocusEffect } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { ArrowLeft, Bookmark } from 'lucide-react-native'
-import { AppHeader, APP_HEADER_BAR_HEIGHT, HeaderIconBtn, PrimaryButton, BrandedRefreshControl } from '@/components/ui'
+import { APP_HEADER_BAR_HEIGHT, HeaderIconBtn, PrimaryButton, BrandedRefreshControl } from '@/components/ui'
 import { ScrollFade } from '@/components/ui/ScrollFade'
-import { useHeaderScroll } from '@/hooks/useHeaderScroll'
+import { LargeTitle, LargeTitleBar, useLargeTitle } from '@/components/ui/LargeTitle'
 import ApiService, { type EventSummary } from '@/api/apiService'
 import { EventCard } from '@/components/events/EventCard'
 import { Colors, FontFamily, Spacing, EVENT_GRID_GAP, eventGridCellWidth } from '@/constants'
 
 export default function HotlistScreen() {
-  const { hideProgress, onScroll } = useHeaderScroll()
+  const { scrollY, onScroll } = useLargeTitle()
   const insets = useSafeAreaInsets()
   const headerHeight = APP_HEADER_BAR_HEIGHT + insets.top
   const [events, setEvents] = useState<EventSummary[]>([])
@@ -40,9 +40,10 @@ export default function HotlistScreen() {
 
   return (
     <View style={s.root}>
-      <AppHeader
+      <LargeTitleBar
         title="Hotlist"
-        hideProgress={hideProgress}
+        scrollY={scrollY}
+        pinned={loading || events.length === 0}
         leftAction={<HeaderIconBtn onPress={() => router.back()}><ArrowLeft size={18} color={Colors.inkPrimary} strokeWidth={2} /></HeaderIconBtn>}
       />
 
@@ -64,7 +65,8 @@ export default function HotlistScreen() {
           numColumns={cols}
           columnWrapperStyle={cols > 1 ? { gap: EVENT_GRID_GAP } : undefined}
           keyExtractor={e => e.id}
-          contentContainerStyle={[s.list, { paddingTop: headerHeight + 8 }]}
+          contentContainerStyle={[s.list, { paddingTop: headerHeight }]}
+          ListHeaderComponent={<LargeTitle title="Hotlist" scrollY={scrollY} style={s.bigTitle} />}
           onScroll={e => { onScroll(e); setScrolled(e.nativeEvent.contentOffset.y > 8) }}
           scrollEventThrottle={16}
           refreshControl={<BrandedRefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
@@ -90,4 +92,5 @@ const s = StyleSheet.create({
   },
   emptyCta: { marginTop: 4, minWidth: 180 },
   list: { paddingHorizontal: Spacing.screenPadding, paddingBottom: 40, gap: 16 },
+  bigTitle: { paddingHorizontal: 0, paddingBottom: 0 },
 })

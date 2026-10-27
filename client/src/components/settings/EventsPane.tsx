@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode, type ReactElement } from 'react'
-import { View, Text, StyleSheet, FlatList, ActivityIndicator } from 'react-native'
+import { View, Text, StyleSheet, FlatList, ActivityIndicator, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native'
 import { router } from 'expo-router'
 import { Colors, FontFamily, EVENT_GRID_GAP, eventGridCellWidth } from '@/constants'
 import { EventListCard, EventListCardSkeleton, PrimaryButton, BrandedRefreshControl } from '@/components/ui'
@@ -11,7 +11,7 @@ import type { EventSummary } from '@/api/apiService'
 export type EventsTab = 'upcoming' | 'past'
 
 export function EventsPane({
-  active, page, viewMode, emptyIcon, emptyTitle, emptySub, emptyCta, renderCard,
+  active, page, viewMode, emptyIcon, emptyTitle, emptySub, emptyCta, renderCard, onScroll, listHeader,
 }: {
   active: boolean
   page: ReturnType<typeof useMyEventsPage>
@@ -21,6 +21,10 @@ export function EventsPane({
   emptySub: string
   emptyCta?: { label: string; icon?: ReactNode; onPress: () => void }
   renderCard: (item: EventSummary) => ReactElement
+  /** Also told about every scroll (e.g. to fold a large title above the tabs). */
+  onScroll?: (e: NativeSyntheticEvent<NativeScrollEvent>) => void
+  /** Rendered above the first row, e.g. a LargeTitleSpacer. */
+  listHeader?: ReactElement
 }) {
   // Fetch once, cached after that — swiping between tabs never re-fetches.
   useEffect(() => { if (active && !page.loaded) page.fetchFirstPage(false) }, [active, page.loaded])
@@ -62,8 +66,10 @@ export function EventsPane({
       keyExtractor={e => e.id}
       contentContainerStyle={s.listContent}
       showsVerticalScrollIndicator={false}
-      onScroll={e => setScrolled(e.nativeEvent.contentOffset.y > 8)}
+      onScroll={e => { onScroll?.(e); setScrolled(e.nativeEvent.contentOffset.y > 8) }}
       scrollEventThrottle={16}
+      ListHeaderComponent={listHeader}
+      ListHeaderComponentStyle={listHeader ? s.headerSlot : undefined}
       onEndReached={page.loadMore}
       onEndReachedThreshold={0.4}
       refreshControl={
@@ -97,5 +103,7 @@ const s = StyleSheet.create({
   emptySub: { fontFamily: FontFamily.bodyRegular, fontSize: 14, color: Colors.inkSecondary, textAlign: 'center' },
   ctaBtn: { marginTop: 8 },
   listContent: { padding: 16, gap: 16 },
+  // Cancels the list gap so an empty header slot adds no space.
+  headerSlot: { marginBottom: -16 },
   footerLoader: { paddingVertical: 20, alignItems: 'center' },
 })

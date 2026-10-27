@@ -3,8 +3,8 @@ import { View, Text, StyleSheet, FlatList, ActivityIndicator, Pressable } from '
 import { router, useFocusEffect } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { ArrowLeft, UserPlus, ShieldAlert } from 'lucide-react-native'
-import { AppHeader, APP_HEADER_BAR_HEIGHT, HeaderIconBtn, EmptyState, ConfirmSheet } from '@/components/ui'
-import { useHeaderScroll } from '@/hooks/useHeaderScroll'
+import { APP_HEADER_BAR_HEIGHT, HeaderIconBtn, EmptyState, ConfirmSheet } from '@/components/ui'
+import { LargeTitle, LargeTitleBar, useLargeTitle } from '@/components/ui/LargeTitle'
 import { useEmergencyContacts, MAX_EMERGENCY_CONTACTS } from '@/hooks/useEmergencyContacts'
 import { EmergencyContactRow } from '@/components/safety/EmergencyContactRow'
 import { hTap } from '@/lib/haptics'
@@ -12,7 +12,7 @@ import { Colors, FontFamily, Spacing, withOpacity } from '@/constants'
 import type { EmergencyContact } from '@/types/api'
 
 export default function EmergencyContactsScreen() {
-  const { hideProgress, onScroll } = useHeaderScroll()
+  const { scrollY, onScroll } = useLargeTitle()
   const insets = useSafeAreaInsets()
   const headerHeight = APP_HEADER_BAR_HEIGHT + insets.top
   const { contacts, loading, load, removeContact, maxReached } = useEmergencyContacts()
@@ -27,9 +27,10 @@ export default function EmergencyContactsScreen() {
 
   return (
     <View style={s.root}>
-      <AppHeader
+      <LargeTitleBar
         title="Emergency Contacts"
-        hideProgress={hideProgress}
+        scrollY={scrollY}
+        pinned={loading || contacts.length === 0}
         leftAction={<HeaderIconBtn onPress={() => router.back()}><ArrowLeft size={18} color={Colors.inkPrimary} strokeWidth={2} /></HeaderIconBtn>}
       />
 
@@ -55,10 +56,11 @@ export default function EmergencyContactsScreen() {
           keyExtractor={c => c.id}
           onScroll={onScroll}
           scrollEventThrottle={16}
-          contentContainerStyle={[s.list, { paddingTop: headerHeight + 8 }]}
+          contentContainerStyle={[s.list, { paddingTop: headerHeight }]}
           ItemSeparatorComponent={() => <View style={s.sep} />}
           ListHeaderComponent={
             <>
+              <LargeTitle title="Emergency Contacts" scrollY={scrollY} />
               <Text style={s.subtitle}>These people hear from us only if you send SOS. Here is the text they would get:</Text>
               <View style={s.preview}>
                 <Text style={s.previewText}>SOS from you via Gorave: I may need assistance at your event. My current location: maps.google.com/?q=...</Text>

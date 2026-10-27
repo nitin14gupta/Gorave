@@ -3,7 +3,6 @@ import { Dimensions, FlatList, Pressable, StyleSheet, Text, View } from 'react-n
 import { Image } from 'expo-image'
 import { LinearGradient } from 'expo-linear-gradient'
 import Animated from 'react-native-reanimated'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { ArrowLeft, MoreHorizontal } from 'lucide-react-native'
 import type { ExtendedProfile } from '@/api/apiService'
 import { Colors, FontFamily, withOpacity } from '@/constants'
@@ -14,6 +13,7 @@ import { UserProfileVoiceIntro } from '@/components/profile/UserProfileVoiceIntr
 import { UserProfileBlockedOverlay } from '@/components/profile/UserProfileBlockedOverlay'
 import { UserProfileCtaBar } from '@/components/profile/UserProfileCtaBar'
 import { useParallaxHero } from '@/hooks/useParallaxHero'
+import { ProfileFoldBar } from './ProfileFoldBar'
 import { hTap } from '@/lib/haptics'
 import { EventRail, ReviewsPeek, useProfileActivity } from './ProfileActivity'
 
@@ -60,8 +60,7 @@ export interface UserProfileViewProps {
  * details sit on a rounded sheet that rides up over it.
  */
 export function UserProfileView(p: UserProfileViewProps) {
-  const insets = useSafeAreaInsets()
-  const { onScroll, photoStyle } = useParallaxHero(W)
+  const { onScroll, photoStyle, scrollY } = useParallaxHero(W)
   const [idx, setIdx] = useState(0)
   const pr = p.profile
   const act = useProfileActivity(pr.id)
@@ -173,12 +172,12 @@ export function UserProfileView(p: UserProfileViewProps) {
         </View>
       </Animated.ScrollView>
 
-      <Pressable style={[s.glass, { top: insets.top + 22, left: 14 }]} onPress={p.onBack} hitSlop={8}>
-        <ArrowLeft size={20} color={Colors.white} strokeWidth={2.2} />
-      </Pressable>
-      <Pressable style={[s.glass, { top: insets.top + 22, right: 14 }]} onPress={() => { hTap(); p.onMenu() }} hitSlop={8}>
-        <MoreHorizontal size={20} color={Colors.white} strokeWidth={2.2} />
-      </Pressable>
+      <ProfileFoldBar
+        scrollY={scrollY}
+        title={`${pr.name ?? 'Profile'}${p.age ? `, ${p.age}` : ''}`}
+        left={{ label: 'Back', onPress: p.onBack, icon: c => <ArrowLeft size={20} color={c} strokeWidth={2.2} /> }}
+        right={{ label: 'More', onPress: () => { hTap(); p.onMenu() }, icon: c => <MoreHorizontal size={20} color={c} strokeWidth={2.2} /> }}
+      />
 
       {!p.blockedByMe ? <UserProfileCtaBar insetsBottom={p.insetsBottom} {...p.cta} onMessagePress={p.cta.onMessage} onAcceptPress={p.cta.onAccept} onSendVibePress={p.cta.onSendVibe} onCooldownExpiredPress={p.cta.onCooldownExpired} onFollowTogglePress={p.cta.onFollowToggle} /> : null}
     </View>
@@ -199,7 +198,6 @@ const s = StyleSheet.create({
   name: { flexShrink: 1, fontFamily: FontFamily.displayExtraBold, fontSize: 36, letterSpacing: -1, color: Colors.white },
   badge: { width: 26, height: 26 },
   meta: { fontFamily: FontFamily.bodyMedium, fontSize: 14, color: withOpacity(Colors.white, 0.85), marginTop: 2 },
-  glass: { position: 'absolute', width: 38, height: 38, borderRadius: 19, backgroundColor: 'rgba(0,0,0,0.4)', alignItems: 'center', justifyContent: 'center' },
 
   sheet: { marginTop: -24, borderTopLeftRadius: 28, borderTopRightRadius: 28, backgroundColor: Colors.background, paddingHorizontal: 16, paddingTop: 20, gap: 16 },
   mutual: { fontFamily: FontFamily.bodySemiBold, fontSize: 13, color: Colors.inkSecondary },
