@@ -46,6 +46,20 @@ export const AVATARS = [
   'photo-1506794778202-cad84cf45f1d',
 ].map(unsplash)
 
+/** Real people (Unsplash portraits) for the crowd of faces on city pages. */
+export const FACES = [
+  ...AVATARS,
+  ...[
+    'photo-1534528741775-53994a69daeb', 'photo-1531123897727-8f129e1688ce', 'photo-1517841905240-472988babdf9',
+    'photo-1539571696357-5a69c17a67c6', 'photo-1524504388940-b1c1722653e1', 'photo-1488426862026-3ee34a7d66df',
+    'photo-1529626455594-4ff0802cfb7e', 'photo-1487412720507-e7ab37603c6f', 'photo-1531427186611-ecfd6d936c79',
+    'photo-1502823403499-6ccfcf4fb453', 'photo-1489424731084-a5d8b219a5bb', 'photo-1463453091185-61582044d556',
+    'photo-1508214751196-bcfd4ca60f91', 'photo-1531746020798-e6953c6e8e04', 'photo-1522075469751-3a6694fb2f61',
+    'photo-1580489944761-15a19d654956', 'photo-1557862921-37829c790f19', 'photo-1567532939604-b6b5b0db2604',
+    'photo-1542909168-82c3e7fdca5c',
+  ].map(unsplash),
+]
+
 export const BRAND = {
   logoDark: '/img/black-icon.png',
   logoLight: '/img/splash-icon.png',

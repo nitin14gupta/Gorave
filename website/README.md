@@ -84,6 +84,8 @@ invented stats, ratings or reviews on public pages (placeholders are marked
 | **Get the app** | `/app` (every "Get the app" button) | Real cards gather into a phone · five-screen story with callouts · Thursday to Sunday rail · hover bento · cursor-follow features · live cities + browse-first links · FAQ · see you Saturday |
 | **About** | `/about` | "Why we exist" manifesto: the line reveals word by word with photos blooming between words · mission lit word by word · pinned beliefs with callouts, each linking to its proof page · cities as huge names with photos flying out + live counts · how it works in 3 steps · 05 Who's building it (Nitin + Kaveesha as polaroids dealt apart on scroll with a serif "&" landing between; hover tilts the card, warms the photo, slides a note over the "&"; data in `about/team.ts`, also feeds the AboutPage/Organization founder JSON-LD) · FAQ (incl. "Who built Gorave?") · sign-off |
 
+| **Fixes (Oct 27)** | Site-wide | `text-brand` gradient text no longer clips italic serif glyphs (padding + equal negative margin, `box-decoration-break: clone`) · Home city list is now the big-name reveal (`AreaReveal` with each city's real flyers, app templates if a city has none) · type hubs (`/house-parties` etc.): hero photo is a real event cover, listings are an interactive 4:5 poster shelf (`type/PosterShelf`, 6 nights) · "Say yes to the invite" fits inside its circle, buttons are no longer magnetic (CtaA, HostCtaB) · pinned rails start below the nav (crowd `EventsRail` cards sized to the screen; other pinned sections use safe centring) |
+
 ### ⏳ To build — page templates (each template renders many URLs from data)
 | # | Screen | Route(s) | Generates |
 |---|---|---|---|

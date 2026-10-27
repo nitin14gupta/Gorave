@@ -12,14 +12,15 @@ import { Button } from '@/components/ui/Button'
  * The lights are off. Move the cursor and a torch finds the party, the photo
  * is only lit inside a soft spotlight. On touch screens the light wanders by itself.
  */
-export function TypeHero({ city, story, crumbs }: { city: City; story: TypeContent; crumbs: Crumb[] }) {
+export function TypeHero({ city, story, crumbs, heroImage }: { city: City; story: TypeContent; crumbs: Crumb[]; heroImage?: string }) {
   const ref = useRef<HTMLElement>(null)
   const mx = useMotionValue(62)
   const my = useMotionValue(42)
   const x = useSpring(mx, { stiffness: 120, damping: 22 })
   const y = useSpring(my, { stiffness: 120, damping: 22 })
   const mask = useMotionTemplate`radial-gradient(circle 280px at ${x}% ${y}%, #000 0%, #000 35%, transparent 100%)`
-  const src = `${PHOTOS[story.heroPhoto]}?w=2000&q=70&auto=format`
+  // A real event's cover when there is one, the type's stock photo otherwise.
+  const src = heroImage ?? `${PHOTOS[story.heroPhoto]}?w=2000&q=70&auto=format`
 
   // No hover (touch, or the cursor hasn't arrived yet): drift the light around the photo.
   useEffect(() => {

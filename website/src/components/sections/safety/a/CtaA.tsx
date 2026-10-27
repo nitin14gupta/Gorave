@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { motion, useMotionValue, useSpring } from 'motion/react'
+import { motion } from 'motion/react'
 import { SAFETY_LINKS } from '@/lib/safety'
 import { StoreBadges } from '@/components/ui/atoms'
 
@@ -9,30 +9,17 @@ const RINGS = [0, 1, 2, 3]
 
 /**
  * Chapter 07, go out. Calm rings open out once around the call to action
- * (the shield from the hero, let loose); the big button leans towards the cursor.
+ * (the shield from the hero, let loose). Everything sits inside the cream
+ * circle; the button stays put (buttons never follow the cursor).
  */
 export function CtaA({ chapter = '07' }: { chapter?: string }) {
-  const x = useMotionValue(0)
-  const y = useMotionValue(0)
-  const sx = useSpring(x, { stiffness: 200, damping: 18 })
-  const sy = useSpring(y, { stiffness: 200, damping: 18 })
-
-  function onMove(e: React.PointerEvent<HTMLAnchorElement>) {
-    const r = e.currentTarget.getBoundingClientRect()
-    x.set((e.clientX - r.left - r.width / 2) * 0.25)
-    y.set((e.clientY - r.top - r.height / 2) * 0.35)
-  }
-  function onLeave() {
-    x.set(0)
-    y.set(0)
-  }
-
   return (
-    <section className="relative flex min-h-[820px] items-center justify-center overflow-hidden bg-cream px-6 py-28">
+    <section className="relative flex min-h-[1040px] items-center justify-center overflow-hidden bg-cream px-6 py-28">
       <div aria-hidden className="pointer-events-none absolute left-1/2 top-1/2">
-        <span className="absolute left-0 top-0 size-[520px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-paper" />
+        {/* Big enough to hold the title, line, button, badges and links. */}
+        <span className="absolute left-0 top-0 size-[min(900px,100vw)] -translate-x-1/2 -translate-y-1/2 rounded-full bg-paper" />
         {RINGS.map(i => {
-          const size = 620 + i * 200
+          const size = 1000 + i * 180
           return (
             <motion.span
               key={i}
@@ -51,20 +38,18 @@ export function CtaA({ chapter = '07' }: { chapter?: string }) {
         <div className="mb-5 font-sans text-xs font-bold uppercase tracking-[0.18em] text-ink-3">
           <span className="font-serif text-xl normal-case italic tracking-normal text-orange">{chapter}</span> · Go out
         </div>
-        <h2 className="max-w-[760px] font-display text-[clamp(48px,6.4vw,96px)] font-extrabold leading-[0.9] tracking-[-0.06em]">
+        <h2 className="max-w-[640px] font-display text-[clamp(44px,5.6vw,84px)] font-extrabold leading-[0.9] tracking-[-0.06em]">
           Say yes to<br /><span className="font-serif font-normal italic tracking-[-0.03em] text-brand">the invite.</span>
         </h2>
         <p className="mt-5 max-w-[440px] font-sans text-lg text-ink-2">Add your SOS contacts, check the host, and go meet some new people.</p>
-        <motion.div style={{ x: sx, y: sy }} className="mt-9">
+        <div className="mt-9">
           <Link
             href="/app"
-            onPointerMove={onMove}
-            onPointerLeave={onLeave}
             className="inline-block rounded-full bg-ink px-12 py-6 font-display text-[clamp(28px,3.4vw,44px)] font-extrabold uppercase leading-none tracking-[-0.04em] text-cream shadow-pop transition-colors duration-300 hover:bg-[#00865f]"
           >
             Get the app
           </Link>
-        </motion.div>
+        </div>
         <div className="mt-7"><StoreBadges /></div>
         <div className="mt-8 flex flex-wrap justify-center gap-x-6 gap-y-2 font-sans text-sm font-bold text-ink-2">
           <Link href={SAFETY_LINKS.guidelines} className="underline decoration-ink/20 underline-offset-4 hover:text-ink">Community guidelines</Link>

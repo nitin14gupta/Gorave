@@ -46,7 +46,7 @@ function HourByHourPinned({ city, story, chapter }: { city: City; story: TypeCon
 
   return (
     <motion.section ref={ref} style={{ backgroundColor: bg, height: `${(n + 1) * 90}vh` }} className="relative hidden text-ink md:block">
-      <div className="sticky top-0 flex h-screen flex-col justify-center overflow-hidden">
+      <div className="sticky top-0 flex h-screen flex-col justify-center-safe overflow-hidden pt-24">
         <motion.div ref={track} style={{ x }} className="flex w-max items-center gap-10 pl-20 pr-[12vw]">
           <div className="w-[34vw] shrink-0">
             <Chapter n={chapter} title="The night" />

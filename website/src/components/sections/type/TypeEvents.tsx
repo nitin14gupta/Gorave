@@ -1,10 +1,9 @@
 import type { City, SampleEvent } from '@/constants'
 import { Chapter } from '@/components/ui/atoms'
 import { Button } from '@/components/ui/Button'
-import { EventCard } from '@/components/ui/EventCard'
-import { Stagger } from './Stagger'
+import { PosterShelf } from './PosterShelf'
 
-/** Chapter 01, the actual listings. Real events from the public API, samples if it's down. */
+/** Chapter 01, the actual listings: up to six real nights as an interactive poster shelf. */
 export function TypeEvents({ city, events }: { city: City; events: SampleEvent[] }) {
   return (
     <section id="events" className="scroll-mt-24 bg-cream px-6 py-24 md:px-20 md:py-32">
@@ -22,9 +21,12 @@ export function TypeEvents({ city, events }: { city: City; events: SampleEvent[]
         </div>
 
         {events.length ? (
-          <Stagger className="mt-14 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {events.map(e => <EventCard key={e.id} event={e} />)}
-          </Stagger>
+          <>
+            <PosterShelf events={events} />
+            {events.length > 6 ? (
+              <div className="mt-12 flex justify-center"><Button href="/app" kind="ghost" size="lg">See every night in the app</Button></div>
+            ) : null}
+          </>
         ) : (
           <div className="mt-14 rounded-[32px] border-[1.5px] border-dashed border-ink/25 px-8 py-16 text-center">
             <div className="font-display text-[clamp(28px,3.4vw,44px)] font-extrabold tracking-[-0.04em]">

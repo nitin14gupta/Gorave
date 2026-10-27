@@ -32,7 +32,7 @@ export function EventTypes() {
 
   return (
     <section ref={sectionRef} className="relative bg-cream" style={{ height: `calc(100vh + ${overflow}px)` }}>
-      <div className="sticky top-0 flex h-screen flex-col justify-center overflow-hidden">
+      <div className="sticky top-0 flex h-screen flex-col justify-center-safe overflow-hidden pt-24">
         <div className="mx-auto mb-11 flex w-full max-w-[1280px] items-end justify-between px-6 md:px-20">
           <div>
             <Eyebrow>A million reasons to hang</Eyebrow>

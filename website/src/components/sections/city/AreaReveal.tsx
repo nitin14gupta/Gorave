@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useState } from 'react'
-import { type City } from '@/constants'
+import { type City, type PosterDef } from '@/constants'
 import { areaSlug } from '@/lib/city'
 import { Chapter } from '@/components/ui/atoms'
 import { Poster } from '@/components/ui/Poster'
@@ -26,17 +26,27 @@ interface Props {
   items?: { label: string; href: string }[]
   /** Label beside the chapter number */
   kicker?: string
+  /** Flyers per row (e.g. each city's own events); otherwise the city kit's */
+  rowPosters?: PosterDef[][]
 }
 
-export function AreaReveal({ city, chapter = '06', title = 'Closer to home.', subtitle, typeSlug, items, kicker = 'The neighbourhood' }: Props) {
+export function AreaReveal({ city, chapter = '06', title = 'Closer to home.', subtitle, typeSlug, items, kicker = 'The neighbourhood', rowPosters }: Props) {
   const { posters } = useCityKit()
   const [active, setActive] = useState<number | null>(null)
+  const pick = (i: number, k: number) => {
+    const own = rowPosters?.[i]
+    return own?.length ? own[k % own.length] : posters[(i * 3 + k * 4) % posters.length]
+  }
   const rows = items ?? (city?.areas ?? []).slice(0, 6).map(a => ({ label: a, href: `/${city!.slug}/${areaSlug(a)}${typeSlug ? `/${typeSlug}` : ''}` }))
 
   return (
     <section className="overflow-hidden bg-paper pb-36 pt-28">
       <div className="mb-12 px-6 text-center">
-        <Chapter n={chapter} title={kicker} className="justify-center" />
+        {chapter ? (
+          <Chapter n={chapter} title={kicker} className="justify-center" />
+        ) : (
+          <div className="font-sans text-xs font-bold uppercase tracking-[0.18em] text-ink-3">{kicker}</div>
+        )}
         <h2 className="mt-4 font-display text-[clamp(48px,6vw,84px)] font-extrabold leading-[0.92] tracking-[-0.055em]">{title}</h2>
         <p className="mt-3 font-sans text-[19px] text-ink-2">{subtitle ?? `See what's happening in your part of ${city?.name ?? 'town'}.`}</p>
       </div>
@@ -70,7 +80,7 @@ export function AreaReveal({ city, chapter = '06', title = 'Closer to home.', su
                       transition: `transform .65s ${EASE} ${on ? lane * 0.07 : 0}s, opacity .4s ${on ? lane * 0.07 : 0}s`,
                     }}
                   >
-                    <Poster poster={posters[(i * 3 + k * 4) % posters.length]} area={a} width={160} height={210} radius={12} />
+                    <Poster poster={pick(i, k)} area={a} width={160} height={210} radius={12} />
                   </div>
                 )
               })}

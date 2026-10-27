@@ -85,7 +85,7 @@ function RunPinned() {
 
   return (
     <section ref={ref} className="relative hidden bg-noir text-noir-ink md:block" style={{ height: `${N * 70 + 60}vh` }}>
-      <div className="sticky top-0 flex h-screen flex-col justify-center overflow-hidden">
+      <div className="sticky top-0 flex h-screen flex-col justify-center-safe overflow-hidden pt-24">
         <div aria-hidden className="absolute inset-0 opacity-[0.07] [background-image:linear-gradient(90deg,#fff_1px,transparent_1px),linear-gradient(#fff_1px,transparent_1px)] [background-size:64px_64px]" />
         <div aria-hidden className="absolute left-1/2 top-0 h-full w-px bg-gradient-to-b from-transparent via-coral/60 to-transparent" />
 

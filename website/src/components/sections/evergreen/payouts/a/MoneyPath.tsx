@@ -69,7 +69,7 @@ export function MoneyPath({ cover }: { cover: string }) {
   return (
     <>
       <section ref={ref} className="relative hidden bg-paper motion-safe:lg:block motion-safe:lg:h-[420vh]">
-        <div className="sticky top-0 flex h-screen flex-col justify-center overflow-hidden px-20 pb-16">
+        <div className="sticky top-0 flex h-screen flex-col justify-center-safe overflow-hidden pt-24 px-20 pb-16">
           <div className="mx-auto w-full max-w-[1180px]">{head}</div>
           <Stage p={p} cover={cover} />
           <div className="mx-auto mt-6 grid w-full max-w-[1180px] grid-cols-3 gap-10">

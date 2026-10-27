@@ -1,11 +1,12 @@
-import { BROWSE_CITIES, SAMPLE_EVENTS } from '@/constants'
+import { BROWSE_CITIES, CITIES, SAMPLE_EVENTS } from '@/constants'
+import { buildCityKit } from '@/lib/cityKit'
 import { cardEvents, fetchReviews } from '@/lib/api'
 import { Hero } from '@/components/sections/home/Hero'
 import { ThisWeek } from '@/components/sections/home/ThisWeek'
 import { OneLink } from '@/components/sections/home/OneLink'
 import { GroupChat } from '@/components/sections/home/GroupChat'
 import { EventTypes } from '@/components/sections/home/EventTypes'
-import { Cities } from '@/components/sections/home/Cities'
+import { AreaReveal } from '@/components/sections/city/AreaReveal'
 import { MoreThanInvite } from '@/components/sections/home/MoreThanInvite'
 import { Safety } from '@/components/sections/home/Safety'
 import { Hosts } from '@/components/sections/home/Hosts'
@@ -25,6 +26,13 @@ export default async function HomePage() {
   const byCity = Object.fromEntries(BROWSE_CITIES.map((c, i) => [c, perCity[i].events]))
   // Mock-up screens show real events with photos; samples only if the API is down.
   const featured = perCity.flatMap(r => r.events).filter(e => e.image)
+  // Each city's own flyers, built from its real events (the app's invite
+  // templates if a city has none yet).
+  const cityRows = BROWSE_CITIES.map(name => CITIES.find(c => c.name === name)).filter(c => !!c)
+  const cityPosters = cityRows.map(c => {
+    const r = perCity[BROWSE_CITIES.indexOf(c.name as (typeof BROWSE_CITIES)[number])]
+    return buildCityKit(r?.live ? r.events : []).posters
+  })
   return (
     <LiveEventsProvider events={featured.length ? featured : SAMPLE_EVENTS}>
       <main>
@@ -33,7 +41,14 @@ export default async function HomePage() {
         <OneLink />
         <GroupChat />
         <EventTypes />
-        <Cities />
+        <AreaReveal
+          chapter=""
+          kicker="The cities"
+          title="Pick your city."
+          subtitle="Hover a city to see what's on there this week."
+          items={cityRows.map(c => ({ label: c.name, href: `/${c.slug}` }))}
+          rowPosters={cityPosters}
+        />
         <MoreThanInvite />
         <Safety />
         <Hosts />

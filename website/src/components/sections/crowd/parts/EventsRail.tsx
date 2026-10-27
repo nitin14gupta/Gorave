@@ -29,6 +29,9 @@ export function EventsRail({ crowd, place, events, total, chapter = '02' }: Prop
   const section = useRef<HTMLElement>(null)
   const track = useRef<HTMLDivElement>(null)
   const [dist, setDist] = useState(0)
+  // Card width that lets the heading, the staggered cards and the progress
+  // rule all fit in one screen while the rail is pinned.
+  const [cardW, setCardW] = useState(320)
   const list = events.slice(0, MAX)
   const more = total > list.length
   const browse = place.citySlug ? `/${place.citySlug}` : '/cities'
@@ -40,6 +43,9 @@ export function EventsRail({ crowd, place, events, total, chapter = '02' }: Prop
     const measure = () => {
       const wide = window.matchMedia('(min-width: 768px)').matches
       setDist(wide ? Math.max(0, Math.round(el.scrollWidth - window.innerWidth)) : 0)
+      // ~420px of the screen go to the nav, heading, stagger and progress rule;
+      // a card is about 1.45x as tall as it is wide (4:5 photo + text).
+      setCardW(wide ? Math.round(Math.max(220, Math.min(320, (window.innerHeight - 420) / 1.45))) : 300)
     }
     const ro = new ResizeObserver(measure)
     ro.observe(el)
@@ -92,18 +98,21 @@ export function EventsRail({ crowd, place, events, total, chapter = '02' }: Prop
       className="relative scroll-mt-24 bg-cream"
       style={pinned ? { height: `calc(100vh + ${dist}px)` } : undefined}
     >
-      <div className={pinned ? 'sticky top-0 flex h-screen flex-col justify-center overflow-hidden' : 'py-24 md:py-32'}>
+      {/* Pinned: start below the floating nav instead of centring, so a tall
+          heading never gets pushed off the top of the screen. */}
+      <div className={pinned ? 'sticky top-0 flex h-screen flex-col justify-start overflow-hidden pt-28' : 'py-24 md:py-32'}>
         {head}
-        <div className={pinned ? 'mt-10' : 'mt-12 overflow-x-auto overscroll-x-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'}>
+        <div className={pinned ? 'mt-8' : 'mt-12 overflow-x-auto overscroll-x-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'}>
           <motion.div ref={track} style={{ x }} className="flex w-max items-start gap-5 px-6 pb-6 md:gap-6 md:px-12 lg:px-20">
             {list.map((e, i) => (
-              <div key={e.id} className={i % 2 ? 'md:mt-12' : ''}>
-                <EventCard event={e} width={320} />
+              <div key={e.id} className={i % 2 ? 'md:mt-8' : ''}>
+                <EventCard event={e} width={cardW} />
               </div>
             ))}
             <Link
               href={browse}
-              className="group flex h-[388px] w-[260px] shrink-0 flex-col justify-between rounded-[28px] bg-brand p-7 text-white transition-transform duration-500 ease-out-expo hover:-translate-y-1.5"
+              style={{ height: Math.round(cardW * 1.21) }}
+              className="group flex w-[260px] shrink-0 flex-col justify-between rounded-[28px] bg-brand p-7 text-white transition-transform duration-500 ease-out-expo hover:-translate-y-1.5"
             >
               <span className="font-serif text-3xl italic text-white">{more ? `+${total - list.length}` : 'More'}</span>
               <span>

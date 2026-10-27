@@ -43,7 +43,7 @@ export function TypePageView({ city, slug, story, events }: Props) {
     <>
       <CityKitProvider kit={kit}>
       <main>
-        <TypeHero city={city} story={content} crumbs={crumbs} />
+        <TypeHero city={city} story={content} crumbs={crumbs} heroImage={events.find(e => e.image)?.image} />
         <TypeEvents city={city} events={events} />
         <Anatomy city={city} story={content} />
         <GuestList city={city} story={content} />

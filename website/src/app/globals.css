@@ -64,6 +64,15 @@
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
+  /* The gradient only paints inside the text box, and italic serif letters
+     lean out past it (the tail of "invite.", the "g" in "nights"), so those
+     bits came out invisible. Grow the box with padding and cancel it with an
+     equal negative margin: the gradient now covers every glyph and the layout
+     doesn't move. `clone` repeats it on each wrapped line. */
+  padding: 0.08em 0.16em 0.18em 0.06em;
+  margin: -0.08em -0.16em -0.18em -0.06em;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
 }
 @utility tracking-display {
   letter-spacing: -0.05em;

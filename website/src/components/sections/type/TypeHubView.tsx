@@ -36,7 +36,7 @@ export function TypeHubView({ slug, story, events, cities }: Props) {
   return (
     <>
       <main>
-        <TypeHero city={INDIA} story={content} crumbs={crumbs} />
+        <TypeHero city={INDIA} story={content} crumbs={crumbs} heroImage={events.find(e => e.image)?.image} />
         <TypeEvents city={INDIA} events={events} />
         <Anatomy city={INDIA} story={content} />
         <TypeCities story={content} slug={slug} cities={cities} />

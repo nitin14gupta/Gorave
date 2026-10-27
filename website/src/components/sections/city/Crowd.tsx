@@ -2,18 +2,16 @@
 
 import Image from 'next/image'
 import { useMemo, useRef, useState } from 'react'
-import { AVATARS, type City } from '@/constants'
+import { FACES, type City } from '@/constants'
 import { Chapter } from '@/components/ui/atoms'
 import { Button } from '@/components/ui/Button'
 
 const H = 620
 const COUNT = 46
-const TINTS = ['#FF6B35', '#FF3864', '#FFB830', '#00C48C', '#DCE6F2', '#F4D9DF']
-const INITIALS = ['RS', 'AK', 'DP', 'NM', 'KJ', 'TV', 'SG', 'AR']
 
 /**
- * Chapter 08, the people. A crowd of faces that drifts away from your
- * cursor, with the safety promise at its centre.
+ * Chapter 08, the people. A crowd of real faces (every circle a photo)
+ * that drifts away from your cursor, with the safety promise at its centre.
  */
 export function Crowd({ city }: { city: City }) {
   const ref = useRef<HTMLDivElement>(null)
@@ -27,9 +25,8 @@ export function Crowd({ city }: { city: City }) {
       x: Math.round((50 + (Math.cos(ang) * r) / 14) * 100) / 100,
       y: Math.round(H / 2 + Math.sin(ang) * r * 0.42),
       size: 44 + ((i * 37) % 5) * 10,
-      avatar: i % 3 === 0 ? AVATARS[i % AVATARS.length] : null,
-      tint: TINTS[i % TINTS.length],
-      initials: INITIALS[i % INITIALS.length],
+      // Step through the faces with a stride so neighbours are never the same person.
+      face: FACES[(i * 7) % FACES.length],
     }
   }), [])
 
@@ -58,14 +55,13 @@ export function Crowd({ city }: { city: City }) {
             <div
               key={i}
               aria-hidden
-              className="absolute flex items-center justify-center overflow-hidden rounded-full font-display font-extrabold text-ink"
+              className="absolute overflow-hidden rounded-full bg-tile ring-2 ring-paper"
               style={{
                 left: `${p.x}%`, top: p.y, width: p.size, height: p.size, marginLeft: -p.size / 2, marginTop: -p.size / 2,
-                background: p.tint, fontSize: p.size * 0.32,
                 transform: `translate(${dx}px, ${dy}px)`, transition: 'transform .5s cubic-bezier(.2,.8,.2,1)',
               }}
             >
-              {p.avatar ? <Image src={p.avatar} alt="" fill sizes="120px" className="object-cover" /> : p.initials}
+              <Image src={`${p.face}?w=200&h=200&fit=crop&crop=faces&q=70`} alt="" fill sizes="120px" className="object-cover" />
             </div>
           )
         })}
