@@ -52,8 +52,8 @@ function EventListCardBase({
     <AnimatedPressable
       style={[s.row, pressStyle]}
       onPress={onPress ?? (() => router.push(`/(events)/${event.id}` as any))}
-      onPressIn={() => { pressScale.value = withSpring(0.985, { duration: 120 }) }}
-      onPressOut={() => { pressScale.value = withSpring(1, { duration: 120 }) }}
+      onPressIn={() => { pressScale.set(withSpring(0.985, { duration: 120 })) }}
+      onPressOut={() => { pressScale.set(withSpring(1, { duration: 120 })) }}
     >
       <View style={s.thumb}>
         {cover ? (

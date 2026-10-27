@@ -31,7 +31,7 @@ export function OutlineButton({ label, onPress, disabled, loading, icon, style, 
           destructive ? hError() : hTap()
         }
       }}
-      onPressOut={() => { scale.value = withSpring(1, { duration: 120 }) }}
+      onPressOut={() => { scale.set(withSpring(1, { duration: 120 })) }}
       disabled={disabled || loading}
       style={style}
     >

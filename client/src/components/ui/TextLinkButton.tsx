@@ -19,8 +19,8 @@ export function TextLinkButton({ label, onPress, disabled, style }: Props) {
   return (
     <AnimatedPressable
       onPress={!disabled ? () => { hTap(); onPress() } : undefined}
-      onPressIn={() => { if (!disabled) pressScale.value = withSpring(0.96, { duration: 120 }) }}
-      onPressOut={() => { pressScale.value = withSpring(1, { duration: 120 }) }}
+      onPressIn={() => { if (!disabled) pressScale.set(withSpring(0.96, { duration: 120 })) }}
+      onPressOut={() => { pressScale.set(withSpring(1, { duration: 120 })) }}
       disabled={disabled}
       style={[styles.btn, style, pressStyle]}
     >

@@ -42,8 +42,8 @@ function PreviewCardBase({
     <AnimatedPressable
       style={[styles.previewCard, active && styles.previewCardActive, pressStyle]}
       onPress={onPress}
-      onPressIn={() => { pressScale.value = withSpring(0.97, { duration: 120 }); }}
-      onPressOut={() => { pressScale.value = withSpring(1, { duration: 120 }); }}
+      onPressIn={() => { pressScale.set(withSpring(0.97, { duration: 120 })); }}
+      onPressOut={() => { pressScale.set(withSpring(1, { duration: 120 })); }}
     >
       <View style={styles.previewImageWrap}>
         {cover ? (
@@ -116,8 +116,8 @@ export function MoreCard({ count, onPress }: { count: number; onPress: () => voi
     <AnimatedPressable
       style={[styles.moreCard, pressStyle]}
       onPress={onPress}
-      onPressIn={() => { pressScale.value = withSpring(0.97, { duration: 120 }); }}
-      onPressOut={() => { pressScale.value = withSpring(1, { duration: 120 }); }}
+      onPressIn={() => { pressScale.set(withSpring(0.97, { duration: 120 })); }}
+      onPressOut={() => { pressScale.set(withSpring(1, { duration: 120 })); }}
     >
       <Text style={styles.moreCount}>+{count}</Text>
       <Text style={styles.moreLabel}>more{"\n"}events</Text>

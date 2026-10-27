@@ -3,8 +3,8 @@
 import { useState } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
-import { Lock, Unlock, Mic, ShieldAlert, Wallet, CalendarDays, MessageSquare, Heart, Banknote, Clock, Star } from 'lucide-react'
-import { useUserQuery, useUserPayoutQuery, useLockUserMutation, useUnlockUserMutation } from '@/hooks/useUsers'
+import { Lock, Unlock, RotateCcw, Mic, ShieldAlert, Wallet, CalendarDays, MessageSquare, Heart, Banknote, Clock, Star } from 'lucide-react'
+import { useUserQuery, useUserPayoutQuery, useLockUserMutation, useUnlockUserMutation, useRestoreUserMutation } from '@/hooks/useUsers'
 import { useTabParam } from '@/hooks/useTabParam'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Avatar } from '@/components/ui/Avatar'
@@ -31,11 +31,13 @@ export default function UserDetailPage() {
   const isSuperAdmin = admin?.role === 'super_admin'
   const [lockDialogOpen, setLockDialogOpen] = useState(false)
   const [unlockDialogOpen, setUnlockDialogOpen] = useState(false)
+  const [restoreDialogOpen, setRestoreDialogOpen] = useState(false)
   const [tab, setTab] = useTabParam('profile')
 
   const { data, isLoading } = useUserQuery(id)
   const lockMutation = useLockUserMutation(id)
   const unlockMutation = useUnlockUserMutation(id)
+  const restoreMutation = useRestoreUserMutation(id)
 
   const handleLock = async (reason?: string) => {
     try {
@@ -52,6 +54,15 @@ export default function UserDetailPage() {
       toast.success('User unlocked')
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Failed to unlock user')
+    }
+  }
+
+  const handleRestore = async () => {
+    try {
+      await restoreMutation.mutateAsync()
+      toast.success('Account restored')
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Failed to restore account')
     }
   }
 
@@ -75,7 +86,12 @@ export default function UserDetailPage() {
         subtitle={`${user.username ? `@${user.username} · ` : ''}${user.country_code}${user.phone} · ${user.city ?? 'No city set'}`}
         actions={
           isSuperAdmin ? (
-            user.is_locked ? (
+            // Deleted but not yet erased (the purge swaps the phone for a 'del-' code): support can bring it back.
+            user.is_deleted && !String(user.phone ?? '').startsWith('del-') ? (
+              <Button variant="outline" onClick={() => setRestoreDialogOpen(true)}>
+                <RotateCcw className="h-4 w-4" /> Restore account
+              </Button>
+            ) : user.is_locked ? (
               <Button variant="outline" onClick={() => setUnlockDialogOpen(true)}>
                 <Unlock className="h-4 w-4" /> Unlock account
               </Button>
@@ -189,6 +205,14 @@ export default function UserDetailPage() {
         description="The user will be able to log in again."
         confirmLabel="Unlock account"
         onConfirm={() => handleUnlock()}
+      />
+      <ConfirmDialog
+        open={restoreDialogOpen}
+        onOpenChange={setRestoreDialogOpen}
+        title="Restore this account?"
+        description="Their name, bio and voice intro come back and they can log in again. Events they had joined stay cancelled."
+        confirmLabel="Restore account"
+        onConfirm={() => handleRestore()}
       />
     </div>
   )

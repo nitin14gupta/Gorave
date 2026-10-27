@@ -88,8 +88,8 @@ export function HeaderIconBtn({
       onPress={onPress}
       hitSlop={10}
       style={[styles.iconBtn, pressStyle]}
-      onPressIn={() => { pressScale.value = withSpring(0.9, { duration: 120 }) }}
-      onPressOut={() => { pressScale.value = withSpring(1, { duration: 120 }) }}
+      onPressIn={() => { pressScale.set(withSpring(0.9, { duration: 120 })) }}
+      onPressOut={() => { pressScale.set(withSpring(1, { duration: 120 })) }}
     >
       {children}
     </AnimatedPressable>

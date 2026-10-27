@@ -76,8 +76,8 @@ function FilterChip({ active, onPress, children }: { active: boolean; onPress: (
     <AnimatedPressable
       style={[c.filterChip, active && c.filterChipActive, pressStyle]}
       onPress={onPress}
-      onPressIn={() => { pressScale.value = withSpring(0.95, { duration: 120 }) }}
-      onPressOut={() => { pressScale.value = withSpring(1, { duration: 120 }) }}
+      onPressIn={() => { pressScale.set(withSpring(0.95, { duration: 120 })) }}
+      onPressOut={() => { pressScale.set(withSpring(1, { duration: 120 })) }}
     >
       {children}
     </AnimatedPressable>
@@ -153,8 +153,8 @@ export const ReviewCard = memo(function ReviewCard({
         style={[c.cardTop, topPressStyle]}
         onPress={goToReviewer}
         hitSlop={4}
-        onPressIn={() => { topPressScale.value = withSpring(0.985, { duration: 120 }) }}
-        onPressOut={() => { topPressScale.value = withSpring(1, { duration: 120 }) }}
+        onPressIn={() => { topPressScale.set(withSpring(0.985, { duration: 120 })) }}
+        onPressOut={() => { topPressScale.set(withSpring(1, { duration: 120 })) }}
       >
         <View style={c.avatar}>
           {item.reviewer_avatar ? (
@@ -184,8 +184,8 @@ export const ReviewCard = memo(function ReviewCard({
           hitSlop={4}
           disabled={!eventId}
           style={[c.subtitleRow, subtitlePressStyle]}
-          onPressIn={() => { if (eventId) subtitlePressScale.value = withSpring(0.95, { duration: 120 }) }}
-          onPressOut={() => { subtitlePressScale.value = withSpring(1, { duration: 120 }) }}
+          onPressIn={() => { if (eventId) subtitlePressScale.set(withSpring(0.95, { duration: 120 })) }}
+          onPressOut={() => { subtitlePressScale.set(withSpring(1, { duration: 120 })) }}
         >
           <Text style={c.subtitle} numberOfLines={1}>{subtitle}</Text>
         </AnimatedPressable>

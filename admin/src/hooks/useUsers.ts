@@ -68,3 +68,15 @@ export function useUnlockUserMutation(id: string | undefined) {
     },
   })
 }
+
+/** Undo a deletion inside the 30-day window (name, bio and voice come back). */
+export function useRestoreUserMutation(id: string | undefined) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: () => apiClient.post(`/admin/users/${id}/restore`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-user', id] })
+      queryClient.invalidateQueries({ queryKey: ['admin-users'] })
+    },
+  })
+}

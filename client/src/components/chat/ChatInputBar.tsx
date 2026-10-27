@@ -137,7 +137,7 @@ export function ChatInputBar({
     return (
       <View style={s.blockNotice} onLayout={onLayout}>
         <Text style={s.blockNoticeTitle}>This account was deleted</Text>
-        <Text style={s.blockNoticeText}>You can still read your chat, but you can&apos;t reply.</Text>
+        <Text style={s.blockNoticeText}>Their messages are no longer available, and you can&apos;t reply.</Text>
       </View>
     )
   }

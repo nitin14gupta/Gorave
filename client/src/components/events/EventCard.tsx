@@ -265,8 +265,8 @@ export const EventCard = memo(function EventCard({ event, onPress, showHost, isP
       onPress={onPress}
       onLongPress={() => { hSelection(); setPeekOpen(true) }}
       delayLongPress={350}
-      onPressIn={() => { pressScale.value = withSpring(0.985, { duration: 120 }) }}
-      onPressOut={() => { pressScale.value = withSpring(1, { duration: 120 }) }}
+      onPressIn={() => { pressScale.set(withSpring(0.985, { duration: 120 })) }}
+      onPressOut={() => { pressScale.set(withSpring(1, { duration: 120 })) }}
     >
       {/* The 4:5 photo is the whole card; the details sit on it. */}
       <View style={pa.poster}>

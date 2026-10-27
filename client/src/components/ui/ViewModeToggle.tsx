@@ -21,8 +21,8 @@ function ModeButton({ active, onPress, children }: { active: boolean; onPress: (
     <AnimatedPressable
       style={[s.btn, active && s.btnActive, pressStyle]}
       onPress={onPress}
-      onPressIn={() => { pressScale.value = withSpring(0.92, { duration: 120 }) }}
-      onPressOut={() => { pressScale.value = withSpring(1, { duration: 120 }) }}
+      onPressIn={() => { pressScale.set(withSpring(0.92, { duration: 120 })) }}
+      onPressOut={() => { pressScale.set(withSpring(1, { duration: 120 })) }}
       hitSlop={6}
     >
       {children}

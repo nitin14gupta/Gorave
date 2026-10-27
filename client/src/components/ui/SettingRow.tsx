@@ -24,8 +24,8 @@ export function SettingRow({ icon, label, value, onPress, destructive, showSepar
     <>
       <AnimatedPressable
         onPress={() => { destructive ? hError() : hTap(); onPress() }}
-        onPressIn={() => { pressScale.value = withSpring(0.985, { duration: 120 }) }}
-        onPressOut={() => { pressScale.value = withSpring(1, { duration: 120 }) }}
+        onPressIn={() => { pressScale.set(withSpring(0.985, { duration: 120 })) }}
+        onPressOut={() => { pressScale.set(withSpring(1, { duration: 120 })) }}
         style={[styles.row, pressStyle]}
       >
         <View style={styles.iconWrap}>{icon}</View>

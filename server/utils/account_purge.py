@@ -17,13 +17,14 @@ def purge_expired_deleted_accounts() -> int:
     at a valid row and nothing cascades away:
 
     Kept (financial / legal, needed for refunds, disputes, tax and safety):
-      payment_orders, wallet_transactions, host_payout_details,
+      payment_orders, wallet_transactions,
+      host_payout_details only until no payout can be due (see below),
       event_attendees, events they hosted, event_reviews,
       user_reports / event_reports / message_reports (made by or against them),
       support_requests, app_feedback, admin_audit_log,
       the signed host agreement (users.host_agreement_* columns).
-    Kept for the other person: conversations and messages (their side of the
-      chat), now shown as from a deleted account.
+    Conversations and messages stay as rows (reports can point at them), but
+      the API shows a deleted account's messages as "Message unavailable".
     Erased: name, username, phone, dob, gender, city, live location, bio,
       voice intro, interests, badges, notification prefs, photos (R2 files too),
       push tokens, sessions, follows, blocks, hotlist, vibe requests,
@@ -80,7 +81,7 @@ def purge_expired_deleted_accounts() -> int:
                     bio = NULL, voice_url = NULL, voice_r2_path = NULL,
                     interests = '{}', badges = '{}', notification_prefs = '{}'::jsonb,
                     last_seen_at = NULL, is_active = FALSE, profile_complete = FALSE,
-                    updated_at = NOW()
+                    deleted_backup = NULL, updated_at = NOW()
                 WHERE id = %(u)s::uuid
                 """,
                 {"u": uid, "prefix": PURGED_PHONE_PREFIX},
@@ -88,4 +89,37 @@ def purge_expired_deleted_accounts() -> int:
             conn.commit()
         print(f"[PURGE] Erased personal data of user {uid}; kept records as an anonymous tombstone", flush=True)
 
+    erase_settled_payout_details()
     return len(expired)
+
+
+# A host's last payout is sent by hand after their paid events end, so bank /
+# UPI details are only kept while a payout could still be due.
+PAYOUT_WINDOW_DAYS = 60
+
+
+def erase_settled_payout_details() -> int:
+    """India's DPDP Act: erase personal data once its purpose is served,
+    unless a law needs it kept. Tax law needs the payment records (kept), not
+    the bank account or UPI ID they were paid to. So for purged accounts we
+    delete the saved payout details once their last paid event ended more
+    than PAYOUT_WINDOW_DAYS ago (or they never hosted a paid one)."""
+    with get_db() as (cur, conn):
+        cur.execute(
+            f"""
+            DELETE FROM host_payout_details hp
+            USING users u
+            WHERE u.id = hp.user_id AND u.is_deleted = TRUE AND u.phone LIKE %s
+              AND NOT EXISTS (
+                  SELECT 1 FROM events e
+                  WHERE e.host_id = u.id AND e.price_inr > 0 AND e.is_cancelled = FALSE
+                    AND COALESCE(e.end_time, e.date_time) > NOW() - INTERVAL '{PAYOUT_WINDOW_DAYS} days'
+              )
+            """,
+            (PURGED_PHONE_PREFIX + "%",),
+        )
+        n = cur.rowcount
+        conn.commit()
+    if n:
+        print(f"[PURGE] Erased payout details of {n} purged account(s) with no payout left to send", flush=True)
+    return n

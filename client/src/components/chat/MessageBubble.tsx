@@ -478,6 +478,16 @@ export function MessageBubble({
     : new Date(msg.sent_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + (msg.edited_at ? ' · Edited' : '')
 
   const renderBubbleContent = () => {
+    // A deleted account's messages come back from the server with no content.
+    if (msg.content_type === 'unavailable') {
+      return (
+        <View style={[s.bubbleWrap, s.wrapTheirs]}>
+          <View style={[s.bubble, s.bubbleTheirs, s.unavailable]}>
+            <Text style={s.unavailableText}>Message unavailable</Text>
+          </View>
+        </View>
+      )
+    }
     if ((msg.content_type === 'image' || msg.content_type === 'gif') && msg.metadata?.url) {
       return (
         <View style={[s.bubbleWrap, isMine ? s.wrapMine : s.wrapTheirs]}>
@@ -710,6 +720,8 @@ const s = StyleSheet.create({
     borderBottomRightRadius: 4,
   },
   bubblePending: { opacity: 0.6 },
+  unavailable: { backgroundColor: 'transparent', borderWidth: 1, borderColor: Colors.divider },
+  unavailableText: { fontFamily: FontFamily.bodyRegular, fontSize: 14, fontStyle: 'italic', color: Colors.inkDisabled },
   bubbleFailed: {
     borderWidth: 1,
     borderColor: Colors.destructive,

@@ -42,6 +42,7 @@ const MEDIA_PREVIEWS: Record<string, string> = {
   gif: 'GIF',
   video: 'Video',
   voice: 'Voice message',
+  unavailable: 'Message unavailable',
 }
 
 function formatLastMessage(conv: Conversation, currentUserId: string | null): string {

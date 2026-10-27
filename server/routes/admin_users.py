@@ -340,6 +340,39 @@ def unlock_user(user_id: str, current_admin: dict = Depends(require_admin_role("
     return {"ok": True}
 
 
+# ── POST /admin/users/{user_id}/restore ──────────────────────────────────────
+# Undo a deletion inside the 30-day window: bring back name, bio and voice from
+# the backup taken at deletion. RSVPs that were cancelled stay cancelled.
+
+@router.post("/{user_id}/restore")
+def restore_user(user_id: str, current_admin: dict = Depends(require_admin_role("super_admin"))):
+    with get_db() as (cur, conn):
+        cur.execute(
+            "SELECT is_deleted, deleted_at, deleted_backup, phone FROM users WHERE id = %s::uuid",
+            (user_id,),
+        )
+        row = cur.fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="User not found")
+        if not row["is_deleted"]:
+            raise HTTPException(status_code=400, detail="This account isn't deleted")
+        if (row["phone"] or "").startswith("del-"):
+            raise HTTPException(status_code=410, detail="Too late: this account's data was already erased")
+        backup = row["deleted_backup"] or {}
+        cur.execute(
+            """
+            UPDATE users SET is_deleted = FALSE, deleted_at = NULL, deleted_backup = NULL,
+                name = COALESCE(%s, name), bio = %s, voice_url = %s, updated_at = NOW()
+            WHERE id = %s::uuid
+            """,
+            (backup.get("name"), backup.get("bio"), backup.get("voice_url"), user_id),
+        )
+        conn.commit()
+
+    log_action(current_admin["id"], "restore_user", "user", user_id)
+    return {"ok": True}
+
+
 # ── GET /admin/users/{user_id}/payout-details ─────────────────────────────────
 
 @router.get("/{user_id}/payout-details")

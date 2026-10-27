@@ -84,7 +84,7 @@ function OverviewTab() {
                   tickFormatter={(v: number) => `₹${v}`}
                 />
                 <Tooltip
-                  contentStyle={{ background: c.surface, border: '1px solid #2A2A2A', borderRadius: 10, fontSize: 13, fontFamily: 'var(--font-satoshi)' }}
+                  contentStyle={{ background: c.surface, border: '1px solid var(--c-divider)', borderRadius: 10, fontSize: 13, fontFamily: 'var(--font-satoshi)' }}
                   labelFormatter={(label) => formatDayTick(String(label))}
                   labelStyle={{ color: c.textSecondary }}
                   formatter={(value) => [`₹${Number(value).toLocaleString()}`, undefined]}

@@ -66,8 +66,8 @@ export function SosButton({ eventId, size = 13, style }: { eventId: string; size
         style={[s.badge, style, pressStyle]}
         onPress={open}
         hitSlop={6}
-        onPressIn={() => { pressScale.value = withSpring(0.9, { duration: 120 }) }}
-        onPressOut={() => { pressScale.value = withSpring(1, { duration: 120 }) }}
+        onPressIn={() => { pressScale.set(withSpring(0.9, { duration: 120 })) }}
+        onPressOut={() => { pressScale.set(withSpring(1, { duration: 120 })) }}
       >
         <Siren size={size} color={Colors.destructive} strokeWidth={2.4} />
       </AnimatedPressable>

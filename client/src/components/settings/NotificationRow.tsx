@@ -91,8 +91,8 @@ export const NotificationRow = React.memo(function NotificationRow({ item, onPre
       <AnimatedPressable
         style={[s.rowMain, pressStyle]}
         onPress={() => { hTap(); onPress() }}
-        onPressIn={() => { pressScale.value = withSpring(0.985, { duration: 120 }) }}
-        onPressOut={() => { pressScale.value = withSpring(1, { duration: 120 }) }}
+        onPressIn={() => { pressScale.set(withSpring(0.985, { duration: 120 })) }}
+        onPressOut={() => { pressScale.set(withSpring(1, { duration: 120 })) }}
       >
         <View style={s.avatarWrap}>
           {item.cover_photo ? (

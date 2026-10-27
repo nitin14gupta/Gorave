@@ -291,6 +291,10 @@ def list_conversations(
     for r in rows:
         d = dict(r)
         d["partner_id"] = str(d["partner_id"])
+        # Same rule as the thread: a deleted account's last message isn't shown.
+        if d.get("partner_is_deleted") and str(d.get("last_sender_id")) == d["partner_id"]:
+            d["last_message"] = None
+            d["last_message_type"] = "unavailable"
         all_convs.append(d)
 
     pending = [c for c in all_convs if c["status"] == "pending" and c["last_sender_id"] != uid]
@@ -401,6 +405,17 @@ async def list_messages(
     result = [m for m in result if uid not in (m.get("deleted_for") or [])]
     for m in result:
         m.pop("deleted_for", None)
+
+    # A deleted account's messages are no longer shown (like Instagram): the
+    # bubble stays so the conversation reads in order, the content doesn't.
+    partner = conv["user2_id"] if conv["user1_id"] == uid else conv["user1_id"]
+    with get_db() as (cur, _):
+        cur.execute("SELECT COALESCE(is_deleted, FALSE) AS d FROM users WHERE id = %s::uuid", (partner,))
+        prow = cur.fetchone()
+    if prow and prow["d"]:
+        for m in result:
+            if m.get("sender_id") == partner:
+                m.update(content=None, content_type="unavailable", metadata=None, reactions=None, edited_at=None)
 
     return result
 

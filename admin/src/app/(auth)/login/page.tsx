@@ -72,14 +72,14 @@ export default function LoginPage() {
             key={p.src}
             src={p.src}
             alt=""
-            className="absolute w-[38%] rounded-2xl object-cover shadow-[0_30px_60px_-20px_rgba(0,0,0,0.6)]"
+            className="absolute w-[38%] rounded-2xl object-cover shadow-2xl"
             style={{ left: p.x, top: p.y, aspectRatio: '4 / 5', transform: `rotate(${p.rotate}deg)`, zIndex: p.z }}
           />
         ))}
         <div className="absolute inset-x-0 bottom-0 z-10 h-1/2 bg-gradient-to-t from-black/85 to-transparent" />
         <div className="absolute inset-x-10 bottom-10 z-20 text-white">
           <p className="font-display text-[44px] font-extrabold leading-[0.95] tracking-[-0.04em]">The night shift.</p>
-          <p className="mt-3 max-w-[380px] font-sans text-lg text-white/80">Keep Gorave safe and running, so every Saturday goes to plan.</p>
+          <p className="mt-3 max-w-[380px] font-sans text-lg text-white/80">Keep Gorave safe and running.</p>
         </div>
       </aside>
 

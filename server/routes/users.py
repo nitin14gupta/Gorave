@@ -1223,10 +1223,15 @@ def delete_account(current_user: dict = Depends(get_current_user)):
         )
 
         # ── 3. Soft-delete the account ────────────────────────────────────────
+        # Name, bio and voice leave the profile right away (everything that
+        # reads them sees a deleted account), but are held in deleted_backup
+        # so support can restore the account inside the 30-day window. The
+        # purge erases the backup.
         cur.execute(
             """
             UPDATE users
             SET is_deleted = TRUE, deleted_at = NOW(),
+                deleted_backup = jsonb_build_object('name', name, 'bio', bio, 'voice_url', voice_url),
                 name = '[deleted]', bio = NULL, voice_url = NULL
             WHERE id = %s::uuid
             """,

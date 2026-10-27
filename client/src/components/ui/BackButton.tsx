@@ -18,8 +18,8 @@ export function BackButton({ onPress, transparent = false }: Props) {
     <AnimatedPressable
       onPress={onPress}
       style={[styles.btn, transparent && styles.transparentBtn, pressStyle]}
-      onPressIn={() => { pressScale.value = withSpring(0.9, { duration: 120 }) }}
-      onPressOut={() => { pressScale.value = withSpring(1, { duration: 120 }) }}
+      onPressIn={() => { pressScale.set(withSpring(0.9, { duration: 120 })) }}
+      onPressOut={() => { pressScale.set(withSpring(1, { duration: 120 })) }}
       hitSlop={8}
     >
       <ArrowLeft size={18} color={Colors.inkPrimary} strokeWidth={2} />

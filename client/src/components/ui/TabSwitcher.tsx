@@ -51,8 +51,8 @@ function TabButton({ item, isActive, isUnderline, fill, onPress }: {
         pressStyle,
       ]}
       onPress={onPress}
-      onPressIn={() => { pressScale.value = withSpring(0.95, { duration: 120 }) }}
-      onPressOut={() => { pressScale.value = withSpring(1, { duration: 120 }) }}
+      onPressIn={() => { pressScale.set(withSpring(0.95, { duration: 120 })) }}
+      onPressOut={() => { pressScale.set(withSpring(1, { duration: 120 })) }}
     >
       {item.icon?.(isActive)}
       {item.count != null ? (

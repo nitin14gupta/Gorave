@@ -86,7 +86,7 @@ export default function DashboardPage() {
                   />
                   <YAxis allowDecimals={false} tick={{ fill: c.muted, fontSize: 12 }} axisLine={false} tickLine={false} />
                   <Tooltip
-                    contentStyle={{ background: c.surface, border: '1px solid #2A2A2A', borderRadius: 10, fontSize: 13, fontFamily: 'var(--font-satoshi)' }}
+                    contentStyle={{ background: c.surface, border: '1px solid var(--c-divider)', borderRadius: 10, fontSize: 13, fontFamily: 'var(--font-satoshi)' }}
                     labelFormatter={(label) => formatDayTick(String(label))}
                     labelStyle={{ color: c.textSecondary }}
                   />
@@ -121,7 +121,7 @@ export default function DashboardPage() {
                   />
                   <Tooltip
                     cursor={{ fill: 'var(--c-glass)' }}
-                    contentStyle={{ background: c.surface, border: '1px solid #2A2A2A', borderRadius: 10, fontSize: 13, fontFamily: 'var(--font-satoshi)' }}
+                    contentStyle={{ background: c.surface, border: '1px solid var(--c-divider)', borderRadius: 10, fontSize: 13, fontFamily: 'var(--font-satoshi)' }}
                     labelStyle={{ color: c.textSecondary }}
                     formatter={(value) => [value, 'Events']}
                   />
@@ -152,7 +152,7 @@ export default function DashboardPage() {
                     tickFormatter={(v: number) => `₹${v}`}
                   />
                   <Tooltip
-                    contentStyle={{ background: c.surface, border: '1px solid #2A2A2A', borderRadius: 10, fontSize: 13, fontFamily: 'var(--font-satoshi)' }}
+                    contentStyle={{ background: c.surface, border: '1px solid var(--c-divider)', borderRadius: 10, fontSize: 13, fontFamily: 'var(--font-satoshi)' }}
                     labelFormatter={(label) => formatDayTick(String(label))}
                     labelStyle={{ color: c.textSecondary }}
                     formatter={(value) => [`₹${Number(value).toLocaleString()}`, undefined]}
@@ -186,7 +186,7 @@ export default function DashboardPage() {
                   />
                   <Tooltip
                     cursor={{ fill: 'var(--c-glass)' }}
-                    contentStyle={{ background: c.surface, border: '1px solid #2A2A2A', borderRadius: 10, fontSize: 13, fontFamily: 'var(--font-satoshi)' }}
+                    contentStyle={{ background: c.surface, border: '1px solid var(--c-divider)', borderRadius: 10, fontSize: 13, fontFamily: 'var(--font-satoshi)' }}
                     labelStyle={{ color: c.textSecondary }}
                     formatter={(value) => [value, 'Tickets']}
                   />

@@ -21,8 +21,8 @@ function InterestChipBase({ label, emoji, selected, bordered, onPress }: Props) 
   return (
     <AnimatedPressable
       onPress={() => { hSelection(); onPress() }}
-      onPressIn={() => { pressScale.value = withSpring(0.95, { duration: 120 }) }}
-      onPressOut={() => { pressScale.value = withSpring(1, { duration: 120 }) }}
+      onPressIn={() => { pressScale.set(withSpring(0.95, { duration: 120 })) }}
+      onPressOut={() => { pressScale.set(withSpring(1, { duration: 120 })) }}
       style={[
         styles.chip,
         selected ? styles.selected : styles.unselected,
