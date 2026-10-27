@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated'
-import { LinearGradient } from 'expo-linear-gradient'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { Check, LogOut, Send } from 'lucide-react-native'
@@ -65,9 +64,9 @@ export default function RequestSentScreen() {
     <Animated.View style={[s.root, { paddingTop: insets.top + 40, paddingBottom: insets.bottom + 20 }, fadeStyle]}>
       <View style={{ flex: 1, alignItems: 'center' }}>
         <View style={s.badgeShadow}>
-          <LinearGradient colors={[Colors.brandOrange, Colors.brandCoral]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={s.badge}>
-            <Send size={40} color={Colors.white} strokeWidth={2} />
-          </LinearGradient>
+          <View style={[s.badge, { backgroundColor: Colors.inkPrimary }]}>
+            <Send size={40} color={Colors.background} strokeWidth={2} />
+          </View>
         </View>
 
         <View style={{ alignItems: 'center', width: '100%' }}>
@@ -128,7 +127,7 @@ const s = StyleSheet.create({
   card: { alignSelf: 'stretch', marginTop: 28, padding: 18, borderRadius: 22, backgroundColor: Colors.surface, borderWidth: 1, borderColor: Colors.divider },
   step: { flexDirection: 'row', gap: 12 },
   dot: { width: 22, height: 22, borderRadius: 11, backgroundColor: Colors.surfaceMuted, alignItems: 'center', justifyContent: 'center' },
-  dotDone: { backgroundColor: Colors.brandOrange },
+  dotDone: { backgroundColor: Colors.inkPrimary },
   line: { width: 2, flex: 1, minHeight: 18, backgroundColor: Colors.surfaceMuted, marginTop: 4 },
   stepTitle: { fontFamily: FontFamily.bodySemiBold, fontSize: 15, color: Colors.inkPrimary },
   stepSub: { fontFamily: FontFamily.bodyRegular, fontSize: 12, color: Colors.inkSecondary, marginTop: 1 },

@@ -1,6 +1,6 @@
 import { View, Text, StyleSheet } from 'react-native'
 import { router } from 'expo-router'
-import { OutlineButton, StepDots, PrimaryButton, Screen, GlowLinesBackground } from '@/components/ui'
+import { OutlineButton, StepDots, PrimaryButton, Screen } from '@/components/ui'
 import { CityPickerView } from '@/components/profile/CityPickerView'
 import { useLocation } from '@/hooks/useLocation'
 import { Colors, FontFamily, Spacing } from '@/constants'
@@ -13,7 +13,6 @@ export default function LocationScreen() {
 
   return (
     <View style={styles.rootWrap}>
-      <GlowLinesBackground />
       <Screen transparent>
         <CityPickerView
           embedded

@@ -52,13 +52,13 @@ const styles = StyleSheet.create({
     paddingVertical: 7,
   },
   chipSelected: {
-    backgroundColor: withOpacity(Colors.accentGold, 0.12),
-    borderColor: Colors.accentGold,
+    backgroundColor: withOpacity(Colors.inkPrimary, 0.1),
+    borderColor: Colors.inkPrimary,
   },
   chipText: {
     fontFamily: FontFamily.bodyMedium,
     fontSize: 13,
     color: Colors.inkSecondary,
   },
-  chipTextSelected: { color: Colors.accentGold },
+  chipTextSelected: { color: Colors.inkPrimary },
 })

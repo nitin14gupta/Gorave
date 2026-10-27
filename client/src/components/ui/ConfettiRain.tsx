@@ -28,8 +28,8 @@ export function ConfettiRain() {
 
     pieces.forEach((p, i) => {
       const t = setTimeout(() => {
-        const a = Animated.loop(
-          Animated.parallel([
+        // One shower: each piece falls once (no looping animations).
+        const a = Animated.parallel([
             Animated.timing(p.fall, { toValue: 1, duration: p.duration, useNativeDriver: true }),
             Animated.sequence([
               Animated.timing(p.wobble, { toValue: 1, duration: p.duration / 2, useNativeDriver: true }),
@@ -37,7 +37,6 @@ export function ConfettiRain() {
             ]),
             Animated.timing(p.spin, { toValue: 1, duration: p.duration, useNativeDriver: true }),
           ])
-        )
         anims.push(a)
         a.start()
       }, i * 60)

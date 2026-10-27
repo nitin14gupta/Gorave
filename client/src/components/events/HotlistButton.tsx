@@ -43,8 +43,8 @@ export function HotlistButton({
       <Animated.View style={animatedStyle}>
         <Bookmark
           size={size}
-          color={hotlisted ? Colors.brandOrange : Colors.inkPrimary}
-          fill={hotlisted ? Colors.brandOrange : 'transparent'}
+          color={Colors.inkPrimary}
+          fill={hotlisted ? Colors.inkPrimary : 'transparent'}
           strokeWidth={2}
         />
       </Animated.View>

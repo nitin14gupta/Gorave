@@ -212,9 +212,8 @@ export default function UserProfileScreen() {
     !theySentVibe &&
     profile.vibe_status === "cooldown" &&
     !!profile.cooldown_until;
-  const age = profile.dob
-    ? Math.floor((Date.now() - new Date(profile.dob).getTime()) / 3.156e10)
-    : null;
+  // The server sends age, never someone else's date of birth.
+  const age = profile.age ?? null;
 
   const hostBadgeName = profile.host_badges?.[0] ?? null;
   const hostBadgeImage = hostBadgeName ? HOST_BADGE_IMAGES[hostBadgeName] : null;

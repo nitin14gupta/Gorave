@@ -61,5 +61,5 @@ const s = StyleSheet.create({
   },
   emoji: { fontSize: 14 },
   count: { fontFamily: FontFamily.bodySemiBold, fontSize: 11, color: withOpacity(Colors.inkPrimary, 0.6) },
-  countMine: { color: withOpacity(Colors.brandOrange, 0.9) },
+  countMine: { color: Colors.inkPrimary },
 })

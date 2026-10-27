@@ -65,7 +65,7 @@ export function EventAddressCard({ event, eventId, onPressAddress }: Props) {
               return (
                 <React.Fragment key={st}>
                   <View style={[s.step, on && s.stepOn]}>
-                    {i < stage && <Check size={11} color={Colors.brandOrange} strokeWidth={3} />}
+                    {i < stage && <Check size={11} color={Colors.inkPrimary} strokeWidth={3} />}
                     <Text style={[s.stepText, on && s.stepTextOn]}>{st}</Text>
                   </View>
                   {i < steps.length - 1 && <Text style={s.arrow}>→</Text>}
@@ -127,9 +127,9 @@ const s = StyleSheet.create({
   sub: { fontFamily: FontFamily.bodyRegular, fontSize: 13, color: Colors.inkSecondary, marginTop: 2 },
   steps: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6, marginTop: 12 },
   step: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 999, backgroundColor: Colors.elevated },
-  stepOn: { backgroundColor: withOpacity(Colors.brandOrange, 0.15) },
+  stepOn: { backgroundColor: withOpacity(Colors.inkPrimary, 0.12) },
   stepText: { fontFamily: FontFamily.bodySemiBold, fontSize: 11, color: Colors.inkSecondary },
-  stepTextOn: { color: Colors.brandOrange },
+  stepTextOn: { color: Colors.inkPrimary },
   arrow: { color: Colors.inkDisabled, fontSize: 12 },
   unlockRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
   unlocked: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 9, paddingVertical: 4, borderRadius: 999, backgroundColor: withOpacity(Colors.accentGreen, 0.15) },

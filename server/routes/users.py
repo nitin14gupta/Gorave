@@ -100,6 +100,12 @@ def compute_host_badges(hosted_events_count: int) -> list[str]:
     return []
 
 
+_PRIVATE_FIELDS = (
+    'phone', 'dob', 'lat', 'lng', 'host_agreement_signature_url',
+    'host_agreement_accepted_at', 'safety_agreement_accepted_at', 'name_changed_at',
+)
+
+
 def _fetch_user(cur, user_id: str, viewer_id: str) -> dict | None:
     cur.execute(
         _USER_SELECT + "WHERE u.id = %s GROUP BY u.id",
@@ -129,6 +135,14 @@ def _fetch_user(cur, user_id: str, viewer_id: str) -> dict | None:
     d["is_blocked_by_me"] = bool(d.get("is_blocked_by_me", False))
     d["is_blocked_by_them"] = bool(d.get("is_blocked_by_them", False))
     d["username"] = d.get("username")
+    dob = d.get("dob")
+    d["age"] = _age_from_dob(dob) if dob else None
+    # Other people only get the public profile. Your phone, exact birthday,
+    # location and signed host agreement stay between you and Gorave: the
+    # viewer gets your age (for the profile line), never the date itself.
+    if user_id != viewer_id:
+        for private in _PRIVATE_FIELDS:
+            d[private] = None
     return d
 
 

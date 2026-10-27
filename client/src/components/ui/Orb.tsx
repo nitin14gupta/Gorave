@@ -8,9 +8,6 @@ import Animated, {
   useAnimatedStyle,
   useFrameCallback,
   withTiming,
-  withRepeat,
-  withSequence,
-  Easing,
 } from 'react-native-reanimated'
 
 // Opaque pearlescent sphere — full saturated color across the whole body
@@ -157,32 +154,22 @@ export function Orb({ width, height, intensity, isActive = false }: OrbProps) {
   const iTime = useSharedValue(0)
   const drift = useSharedValue(0)
   const activeAnim = useSharedValue(isActive ? 1 : 0)
-  const breathe = useSharedValue(0)
 
   useEffect(() => {
     activeAnim.value = withTiming(isActive ? 1 : 0, { duration: 600 })
   }, [isActive])
 
-  useEffect(() => {
-    // slow idle breathing, always on — the sphere should never look frozen
-    breathe.value = withRepeat(
-      withSequence(
-        withTiming(1, { duration: 2600, easing: Easing.inOut(Easing.ease) }),
-        withTiming(0, { duration: 2600, easing: Easing.inOut(Easing.ease) }),
-      ),
-      -1,
-      true,
-    )
-  }, [])
+  // No idle breathing (no decorative loops): the orb rests still and only
+  // comes alive while recording or playing.
 
   useFrameCallback((frameInfo) => {
     const dt = (frameInfo.timeSincePreviousFrame ?? 16) * 0.001
-    iTime.value += dt
+    iTime.value += dt * activeAnim.value
     // Integrated over time rather than derived as iTime * rate — that would
     // make the pattern jump the instant the rate changes (e.g. on tapping
     // record), since a fast-changing multiplier times a large elapsed time
     // is discontinuous. Accumulating it frame-by-frame keeps it continuous.
-    drift.value += dt * (0.15 + activeAnim.value * 0.85)
+    drift.value += dt * activeAnim.value
   })
 
   const uniforms = useDerivedValue(() => ({
@@ -194,7 +181,7 @@ export function Orb({ width, height, intensity, isActive = false }: OrbProps) {
   }))
 
   const scaleStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: 1 + breathe.value * 0.035 + intensity.value * activeAnim.value * 0.05 }],
+    transform: [{ scale: 1 + intensity.value * activeAnim.value * 0.05 }],
   }))
 
   return (

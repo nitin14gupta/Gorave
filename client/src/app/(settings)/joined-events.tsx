@@ -38,9 +38,9 @@ export default function JoinedEventsScreen() {
             style={s.ticketFooter}
             onPress={() => router.push(`/(events)/${item.id}/ticket` as any)}
           >
-            <QrCode size={15} color={Colors.brandOrange} strokeWidth={2} />
+            <QrCode size={15} color={Colors.inkPrimary} strokeWidth={2} />
             <Text style={s.ticketFooterText} numberOfLines={1}>View Ticket</Text>
-            <ChevronRight size={15} color={Colors.brandOrange} strokeWidth={2} />
+            <ChevronRight size={15} color={Colors.inkPrimary} strokeWidth={2} />
           </Pressable>
         ) : (
           <View style={s.expiredFooter}>
@@ -111,7 +111,7 @@ const s = StyleSheet.create({
     gap: 6,
     paddingVertical: 12,
   },
-  ticketFooterText: { fontFamily: FontFamily.bodySemiBold, fontSize: 13, color: Colors.brandOrange },
+  ticketFooterText: { fontFamily: FontFamily.bodySemiBold, fontSize: 13, color: Colors.inkPrimary },
 
   expiredFooter: {
     flexDirection: 'row',

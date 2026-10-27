@@ -182,7 +182,9 @@ class PhotoResponse(BaseModel):
 
 class UserResponse(BaseModel):
     id: str
-    phone: str
+    # Only filled in on your own profile; None when viewing someone else.
+    phone: Optional[str] = None
+    age: Optional[int] = None
     name: Optional[str] = None
     username: Optional[str] = None
     gender: Optional[str] = None

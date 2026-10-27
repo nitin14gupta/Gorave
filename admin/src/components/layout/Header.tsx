@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { useSidebarStore } from '@/store/sidebarStore'
 import { useCommandPaletteStore } from '@/store/commandPaletteStore'
 import { useAdminAuth } from '@/hooks/useAdminAuth'
+import { ThemeToggle } from './ThemeToggle'
 
 export function Header() {
   const setMobileOpen = useSidebarStore((s) => s.setMobileOpen)
@@ -35,6 +36,8 @@ export function Header() {
         <kbd className="ml-2 rounded border border-divider px-1.5 py-0.5 font-mono text-[10px] text-ink-disabled">⌘K</kbd>
       </button>
 
+      <div className="flex items-center gap-2">
+      <ThemeToggle />
       <DropdownMenu.Root>
         <DropdownMenu.Trigger asChild>
           <button className="flex items-center gap-2 rounded-full px-2 py-1.5 font-sans text-sm font-semibold text-ink-primary hover:bg-surface">
@@ -60,6 +63,7 @@ export function Header() {
           </DropdownMenu.Content>
         </DropdownMenu.Portal>
       </DropdownMenu.Root>
+      </div>
     </header>
   )
 }

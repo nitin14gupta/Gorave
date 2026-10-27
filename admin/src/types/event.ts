@@ -21,6 +21,16 @@ export interface EventListItem {
   host_id: string
   host_name: string | null
   attendee_count: number
+  city: string | null
+  area: string | null
+  join_mode: 'instant' | 'request'
+  women_pct: number | null
+  pending_requests: number
+}
+
+export interface CityCount {
+  city: string
+  count: number
 }
 
 export interface EventDetailInfo {
@@ -39,10 +49,19 @@ export interface EventDetailInfo {
   location_lng: number | null
   city: string | null
   area: string | null
+  /** Exact address, private to the host and confirmed guests in the app */
+  address_line1: string | null
+  address_line2: string | null
+  pincode: string | null
   join_mode: 'instant' | 'request'
   /** % of spots for women; null = open crowd */
   women_pct: number | null
   pending_requests: number
+  /** Who's in now (going, plus held waitlist offers), by gender bucket */
+  gender_counts: { women: number; men: number; other: number }
+  /** The host's split in seats; null = open crowd */
+  quota: { women: number; men: number; open: number } | null
+  ratio_left: { women_pct: number; women_left: number; men_left: number; open_left: number } | null
   price_inr: number
   is_free: boolean
   platform_fee_inr: number
@@ -72,6 +91,21 @@ export interface EventAttendeeRow {
   gender?: string | null
 }
 
+export interface JoinRequestRow {
+  id: string
+  status: 'requested' | 'declined' | 'expired'
+  requested_at: string | null
+  decided_at: string | null
+  request_count: number
+  user_id: string
+  name: string | null
+  phone: string
+  gender: string | null
+  city: string | null
+  age: number | null
+  avatar: string | null
+}
+
 export interface EventReviewRow {
   id: string
   rating: number
@@ -94,6 +128,7 @@ export interface EventDetailResponse {
   event: EventDetailInfo
   attendees: EventAttendeeRow[]
   waitlist: EventAttendeeRow[]
+  requests: JoinRequestRow[]
   reviews: EventReviewRow[]
   reports: EventReportRow[]
 }

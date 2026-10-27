@@ -1,6 +1,6 @@
 import { View, StyleSheet } from 'react-native'
 import { router } from 'expo-router'
-import { OutlineButton, StepDots, PrimaryButton, TextLinkButton, Screen, GlowLinesBackground } from '@/components/ui'
+import { OutlineButton, StepDots, PrimaryButton, TextLinkButton, Screen } from '@/components/ui'
 import { VoiceIntroRecorder } from '@/components/profile/VoiceIntroRecorder'
 import { useVoice } from '@/hooks/useVoice'
 import { Colors, Spacing } from '@/constants'
@@ -10,7 +10,6 @@ export default function VoiceScreen() {
 
   return (
     <View style={styles.rootWrap}>
-      <GlowLinesBackground />
       <Screen transparent>
       <VoiceIntroRecorder voice={voice} heading={'Let people hear\nthe real you'} />
 

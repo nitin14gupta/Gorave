@@ -53,29 +53,34 @@ export function MediaViewerModal({ visible, items, initialIndex = 0, onClose }: 
   const [activeIndex, setActiveIndex] = useState(initialIndex)
   const listRef = useRef<FlatList>(null)
 
+  const openKey = visible ? initialIndex : -1
+  const [seenKey, setSeenKey] = useState(openKey)
+  if (seenKey !== openKey) {
+    setSeenKey(openKey)
+    if (visible) setActiveIndex(initialIndex)
+  }
   useEffect(() => {
     if (visible) {
-      translateY.value = 0
-      bgOpacity.value = 1
-      setActiveIndex(initialIndex)
+      translateY.set(0)
+      bgOpacity.set(1)
     }
-  }, [visible, initialIndex])
+  }, [visible, initialIndex, translateY, bgOpacity])
 
   const pan = Gesture.Pan()
     .activeOffsetY([15, Infinity])
     .onUpdate(e => {
       if (e.translationY > 0) {
-        translateY.value = e.translationY
-        bgOpacity.value = Math.max(1 - e.translationY / 280, 0.15)
+        translateY.set(e.translationY)
+        bgOpacity.set(Math.max(1 - e.translationY / 280, 0.15))
       }
     })
     .onEnd(e => {
       if (e.translationY > 80 || e.velocityY > 800) {
-        translateY.value = withTiming(H, { duration: 220 })
-        bgOpacity.value = withTiming(0, { duration: 200 }, () => runOnJS(onClose)())
+        translateY.set(withTiming(H, { duration: 220 }))
+        bgOpacity.set(withTiming(0, { duration: 200 }, () => runOnJS(onClose)()))
       } else {
-        translateY.value = withTiming(0)
-        bgOpacity.value = withTiming(1)
+        translateY.set(withTiming(0))
+        bgOpacity.set(withTiming(1))
       }
     })
 

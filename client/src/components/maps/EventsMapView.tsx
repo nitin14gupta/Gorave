@@ -1,7 +1,7 @@
 import React, { useMemo, useEffect, useRef, useState } from 'react'
 import { StyleSheet, View } from 'react-native'
 import { Image } from 'expo-image'
-import Animated, { useSharedValue, useAnimatedStyle, withRepeat, withTiming, Easing } from 'react-native-reanimated'
+import Animated, { useSharedValue, useAnimatedStyle, withTiming, Easing } from 'react-native-reanimated'
 import MapView, { Marker, type Region } from 'react-native-maps'
 import Svg, { Defs, RadialGradient, Stop, Path } from 'react-native-svg'
 import {
@@ -348,27 +348,11 @@ function HeadingCone({ heading }: { heading: number }) {
   )
 }
 
+// "You are here": a dot with a soft still ring (no pulsing dots).
 function PulsatingDot() {
-  const anim = useSharedValue(0)
-
-  useEffect(() => {
-    anim.value = withRepeat(
-      withTiming(1, { duration: 2500, easing: Easing.out(Easing.ease) }),
-      -1,
-      false
-    )
-  }, [])
-
-  const rStyle = useAnimatedStyle(() => {
-    return {
-      transform: [{ scale: 1 + anim.value * 2.5 }],
-      opacity: 1 - anim.value,
-    }
-  })
-
   return (
     <>
-      <Animated.View style={[c.pulseRing, rStyle]} />
+      <View style={[c.pulseRing, { transform: [{ scale: 2.2 }], opacity: 0.35 }]} />
       <View style={c.userDot} />
     </>
   )

@@ -79,15 +79,15 @@ const ConvRow = memo(function ConvRow({ conv, onPress, onLongPress, onAvatarPres
       onPress={onPress}
       onLongPress={onLongPress}
       style={[s.convRow, isLocked && s.convRowLocked, rowPressStyle]}
-      onPressIn={() => { rowScale.value = withSpring(0.985, { duration: 120 }) }}
-      onPressOut={() => { rowScale.value = withSpring(1, { duration: 120 }) }}
+      onPressIn={() => { rowScale.set(withSpring(0.985, { duration: 120 })) }}
+      onPressOut={() => { rowScale.set(withSpring(1, { duration: 120 })) }}
     >
       <AnimatedPressable
         onPress={onAvatarPress}
         hitSlop={4}
         style={[s.convAvatarWrap, avatarPressStyle]}
-        onPressIn={() => { avatarScale.value = withSpring(0.92, { duration: 120 }) }}
-        onPressOut={() => { avatarScale.value = withSpring(1, { duration: 120 }) }}
+        onPressIn={() => { avatarScale.set(withSpring(0.92, { duration: 120 })) }}
+        onPressOut={() => { avatarScale.set(withSpring(1, { duration: 120 })) }}
       >
         {isDeleted ? (
           <View style={[s.convAvatar, s.convAvatarDeleted]}>
@@ -266,8 +266,8 @@ export default function ChatScreen() {
           <AnimatedPressable
             style={[s.inboxBtn, inboxPressStyle]}
             onPress={() => { hTap(); setInboxOpen(true) }}
-            onPressIn={() => { inboxScale.value = withSpring(0.9, { duration: 120 }) }}
-            onPressOut={() => { inboxScale.value = withSpring(1, { duration: 120 }) }}
+            onPressIn={() => { inboxScale.set(withSpring(0.9, { duration: 120 })) }}
+            onPressOut={() => { inboxScale.set(withSpring(1, { duration: 120 })) }}
           >
             <Flame size={22} color={Colors.inkPrimary} fill={Colors.inkPrimary} />
             {pendingVibes.length > 0 && (
@@ -282,8 +282,8 @@ export default function ChatScreen() {
         <AnimatedPressable
           style={[s.searchBar, searchBarPressStyle]}
           onPress={() => { hTap(); setSearchOpen(true) }}
-          onPressIn={() => { searchBarScale.value = withSpring(0.98, { duration: 120 }) }}
-          onPressOut={() => { searchBarScale.value = withSpring(1, { duration: 120 }) }}
+          onPressIn={() => { searchBarScale.set(withSpring(0.98, { duration: 120 })) }}
+          onPressOut={() => { searchBarScale.set(withSpring(1, { duration: 120 })) }}
         >
           <Search size={16} color={Colors.glassTextDisabled} strokeWidth={1.8} />
           <Text style={s.searchBarText}>Search conversations...</Text>
@@ -294,7 +294,7 @@ export default function ChatScreen() {
         <ConvListSkeleton />
       ) : error ? (
         <View style={s.center}>
-          <Text style={s.emptyTitle}>Couldn't load messages</Text>
+          <Text style={s.emptyTitle}>Couldn&apos;t load messages</Text>
           <Text style={s.emptySub}>Check your connection and try again</Text>
           <Pressable onPress={() => { hTap(); refresh() }} style={s.retryBtn} android_ripple={null}>
             <RefreshCw size={16} color={Colors.inkPrimary} strokeWidth={1.8} />

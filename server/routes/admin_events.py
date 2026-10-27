@@ -4,10 +4,14 @@ from db.config import get_db
 from middleware.admin_auth import get_current_admin, require_admin_role
 from routes.events import _cancel_event_and_refund
 from utils.admin_audit import log_action
+from utils import seats
 
 router = APIRouter(prefix="/admin/events", tags=["admin-events"])
 
 VALID_STATUSES = {"active", "upcoming", "past", "cancelled"}
+VALID_JOIN_MODES = {"instant", "request"}
+# open = no crowd rule; women / men = single-gender; mixed = a ratio between.
+VALID_CROWDS = {"open", "women", "men", "mixed"}
 
 # "Active" = ongoing right now (between date_time and end_time) — distinct from
 # "upcoming" (hasn't started) and "past" (has ended). Events without an
@@ -36,12 +40,19 @@ def _normalize_cover_photos(row: dict) -> dict:
 def list_events(
     status: str | None = Query(default=None),
     q: str | None = Query(default=None),
+    city: str | None = Query(default=None),
+    join_mode: str | None = Query(default=None),
+    crowd: str | None = Query(default=None),
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=25, ge=1, le=100),
     current_admin: dict = Depends(get_current_admin),
 ):
     if status and status not in VALID_STATUSES:
         raise HTTPException(status_code=422, detail=f"status must be one of {sorted(VALID_STATUSES)}")
+    if join_mode and join_mode not in VALID_JOIN_MODES:
+        raise HTTPException(status_code=422, detail=f"join_mode must be one of {sorted(VALID_JOIN_MODES)}")
+    if crowd and crowd not in VALID_CROWDS:
+        raise HTTPException(status_code=422, detail=f"crowd must be one of {sorted(VALID_CROWDS)}")
 
     offset = (page - 1) * page_size
     filters = []
@@ -61,6 +72,21 @@ def list_events(
         like = f"%{q}%"
         params.extend([like, like])
 
+    if city:
+        filters.append("e.city = %s")
+        params.append(city)
+    if join_mode:
+        filters.append("e.join_mode = %s")
+        params.append(join_mode)
+    if crowd == "open":
+        filters.append("e.women_pct IS NULL")
+    elif crowd == "women":
+        filters.append("e.women_pct >= 100")
+    elif crowd == "men":
+        filters.append("e.women_pct <= 0")
+    elif crowd == "mixed":
+        filters.append("e.women_pct > 0 AND e.women_pct < 100")
+
     where = f"WHERE {' AND '.join(filters)}" if filters else ""
     # Soonest-first for what's still ahead, most-recent-first for what's done.
     order = "e.date_time ASC" if status in ("active", "upcoming") else "e.date_time DESC"
@@ -76,8 +102,10 @@ def list_events(
                 (e.price_inr = 0) AS is_free, e.platform_fee_inr, e.host_commission_inr,
                 e.platform_profit_inr, e.is_cancelled, e.capacity, e.spots_left,
                 e.created_at, COALESCE(e.cover_photos, '[]'::jsonb) AS cover_photos,
+                e.city, e.area, e.join_mode, e.women_pct,
                 u.id::text AS host_id, u.name AS host_name,
-                (SELECT COUNT(*) FROM event_attendees ea WHERE ea.event_id = e.id AND ea.status = 'going')::int AS attendee_count
+                (SELECT COUNT(*) FROM event_attendees ea WHERE ea.event_id = e.id AND ea.status = 'going')::int AS attendee_count,
+                (SELECT COUNT(*) FROM event_attendees ea WHERE ea.event_id = e.id AND ea.status = 'requested')::int AS pending_requests
             FROM events e
             JOIN users u ON u.id = e.host_id
             {where}
@@ -91,6 +119,18 @@ def list_events(
     return {"items": rows, "total": total, "page": page, "page_size": page_size}
 
 
+# ── GET /admin/events/meta/cities ─────────────────────────────────────────────
+
+@router.get("/meta/cities")
+def list_event_cities(current_admin: dict = Depends(get_current_admin)):
+    """Cities that have at least one event, for the events list filter."""
+    with get_db() as (cur, _):
+        cur.execute(
+            "SELECT e.city, COUNT(*)::int AS count FROM events e WHERE e.city IS NOT NULL GROUP BY e.city ORDER BY count DESC, e.city"
+        )
+        return {"items": cur.fetchall()}
+
+
 # ── GET /admin/events/{event_id} ──────────────────────────────────────────────
 
 @router.get("/{event_id}")
@@ -102,7 +142,8 @@ def get_event_detail(event_id: str, current_admin: dict = Depends(get_current_ad
                 e.id::text, e.title, e.description, e.rules, e.event_type,
                 e.date_time, e.end_time, e.capacity, e.spots_left, e.age_restriction,
                 e.location_name, e.location_lat, e.location_lng,
-                e.city, e.area, e.join_mode, e.women_pct,
+                e.city, e.area, e.address_line1, e.address_line2, e.pincode,
+                e.join_mode, e.women_pct,
                 (SELECT COUNT(*) FROM event_attendees r WHERE r.event_id = e.id AND r.status = 'requested')::int AS pending_requests,
                 e.price_inr, (e.price_inr = 0) AS is_free,
                 e.platform_fee_inr, e.host_commission_inr, e.platform_profit_inr,
@@ -120,6 +161,12 @@ def get_event_detail(event_id: str, current_admin: dict = Depends(get_current_ad
         if not event:
             raise HTTPException(status_code=404, detail="Event not found")
         event = _normalize_cover_photos(dict(event))
+
+        # Crowd mix: who's in by gender and what the host's split allows.
+        counts = seats.seat_counts(cur, event_id)
+        event["gender_counts"] = {"women": counts[seats.WOMEN], "men": counts[seats.MEN], "other": counts[seats.OTHER]}
+        event["quota"] = seats.quota_split(event["capacity"], event["women_pct"])
+        event["ratio_left"] = seats.ratio_left(event["capacity"], event["women_pct"], counts)
 
         cur.execute(
             """
@@ -146,6 +193,22 @@ def get_event_detail(event_id: str, current_admin: dict = Depends(get_current_ad
             (event_id,),
         )
         waitlist = cur.fetchall()
+
+        # Join requests (free events): waiting, turned down, or timed out.
+        cur.execute(
+            """
+            SELECT ea.id::text, ea.status, ea.requested_at, ea.decided_at, ea.request_count,
+                   u.id::text AS user_id, u.name, u.phone, u.gender, u.city,
+                   DATE_PART('year', AGE(u.dob))::int AS age,
+                   (SELECT p.url FROM user_photos p WHERE p.user_id = u.id ORDER BY p.position LIMIT 1) AS avatar
+            FROM event_attendees ea
+            JOIN users u ON u.id = ea.user_id
+            WHERE ea.event_id = %s::uuid AND ea.status IN ('requested', 'declined', 'expired')
+            ORDER BY (ea.status = 'requested') DESC, ea.requested_at DESC NULLS LAST
+            """,
+            (event_id,),
+        )
+        requests = cur.fetchall()
 
         cur.execute(
             """
@@ -175,6 +238,7 @@ def get_event_detail(event_id: str, current_admin: dict = Depends(get_current_ad
         "event": event,
         "attendees": attendees,
         "waitlist": waitlist,
+        "requests": requests,
         "reviews": reviews,
         "reports": reports,
     }

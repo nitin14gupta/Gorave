@@ -7,7 +7,10 @@ export interface TokenResponse {
 
 export interface UserResponse {
   id: string
-  phone: string
+  /** Only on your own profile. */
+  phone: string | null
+  /** Computed by the server; other people never get your date of birth. */
+  age?: number | null
   name: string | null
   username: string | null
   dob: string | null

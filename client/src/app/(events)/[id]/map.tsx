@@ -1,12 +1,10 @@
 import { useCallback, useState } from 'react'
 import { View, Text, StyleSheet, Pressable } from 'react-native'
-import { LinearGradient } from 'expo-linear-gradient'
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { ArrowLeft } from 'lucide-react-native'
 import { EventsMapView } from '@/components/maps'
 import { EventListCard } from '@/components/ui/EventListCard'
-import { HomeGradientBackdrop } from '@/components/home/HomeGradientBackdrop'
 import { useLiveLocation } from '@/hooks/useLiveLocation'
 import { BrandedLoader } from '@/components/ui'
 import ApiService, { type EventDetail } from '@/api/apiService'
@@ -59,23 +57,6 @@ export default function EventMapScreen() {
         onEventSelect={() => {}}
       />
 
-      {/* Aurora glow — same subtle overlay as the events map, top plus both side edges */}
-      <HomeGradientBackdrop opacity={0.28} height={insets.top + 110} />
-      <LinearGradient
-        colors={[Colors.inkPrimary, "transparent"]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 0 }}
-        style={s.leftGlow}
-        pointerEvents="none"
-      />
-      <LinearGradient
-        colors={[Colors.inkPrimary, "transparent"]}
-        start={{ x: 1, y: 0 }}
-        end={{ x: 0, y: 0 }}
-        style={s.rightGlow}
-        pointerEvents="none"
-      />
-
       <View style={[s.header, { top: insets.top + 8 }]}>
         <Pressable style={s.iconBtn} onPress={() => router.back()} hitSlop={10}>
           <ArrowLeft size={22} color={Colors.inkPrimary} strokeWidth={2} />
@@ -97,8 +78,6 @@ const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: Colors.background },
   center: { alignItems: 'center', justifyContent: 'center', gap: 16 },
   errorText: { fontFamily: FontFamily.bodyMedium, fontSize: 15, color: Colors.inkSecondary },
-  leftGlow: { position: 'absolute', top: 0, bottom: 0, left: 0, width: 90, opacity: 0.28 },
-  rightGlow: { position: 'absolute', top: 0, bottom: 0, right: 0, width: 90, opacity: 0.28 },
   header: {
     position: 'absolute',
     left: 16,

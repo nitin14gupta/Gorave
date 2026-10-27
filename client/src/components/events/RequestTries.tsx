@@ -8,7 +8,7 @@ export function RequestTries({ left, max = 2, note }: { left: number; max?: numb
     <View>
       <View style={s.row}>
         {Array.from({ length: max }, (_, i) => (
-          <View key={i} style={[s.seg, { backgroundColor: i < left ? Colors.brandOrange : Colors.surfaceMuted }]} />
+          <View key={i} style={[s.seg, { backgroundColor: i < left ? Colors.inkPrimary : Colors.surfaceMuted }]} />
         ))}
         <Text style={s.text}>{left} of {max} requests left for this event</Text>
       </View>

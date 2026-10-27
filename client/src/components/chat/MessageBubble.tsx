@@ -149,7 +149,7 @@ const VoiceBubble = forwardRef<VoiceBubbleHandle, {
 
 const vb = StyleSheet.create({
   bubble: { flexDirection: 'row', alignItems: 'center', gap: 10, borderRadius: 18, paddingHorizontal: 12, paddingVertical: 12, minWidth: 200 },
-  bubbleMine: { backgroundColor: withOpacity(Colors.brandOrange, 0.18), borderWidth: 1, borderColor: withOpacity(Colors.brandOrange, 0.35), borderBottomRightRadius: 4 },
+  bubbleMine: { backgroundColor: withOpacity(Colors.inkPrimary, 0.14), borderWidth: 1, borderColor: 'transparent', borderBottomRightRadius: 4 },
   bubbleTheirs: { backgroundColor: Colors.elevated, borderWidth: 1, borderColor: Colors.surfaceMuted, borderBottomLeftRadius: 4 },
   playBtn: { width: 32, height: 32, borderRadius: 16, backgroundColor: Colors.inkPrimary, alignItems: 'center', justifyContent: 'center' },
   waveWrap: { flex: 1, overflow: 'hidden' },
@@ -687,7 +687,7 @@ const sel = StyleSheet.create({
     borderWidth: 1.5, borderColor: withOpacity(Colors.inkPrimary, 0.3),
     alignItems: 'center', justifyContent: 'center',
   },
-  checkboxChecked: { backgroundColor: Colors.brandOrange, borderColor: Colors.brandOrange },
+  checkboxChecked: { backgroundColor: Colors.inkPrimary, borderColor: Colors.inkPrimary },
   content: { flex: 1 },
 })
 
@@ -706,7 +706,7 @@ const s = StyleSheet.create({
   bubbleLink: { padding: 0, overflow: 'hidden' },
   bubbleTheirs: { backgroundColor: Colors.elevated, borderBottomLeftRadius: 4 },
   bubbleMine: {
-    backgroundColor: withOpacity(Colors.brandOrange, 0.22),
+    backgroundColor: withOpacity(Colors.inkPrimary, 0.14),
     borderBottomRightRadius: 4,
   },
   bubblePending: { opacity: 0.6 },

@@ -169,7 +169,7 @@ export default function EventDetailScreen() {
       </ConfirmSheet>
       <ConfirmSheet
         visible={d.lastRequestConfirm}
-        icon={<TriangleAlert size={28} color={Colors.accentGold} strokeWidth={2} />}
+        icon={<TriangleAlert size={28} color={Colors.inkPrimary} strokeWidth={2} />}
         title="This is your last chance"
         body="You withdrew once already. If you withdraw again, you won’t be able to request this event."
         confirmLabel="Send my last request"

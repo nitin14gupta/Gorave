@@ -1,48 +1,51 @@
 @import "tailwindcss";
 
+/* Every colour is a variable with a dark and a light value. Dark is the
+   app's Noir look; light is the website's cream paper. The <html> element's
+   data-theme attribute picks one (set before paint, see layout.tsx). */
 @theme inline {
   /* Surfaces */
-  --color-background: #111111;
-  --color-surface: #1A1A1A;
-  --color-elevated: #222222;
-  --color-surface-muted: #2A2A2A;
-  --color-sheet: #141414;
-  --color-deep-background: #0D0D0D;
-  --color-near-black: #0A0A0A;
+  --color-background: var(--c-background);
+  --color-surface: var(--c-surface);
+  --color-elevated: var(--c-elevated);
+  --color-surface-muted: var(--c-surface-muted);
+  --color-sheet: var(--c-sheet);
+  --color-deep-background: var(--c-deep);
+  --color-near-black: var(--c-near-black);
 
   /* Brand (reserved for primary CTA / logo / active nav / active chip ONLY) */
   --color-brand-orange: #FF6B35;
   --color-brand-coral: #FF3864;
 
   /* Accents */
-  --color-accent-gold: #FFB830;
-  --color-accent-green: #00C48C;
+  --color-accent-gold: var(--c-gold);
+  --color-accent-green: var(--c-green);
   --color-online-green: #4CAF50;
-  --color-destructive: #E5484D;
+  --color-destructive: var(--c-destructive);
   --color-notification-red: #FF3040;
-  --color-offer-green: #00C896;
-  --color-map-radar-blue: #9FC4FF;
+  --color-offer-green: var(--c-green);
+  --color-map-radar-blue: var(--c-blue);
 
   /* Ink / text */
-  --color-ink-primary: #F5F0EB;
-  --color-ink-secondary: #A09890;
-  --color-ink-disabled: #4A4540;
-  --color-ink-on-accent: #111111;
+  --color-ink-primary: var(--c-ink);
+  --color-ink-secondary: var(--c-ink-2);
+  --color-ink-disabled: var(--c-ink-3);
+  --color-ink-on-accent: #FFFFFF;
 
   /* Structure */
-  --color-divider: #2A2A2A;
-  --color-gray-border: #333333;
-  --color-skeleton-base: #1E1E1E;
-  --color-skeleton-highlight: #2E2E2E;
+  --color-divider: var(--c-divider);
+  --color-gray-border: var(--c-border);
+  --color-skeleton-base: var(--c-skeleton);
+  --color-skeleton-highlight: var(--c-skeleton-hi);
 
   /* Glass (over modals, dropdowns, overlays) */
-  --color-glass-surface: rgba(255, 255, 255, 0.1);
-  --color-glass-surface-active: rgba(255, 255, 255, 0.25);
-  --color-glass-border: rgba(255, 255, 255, 0.2);
-  --color-glass-border-thick: rgba(255, 255, 255, 0.3);
-  --color-glass-text-secondary: rgba(255, 255, 255, 0.7);
-  --color-glass-text-disabled: rgba(255, 255, 255, 0.5);
-  --color-glass-overlay: rgba(0, 0, 0, 0.6);
+  --color-glass-surface: var(--c-glass);
+  --color-glass-surface-active: var(--c-glass-active);
+  --color-glass-border: var(--c-glass-border);
+  --color-glass-border-thick: var(--c-glass-border-thick);
+  --color-glass-text-secondary: var(--c-glass-text);
+  --color-glass-text-disabled: var(--c-glass-text-off);
+  --color-glass-overlay: var(--c-overlay);
 
   /* Fonts */
   --font-sans: var(--font-satoshi), ui-sans-serif, system-ui, sans-serif;
@@ -51,12 +54,71 @@
   /* Radius (pill uses Tailwind's built-in rounded-full = 9999px) */
   --radius-input: 12px;
   --radius-input-lg: 14px;
-  --radius-card: 16px;
+  --radius-card: 18px;
   --radius-modal: 28px;
 }
 
+/* Dark (default): the app's Noir, a touch deeper with clearer layers. */
 :root {
+  color-scheme: dark;
+  --c-background: #0E0E0E;
+  --c-surface: #171717;
+  --c-elevated: #1F1F1F;
+  --c-surface-muted: #262626;
+  --c-sheet: #131313;
+  --c-deep: #0A0A0A;
+  --c-near-black: #080808;
+  --c-gold: #FFB830;
+  --c-green: #00C48C;
+  --c-blue: #9FC4FF;
+  --c-destructive: #E5484D;
+  --c-ink: #F5F0EB;
+  --c-ink-2: #A09890;
+  --c-ink-3: #5C5650;
+  --c-divider: #262626;
+  --c-border: #333333;
+  --c-skeleton: #1C1C1C;
+  --c-skeleton-hi: #2A2A2A;
+  --c-glass: rgba(255, 255, 255, 0.08);
+  --c-glass-active: rgba(255, 255, 255, 0.2);
+  --c-glass-border: rgba(255, 255, 255, 0.14);
+  --c-glass-border-thick: rgba(255, 255, 255, 0.24);
+  --c-glass-text: rgba(255, 255, 255, 0.7);
+  --c-glass-text-off: rgba(255, 255, 255, 0.5);
+  --c-overlay: rgba(0, 0, 0, 0.6);
+  --c-shadow: 0 1px 0 rgba(255, 255, 255, 0.03) inset, 0 18px 40px -24px rgba(0, 0, 0, 0.8);
   --gradient-brand: linear-gradient(135deg, var(--color-brand-orange) 0%, var(--color-brand-coral) 100%);
+}
+
+/* Light: the website's cream paper. */
+:root[data-theme="light"] {
+  color-scheme: light;
+  --c-background: #F1E9D8; /* cream */
+  --c-surface: #FBF7EF;    /* paper */
+  --c-elevated: #FFFFFF;
+  --c-surface-muted: #E9E1CF; /* tile */
+  --c-sheet: #FBF7EF;
+  --c-deep: #E4D5B8;
+  --c-near-black: #171310;
+  --c-gold: #C98A00;
+  --c-green: #00936A;
+  --c-blue: #3D6FB5;
+  --c-destructive: #D93A40;
+  --c-ink: #171310;
+  --c-ink-2: #4A423A;
+  --c-ink-3: #8A8076;
+  --c-divider: #DDD2BE;
+  --c-border: #CFC1A6;
+  --c-skeleton: #E9E1CF;
+  --c-skeleton-hi: #F3ECDE;
+  --c-glass: rgba(23, 19, 16, 0.05);
+  --c-glass-active: rgba(23, 19, 16, 0.12);
+  --c-glass-border: rgba(23, 19, 16, 0.12);
+  --c-glass-border-thick: rgba(23, 19, 16, 0.2);
+  --c-glass-text: rgba(23, 19, 16, 0.7);
+  --c-glass-text-off: rgba(23, 19, 16, 0.5);
+  --c-overlay: rgba(23, 19, 16, 0.35);
+  --c-shadow: 0 1px 0 rgba(23, 19, 16, 0.04), 0 24px 60px -28px rgba(23, 19, 16, 0.28);
 }
 
 @utility bg-brand-gradient {
@@ -64,11 +126,35 @@
 }
 
 @utility glow-shadow {
-  box-shadow: 0 4px 16px 0 rgba(0, 0, 0, 0.35), 0 1px 2px 0 rgba(0, 0, 0, 0.2);
+  box-shadow: var(--c-shadow);
 }
 
 @utility glow-shadow-brand {
-  box-shadow: 0 4px 20px 0 rgba(255, 107, 53, 0.35);
+  box-shadow: 0 14px 30px -12px rgba(255, 56, 100, 0.6);
+}
+
+/* The website's primary button: the brand gradient with a one-shot shine on
+   hover (never loops on its own). */
+@keyframes shine {
+  from { background-position: -200% 0, 0 0; }
+  to { background-position: 200% 0, 0 0; }
+}
+@utility btn-shine {
+  background-image:
+    linear-gradient(110deg, transparent 30%, rgb(255 255 255 / 0.45) 50%, transparent 70%),
+    var(--gradient-brand);
+  background-size: 200% 100%, 100% 100%;
+  background-position: -200% 0, 0 0;
+  &:hover {
+    animation: shine 1.1s cubic-bezier(0.2, 0.8, 0.2, 1) 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
 }
 
 body {

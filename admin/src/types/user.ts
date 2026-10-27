@@ -7,6 +7,7 @@ export interface UserListItem {
   phone: string
   country_code: string
   city: string | null
+  gender?: string | null
   wallet_balance: number
   is_active: boolean
   is_deleted: boolean
@@ -49,6 +50,12 @@ export interface UserProfile {
   locked_at: string | null
   locked_by: string | null
   is_host_onboarding_finished: boolean
+  safety_agreement_accepted_at: string | null
+  host_agreement_accepted_at: string | null
+  /** Whether a host agreement signature is on file (the image itself isn't sent) */
+  has_signature: boolean
+  emergency_contacts_count: number
+  host_avg_rating: number | null
   created_at: string
   updated_at: string
   host_badges: HostBadgeTier[]
@@ -86,6 +93,11 @@ export interface HostedEvent {
   capacity: number
   created_at: string
   cover_photos: { url: string; position: number }[]
+  city: string | null
+  area: string | null
+  join_mode: 'instant' | 'request'
+  women_pct: number | null
+  pending_requests: number
 }
 
 export interface JoinedEvent {
@@ -97,6 +109,29 @@ export interface JoinedEvent {
   status: string
   joined_at: string
   checked_in_at: string | null
+  requested_at: string | null
+  decided_at: string | null
+}
+
+export interface UserReviewRow {
+  id: string
+  rating: number
+  body: string | null
+  created_at: string
+  event_id: string
+  event_title: string
+  /** The reviewer (on reviews received) */
+  user_id?: string
+  name?: string | null
+}
+
+export interface MessageReportRow {
+  id: string
+  reason: string
+  description: string | null
+  created_at: string
+  reporter_name: string | null
+  reporter_id: string
 }
 
 export interface WalletTransactionRow {
@@ -162,4 +197,7 @@ export interface UserDetail {
   app_feedback: AppFeedbackRow[]
   vibe_requests_sent: VibeRequestRow[]
   vibe_requests_received: VibeRequestRow[]
+  reviews_received: UserReviewRow[]
+  reviews_given: UserReviewRow[]
+  message_reports_received: MessageReportRow[]
 }

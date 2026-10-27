@@ -29,7 +29,7 @@ const s = StyleSheet.create({
   badgeChip: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: withOpacity(Colors.accentGold, 0.12),
+    backgroundColor: withOpacity(Colors.inkPrimary, 0.08),
     borderRadius: Radius.pill,
     paddingHorizontal: 12,
     paddingVertical: 6,
@@ -37,6 +37,6 @@ const s = StyleSheet.create({
   badgeText: {
     fontFamily: FontFamily.bodyMedium,
     fontSize: 13,
-    color: Colors.accentGold,
+    color: Colors.inkPrimary,
   },
 });

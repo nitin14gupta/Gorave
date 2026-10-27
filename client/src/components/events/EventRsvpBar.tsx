@@ -464,7 +464,7 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: Colors.divider,
   },
   requestsChipText: { flex: 1, fontFamily: FontFamily.bodySemiBold, fontSize: 14, color: Colors.inkPrimary },
-  requestsDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: Colors.brandOrange },
+  requestsDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: Colors.inkPrimary },
   requestHint: { fontFamily: FontFamily.bodyRegular, fontSize: 12, color: Colors.inkSecondary, marginBottom: 2 },
   waitTitle: { fontFamily: FontFamily.bodySemiBold, fontSize: 15, color: Colors.inkPrimary },
   waitSub: { fontFamily: FontFamily.bodyRegular, fontSize: 12, color: Colors.inkSecondary, marginTop: 2 },

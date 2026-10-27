@@ -12,7 +12,7 @@ interface StatCardProps {
 export function StatCard({ label, value, icon: Icon, className }: StatCardProps) {
   return (
     <Card className={cn('flex items-center gap-4 p-5', className)}>
-      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-input bg-surface-muted text-brand-orange">
+      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-input bg-surface-muted text-ink-primary">
         <Icon className="h-5 w-5" />
       </div>
       <div>

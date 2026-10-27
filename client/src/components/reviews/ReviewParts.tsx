@@ -262,8 +262,8 @@ const c = StyleSheet.create({
     maxWidth: 180,
   },
   filterChipActive: {
-    backgroundColor: Colors.brandOrange,
-    borderColor: Colors.brandOrange,
+    backgroundColor: Colors.inkPrimary,
+    borderColor: Colors.inkPrimary,
   },
   filterChipText: {
     fontFamily: FontFamily.bodyMedium,

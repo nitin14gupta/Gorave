@@ -188,7 +188,7 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
   previewCardActive: {
-    shadowColor: Colors.brandOrange,
+    shadowColor: '#000',
     shadowOpacity: 0.4,
     shadowRadius: 14,
   },

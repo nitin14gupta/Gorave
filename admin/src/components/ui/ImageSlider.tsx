@@ -4,9 +4,12 @@ import { useState } from 'react'
 import { ChevronLeft, ChevronRight, ImageOff } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
+// Event posters are 4:5 in the app; profile photos are square.
+const ASPECT = { '1:1': 'aspect-square', '16:9': 'aspect-video', '4:5': 'aspect-[4/5]' } as const
+
 interface ImageSliderProps {
   photos: { url: string; position: number }[]
-  aspect?: '1:1' | '16:9'
+  aspect?: '1:1' | '16:9' | '4:5'
   className?: string
   /** Called when the image itself (not the prev/next/dot controls) is clicked. */
   onImageClick?: () => void
@@ -21,7 +24,7 @@ export function ImageSlider({ photos, aspect = '16:9', className, onImageClick }
       <div
         className={cn(
           'flex items-center justify-center rounded-card border border-dashed border-divider bg-surface text-ink-secondary',
-          aspect === '1:1' ? 'aspect-square' : 'aspect-video',
+          ASPECT[aspect],
           className,
         )}
       >
@@ -36,7 +39,7 @@ export function ImageSlider({ photos, aspect = '16:9', className, onImageClick }
 
   return (
     <div
-      className={cn('relative overflow-hidden rounded-card border border-divider', aspect === '1:1' ? 'aspect-square' : 'aspect-video', className)}
+      className={cn('relative overflow-hidden rounded-card border border-divider bg-surface-muted', ASPECT[aspect], className)}
     >
       <div
         className={cn('flex h-full transition-transform duration-300 ease-out', onImageClick && 'cursor-pointer')}

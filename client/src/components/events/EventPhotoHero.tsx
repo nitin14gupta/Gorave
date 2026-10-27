@@ -133,8 +133,8 @@ export function EventHeroControls({ event, isHost, topInset, onBack, onShare, on
               <Animated.View style={bookmarkStyle}>
                 <Bookmark
                   size={20}
-                  color={hotlisted ? Colors.brandOrange : Colors.inkPrimary}
-                  fill={hotlisted ? Colors.brandOrange : 'transparent'}
+                  color={Colors.inkPrimary}
+                  fill={hotlisted ? Colors.inkPrimary : 'transparent'}
                   strokeWidth={2}
                 />
               </Animated.View>

@@ -1,10 +1,8 @@
-import { forwardRef, useEffect } from 'react'
+import { forwardRef } from 'react'
 import { View, Text, StyleSheet } from 'react-native'
 import { Image } from 'expo-image'
 import { LinearGradient } from 'expo-linear-gradient'
-import Animated, {
-  useSharedValue, useAnimatedStyle, withRepeat, withTiming, Easing,
-} from 'react-native-reanimated'
+import Animated from 'react-native-reanimated'
 import { FontFamily, Logo, Colors, EVENT_IMAGE_ASPECT } from '@/constants'
 import { FLYER_THEMES, type FlyerTheme } from '@/constants/flyerThemes'
 import { useFlyerThemeStore } from '@/store/flyerThemeStore'
@@ -12,7 +10,6 @@ import { StyledQr } from '@/components/ui/QrCard'
 import { SHARE_CARD_WIDTH, SHARE_CARD_HEIGHT } from './EventShareCard'
 
 const RSVP_STRIP = Array(12).fill('RSVP ON GORAVE').join('   ')
-const MARQUEE_DURATION = 9000
 
 function StripLabel({ theme }: { theme: FlyerTheme }) {
   return (
@@ -25,20 +22,8 @@ function StripLabel({ theme }: { theme: FlyerTheme }) {
 }
 
 function SideStrip({ theme, reverse }: { theme: FlyerTheme; reverse?: boolean }) {
-  const translateY = useSharedValue(reverse ? -SHARE_CARD_HEIGHT : 0)
-
-  useEffect(() => {
-    translateY.value = reverse ? -SHARE_CARD_HEIGHT : 0
-    translateY.value = withRepeat(
-      withTiming(reverse ? 0 : -SHARE_CARD_HEIGHT, { duration: MARQUEE_DURATION, easing: Easing.linear }),
-      -1,
-      false,
-    )
-  }, [reverse])
-
-  const colStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: translateY.value }],
-  }))
+  // Still, not a marquee (no decorative loops).
+  const colStyle = { transform: [{ translateY: reverse ? -SHARE_CARD_HEIGHT / 2 : 0 }] }
 
   return (
     <View style={s.sideStrip}>

@@ -81,12 +81,11 @@ function EventShareSheetCore({ onClose, eventId, title, dateTimeLabel, coverUrl,
   const qrRef = useRef<View>(null)
   const flyerRef = useRef<View>(null)
   // No cover photo → drop the photo-based slides, keep only the QR one
-  const refs = coverUrl ? [classicRef, qrRef, flyerRef] : [qrRef]
   const slideTitles = coverUrl ? ['The poster', 'The QR code', 'The flyer'] : ['The QR code']
   const slideSubs = coverUrl
     ? ['Your event photo with the date. Great for stories.', 'Anyone can scan it to open the event.', 'Pick a colour, it carries the link and the host.']
     : ['Anyone can scan it to open the event.']
-  const slideCount = refs.length
+  const slideCount = coverUrl ? 3 : 1
 
   const message = `I'm going to "${title}"! 🎉\n${dateTimeLabel}\n${shareUrl}`
 
@@ -108,14 +107,15 @@ function EventShareSheetCore({ onClose, eventId, title, dateTimeLabel, coverUrl,
     setActiveIndex(Math.max(0, Math.min(slideCount - 1, idx)))
   }
 
-  const activeRef = refs[activeIndex] ?? refs[0]
-  const isFlyerSlide = !!coverUrl && activeIndex === refs.length - 1
+  // Which slide's view to capture; read only inside the handlers below.
+  const activeRefFor = () => (coverUrl ? [classicRef, qrRef, flyerRef][activeIndex] ?? classicRef : qrRef)
+  const isFlyerSlide = !!coverUrl && activeIndex === slideCount - 1
   const flyerThemeKey = useFlyerThemeStore(st => st.themeKey)
   const setFlyerThemeKey = useFlyerThemeStore(st => st.setThemeKey)
 
   const handleShare = async () => {
     hTap()
-    const result = await shareImage(activeRef, { message, title })
+    const result = await shareImage(activeRefFor(), { message, title })
     if (!result.shared && result.error === 'failed') showPill("Couldn't share, try again", 'error')
   }
 
@@ -133,6 +133,7 @@ function EventShareSheetCore({ onClose, eventId, title, dateTimeLabel, coverUrl,
 
   const handleSave = async () => {
     hTap()
+    const activeRef = activeRefFor()
     if (!activeRef.current) return
     try {
       const { status } = await requestMediaPermissionsAsync()

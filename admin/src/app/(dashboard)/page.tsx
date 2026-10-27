@@ -120,7 +120,7 @@ export default function DashboardPage() {
                     tickFormatter={(v: string) => v.replace(/_/g, ' ')}
                   />
                   <Tooltip
-                    cursor={{ fill: 'rgba(255,107,53,0.12)' }}
+                    cursor={{ fill: 'var(--c-glass)' }}
                     contentStyle={{ background: c.surface, border: '1px solid #2A2A2A', borderRadius: 10, fontSize: 13, fontFamily: 'var(--font-satoshi)' }}
                     labelStyle={{ color: c.textSecondary }}
                     formatter={(value) => [value, 'Events']}
@@ -185,7 +185,7 @@ export default function DashboardPage() {
                     tickFormatter={(v: string) => v[0].toUpperCase() + v.slice(1)}
                   />
                   <Tooltip
-                    cursor={{ fill: 'rgba(255,107,53,0.12)' }}
+                    cursor={{ fill: 'var(--c-glass)' }}
                     contentStyle={{ background: c.surface, border: '1px solid #2A2A2A', borderRadius: 10, fontSize: 13, fontFamily: 'var(--font-satoshi)' }}
                     labelStyle={{ color: c.textSecondary }}
                     formatter={(value) => [value, 'Tickets']}

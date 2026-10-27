@@ -189,7 +189,7 @@ function PayoutStepBase({
             )}
 
             <View style={s.tipRow}>
-              <Info size={15} color={Colors.accentGold} strokeWidth={2} />
+              <Info size={15} color={Colors.inkSecondary} strokeWidth={2} />
               <Text style={s.tipText}>
                 UPI is quick to set up, but has per-transaction limits. As your events start
                 earning more, you'll want to switch to a bank account for uncapped payouts —
@@ -271,7 +271,7 @@ const s = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 8,
-    backgroundColor: withOpacity(Colors.accentGold, 0.1),
+    backgroundColor: withOpacity(Colors.inkPrimary, 0.06),
     borderRadius: Radius.card,
     padding: 12,
   },
@@ -279,7 +279,7 @@ const s = StyleSheet.create({
     flex: 1,
     fontFamily: FontFamily.bodyRegular,
     fontSize: 12.5,
-    color: Colors.accentGold,
+    color: Colors.inkSecondary,
     lineHeight: 18,
   },
 })

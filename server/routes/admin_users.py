@@ -22,7 +22,8 @@ class LockBody(BaseModel):
 def _with_purge_at(row: dict) -> dict:
     """Adds `purge_at` (deleted_at + PURGE_AFTER_DAYS) for deleted accounts —
     the date the 30-day "email us to recover" window closes and
-    utils/account_purge.py hard-deletes the row for good."""
+    utils/account_purge.py erases their personal data for good (the row stays
+    as an anonymous tombstone so payments, refunds and reports are kept)."""
     row["purge_at"] = (row["deleted_at"] + timedelta(days=PURGE_AFTER_DAYS)) if row.get("deleted_at") else None
     return row
 
@@ -63,7 +64,7 @@ def list_users(
         cur.execute(
             f"""
             SELECT
-                u.id::text, u.name, u.username, u.phone, u.country_code, u.city,
+                u.id::text, u.name, u.username, u.phone, u.country_code, u.city, u.gender,
                 u.wallet_balance, u.is_active, COALESCE(u.is_deleted, FALSE) AS is_deleted,
                 u.deleted_at, COALESCE(u.is_locked, FALSE) AS is_locked, u.created_at,
                 (SELECT p.url FROM user_photos p WHERE p.user_id = u.id ORDER BY p.position LIMIT 1) AS avatar,
@@ -97,6 +98,9 @@ def get_user_detail(user_id: str, current_admin: dict = Depends(get_current_admi
                 profile_complete, is_active, COALESCE(is_deleted, FALSE) AS is_deleted,
                 deleted_at, COALESCE(is_locked, FALSE) AS is_locked, locked_reason,
                 locked_at, locked_by::text, is_host_onboarding_finished,
+                safety_agreement_accepted_at, host_agreement_accepted_at,
+                (host_agreement_signature_url IS NOT NULL) AS has_signature,
+                (SELECT COUNT(*) FROM emergency_contacts ec WHERE ec.user_id = users.id)::int AS emergency_contacts_count,
                 created_at, updated_at
             FROM users WHERE id = %s::uuid
             """,
@@ -116,8 +120,9 @@ def get_user_detail(user_id: str, current_admin: dict = Depends(get_current_admi
         cur.execute(
             """
             SELECT id::text, title, event_type, date_time, price_inr, is_cancelled,
-                   spots_left, capacity, created_at,
-                   COALESCE(cover_photos, '[]'::jsonb) AS cover_photos
+                   spots_left, capacity, created_at, city, area, join_mode, women_pct,
+                   COALESCE(cover_photos, '[]'::jsonb) AS cover_photos,
+                   (SELECT COUNT(*) FROM event_attendees r WHERE r.event_id = events.id AND r.status = 'requested')::int AS pending_requests
             FROM events WHERE host_id = %s::uuid ORDER BY date_time DESC LIMIT 50
             """,
             (user_id,),
@@ -128,7 +133,7 @@ def get_user_detail(user_id: str, current_admin: dict = Depends(get_current_admi
         cur.execute(
             """
             SELECT e.id::text, e.title, e.event_type, e.date_time, e.price_inr,
-                   ea.status, ea.joined_at, ea.checked_in_at
+                   ea.status, ea.joined_at, ea.checked_in_at, ea.requested_at, ea.decided_at
             FROM event_attendees ea
             JOIN events e ON e.id = ea.event_id
             WHERE ea.user_id = %s::uuid ORDER BY ea.joined_at DESC LIMIT 50
@@ -186,6 +191,44 @@ def get_user_detail(user_id: str, current_admin: dict = Depends(get_current_admi
         )
         blocked_the_user = cur.fetchall()
 
+        # Reviews of nights they hosted, and reviews they wrote.
+        cur.execute(
+            """
+            SELECT er.id::text, er.rating, er.body, er.created_at, e.id::text AS event_id, e.title AS event_title,
+                   u.id::text AS user_id, u.name
+            FROM event_reviews er JOIN events e ON e.id = er.event_id JOIN users u ON u.id = er.reviewer_id
+            WHERE e.host_id = %s::uuid ORDER BY er.created_at DESC LIMIT 50
+            """,
+            (user_id,),
+        )
+        reviews_received = cur.fetchall()
+        user["host_avg_rating"] = (
+            round(sum(r["rating"] for r in reviews_received) / len(reviews_received), 1) if reviews_received else None
+        )
+
+        cur.execute(
+            """
+            SELECT er.id::text, er.rating, er.body, er.created_at, e.id::text AS event_id, e.title AS event_title
+            FROM event_reviews er JOIN events e ON e.id = er.event_id
+            WHERE er.reviewer_id = %s::uuid ORDER BY er.created_at DESC LIMIT 50
+            """,
+            (user_id,),
+        )
+        reviews_given = cur.fetchall()
+
+        # Messages of theirs that others reported.
+        cur.execute(
+            """
+            SELECT mr.id::text, mr.reason, mr.description, mr.created_at, u.name AS reporter_name, u.id::text AS reporter_id
+            FROM message_reports mr
+            JOIN messages m ON m.id = mr.message_id
+            JOIN users u ON u.id = mr.reporter_id
+            WHERE m.sender_id = %s::uuid ORDER BY mr.created_at DESC LIMIT 50
+            """,
+            (user_id,),
+        )
+        message_reports_received = cur.fetchall()
+
         cur.execute(
             "SELECT id::text, topic, message, status, created_at FROM support_requests WHERE user_id = %s::uuid ORDER BY created_at DESC",
             (user_id,),
@@ -232,6 +275,9 @@ def get_user_detail(user_id: str, current_admin: dict = Depends(get_current_admi
         "app_feedback": app_feedback,
         "vibe_requests_sent": vibe_requests_sent,
         "vibe_requests_received": vibe_requests_received,
+        "reviews_received": reviews_received,
+        "reviews_given": reviews_given,
+        "message_reports_received": message_reports_received,
     }
 
 

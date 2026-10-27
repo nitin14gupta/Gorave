@@ -8,7 +8,7 @@ export function DetailStatsRow({ children }: { children: React.ReactNode }) {
 export function DetailStat({ label, value, icon: Icon }: { label: string; value: string; icon: LucideIcon }) {
   return (
     <Card className="flex items-center gap-3 p-4">
-      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-input bg-surface-muted text-brand-orange">
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-input bg-surface-muted text-ink-primary">
         <Icon className="h-4 w-4" />
       </div>
       <div>

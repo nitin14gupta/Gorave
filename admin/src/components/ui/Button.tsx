@@ -10,13 +10,15 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
+        // Same as the website's primary button: brand gradient, one-shot shine on hover.
         primary:
-          'bg-brand-gradient text-ink-on-accent glow-shadow-brand hover:brightness-110 disabled:bg-divider disabled:bg-none disabled:text-ink-disabled disabled:shadow-none',
+          'btn-shine font-bold text-white glow-shadow-brand hover:-translate-y-px disabled:bg-divider disabled:bg-none disabled:text-ink-disabled disabled:shadow-none',
+        // The website's ghost button: a soft inset ring, no fill.
         secondary:
-          'border border-divider bg-elevated text-ink-primary hover:bg-surface-muted disabled:opacity-50',
+          'bg-transparent text-ink-primary shadow-[inset_0_0_0_1.5px_var(--c-glass-border-thick)] hover:bg-glass-surface disabled:opacity-50',
         ghost: 'bg-transparent text-ink-secondary hover:bg-surface hover:text-ink-primary disabled:opacity-50',
-        destructive: 'bg-destructive text-ink-primary hover:brightness-110 disabled:opacity-50',
-        outline: 'border-[1.5px] border-divider bg-transparent text-ink-primary hover:bg-surface disabled:opacity-50',
+        destructive: 'bg-destructive font-bold text-white hover:brightness-110 disabled:opacity-50',
+        outline: 'bg-transparent text-ink-primary shadow-[inset_0_0_0_1.5px_var(--c-glass-border-thick)] hover:bg-glass-surface disabled:opacity-50',
       },
       size: {
         sm: 'h-9 px-4 text-sm',

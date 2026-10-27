@@ -36,11 +36,20 @@ export function DateTimePickerSheet({
   maximumDate,
 }: SheetProps) {
   const insets = useSafeAreaInsets()
-  const slideAnim = useRef(new Animated.Value(400)).current
+  // Lazy state (not a ref) so nothing reads a ref during render.
+  const [slideAnim] = useState(() => new Animated.Value(400))
   const [localDate, setLocalDate] = useState(value)
+  // Follow a new incoming value while rendering instead of in an effect.
+  // Keyed on the time and on opening, as the old effect was ([visible, value]),
+  // but by getTime() so a fresh Date with the same time never re-renders.
+  const valueKey = `${visible}|${value.getTime()}`
+  const [seenValue, setSeenValue] = useState(valueKey)
+  if (seenValue !== valueKey) {
+    setSeenValue(valueKey)
+    setLocalDate(value)
+  }
 
   React.useEffect(() => {
-    setLocalDate(value)
     if (visible) {
       Animated.spring(slideAnim, {
         toValue: 0,

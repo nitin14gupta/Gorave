@@ -1,6 +1,6 @@
 import { View, StyleSheet } from 'react-native'
 import { router } from 'expo-router'
-import { OutlineButton, PrimaryButton, Screen, GlowLinesBackground } from '@/components/ui'
+import { OutlineButton, PrimaryButton, Screen } from '@/components/ui'
 import { VoiceIntroRecorder } from '@/components/profile/VoiceIntroRecorder'
 import { useVoice } from '@/hooks/useVoice'
 import { Colors, Spacing } from '@/constants'
@@ -11,7 +11,6 @@ export default function EditVoiceScreen() {
 
   return (
     <View style={styles.rootWrap}>
-      <GlowLinesBackground />
       <Screen transparent>
       <VoiceIntroRecorder voice={voice} heading={'Record a new\nvoice intro'} />
 

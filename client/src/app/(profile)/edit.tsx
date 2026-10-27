@@ -134,7 +134,7 @@ const styles = StyleSheet.create({
   saveBtn: {
     fontFamily: FontFamily.bodySemiBold,
     fontSize: 15,
-    color: Colors.brandOrange,
+    color: Colors.inkPrimary,
   },
   saveBtnDisabled: { color: Colors.inkDisabled },
   content: {
