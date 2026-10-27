@@ -184,7 +184,7 @@ function PayoutStepBase({
             {!checking && vpaError && (
               <View style={[s.vpaRow, s.vpaRowError]}>
                 <XCircle size={16} color={Colors.destructive} strokeWidth={2} />
-                <Text style={s.vpaRowErrorText}>Couldn't verify this UPI ID</Text>
+                <Text style={s.vpaRowErrorText}>Couldn&apos;t verify this UPI ID</Text>
               </View>
             )}
 
@@ -192,7 +192,7 @@ function PayoutStepBase({
               <Info size={15} color={Colors.inkSecondary} strokeWidth={2} />
               <Text style={s.tipText}>
                 UPI is quick to set up, but has per-transaction limits. As your events start
-                earning more, you'll want to switch to a bank account for uncapped payouts —
+                earning more, you&apos;ll want to switch to a bank account for uncapped payouts —
                 you can do that any time from settings.
               </Text>
             </View>

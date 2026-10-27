@@ -2,7 +2,8 @@
 
 import { useState } from 'react'
 import { useParams } from 'next/navigation'
-import { Lock, Unlock, Mic, ShieldAlert, Wallet, CalendarDays, MessageSquare, Heart, Banknote, Clock } from 'lucide-react'
+import Link from 'next/link'
+import { Lock, Unlock, Mic, ShieldAlert, Wallet, CalendarDays, MessageSquare, Heart, Banknote, Clock, Star } from 'lucide-react'
 import { useUserQuery, useUserPayoutQuery, useLockUserMutation, useUnlockUserMutation } from '@/hooks/useUsers'
 import { useTabParam } from '@/hooks/useTabParam'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
@@ -20,6 +21,7 @@ import { DetailStatsRow, DetailStat } from '@/components/ui/DetailStats'
 import { formatDate, formatInr, formatRelative } from '@/lib/formatters'
 import { useToast } from '@/hooks/useToast'
 import { useAdminAuth } from '@/hooks/useAdminAuth'
+import { crowdLabel } from '@/lib/crowd'
 import type { UserDetail } from '@/types/user'
 
 export default function UserDetailPage() {
@@ -118,7 +120,8 @@ export default function UserDetailPage() {
       <DetailStatsRow>
         <DetailStat label="Wallet balance" value={formatInr(user.wallet_balance)} icon={Wallet} />
         <DetailStat label="Hosted events" value={String(data.hosted_events.length)} icon={CalendarDays} />
-        <DetailStat label="Reports received" value={String(data.reports_received.length)} icon={ShieldAlert} />
+        <DetailStat label="Host rating" value={user.host_avg_rating ? `${user.host_avg_rating} ★ · ${data.reviews_received.length}` : '—'} icon={Star} />
+        <DetailStat label="Reports received" value={String(data.reports_received.length + data.message_reports_received.length)} icon={ShieldAlert} />
         <DetailStat label="Member since" value={formatRelative(user.created_at)} icon={Clock} />
       </DetailStatsRow>
 
@@ -126,6 +129,7 @@ export default function UserDetailPage() {
         <TabsList>
           <TabsTrigger value="profile">Profile</TabsTrigger>
           <TabsTrigger value="events">Events</TabsTrigger>
+          <TabsTrigger value="reviews">Reviews</TabsTrigger>
           <TabsTrigger value="wallet">Wallet</TabsTrigger>
           <TabsTrigger value="payout">Payout</TabsTrigger>
           <TabsTrigger value="safety">Safety</TabsTrigger>
@@ -138,6 +142,9 @@ export default function UserDetailPage() {
         </TabsContent>
         <TabsContent value="events">
           <EventsTab data={data} />
+        </TabsContent>
+        <TabsContent value="reviews">
+          <ReviewsTab data={data} />
         </TabsContent>
         <TabsContent value="wallet">
           <WalletTab data={data} />
@@ -207,6 +214,10 @@ function ProfileTab({ data }: { data: UserDetail }) {
           <Field label="Host tier" value={user.host_badges[0] ?? 'None'} />
           <Field label="Profile complete" value={user.profile_complete ? 'Yes' : 'No'} />
           <Field label="Host onboarding" value={user.is_host_onboarding_finished ? 'Finished' : 'Not finished'} />
+          <Field label="Host agreement" value={user.host_agreement_accepted_at ? `Signed ${formatDate(user.host_agreement_accepted_at)}${user.has_signature ? '' : ' (no signature on file)'}` : 'Not signed'} />
+          <Field label="Safety agreement" value={user.safety_agreement_accepted_at ? `Accepted ${formatDate(user.safety_agreement_accepted_at)}` : 'Not accepted'} />
+          <Field label="Emergency contacts" value={String(user.emergency_contacts_count)} />
+          <Field label="City" value={user.city ?? '—'} />
           <Field label="Joined" value={formatDate(user.created_at)} />
         </CardContent>
       </Card>
@@ -260,9 +271,20 @@ function ProfileTab({ data }: { data: UserDetail }) {
   )
 }
 
+const STATUS_LABEL: Record<string, string> = {
+  going: 'Going', waitlist: 'Waitlist', requested: 'Requested', declined: 'Declined', expired: 'Expired', cancelled: 'Cancelled',
+}
+
+function statusVariant(st: string): 'success' | 'warning' | 'danger' | 'neutral' {
+  if (st === 'going') return 'success'
+  if (st === 'requested' || st === 'waitlist') return 'warning'
+  if (st === 'declined') return 'danger'
+  return 'neutral'
+}
+
 function EventsTab({ data }: { data: UserDetail }) {
   return (
-    <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+    <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -272,13 +294,28 @@ function EventsTab({ data }: { data: UserDetail }) {
         <CardContent className="p-0">
           <Table>
             <THead>
-              <TR><TH>Title</TH><TH>Date</TH><TH>Price</TH><TH>Status</TH></TR>
+              <TR><TH>Event</TH><TH>Date</TH><TH>Crowd</TH><TH>Price</TH><TH>Status</TH></TR>
             </THead>
             <TBody>
               {data.hosted_events.map((e) => (
                 <TR key={e.id}>
-                  <TD>{e.title}</TD>
+                  <TD>
+                    <Link href={`/events/${e.id}`} className="flex items-center gap-2.5 hover:underline">
+                      {e.cover_photos[0] ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={e.cover_photos[0].url} alt="" className="h-10 w-8 shrink-0 rounded-md object-cover" />
+                      ) : <span className="h-10 w-8 shrink-0 rounded-md bg-surface-muted" />}
+                      <span>
+                        <span className="block">{e.title}</span>
+                        <span className="block text-xs text-ink-secondary">{[e.area, e.city].filter(Boolean).join(', ')}</span>
+                      </span>
+                    </Link>
+                  </TD>
                   <TD>{formatDate(e.date_time)}</TD>
+                  <TD>
+                    <span className="block">{crowdLabel(e.women_pct)}</span>
+                    {e.join_mode === 'request' ? <span className="block text-xs text-ink-secondary">Request · {e.pending_requests} waiting</span> : null}
+                  </TD>
                   <TD>{e.price_inr === 0 ? 'Free' : formatInr(e.price_inr)}</TD>
                   <TD>{e.is_cancelled ? <Badge variant="danger">Cancelled</Badge> : <Badge variant="success">Live</Badge>}</TD>
                 </TR>
@@ -290,24 +327,64 @@ function EventsTab({ data }: { data: UserDetail }) {
 
       <Card>
         <CardHeader>
-          <CardTitle>Joined ({data.joined_events.length})</CardTitle>
+          <CardTitle>Going, requested and waitlisted ({data.joined_events.length})</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           <Table>
             <THead>
-              <TR><TH>Title</TH><TH>Date</TH><TH>Status</TH></TR>
+              <TR><TH>Event</TH><TH>Date</TH><TH>Status</TH><TH>Checked in</TH></TR>
             </THead>
             <TBody>
               {data.joined_events.map((e) => (
                 <TR key={e.id}>
-                  <TD>{e.title}</TD>
+                  <TD><Link href={`/events/${e.id}`} className="hover:underline">{e.title}</Link></TD>
                   <TD>{formatDate(e.date_time)}</TD>
-                  <TD className="capitalize">{e.status}</TD>
+                  <TD>
+                    <Badge variant={statusVariant(e.status)}>{STATUS_LABEL[e.status] ?? e.status}</Badge>
+                    {e.status === 'requested' && e.requested_at ? <span className="mt-1 block text-xs text-ink-secondary">asked {formatDate(e.requested_at)}</span> : null}
+                    {(e.status === 'declined' || e.status === 'expired') && e.decided_at ? <span className="mt-1 block text-xs text-ink-secondary">{formatDate(e.decided_at)}</span> : null}
+                  </TD>
+                  <TD>{e.checked_in_at ? formatDate(e.checked_in_at) : '—'}</TD>
                 </TR>
               ))}
             </TBody>
           </Table>
         </CardContent>
+      </Card>
+    </div>
+  )
+}
+
+function ReviewsTab({ data }: { data: UserDetail }) {
+  const list = (rows: UserDetail['reviews_received'], showReviewer: boolean) =>
+    rows.length === 0 ? (
+      <p className="px-5 py-8 text-center text-sm text-ink-secondary">None yet</p>
+    ) : (
+      <div className="flex flex-col divide-y divide-divider">
+        {rows.map((r) => (
+          <div key={r.id} className="px-5 py-4">
+            <div className="flex items-center justify-between gap-3">
+              <Link href={`/events/${r.event_id}`} className="font-medium hover:underline">{r.event_title}</Link>
+              <Badge variant="neutral">{r.rating} ★</Badge>
+            </div>
+            {showReviewer && r.user_id ? (
+              <p className="mt-0.5 text-xs text-ink-secondary">by <Link href={`/users/${r.user_id}`} className="hover:underline">{r.name ?? 'Unnamed'}</Link></p>
+            ) : null}
+            {r.body ? <p className="mt-2 text-sm text-ink-secondary">{r.body}</p> : null}
+            <p className="mt-1 text-xs text-ink-disabled">{formatDate(r.created_at)}</p>
+          </div>
+        ))}
+      </div>
+    )
+  return (
+    <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+      <Card>
+        <CardHeader><CardTitle className="flex items-center gap-2"><Star className="h-4 w-4" /> On nights they hosted ({data.reviews_received.length})</CardTitle></CardHeader>
+        <CardContent className="p-0">{list(data.reviews_received, true)}</CardContent>
+      </Card>
+      <Card>
+        <CardHeader><CardTitle>They wrote ({data.reviews_given.length})</CardTitle></CardHeader>
+        <CardContent className="p-0">{list(data.reviews_given, false)}</CardContent>
       </Card>
     </div>
   )
@@ -402,7 +479,7 @@ function SafetyTab({ data }: { data: UserDetail }) {
             <THead><TR><TH>Reported by</TH><TH>Reason</TH><TH>Date</TH></TR></THead>
             <TBody>
               {data.reports_received.map((r) => (
-                <TR key={r.id}><TD>{r.reporter_name}</TD><TD>{r.reason}</TD><TD>{formatDate(r.created_at)}</TD></TR>
+                <TR key={r.id}><TD>{r.reporter_id ? <Link href={`/users/${r.reporter_id}`} className="hover:underline">{r.reporter_name}</Link> : r.reporter_name}</TD><TD>{r.reason}</TD><TD>{formatDate(r.created_at)}</TD></TR>
               ))}
             </TBody>
           </Table>
@@ -418,7 +495,28 @@ function SafetyTab({ data }: { data: UserDetail }) {
             <THead><TR><TH>Against</TH><TH>Reason</TH><TH>Date</TH></TR></THead>
             <TBody>
               {data.reports_filed.map((r) => (
-                <TR key={r.id}><TD>{r.reported_name}</TD><TD>{r.reason}</TD><TD>{formatDate(r.created_at)}</TD></TR>
+                <TR key={r.id}><TD>{r.reported_id ? <Link href={`/users/${r.reported_id}`} className="hover:underline">{r.reported_name}</Link> : r.reported_name}</TD><TD>{r.reason}</TD><TD>{formatDate(r.created_at)}</TD></TR>
+              ))}
+            </TBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Their messages reported ({data.message_reports_received.length})</CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          <Table>
+            <THead><TR><TH>Reported by</TH><TH>Reason</TH><TH>Details</TH><TH>Date</TH></TR></THead>
+            <TBody>
+              {data.message_reports_received.map((r) => (
+                <TR key={r.id}>
+                  <TD><Link href={`/users/${r.reporter_id}`} className="hover:underline">{r.reporter_name ?? 'Unnamed'}</Link></TD>
+                  <TD className="capitalize">{r.reason.replace(/_/g, ' ')}</TD>
+                  <TD>{r.description ?? '—'}</TD>
+                  <TD>{formatDate(r.created_at)}</TD>
+                </TR>
               ))}
             </TBody>
           </Table>

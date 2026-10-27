@@ -6,6 +6,7 @@ import { ChevronsLeft, ChevronsRight, X } from 'lucide-react'
 import { useSidebarStore } from '@/store/sidebarStore'
 import { cn } from '@/lib/utils'
 import { NAV_ITEMS } from './navItems'
+import { ThemeLogo } from '@/components/ui/ThemeLogo'
 
 function NavLinks({ collapsed, onNavigate }: { collapsed: boolean; onNavigate?: () => void }) {
   const pathname = usePathname()
@@ -53,8 +54,7 @@ export function Sidebar() {
         )}
       >
         <div className={cn('flex h-16 shrink-0 items-center gap-2 px-4', collapsed && 'justify-center px-0')}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/icon.png" alt="Gorave" className="h-8 w-8 shrink-0" />
+          <ThemeLogo className="h-8 w-8" />
           {!collapsed && (
             <span className="font-display text-xl font-bold text-ink-primary">Gorave Admin</span>
           )}
@@ -79,8 +79,7 @@ export function Sidebar() {
           <aside className="absolute left-0 top-0 flex h-full w-64 flex-col border-r border-divider bg-background">
             <div className="flex h-16 shrink-0 items-center justify-between px-4">
               <span className="flex items-center gap-2">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/icon.png" alt="Gorave" className="h-7 w-7 shrink-0" />
+                <ThemeLogo className="h-7 w-7" />
                 <span className="font-display text-xl font-bold text-ink-primary">Gorave Admin</span>
               </span>
               <button onClick={() => setMobileOpen(false)} className="rounded-full p-1.5 text-ink-secondary hover:bg-surface">

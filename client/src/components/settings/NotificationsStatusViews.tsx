@@ -8,7 +8,7 @@ export function NotificationsEmptyState() {
     <View style={s.center}>
       <Bell size={48} color={Colors.inkDisabled} strokeWidth={1.2} />
       <Text style={s.title}>No notifications yet</Text>
-      <Text style={s.sub}>We'll let you know when something happens</Text>
+      <Text style={s.sub}>We&apos;ll let you know when something happens</Text>
     </View>
   )
 }
@@ -17,7 +17,7 @@ export function NotificationsErrorState({ onRetry }: { onRetry: () => void }) {
   return (
     <View style={s.center}>
       <Bell size={48} color={Colors.inkDisabled} strokeWidth={1.2} />
-      <Text style={s.title}>Couldn't load notifications</Text>
+      <Text style={s.title}>Couldn&apos;t load notifications</Text>
       <Text style={s.sub}>Check your connection and try again</Text>
       <Pressable style={s.retryBtn} onPress={() => { hTap(); onRetry() }} android_ripple={null}>
         <RefreshCw size={16} color={Colors.inkPrimary} strokeWidth={1.8} />

@@ -322,3 +322,5 @@ const s = StyleSheet.create({
     letterSpacing: 0.5,
   },
 })
+
+EventFlyerShareCard.displayName = 'EventFlyerShareCard'

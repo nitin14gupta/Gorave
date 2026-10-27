@@ -100,7 +100,7 @@ export default function BlockedUsersScreen() {
         <View style={[s.center, { paddingTop: headerHeight }]}>
           <ShieldOff size={48} color={Colors.inkDisabled} strokeWidth={1.2} />
           <Text style={s.emptyTitle}>No one blocked</Text>
-          <Text style={s.emptySub}>Users you block won't appear in your feed or be able to contact you.</Text>
+          <Text style={s.emptySub}>Users you block won&apos;t appear in your feed or be able to contact you.</Text>
         </View>
       ) : (
         <FlatList

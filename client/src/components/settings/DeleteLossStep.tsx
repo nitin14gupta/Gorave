@@ -23,7 +23,7 @@ export function DeleteLossStep({ onContinue, onCancel }: Props) {
       <View style={styles.iconCircle}>
         <Trash2 size={36} color={Colors.destructive} strokeWidth={1.8} />
       </View>
-      <Text style={styles.title}>What you'll lose</Text>
+      <Text style={styles.title}>What you&apos;ll lose</Text>
       <Text style={styles.body}>
         Everything linked to your account will be permanently deleted:
       </Text>

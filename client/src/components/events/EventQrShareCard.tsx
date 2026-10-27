@@ -68,3 +68,5 @@ const s = StyleSheet.create({
     color: Colors.background,
   },
 })
+
+EventQrShareCard.displayName = 'EventQrShareCard'

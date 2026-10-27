@@ -105,7 +105,7 @@ function SafetyAgreementSheetCore({ onAgree, onClose }: Omit<Props, 'visible'>) 
             <View style={[s.checkbox, checked && s.checkboxChecked]}>
               {checked && <Check size={13} color={Colors.background} strokeWidth={3} />}
             </View>
-            <Text style={s.checkboxLabel}>I've read and agree to the Community Safety Agreement</Text>
+            <Text style={s.checkboxLabel}>I&apos;ve read and agree to the Community Safety Agreement</Text>
           </Pressable>
 
           <PrimaryButton label="Agree & Continue" onPress={handleAgree} disabled={!checked} loading={submitting} />

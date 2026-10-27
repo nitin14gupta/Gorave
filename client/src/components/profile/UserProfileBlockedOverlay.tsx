@@ -14,7 +14,7 @@ export function UserProfileBlockedOverlay({ onUnblock }: Props) {
       <View style={s.blockedIconWrap}>
         <Ban size={36} color={Colors.inkSecondary} strokeWidth={1.5} />
       </View>
-      <Text style={s.blockedTitle}>You've blocked this account</Text>
+      <Text style={s.blockedTitle}>You&apos;ve blocked this account</Text>
       <Text style={s.blockedSub}>Unblock to see their profile and content</Text>
       <OutlineButton
         label="Unblock"

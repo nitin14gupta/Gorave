@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* `light:` styles apply when <html data-theme="light"> (e.g. light:hidden). */
+@custom-variant light (&:where([data-theme="light"], [data-theme="light"] *));
+
 /* Every colour is a variable with a dark and a light value. Dark is the
    app's Noir look; light is the website's cream paper. The <html> element's
    data-theme attribute picks one (set before paint, see layout.tsx). */

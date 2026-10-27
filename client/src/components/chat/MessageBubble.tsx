@@ -757,3 +757,5 @@ const s = StyleSheet.create({
   profileChip: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, backgroundColor: withOpacity(Colors.inkPrimary, 0.08) },
   profileChipText: { fontFamily: FontFamily.bodyRegular, fontSize: 11, color: Colors.inkPrimary },
 })
+
+VoiceBubble.displayName = 'VoiceBubble'

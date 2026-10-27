@@ -92,7 +92,7 @@ function Inner({ form, set, errors, setErrors, submitError, priceLocked, priceLo
           <View style={s.feeBreakdown}>
             <Text style={s.feeBreakdownText}>
               Free events are request-to-join — guests ask, you accept or decline each one,
-              so free spots can't all get grabbed at once.
+              so free spots can&apos;t all get grabbed at once.
             </Text>
           </View>
         ) : null}

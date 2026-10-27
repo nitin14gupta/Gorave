@@ -10,7 +10,7 @@ export function MapErrorOverlay({ onRetry }: { onRetry: () => void }) {
   return (
     <View style={styles.mapEmpty} pointerEvents="box-none">
       <View style={styles.mapEmptyCard}>
-        <Text style={styles.mapEmptyTitle}>Couldn't load events</Text>
+        <Text style={styles.mapEmptyTitle}>Couldn&apos;t load events</Text>
         <PrimaryButton label="Retry" size="small" style={styles.mapEmptyCta} onPress={() => { hTap(); onRetry() }} />
       </View>
     </View>
@@ -37,7 +37,7 @@ export function MapEmptyOverlay({ onCreate }: { onCreate: () => void }) {
 export function ListErrorState({ onRetry }: { onRetry: () => void }) {
   return (
     <View style={[styles.listEmpty, { flex: 1 }]}>
-      <Text style={styles.listEmptyTitle}>Couldn't load events</Text>
+      <Text style={styles.listEmptyTitle}>Couldn&apos;t load events</Text>
       <Text style={styles.listEmptySub}>Check your connection and try again</Text>
       <PrimaryButton label="Retry" size="small" style={styles.listEmptyCta} onPress={() => { hTap(); onRetry() }} />
     </View>

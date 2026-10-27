@@ -26,6 +26,8 @@ export default function JoinedEventsScreen() {
   const pages = { upcoming: upcomingPage, past: pastPage }
   useFocusRefresh(() => pages[tab])
 
+  // A render function handed to the list, not a component.
+  // eslint-disable-next-line react/display-name
   const renderCard = (eventsTab: EventsTab) => (item: EventSummary) => (
     <EventCard
       event={item}

@@ -4,7 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import {
-  MapPin, Calendar, Users, Ban, Star, ShieldAlert, Clock,
+  MapPin, Calendar, Users, Ban, Star, ShieldAlert, Clock, Inbox,
 } from 'lucide-react'
 import { useEventQuery, useCancelEventMutation } from '@/hooks/useEvents'
 import { useTabParam } from '@/hooks/useTabParam'
@@ -22,6 +22,8 @@ import { DetailStatsRow, DetailStat } from '@/components/ui/DetailStats'
 import { formatDate, formatInr } from '@/lib/formatters'
 import { useToast } from '@/hooks/useToast'
 import { useAdminAuth } from '@/hooks/useAdminAuth'
+import { crowdLabel } from '@/lib/crowd'
+import type { EventDetailInfo } from '@/types/event'
 
 export default function EventDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -74,7 +76,7 @@ export default function EventDetailPage() {
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <div className="lg:col-span-1">
-          <ImageSlider photos={event.cover_photos} aspect="16:9" onImageClick={() => setGalleryOpen(true)} />
+          <ImageSlider photos={event.cover_photos} aspect="4:5" className="mx-auto max-w-[360px]" onImageClick={() => setGalleryOpen(true)} />
         </div>
         <ImageModal
           photos={event.cover_photos}
@@ -98,13 +100,10 @@ export default function EventDetailPage() {
                 })()}
                 <Badge variant="neutral" className="capitalize">{event.event_type}</Badge>
                 <Badge variant="neutral">{event.age_restriction}+</Badge>
-                {event.women_pct != null && (
-                  <Badge variant="neutral">
-                    {event.women_pct >= 100 ? 'Women only' : event.women_pct <= 0 ? 'Men only' : `${event.women_pct}% women`}
-                  </Badge>
-                )}
-                {event.join_mode === 'request' && (
-                  <Badge variant="warning">Request to join · {event.pending_requests} pending</Badge>
+                <Badge variant="neutral">{crowdLabel(event.women_pct)}</Badge>
+                <Badge variant="neutral">{event.join_mode === 'request' ? 'Request to join' : 'Instant join'}</Badge>
+                {event.join_mode === 'request' && event.pending_requests > 0 && (
+                  <Badge variant="warning">{event.pending_requests} waiting for the host</Badge>
                 )}
               </div>
               <p className="flex items-center gap-1.5 text-sm text-ink-secondary">
@@ -118,7 +117,7 @@ export default function EventDetailPage() {
               )}
               <p className="mt-1 text-sm text-ink-secondary">
                 Hosted by{' '}
-                <Link href={`/users/${event.host_id}`} className="font-medium text-brand-orange hover:underline">
+                <Link href={`/users/${event.host_id}`} className="font-semibold text-ink-primary underline decoration-divider underline-offset-4 hover:decoration-ink-primary">
                   {event.host_name ?? 'Unknown'}
                 </Link>
                 {' · '}{event.host_phone}
@@ -139,13 +138,19 @@ export default function EventDetailPage() {
         />
         <DetailStat
           label="Women / Men / Other"
-          value={`${data.attendees.filter(a => a.gender === 'Female').length} / ${data.attendees.filter(a => a.gender === 'Male').length} / ${data.attendees.filter(a => a.gender !== 'Female' && a.gender !== 'Male').length}`}
+          value={`${event.gender_counts.women} / ${event.gender_counts.men} / ${event.gender_counts.other}`}
           icon={Users}
         />
         <DetailStat label="Waitlist" value={String(data.waitlist.length)} icon={Clock} />
+        <DetailStat label="Requests waiting" value={String(event.pending_requests)} icon={Inbox} />
         <DetailStat label="Avg rating" value={event.avg_rating ? `${event.avg_rating} ★` : '—'} icon={Star} />
         <DetailStat label="Reports" value={String(data.reports.length)} icon={ShieldAlert} />
       </DetailStatsRow>
+
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <AddressCard event={event} />
+        <CrowdCard event={event} />
+      </div>
 
       <Card>
         <CardHeader><CardTitle>Pricing</CardTitle></CardHeader>
@@ -163,6 +168,7 @@ export default function EventDetailPage() {
         <TabsList>
           <TabsTrigger value="attendees">Attendees ({data.attendees.length})</TabsTrigger>
           <TabsTrigger value="waitlist">Waitlist ({data.waitlist.length})</TabsTrigger>
+          <TabsTrigger value="requests">Requests ({data.requests.length})</TabsTrigger>
           <TabsTrigger value="reviews">Reviews ({data.reviews.length})</TabsTrigger>
           <TabsTrigger value="reports">Reports ({data.reports.length})</TabsTrigger>
         </TabsList>
@@ -204,6 +210,47 @@ export default function EventDetailPage() {
                   ))}
                 </TBody>
               </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="requests">
+          <Card>
+            <CardContent className="p-0">
+              {data.requests.length === 0 ? (
+                <p className="px-5 py-8 text-center text-sm text-ink-secondary">
+                  {event.join_mode === 'request' ? 'No join requests yet' : 'This event is instant join, so there are no requests'}
+                </p>
+              ) : (
+                <Table>
+                  <THead><TR><TH>Person</TH><TH>Status</TH><TH>Gender · age</TH><TH>City</TH><TH>Asked</TH><TH>Decided</TH><TH>Tries</TH></TR></THead>
+                  <TBody>
+                    {data.requests.map((r) => (
+                      <TR key={r.id}>
+                        <TD>
+                          <Link href={`/users/${r.user_id}`} className="flex items-center gap-2.5 hover:underline">
+                            {r.avatar ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img src={r.avatar} alt="" className="h-8 w-8 rounded-lg object-cover" />
+                            ) : <span className="h-8 w-8 rounded-lg bg-surface-muted" />}
+                            {r.name ?? 'Unnamed'}
+                          </Link>
+                        </TD>
+                        <TD>
+                          <Badge variant={r.status === 'requested' ? 'warning' : r.status === 'declined' ? 'danger' : 'neutral'}>
+                            {r.status === 'requested' ? 'Waiting' : r.status}
+                          </Badge>
+                        </TD>
+                        <TD>{[r.gender, r.age ? String(r.age) : null].filter(Boolean).join(' · ') || '—'}</TD>
+                        <TD>{r.city ?? '—'}</TD>
+                        <TD>{r.requested_at ? formatDate(r.requested_at) : '—'}</TD>
+                        <TD>{r.decided_at ? formatDate(r.decided_at) : '—'}</TD>
+                        <TD>{r.request_count}</TD>
+                      </TR>
+                    ))}
+                  </TBody>
+                </Table>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -257,6 +304,70 @@ export default function EventDetailPage() {
         onConfirm={handleCancel}
       />
     </div>
+  )
+}
+
+/** Where it is. The exact lines are private in the app (guests see them once they're in). */
+function AddressCard({ event }: { event: EventDetailInfo }) {
+  return (
+    <Card>
+      <CardHeader><CardTitle className="flex items-center gap-2"><MapPin className="h-4 w-4" /> Address</CardTitle></CardHeader>
+      <CardContent className="grid grid-cols-2 gap-4 text-sm">
+        <Field label="City" value={event.city ?? '—'} />
+        <Field label="Area" value={event.area ?? '—'} />
+        <Field label="Address line 1" value={event.address_line1 ?? '—'} />
+        <Field label="Address line 2" value={event.address_line2 ?? '—'} />
+        <Field label="Pincode" value={event.pincode ?? '—'} />
+        <Field
+          label="Pin"
+          value={event.location_lat != null && event.location_lng != null ? `${Number(event.location_lat).toFixed(5)}, ${Number(event.location_lng).toFixed(5)}` : '—'}
+        />
+      </CardContent>
+    </Card>
+  )
+}
+
+/** Who's in by gender, against the host's split (going plus held waitlist offers). */
+function CrowdCard({ event }: { event: EventDetailInfo }) {
+  const c = event.gender_counts
+  const q = event.quota
+  const rows = q
+    ? [
+        { label: 'Women', have: c.women, of: q.women },
+        { label: 'Men', have: c.men, of: q.men },
+        { label: 'Open spots', have: Math.max(0, c.women - q.women) + Math.max(0, c.men - q.men) + c.other, of: q.open },
+      ]
+    : [
+        { label: 'Women', have: c.women, of: event.capacity },
+        { label: 'Men', have: c.men, of: event.capacity },
+        { label: 'Other / not said', have: c.other, of: event.capacity },
+      ]
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2"><Users className="h-4 w-4" /> Crowd mix · {crowdLabel(event.women_pct)}</CardTitle>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-4">
+        {rows.map((r) => (
+          <div key={r.label}>
+            <div className="mb-1.5 flex justify-between text-sm">
+              <span className="text-ink-secondary">{r.label}</span>
+              <span className="font-semibold text-ink-primary">{r.have}{q ? ` of ${r.of}` : ''}</span>
+            </div>
+            <div className="h-2 overflow-hidden rounded-full bg-surface-muted">
+              <div className="h-full rounded-full bg-ink-primary" style={{ width: `${r.of ? Math.min(100, (r.have / r.of) * 100) : 0}%` }} />
+            </div>
+          </div>
+        ))}
+        {event.ratio_left ? (
+          <p className="text-xs text-ink-secondary">
+            Room left: {event.ratio_left.women_left} for women, {event.ratio_left.men_left} for men ({event.ratio_left.open_left} open spots either can take).
+          </p>
+        ) : (
+          <p className="text-xs text-ink-secondary">Open crowd: anyone can take any spot.</p>
+        )}
+      </CardContent>
+    </Card>
   )
 }
 

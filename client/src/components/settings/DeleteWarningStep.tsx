@@ -21,7 +21,7 @@ export function DeleteWarningStep({ onContinue, onCancel }: Props) {
       <Text style={styles.bodySecond}>
         If you change your mind within 30 days, contact{' '}
         <Text style={styles.link}>{SUPPORT_EMAIL}</Text>
-        {' '}with your registered phone number and we'll restore your account.
+        {' '}with your registered phone number and we&apos;ll restore your account.
       </Text>
 
       <View style={styles.spacer} />

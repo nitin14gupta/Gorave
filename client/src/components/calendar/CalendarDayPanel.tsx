@@ -66,7 +66,7 @@ export function CalendarDayPanel({
       ) : dayError ? (
         <View style={s.emptyWrap}>
           <TriangleAlert size={28} color={Colors.inkDisabled} strokeWidth={1.6} />
-          <Text style={s.emptyTitle}>Couldn't load this day</Text>
+          <Text style={s.emptyTitle}>Couldn&apos;t load this day</Text>
           <Text style={s.emptySub}>Check your connection and try again</Text>
           <PrimaryButton label="Retry" size="small" onPress={() => { hTap(); onRetry() }} />
         </View>

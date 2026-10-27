@@ -105,7 +105,7 @@ export function ChatHeader({
 
       {reconnectFailed && !loading && (
         <Pressable style={s.reconnectBanner} onPress={onManualReconnect} hitSlop={4}>
-          <Text style={s.reconnectText}>Can't connect. Tap to retry</Text>
+          <Text style={s.reconnectText}>Can&apos;t connect. Tap to retry</Text>
         </Pressable>
       )}
       {!reconnectFailed && !isWsConnected && !loading && (

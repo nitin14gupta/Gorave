@@ -82,7 +82,7 @@ export function LocationSearchModal({
               >
                 <Search size={20} color={Colors.inkPrimary} style={{ marginTop: 2, marginRight: 12 }} />
                 <View style={{ flex: 1 }}>
-                  <Text style={s.customRowTitle} numberOfLines={2}>Use "{query.trim()}" as the building</Text>
+                  <Text style={s.customRowTitle} numberOfLines={2}>Use &quot;{query.trim()}&quot; as the building</Text>
                   <Text style={s.customRowSub}>Not in the list? Type it out, then drop the pin on the map yourself</Text>
                 </View>
               </Pressable>

@@ -140,7 +140,7 @@ export function Step2When({ scrollable = true, ...props }: Props) {
   return (
     <ScrollView style={ef.stepScroll} contentContainerStyle={ef.stepContent} keyboardShouldPersistTaps="handled">
       <Text style={ef.stepTitle}>When is it happening?</Text>
-      <Text style={ef.stepSub}>Set the time, capacity and who it's for</Text>
+      <Text style={ef.stepSub}>Set the time, capacity and who it&apos;s for</Text>
       <Inner {...props} />
     </ScrollView>
   )

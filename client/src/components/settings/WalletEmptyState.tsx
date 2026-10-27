@@ -10,7 +10,7 @@ export function WalletEmptyState() {
       </View>
       <Text style={s.emptyTitle}>No transactions yet</Text>
       <Text style={s.emptySubtitle}>
-        When you receive refunds or pay for events with your wallet, they'll appear here.
+        When you receive refunds or pay for events with your wallet, they&apos;ll appear here.
       </Text>
     </View>
   )

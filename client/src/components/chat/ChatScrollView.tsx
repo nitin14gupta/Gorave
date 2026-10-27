@@ -28,3 +28,5 @@ export const ChatScrollView = forwardRef<ChatScrollRef, ChatScrollProps>(
     )
   }
 )
+
+ChatScrollView.displayName = 'ChatScrollView'

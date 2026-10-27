@@ -65,3 +65,5 @@ const s = StyleSheet.create({
   },
   brand: { fontFamily: FontFamily.headingBold, fontSize: 12, letterSpacing: 2, color: Colors.inkPrimary, marginTop: 4 },
 })
+
+EventShareCard.displayName = 'EventShareCard'

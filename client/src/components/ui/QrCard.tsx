@@ -78,3 +78,5 @@ const s = StyleSheet.create({
     color: '#666',
   },
 })
+
+QrCard.displayName = 'QrCard'

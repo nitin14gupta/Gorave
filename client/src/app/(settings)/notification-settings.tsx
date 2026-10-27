@@ -78,7 +78,7 @@ export default function NotificationSettingsScreen() {
           <Text style={s.big}>What should we{'\n'}tell you about?</Text>
           <Text style={s.sectionHint}>
             Choose what you get notified about. Turning these off only affects push
-            notifications. You'll still see everything in your notifications list.
+            notifications. You&apos;ll still see everything in your notifications list.
           </Text>
           <View style={s.card}>
             {CATEGORIES.map((cat, i) => (
