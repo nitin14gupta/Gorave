@@ -38,11 +38,12 @@
 
 # Secrets: never uploaded. Give the build what it needs as EAS environment
 # variables (secret visibility) instead.
+# (google-services.json / GoogleService-Info.plist ARE uploaded on purpose:
+# the build needs them and they ship inside every app binary anyway. The
+# Firebase ADMIN key below is the real secret and stays out.)
 **/.env*.local
 **/*.pem
 **/*firebase-adminsdk*.json
-**/google-services.json
-**/GoogleService-Info.plist
 **/*.jks
 **/*.p8
 **/*.p12
