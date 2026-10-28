@@ -13,6 +13,7 @@ import { useImageViewer } from './useImageViewer'
 import { useVoiceRecorder } from './useVoiceRecorder'
 import type { MediaViewType, MediaViewerItem } from '@/components/chat/MediaViewerModal'
 import { canEditMessage } from '@/lib/messageEdit'
+import { peekConversation } from '@/lib/chatPartnerCache'
 
 const MARGIN = 8
 const MIN_INPUT_HEIGHT = 44
@@ -132,14 +133,16 @@ export function useChatScreen(convId: string) {
   const typingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const promptBlockAfterReportRef = useRef(false)
 
-  // Partner info
-  const [partnerName, setPartnerName] = useState<string | null>(null)
-  const [partnerUsername, setPartnerUsername] = useState<string | null>(null)
-  const [partnerAvatar, setPartnerAvatar] = useState<string | null>(null)
-  const [partnerId, setPartnerId] = useState<string | null>(null)
-  const [partnerIsDeleted, setPartnerIsDeleted] = useState(false)
-  const [partnerLastSeenAt, setPartnerLastSeenAt] = useState<string | null>(null)
-  const [blockStatus, setBlockStatus] = useState<'none' | 'i_blocked' | 'they_blocked'>('none')
+  // Partner info: start from what the inbox already knows (first frame has a
+  // name and photo), then refresh from the server below.
+  const [seed] = useState(() => peekConversation(convId))
+  const [partnerName, setPartnerName] = useState<string | null>(seed?.partner_name ?? null)
+  const [partnerUsername, setPartnerUsername] = useState<string | null>(seed?.partner_username ?? null)
+  const [partnerAvatar, setPartnerAvatar] = useState<string | null>(seed?.partner_avatar ?? null)
+  const [partnerId, setPartnerId] = useState<string | null>(seed?.partner_id ?? null)
+  const [partnerIsDeleted, setPartnerIsDeleted] = useState(!!seed?.partner_is_deleted)
+  const [partnerLastSeenAt, setPartnerLastSeenAt] = useState<string | null>(seed?.partner_last_seen_at ?? null)
+  const [blockStatus, setBlockStatus] = useState<'none' | 'i_blocked' | 'they_blocked'>((seed as any)?.block_status ?? 'none')
 
   // UI state
   const [inputText, setInputText] = useState('')

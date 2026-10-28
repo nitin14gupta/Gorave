@@ -1,6 +1,7 @@
 import * as FileSystem from 'expo-file-system/legacy'
 import { API_BASE_URL, WS_BASE_URL, ENDPOINTS, DEFAULT_HEADERS, createAuthHeader } from './config'
 import { invalidateMyEvents } from '@/lib/myEventsCache'
+import { rememberConversations } from '@/lib/chatPartnerCache'
 import { useAuthStore } from '@/store/auth'
 import { useLockStore } from '@/store/lockStore'
 import { useMaintenanceStore } from '@/store/maintenanceStore'
@@ -511,7 +512,12 @@ class ApiService {
     active_total: number
     has_more: boolean
   }> {
-    return this.get(`${ENDPOINTS.CONVERSATIONS}?active_limit=${activeLimit}&active_offset=${activeOffset}&include_hidden=${includeHidden}`)
+    const data = await this.get<{
+      pending: Conversation[]; active: Conversation[]; locked: Conversation[]; active_total: number; has_more: boolean
+    }>(`${ENDPOINTS.CONVERSATIONS}?active_limit=${activeLimit}&active_offset=${activeOffset}&include_hidden=${includeHidden}`)
+    // So opening a chat can show who it's with before anything loads.
+    rememberConversations([...data.pending, ...data.active, ...data.locked])
+    return data
   }
 
   static async getLinkPreview(url: string): Promise<LinkPreview> {

@@ -192,9 +192,9 @@ Routes live in `client/src/app/` (Expo Router). `(group)` folders don't show in 
 | Home (12) | Skipped: enough motion already (tunnel fade, This week cards) |
 | Events list (13) | Skipped: no featured event to put on top yet |
 | Someone's profile (36) and your Profile (15) | ✅ photo parallax, name over it, top bar with name fades in (`ProfileFoldBar`) |
-| Chat conversation (45) | 🧪 A Instagram-style intro at the start · B collapsing header (`chatroom`) |
+| Chat conversation (45) | ✅ Instagram-style intro at the start; header name and photo fade in once it scrolls away, and show instantly from the inbox cache |
 | Settings and lists | ✅ big titles fold into the top bar (`ui/LargeTitle`): notifications, blocked, account, payout, notification settings, my events, joined, hotlist, emergency contacts |
-| Calendar (55) | 🧪 A pinned month folds to the week · B agenda with sticky days and parallax posters (`calendar`) |
+| Calendar (55) | ✅ pinned month folds to the selected week and stays folded across day changes; filter sheet rebuilt in the new sheet style |
 
 ---
 

@@ -1,21 +1,16 @@
 import { useState, useMemo, useEffect } from 'react'
-import { View, Text, StyleSheet, useWindowDimensions } from 'react-native'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { View, Text, StyleSheet } from 'react-native'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { router } from 'expo-router'
 import { ArrowLeft, ListFilter } from 'lucide-react-native'
 import { AppHeader, HeaderIconBtn } from '@/components/ui'
 // import { EventSearchModal } from '@/components/events/EventSearchModal'
 import { CalendarFoldView } from '@/components/calendar/CalendarFoldView'
-import { CalendarAgenda } from '@/components/calendar/CalendarAgenda'
-import { useCalendarAgenda } from '@/components/calendar/useCalendarAgenda'
-import { LabSwitch } from '@/components/lab/LabSwitch'
 import { CalendarFilterSheet } from '@/components/calendar/CalendarFilterSheet'
 import { FilterUpdatedToast } from '@/components/calendar/FilterUpdatedToast'
 import { useCalendarEvents, dateKey, DEFAULT_CALENDAR_FILTERS, type CalendarFilters } from '@/hooks/useCalendarEvents'
 import { Colors, FontFamily } from '@/constants'
 import { hTap } from '@/lib/haptics'
-import { useLabVariant } from '@/store/labStore'
 
 function startOfDay(d: Date): Date {
   const c = new Date(d)
@@ -23,8 +18,6 @@ function startOfDay(d: Date): Date {
   return c
 }
 const CALENDAR_FILTERS_KEY = 'calendar_filters'
-// Lab B looks this far ahead.
-const AGENDA_DAYS = 21
 
 export default function CalendarScreen() {
   const today = useMemo(() => startOfDay(new Date()), [])
@@ -35,12 +28,7 @@ export default function CalendarScreen() {
   const [filters, setFilters] = useState<CalendarFilters>(DEFAULT_CALENDAR_FILTERS)
   const [toastVisible, setToastVisible] = useState(false)
 
-  const variant = useLabVariant('calendar')
-  const { height: winH } = useWindowDimensions()
-  const insets = useSafeAreaInsets()
-
   const { hasEventsOnDate, dayEvents, dayLoading, dayError, reloadDay } = useCalendarEvents(visibleMonth, selectedDate, filters)
-  const agenda = useCalendarAgenda(today, AGENDA_DAYS, filters, variant === 'b')
 
   // Cache the last-applied filters so they persist across visits — a plain
   // read-once-on-mount + write-on-apply, no need for anything fancier.
@@ -121,35 +109,24 @@ export default function CalendarScreen() {
         onDismiss={() => setToastVisible(false)}
       />
 
-      {variant === 'a' ? (
-        <CalendarFoldView
-          visibleMonth={visibleMonth}
-          today={today}
-          selectedDate={selectedDate}
-          selectedKey={dateKey(selectedDate)}
-          gridWeeks={gridWeeks}
-          hasEventsOnDate={hasEventsOnDate}
-          onShiftMonth={shiftMonth}
-          onGoToday={goToday}
-          onSelectDate={selectDate}
-          onShiftDay={shiftDay}
-          dayLoading={dayLoading}
-          dayError={dayError}
-          dayEvents={dayEvents}
-          onRetry={reloadDay}
-          onCreateEvent={() => router.push('/(events)/create' as any)}
-          onBrowseEvents={() => router.push('/(tabs)/events' as any)}
-        />
-      ) : (
-        <CalendarAgenda
-          days={agenda.days}
-          loading={agenda.loading}
-          error={agenda.error}
-          onRetry={agenda.reload}
-          onCreateEvent={() => router.push('/(events)/create' as any)}
-          onBrowseEvents={() => router.push('/(tabs)/events' as any)}
-        />
-      )}
+      <CalendarFoldView
+        visibleMonth={visibleMonth}
+        today={today}
+        selectedDate={selectedDate}
+        selectedKey={dateKey(selectedDate)}
+        gridWeeks={gridWeeks}
+        hasEventsOnDate={hasEventsOnDate}
+        onShiftMonth={shiftMonth}
+        onGoToday={goToday}
+        onSelectDate={selectDate}
+        onShiftDay={shiftDay}
+        dayLoading={dayLoading}
+        dayError={dayError}
+        dayEvents={dayEvents}
+        onRetry={reloadDay}
+        onCreateEvent={() => router.push('/(events)/create' as any)}
+        onBrowseEvents={() => router.push('/(tabs)/events' as any)}
+      />
 
       {/* <EventSearchModal visible={searchOpen} onClose={() => setSearchOpen(false)} nearbyEvents={[]} /> */}
       <CalendarFilterSheet
@@ -158,8 +135,6 @@ export default function CalendarScreen() {
         onApply={applyFilters}
         onClose={() => setFilterOpen(false)}
       />
-      {/* Bottom centre, clear of the header and the month controls. */}
-      <LabSwitch screen="calendar" top={winH - insets.top - insets.bottom - 64} />
     </View>
   )
 }

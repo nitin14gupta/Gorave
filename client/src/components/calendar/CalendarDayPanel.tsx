@@ -46,7 +46,7 @@ export function CalendarDayNav({ selectedDate, onShiftDay }: {
 }
 
 /** "Got plans?" with Create / Browse, shared by both calendar layouts. */
-export function CalendarEmptyState({ subtitle, onCreateEvent, onBrowseEvents }: {
+function CalendarEmptyState({ subtitle, onCreateEvent, onBrowseEvents }: {
   subtitle: string
   onCreateEvent: () => void
   onBrowseEvents: () => void
@@ -71,7 +71,7 @@ export function CalendarEmptyState({ subtitle, onCreateEvent, onBrowseEvents }: 
   )
 }
 
-export function CalendarErrorState({ title, onRetry }: { title: string; onRetry: () => void }) {
+function CalendarErrorState({ title, onRetry }: { title: string; onRetry: () => void }) {
   return (
     <View style={s.emptyWrap}>
       <TriangleAlert size={28} color={Colors.inkDisabled} strokeWidth={1.6} />

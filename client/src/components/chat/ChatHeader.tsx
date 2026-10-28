@@ -1,5 +1,5 @@
 import { View, Text, Pressable, StyleSheet } from 'react-native'
-import Animated, { Extrapolation, interpolate, useAnimatedStyle, useSharedValue, type SharedValue } from 'react-native-reanimated'
+import Animated, { useAnimatedStyle, useSharedValue, type SharedValue } from 'react-native-reanimated'
 import { Image } from 'expo-image'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { router } from 'expo-router'
@@ -26,41 +26,24 @@ interface Props {
   selectMode?: boolean
   selectedCount?: number
   onExitSelect?: () => void
-  /** Lab A: 0 hides the avatar + name (the intro block is on screen), 1 shows them. */
+  /** 0 hides the avatar + name (the chat's intro block is on screen), 1 shows them. */
   identityShown?: SharedValue<number>
-  /** Lab B: scroll offset from the newest message; the header is tall at 0 and compact past ~90. */
-  collapseScroll?: SharedValue<number>
+  /** True while the name is hidden, so the empty space doesn't open the profile. */
+  identityHidden?: boolean
 }
 
 export function ChatHeader({
   partnerName, partnerUsername, partnerAvatar, partnerId, partnerIsDeleted,
   isPartnerOnline, partnerLastSeenAt, isWsConnected, reconnectFailed, onManualReconnect, loading, onMenuPress,
-  selectMode, selectedCount = 0, onExitSelect, identityShown, collapseScroll,
+  selectMode, selectedCount = 0, onExitSelect, identityShown, identityHidden,
 }: Props) {
   const insets = useSafeAreaInsets()
   const one = useSharedValue(1)
-  const zero = useSharedValue(0)
   const shown = identityShown ?? one
-  const scroll = collapseScroll ?? zero
-  const tall = !!collapseScroll
-  // B: 1 = tall at the newest messages, 0 = compact once you scroll up.
   const identityStyle = useAnimatedStyle(() => ({
     opacity: shown.value,
     transform: [{ translateY: (1 - shown.value) * 6 }],
   }))
-  const avatarStyle = useAnimatedStyle(() => {
-    const e = tall ? interpolate(scroll.value, [0, 90], [1, 0], Extrapolation.CLAMP) : 0
-    const size = 38 + e * 18
-    return { width: size, height: size, borderRadius: 12 + e * 6 }
-  })
-  const nameStyle = useAnimatedStyle(() => {
-    const e = tall ? interpolate(scroll.value, [0, 90], [1, 0], Extrapolation.CLAMP) : 0
-    return { fontSize: 17 + e * 5, lineHeight: 22 + e * 6 }
-  })
-  const padStyle = useAnimatedStyle(() => {
-    const e = tall ? interpolate(scroll.value, [0, 90], [1, 0], Extrapolation.CLAMP) : 0
-    return { paddingBottom: 12 + e * 8 }
-  })
 
   if (selectMode) {
     return (
@@ -77,16 +60,16 @@ export function ChatHeader({
 
   return (
     <>
-      <Animated.View style={[s.header, { paddingTop: insets.top + 8 }, padStyle]}>
+      <View style={[s.header, { paddingTop: insets.top + 8 }]}>
         <Pressable onPress={() => router.back()} style={s.backBtn} hitSlop={8}>
           <ChevronLeft size={24} color={Colors.inkPrimary} strokeWidth={2} />
         </Pressable>
-        <Animated.View style={[s.center, identityStyle]}>
+        <Animated.View style={[s.center, identityStyle]} pointerEvents={identityHidden ? 'none' : 'auto'}>
           <Pressable
             style={s.center}
             onPress={() => partnerId && router.push(`/(profile)/${partnerId}` as any)}
           >
-            <Animated.View style={[s.avatarBox, avatarStyle]}>
+            <View style={s.avatarBox}>
               {partnerIsDeleted ? (
                 <View style={[StyleSheet.absoluteFill, s.avatarDeleted]}>
                   <Ghost size={18} color={Colors.inkDisabled} strokeWidth={1.5} />
@@ -104,10 +87,10 @@ export function ChatHeader({
                   <Text style={s.avatarInitial}>{(partnerName ?? '?').charAt(0)}</Text>
                 </View>
               )}
-            </Animated.View>
+            </View>
             <View style={{ flexShrink: 1 }}>
               <View style={s.nameRow}>
-                <Animated.Text style={[s.name, partnerIsDeleted && s.nameDeleted, nameStyle]} numberOfLines={1}>{partnerName ?? 'Chat'}</Animated.Text>
+                <Text style={[s.name, partnerIsDeleted && s.nameDeleted]} numberOfLines={1}>{partnerName ?? 'Chat'}</Text>
                 {isPartnerOnline && !partnerIsDeleted && <View style={s.onlineDot} />}
               </View>
               <Text style={s.sub}>
@@ -128,7 +111,7 @@ export function ChatHeader({
         <Pressable onPress={onMenuPress} hitSlop={8}>
           <MoreVertical size={22} color={Colors.inkSecondary} strokeWidth={1.8} />
         </Pressable>
-      </Animated.View>
+      </View>
 
       {reconnectFailed && !loading && (
         <Pressable style={s.reconnectBanner} onPress={onManualReconnect} hitSlop={4}>

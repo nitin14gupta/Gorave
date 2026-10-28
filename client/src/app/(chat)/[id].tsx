@@ -23,8 +23,6 @@ import { ReportMessageSheet } from '@/components/chat/ReportMessageSheet'
 import { ChatScrollView } from '@/components/chat/ChatScrollView'
 import { ChatPartnerPreview } from '@/components/chat/ChatPartnerPreview'
 import { InAppBrowserModal } from '@/components/ui/InAppBrowserModal'
-import { LabSwitch } from '@/components/lab/LabSwitch'
-import { useLabVariant } from '@/store/labStore'
 
 type ListItem =
   | Message
@@ -77,11 +75,10 @@ export default function ChatDetailScreen() {
 
   const screen = useChatScreen(convId)
 
-  // Lab: A = big intro block at the start of the chat, header name appears once
-  // it scrolls away. B = tall header that shrinks as you scroll up.
-  const variant = useLabVariant('chatroom')
-  const scrollY = useSharedValue(0)
+  // The big intro sits at the start of the chat; the header's name and photo
+  // stay hidden while it's on screen and fade in once it scrolls away.
   const identityShown = useSharedValue(1)
+  const [identityHidden, setIdentityHidden] = useState(false)
   const metrics = useRef({ offset: 0, contentH: 0, layoutH: 0, introH: 0, shown: 1 })
   const syncIdentity = useCallback(() => {
     const m = metrics.current
@@ -92,15 +89,15 @@ export default function ChatDetailScreen() {
     if (m.shown === target) return
     m.shown = target
     identityShown.set(withTiming(target, { duration: 180 }))
+    setIdentityHidden(target === 0)
   }, [identityShown])
   const handleScroll = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
     const { contentOffset, contentSize, layoutMeasurement } = e.nativeEvent
-    scrollY.set(Math.max(0, contentOffset.y))
     metrics.current.offset = contentOffset.y
     metrics.current.contentH = contentSize.height
     metrics.current.layoutH = layoutMeasurement.height
     syncIdentity()
-  }, [scrollY, syncIdentity])
+  }, [syncIdentity])
   const handleIntroLayout = useCallback((e: LayoutChangeEvent) => {
     metrics.current.introH = e.nativeEvent.layout.height
     syncIdentity()
@@ -206,8 +203,8 @@ export default function ChatDetailScreen() {
         selectMode={screen.selectMode}
         selectedCount={screen.selectedIds.size}
         onExitSelect={screen.handleExitSelectMode}
-        identityShown={variant === 'a' ? identityShown : undefined}
-        collapseScroll={variant === 'b' ? scrollY : undefined}
+        identityShown={identityShown}
+        identityHidden={identityHidden}
       />
 
       <SafeAreaView edges={['bottom']} style={s.body}>
@@ -258,8 +255,7 @@ export default function ChatDetailScreen() {
                     partnerUsername={screen.partnerUsername}
                     partnerAvatar={screen.partnerAvatar}
                     partnerIsDeleted={screen.partnerIsDeleted}
-                    large={variant === 'a'}
-                    onLayout={variant === 'a' ? handleIntroLayout : undefined}
+                    onLayout={handleIntroLayout}
                   />
                 </>
               }
@@ -370,7 +366,6 @@ export default function ChatDetailScreen() {
         url={browserUrl}
         onClose={() => setBrowserUrl(null)}
       />
-      <LabSwitch screen="chatroom" top={96} />
     </View>
   )
 }
