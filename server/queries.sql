@@ -485,8 +485,11 @@ CREATE UNIQUE INDEX host_payout_upi_fingerprint_uidx ON public.host_payout_detai
 CREATE INDEX messages_conv_sent_idx ON public.messages USING btree (conversation_id, sent_at DESC);
 CREATE INDEX messages_forwarded_from_idx ON public.messages USING btree (forwarded_from_id) WHERE (forwarded_from_id IS NOT NULL);
 CREATE INDEX messages_limited_media_idx ON public.messages USING btree (sent_at) WHERE ((view_limit IS NOT NULL) AND (media_purged_at IS NULL));
+CREATE INDEX messages_media_key_idx ON public.messages USING btree (((metadata ->> 'key'::text))) WHERE (metadata ? 'key'::text);
+CREATE INDEX messages_media_url_idx ON public.messages USING btree (((metadata ->> 'url'::text))) WHERE ((content_type = ANY (ARRAY['image'::text, 'video'::text, 'gif'::text, 'voice'::text])) AND (metadata ? 'url'::text));
 CREATE UNIQUE INDEX messages_sender_client_id_key ON public.messages USING btree (sender_id, client_id) WHERE (client_id IS NOT NULL);
 CREATE INDEX messages_undelivered_idx ON public.messages USING btree (conversation_id) WHERE (delivered_at IS NULL);
+CREATE INDEX messages_unsent_media_idx ON public.messages USING btree (unsent_at) WHERE ((unsent_at IS NOT NULL) AND (media_purged_at IS NULL) AND (content_type = ANY (ARRAY['image'::text, 'video'::text, 'gif'::text, 'voice'::text])));
 CREATE INDEX idx_notif_user_created ON public.notifications USING btree (user_id, created_at DESC);
 CREATE INDEX idx_refresh_tokens_user_id ON public.refresh_tokens USING btree (user_id);
 CREATE INDEX idx_users_dob ON public.users USING btree (dob) WHERE ((dob IS NOT NULL) AND (COALESCE(is_deleted, false) = false));

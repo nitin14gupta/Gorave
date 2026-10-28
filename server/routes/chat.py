@@ -573,11 +573,19 @@ async def unsend_message(msg_id: str, current_user: dict = Depends(get_current_u
             raise HTTPException(status_code=403, detail="You can only unsend your own messages")
         conv_id = row["conversation_id"]
         cur.execute(
-            # A view once/twice file stays referenced so the cleanup job
-            # (utils/chat_media_purge.py) can delete it from storage.
-            "UPDATE messages SET content = NULL, reactions = NULL, unsent_at = NOW(), "
-            "metadata = CASE WHEN view_limit IS NOT NULL THEN metadata ELSE NULL END "
-            "WHERE id = %s::uuid",
+            # Unsent rows are never shown to anyone, but a photo/video/voice
+            # row keeps just its file's link and key so the cleanup job
+            # (utils/chat_media_purge.py) can delete the file from storage.
+            """
+            UPDATE messages
+            SET content = NULL, reactions = NULL, unsent_at = NOW(),
+                metadata = CASE
+                    WHEN content_type IN ('image', 'video', 'gif', 'voice')
+                    THEN NULLIF(jsonb_strip_nulls(jsonb_build_object('url', metadata->'url', 'key', metadata->'key')), '{}'::jsonb)
+                    ELSE NULL
+                END
+            WHERE id = %s::uuid
+            """,
             (msg_id,),
         )
         conn.commit()

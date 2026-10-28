@@ -1,6 +1,22 @@
 import AsyncStorage from '@react-native-async-storage/async-storage'
+import { decryptText, encryptText, forgetCacheKey, isEncrypted } from './cacheCrypto'
 
 const PREFIX = 'vy_cache:'
+
+// Private things are encrypted on disk (see cacheCrypto): your messages and
+// chat list, and your own profile (phone, birthday). Everything else, like
+// other people's public profiles or event lists, is stored as plain JSON.
+const isPrivate = (key: string) => key.startsWith('chat:') || key === 'profile:me'
+
+async function decode<T>(key: string, raw: string): Promise<Entry<T> | null> {
+  if (isEncrypted(raw)) {
+    const plain = await decryptText(raw)
+    return plain ? (JSON.parse(plain) as Entry<T>) : null
+  }
+  // A private key saved before encryption existed: read it once; the next
+  // write replaces it with the encrypted form.
+  return JSON.parse(raw) as Entry<T>
+}
 
 interface Entry<T> {
   value: T
@@ -18,14 +34,19 @@ function isFresh(entry: Entry<unknown> | undefined | null): entry is Entry<unkno
 async function readDisk<T>(key: string): Promise<Entry<T> | null> {
   try {
     const raw = await AsyncStorage.getItem(PREFIX + key)
-    return raw ? (JSON.parse(raw) as Entry<T>) : null
+    return raw ? await decode<T>(key, raw) : null
   } catch {
     return null
   }
 }
 
 function writeDisk<T>(key: string, entry: Entry<T>) {
-  AsyncStorage.setItem(PREFIX + key, JSON.stringify(entry)).catch(() => {})
+  const json = JSON.stringify(entry)
+  // If encryption can't run (keystore unavailable), nothing is saved: never
+  // fall back to writing private data in the clear.
+  ;(isPrivate(key) ? encryptText(json) : Promise.resolve(json))
+    .then(out => AsyncStorage.setItem(PREFIX + key, out))
+    .catch(() => {})
 }
 
 export function peekCached<T>(key: string): T | null {
@@ -42,12 +63,15 @@ export function peekCached<T>(key: string): T | null {
 export async function warmFromDisk(keys: readonly string[]): Promise<void> {
   try {
     const rows = await AsyncStorage.multiGet(keys.map(k => PREFIX + k))
-    for (const [fullKey, raw] of rows) {
-      if (!raw) continue
+    await Promise.all(rows.map(async ([fullKey, raw]) => {
+      if (!raw) return
       const key = fullKey.slice(PREFIX.length)
-      if (memory.has(key)) continue
-      try { memory.set(key, JSON.parse(raw)) } catch {}
-    }
+      if (memory.has(key)) return
+      try {
+        const entry = await decode(key, raw)
+        if (entry && !memory.has(key)) memory.set(key, entry)
+      } catch {}
+    }))
   } catch {}
 }
 
@@ -75,6 +99,9 @@ export function setCached<T>(key: string, value: T, ttlMs: number | null = 5 * 6
 export async function clearAllCached(): Promise<void> {
   memory.clear()
   inFlight.clear()
+  // Logout: drop the encryption key first, so even a failed delete below
+  // leaves nothing readable behind.
+  await forgetCacheKey()
   try {
     const keys = await AsyncStorage.getAllKeys()
     const ours = keys.filter(k => k.startsWith(PREFIX))

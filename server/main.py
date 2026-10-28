@@ -106,7 +106,7 @@ async def _event_wrapup_loop():
 
 
 async def _chat_media_purge_loop():
-    """Every 15 minutes — deletes view once/twice photos and videos from
+    """Every 15 minutes — deletes chat files (unsent ones, and view once/twice ones once used up or 14 days old) from
     storage once they're used up, unsent, or 14 days old. See
     utils/chat_media_purge.py."""
     while True:
@@ -115,7 +115,7 @@ async def _chat_media_purge_loop():
                 from utils.chat_media_purge import purge_viewed_media
                 count = await asyncio.to_thread(purge_viewed_media)
                 if count:
-                    print(f"[CHAT] Deleted {count} viewed or expired view-once file(s)", flush=True)
+                    print(f"[CHAT] Cleaned up {count} unsent, viewed or expired chat file(s)", flush=True)
         except Exception as e:
             print(f"[CHAT] View-once media purge failed: {e}", flush=True)
         await asyncio.sleep(CHAT_MEDIA_PURGE_INTERVAL_SECONDS)

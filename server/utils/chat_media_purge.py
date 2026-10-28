@@ -1,12 +1,17 @@
-"""Deletes view once / view twice files from storage, the way WhatsApp does:
+"""Deletes chat files from storage once nothing can show them any more:
 
+View once / view twice, the way WhatsApp does:
 - a few minutes after the last allowed view (the 5-minute open link has
   expired by then, so nobody is mid-download),
-- 14 days after sending if it was never fully opened,
-- straight away if the sender unsent it.
+- 14 days after sending if it was never fully opened.
 
-The message row stays (so the chat reads "Opened" / "Expired"); only the
-file and its link/key are removed, and media_purged_at is stamped.
+Any photo, video, GIF or voice note the sender unsent.
+
+A forwarded copy points at the same file as its original, so a file is only
+deleted once no live message uses it any more; until then the row is just
+marked handled. The message row always stays (so a chat can read "Opened" /
+"Expired"); only the file and its link/key are removed, and media_purged_at
+is stamped.
 """
 import os
 
@@ -17,6 +22,7 @@ from utils import chat_realtime as rt
 AFTER_LAST_VIEW_MINUTES = 10
 UNOPENED_DAYS = 14
 BATCH = 500
+MEDIA_TYPES = ('image', 'video', 'gif', 'voice')
 
 
 def _storage_location(md: dict):
@@ -31,22 +37,46 @@ def _storage_location(md: dict):
     return None
 
 
+def _still_used(msg_id: str, md: dict) -> bool:
+    """Another message that can still be shown (a forwarded copy) uses this file."""
+    key, url = md.get("key"), md.get("url")
+    if not key and not url:
+        return False
+    with get_db() as (cur, _):
+        cur.execute(
+            """
+            SELECT 1 FROM messages
+            WHERE id != %s::uuid AND unsent_at IS NULL AND media_purged_at IS NULL
+              AND (
+                    (%s::text IS NOT NULL AND metadata ? 'key' AND metadata->>'key' = %s)
+                 OR (%s::text IS NOT NULL AND content_type IN %s AND metadata ? 'url' AND metadata->>'url' = %s)
+              )
+            LIMIT 1
+            """,
+            (msg_id, key, key, url, MEDIA_TYPES, url),
+        )
+        return cur.fetchone() is not None
+
+
 def purge_viewed_media() -> int:
     with get_db() as (cur, _):
         cur.execute(
             """
             SELECT id::text, metadata
             FROM messages
-            WHERE view_limit IS NOT NULL AND media_purged_at IS NULL
+            WHERE media_purged_at IS NULL
               AND (
-                    unsent_at IS NOT NULL
-                 OR (views_used >= view_limit AND last_viewed_at < NOW() - make_interval(mins => %s))
-                 OR sent_at < NOW() - make_interval(days => %s)
+                    (view_limit IS NOT NULL AND (
+                         unsent_at IS NOT NULL
+                      OR (views_used >= view_limit AND last_viewed_at < NOW() - make_interval(mins => %s))
+                      OR sent_at < NOW() - make_interval(days => %s)
+                    ))
+                 OR (unsent_at IS NOT NULL AND content_type IN %s)
               )
             ORDER BY sent_at
             LIMIT %s
             """,
-            (AFTER_LAST_VIEW_MINUTES, UNOPENED_DAYS, BATCH),
+            (AFTER_LAST_VIEW_MINUTES, UNOPENED_DAYS, MEDIA_TYPES, BATCH),
         )
         rows = cur.fetchall()
 
@@ -54,7 +84,7 @@ def purge_viewed_media() -> int:
     for row in rows:
         md = row["metadata"] or {}
         loc = _storage_location(md)
-        if loc is not None:
+        if loc is not None and not _still_used(row["id"], md):
             bucket, key = loc
             # delete_file logs and returns False on failure; retry next run.
             if not r2_client.delete_file(key, bucket=bucket):
