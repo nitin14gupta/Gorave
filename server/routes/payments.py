@@ -89,7 +89,7 @@ def _precheck_paid_seat(cur, event_id: str, uid: str) -> dict:
     cur.execute(
         """
         SELECT id::text, host_id::text, title, capacity, spots_left, women_pct, age_restriction,
-               price_inr, platform_fee_inr, date_time, end_time, is_cancelled
+               price_inr, platform_fee_inr, host_commission_inr, date_time, end_time, is_cancelled
         FROM events WHERE id = %s
         """,
         (event_id,),
@@ -145,7 +145,16 @@ def _claim_paid_seat(cur, event_id: str, uid: str) -> tuple[bool, bool]:
     return True, False
 
 
-def _refund_to_wallet(cur, uid: str, event_id: str, amount: int, ev_title: str) -> None:
+def ticket_commission(price_paid: int, ev_price: int, ev_commission: int) -> int:
+    """Gorave's cut of what this ticket really cost, at the event's locked rate
+    (events keep the rate they were created under, see _fee_snapshot)."""
+    if not price_paid or not ev_price:
+        return 0
+    return round(price_paid * ev_commission / ev_price)
+
+
+def _refund_to_wallet(cur, uid: str, event_id: str, amount: int, ev_title: str,
+                      description: Optional[str] = None) -> None:
     if amount <= 0:
         return
     cur.execute("UPDATE users SET wallet_balance = wallet_balance + %s WHERE id = %s::uuid", (amount, uid))
@@ -155,7 +164,7 @@ def _refund_to_wallet(cur, uid: str, event_id: str, amount: int, ev_title: str) 
             (user_id, amount_inr, type, source, reference_id, description, expires_at)
         VALUES (%s::uuid, %s, 'credit', 'event_refund', %s::uuid, %s, NOW() + INTERVAL '6 months')
         """,
-        (uid, amount, event_id, f"Refund — spot no longer available at {ev_title}"),
+        (uid, amount, event_id, description or f"Refund — spot no longer available at {ev_title}"),
     )
 
 
@@ -341,6 +350,7 @@ def wallet_pay(body: WalletPayBody, current_user: dict = Depends(get_current_use
         ticket_price = ev["price_inr"]
         platform_fee = ev["platform_fee_inr"]
         total = ticket_price + platform_fee
+        commission = ticket_commission(ticket_price, ev["price_inr"], ev["host_commission_inr"])
 
         cur.execute("SELECT name FROM users WHERE id = %s::uuid", (uid,))
         user = cur.fetchone()
@@ -373,14 +383,26 @@ def wallet_pay(body: WalletPayBody, current_user: dict = Depends(get_current_use
             """,
             (uid, total, body.event_id),
         )
+        # The ticket keeps its own price, fee and commission (refunds and host
+        # payouts use these, never the event's current price). A re-buy after
+        # a cancel reuses the row, so the old refund is cleared.
         cur.execute(
             """
-            INSERT INTO event_attendees (event_id, user_id, status, payment_id)
-            VALUES (%s::uuid, %s::uuid, 'going', 'wallet')
+            INSERT INTO event_attendees (event_id, user_id, status, payment_id,
+                                         price_paid_inr, fee_paid_inr, commission_inr)
+            VALUES (%s::uuid, %s::uuid, 'going', 'wallet', %s, %s, %s)
             ON CONFLICT (event_id, user_id)
-            DO UPDATE SET status = 'going', payment_id = 'wallet', offer_expires_at = NULL
+            DO UPDATE SET status = 'going', payment_id = 'wallet', offer_expires_at = NULL,
+                          price_paid_inr = EXCLUDED.price_paid_inr, fee_paid_inr = EXCLUDED.fee_paid_inr,
+                          commission_inr = EXCLUDED.commission_inr,
+                          prior_fees_kept_inr = event_attendees.prior_fees_kept_inr + CASE
+                              WHEN event_attendees.refunded_at IS NOT NULL
+                              THEN GREATEST(0, COALESCE(event_attendees.fee_paid_inr, 0)
+                                   - GREATEST(0, COALESCE(event_attendees.refund_amount_inr, 0) - COALESCE(event_attendees.price_paid_inr, 0)))
+                              ELSE 0 END,
+                          refund_amount_inr = NULL, refunded_at = NULL, joined_at = NOW()
             """,
-            (body.event_id, uid),
+            (body.event_id, uid, ticket_price, platform_fee, commission),
         )
         if not held_offer:
             cur.execute(
@@ -544,14 +566,34 @@ def _complete_paid_booking(*, event_id: str, uid: str, payment_id: str, wallet_a
                 """,
                 (uid, wallet_amount, event_id, wallet_note),
             )
+        # What this ticket cost, from the order that was actually paid.
+        cur.execute(
+            "SELECT amount_inr, platform_fee_inr FROM payment_orders WHERE razorpay_payment_id = %s",
+            (payment_id,),
+        )
+        order = cur.fetchone()
+        cur.execute("SELECT price_inr, host_commission_inr FROM events WHERE id = %s", (event_id,))
+        ev_money = cur.fetchone()
+        fee_paid = order["platform_fee_inr"] if order else 0
+        price_paid = (order["amount_inr"] - fee_paid) if order else (ev_money["price_inr"] if ev_money else 0)
+        commission = ticket_commission(price_paid, ev_money["price_inr"], ev_money["host_commission_inr"]) if ev_money else 0
         cur.execute(
             """
-            INSERT INTO event_attendees (event_id, user_id, status, payment_id)
-            VALUES (%s::uuid, %s::uuid, 'going', %s)
+            INSERT INTO event_attendees (event_id, user_id, status, payment_id,
+                                         price_paid_inr, fee_paid_inr, commission_inr)
+            VALUES (%s::uuid, %s::uuid, 'going', %s, %s, %s, %s)
             ON CONFLICT (event_id, user_id)
-            DO UPDATE SET status = 'going', payment_id = %s, offer_expires_at = NULL
+            DO UPDATE SET status = 'going', payment_id = EXCLUDED.payment_id, offer_expires_at = NULL,
+                          price_paid_inr = EXCLUDED.price_paid_inr, fee_paid_inr = EXCLUDED.fee_paid_inr,
+                          commission_inr = EXCLUDED.commission_inr,
+                          prior_fees_kept_inr = event_attendees.prior_fees_kept_inr + CASE
+                              WHEN event_attendees.refunded_at IS NOT NULL
+                              THEN GREATEST(0, COALESCE(event_attendees.fee_paid_inr, 0)
+                                   - GREATEST(0, COALESCE(event_attendees.refund_amount_inr, 0) - COALESCE(event_attendees.price_paid_inr, 0)))
+                              ELSE 0 END,
+                          refund_amount_inr = NULL, refunded_at = NULL, joined_at = NOW()
             """,
-            (event_id, uid, payment_id, payment_id),
+            (event_id, uid, payment_id, price_paid, fee_paid, commission),
         )
         if not held_offer:
             cur.execute("UPDATE events SET spots_left = spots_left - 1 WHERE id = %s::uuid", (event_id,))

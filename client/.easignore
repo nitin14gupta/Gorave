@@ -1,23 +1,54 @@
-# EAS Build upload scope — trims the archive to what the remote build actually
-# needs. node_modules is reinstalled on the build server from package-lock.json,
-# so shipping the local copy is pure upload time with no benefit.
-node_modules/
+# EAS Build upload scope. Keep this file IDENTICAL to ../.easignore.
+#
+# EAS uploads from the git repository root (the folder above), and an
+# .easignore replaces every .gitignore. This copy only had client rules, so a
+# build swept in server/venv and the admin/website build caches (2.7 GB).
+# The rules below are written from the repository root, which is how EAS
+# applies them.
+#
+# The app in client/ is self-contained: nothing outside it is needed to build.
+
+# The rest of the repo (server venv, Next.js build caches, ...)
+/server/
+/admin/
+/website/
+/docker-compose.yml
+/README.md
+/SCREENS.md
 .git/
-.expo/
-.vscode/
-.claude/
 
-# Docs — not needed to build the app
-AGENTS.md
-DESIGN.md
-README.md
+# Reinstalled / regenerated on the build server
+**/node_modules/
+**/.expo/
+/client/android/
+/client/ios/
+/client/dist/
+/client/web-build/
+**/.kotlin/
+**/*.tsbuildinfo
+**/.metro-health-check*
+**/.vscode/
+**/.claude/
+**/__pycache__/
+**/npm-debug.*
+**/yarn-debug.*
+**/yarn-error.*
+**/.DS_Store
 
-# Native credentials that must never leave this machine
-*firebase-adminsdk*.json
-google-services.json
-GoogleService-Info.plist
-*.jks
-*.p8
-*.p12
-*.key
-*.mobileprovision
+# Docs, not needed to build the app
+/client/AGENTS.md
+/client/DESIGN.md
+/client/README.md
+
+# Secrets: never uploaded. Give the build what it needs as EAS environment
+# variables (secret visibility) instead.
+**/.env*.local
+**/*.pem
+**/*firebase-adminsdk*.json
+**/google-services.json
+**/GoogleService-Info.plist
+**/*.jks
+**/*.p8
+**/*.p12
+**/*.key
+**/*.mobileprovision

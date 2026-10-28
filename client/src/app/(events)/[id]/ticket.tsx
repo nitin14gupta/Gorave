@@ -6,7 +6,7 @@ import { type ViewShotRef } from 'react-native-view-shot'
 import { Asset as MediaAsset, requestPermissionsAsync as requestMediaPermissionsAsync } from 'expo-media-library'
 import { hSuccess } from '@/lib/haptics'
 import { CacheKeys, Colors, FontFamily } from '@/constants'
-import ApiService, { type EventDetail, type TicketInfo } from '@/api/apiService'
+import ApiService, { type EventDetail, type MyCancelQuote, type TicketInfo } from '@/api/apiService'
 import { usePillStore } from '@/store/pillStore'
 import { getOrFetch, peekCached } from '@/lib/queryCache'
 import { BrandedLoader } from '@/components/ui'
@@ -15,6 +15,36 @@ import { EventShareCard } from '@/components/events/EventShareCard'
 import { fmtDate, fmtTime, parseTs } from '@/lib/ticketDates'
 import { useImageShare } from '@/hooks/useImageShare'
 import { TicketView } from '@/components/events/TicketView'
+import { ConfirmSheet } from '@/components/ui/ConfirmSheet'
+import { useCancelSpot } from '@/hooks/useCancelSpot'
+
+// ── Cancel copy ───────────────────────────────────────────────────────────────
+
+const until = (iso: string | null) => (iso ? `${fmtDate(iso)}, ${fmtTime(iso)}` : '')
+
+function cancelCopy(q: MyCancelQuote) {
+  const free = q.kind === 'free'
+  const label = free ? 'Cancel my spot' : 'Cancel ticket'
+  if (!q.allowed) return { label, sub: q.reason ?? "This can't be cancelled now", title: '', body: '' }
+  if (free) {
+    return {
+      label, sub: `Free cancellation until ${until(q.deadline)}`,
+      title: 'Cancel your spot?', body: 'Your spot goes to the next person. This free event has nothing to refund.',
+    }
+  }
+  if (q.kind === 'moved') {
+    return {
+      label, sub: `Event moved: full ₹${q.refund_inr} back until ${until(q.deadline)}`,
+      title: 'Cancel your ticket?',
+      body: `The host moved this event, so the full ₹${q.refund_inr} goes back to your Gorave Wallet.`,
+    }
+  }
+  return {
+    label, sub: `₹${q.refund_inr} back to your wallet until ${until(q.deadline)}`,
+    title: 'Cancel your ticket?',
+    body: `₹${q.refund_inr} goes back to your Gorave Wallet. The ₹${q.fee_kept_inr} platform fee isn't refunded.`,
+  }
+}
 
 // ── Screen ────────────────────────────────────────────────────────────────────
 
@@ -29,6 +59,9 @@ export default function TicketScreen() {
   const [loadError, setLoadError] = useState(false)
   const [event, setEvent] = useState<EventDetail | null>(null)
   const cardRef = useRef<ViewShotRef | null>(null)
+  const cancelSpot = useCancelSpot(id)
+  const [confirmCancel, setConfirmCancel] = useState(false)
+  const copy = cancelSpot.quote ? cancelCopy(cancelSpot.quote) : null
   const shareCardRef = useRef<View>(null)
   const { shareImage } = useImageShare()
 
@@ -151,6 +184,23 @@ export default function TicketScreen() {
         onSave={handleSave}
         onDirections={handleDirections}
         onAllTickets={() => router.replace('/(settings)/joined-events' as any)}
+        cancelRow={copy ? {
+          label: cancelSpot.busy ? 'Cancelling…' : copy.label,
+          sub: copy.sub,
+          enabled: !!cancelSpot.quote?.allowed && !cancelSpot.busy,
+          onPress: () => setConfirmCancel(true),
+        } : null}
+      />
+
+      <ConfirmSheet
+        visible={confirmCancel && !!copy?.title}
+        title={copy?.title ?? ''}
+        body={copy?.body ?? ''}
+        confirmLabel={copy?.label ?? 'Cancel'}
+        cancelLabel="Keep it"
+        destructive
+        onConfirm={cancelSpot.cancel}
+        onClose={() => setConfirmCancel(false)}
       />
 
       {/* Off-screen — captured and shared as an image, never shown to the user */}

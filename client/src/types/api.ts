@@ -210,6 +210,8 @@ export interface EventDetail extends EventSummary {
   my_offer_expires_at: string | null
   my_review_rating: number | null
   my_can_request_again?: boolean
+  /** Can I cancel my own spot, until when, and what comes back. Only when going. */
+  my_cancel?: MyCancelQuote | null
   /** Join requests this viewer can still send for this event (server caps at max_join_requests) */
   my_requests_left?: number
   max_join_requests?: number
@@ -498,4 +500,21 @@ export interface NotificationPrefs {
   hosting: boolean
   attending: boolean
   payments: boolean
+}
+
+/**
+ * The server's answer to "can I cancel my spot?". Free spots: until 2h before
+ * the start. Paid: until 48h before, the ticket price comes back to the wallet
+ * and the ₹50 fee is kept. If the host moved the event by more than a week
+ * after you bought, 48h from the move to get everything back ('moved').
+ */
+export interface MyCancelQuote {
+  allowed: boolean
+  kind: 'free' | 'paid' | 'moved'
+  refund_inr: number
+  fee_kept_inr: number
+  /** ISO time the current option ends */
+  deadline: string | null
+  /** Why it isn't allowed, ready to show */
+  reason: string | null
 }

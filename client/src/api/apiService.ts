@@ -49,6 +49,7 @@ import type {
 // Response/request shapes live in '@/types/api' — re-exported here so
 // existing `import { X } from '@/api/apiService'` call sites keep working.
 export type {
+  MyCancelQuote,
   JoinMode,
   RsvpStatus,
   CrowdRatio,
@@ -750,8 +751,8 @@ class ApiService {
     return this.patch<EventDetail>(ENDPOINTS.EVENT_UPDATE.replace(':id', id), data)
   }
 
-  static async rsvpEvent(id: string, action: 'going' | 'cancel'): Promise<{ status: string; position?: number }> {
-    return this.post<{ status: string; position?: number }>(ENDPOINTS.EVENT_RSVP.replace(':id', id), { action })
+  static async rsvpEvent(id: string, action: 'going' | 'cancel'): Promise<{ status: string; position?: number; refund_inr?: number }> {
+    return this.post<{ status: string; position?: number; refund_inr?: number }>(ENDPOINTS.EVENT_RSVP.replace(':id', id), { action })
   }
 
   // ── Join requests (free events are host-approved) ──────────────────────────

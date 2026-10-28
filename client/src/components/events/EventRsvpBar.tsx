@@ -179,18 +179,15 @@ export function EventRsvpBar({
               />
             )
           ) : isGoing || hasTicket ? (
-            <View style={{ flexDirection: 'row', gap: 8 }}>
-              <View style={styles.goingBtn}>
-                <Text style={styles.goingBtnText}>Going ✓</Text>
-              </View>
-              <Pressable
-                style={styles.ticketBtn}
-                onPress={() => router.push(`/(events)/${eventId}/ticket` as any)}
-              >
-                <QrCode size={16} color={Colors.inkPrimary} />
-                <Text style={styles.ticketBtnText}>Ticket</Text>
-              </Pressable>
-            </View>
+            // The ticket says you're in; one clear action instead of a
+            // "Going" pill next to it. Cancelling lives on the ticket.
+            <Pressable
+              style={styles.viewTicketBtn}
+              onPress={() => router.push(`/(events)/${eventId}/ticket` as any)}
+            >
+              <QrCode size={17} color={Colors.background} strokeWidth={2.2} />
+              <Text style={styles.viewTicketText}>View ticket</Text>
+            </Pressable>
           ) : isInProgress ? (
             <View style={styles.inProgressBtn}>
               <Text style={styles.inProgressText}>Event in Progress</Text>
@@ -332,15 +329,6 @@ const styles = StyleSheet.create({
   },
   reviewedPillText: { fontFamily: FontFamily.bodySemiBold, fontSize: 14, color: Colors.accentGreen },
 
-  goingBtn: {
-    backgroundColor: Colors.accentGreen,
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    borderRadius: 14,
-    alignItems: 'center',
-    minWidth: 120,
-  },
-  goingBtnText: { color: Colors.inkPrimary, fontFamily: FontFamily.bodySemiBold, fontSize: 15 },
 
   waitlistActiveBtn: {
     flexDirection: 'row',
@@ -449,12 +437,12 @@ const styles = StyleSheet.create({
   },
   cancelledText: { color: Colors.destructive, fontFamily: FontFamily.bodySemiBold, fontSize: 14 },
 
-  ticketBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 5,
-    paddingHorizontal: 14, paddingVertical: 14, borderRadius: 14,
-    borderWidth: 1, borderColor: Colors.inkPrimary,
+  viewTicketBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    paddingHorizontal: 22, paddingVertical: 14, borderRadius: 14, minWidth: 150,
+    backgroundColor: Colors.inkPrimary,
   },
-  ticketBtnText: { color: Colors.inkPrimary, fontFamily: FontFamily.bodySemiBold, fontSize: 14 },
+  viewTicketText: { color: Colors.background, fontFamily: FontFamily.bodySemiBold, fontSize: 15 },
 
   hostBar: { flex: 1, gap: 10 },
   requestsChip: {

@@ -14,6 +14,7 @@ const FAQS: { topic: Topic; q: string; a: string }[] = [
   { topic: 'Events', q: 'What is the waitlist?', a: 'When an event is full you can join the waitlist. If a spot opens, the next person in line gets it.' },
   { topic: 'Events', q: 'Where is my ticket?', a: 'Open the event you are going to and tap your ticket. The host scans its QR code at the door.' },
   { topic: 'Payments', q: 'How do refunds work?', a: 'Refunds from Gorave go to your Gorave Wallet as credits. Credits can be used on any Gorave event and expire 6 months after you get them.' },
+  { topic: 'Events', q: 'Can I cancel my spot?', a: 'Yes, from your ticket. A free event can be cancelled up to 2 hours before it starts. A paid ticket can be cancelled up to 48 hours before: the ticket price goes back to your wallet and the ₹50 platform fee is kept. If the host cancels, or moves the event by more than a week, you get everything back, fee included.' },
   { topic: 'Payments', q: 'I want my money back in my bank', a: `Write to us from Contact support or at ${SUPPORT_EMAIL} and we will help.` },
   { topic: 'People', q: 'What are Vibers and Vibing?', a: 'Vibers are people who follow you. Vibing is the people you follow.' },
   { topic: 'People', q: 'What is a vibe?', a: 'A vibe is how you start a chat. Send one from someone\'s profile; once they accept, the chat opens.' },

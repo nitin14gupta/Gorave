@@ -8,16 +8,19 @@ router = APIRouter(prefix="/admin/revenue", tags=["admin-revenue"])
 
 DAYS_BACK = 30
 
-# Revenue-realization rule, applied everywhere in this file:
-# - platform_fee_inr is never refunded (attendees keep paying it even if the
-#   event later gets cancelled), so it always counts.
-# - host_commission_inr is only ever actually taken when the host gets paid —
-#   which never happens for a cancelled event (the ticket price is refunded
-#   to the attendee's wallet instead) — so it's excluded for cancelled events.
+# Revenue is counted per ticket, from what each ticket really cost
+# (event_attendees.price_paid_inr / fee_paid_inr / commission_inr, frozen at
+# purchase), never from the event's current price:
+# - Platform fee: what guests paid, minus any fee given back. A host or admin
+#   cancel refunds the fee; a guest's own cancel keeps it, so it still counts.
+# - Commission: only on tickets that still stand (going, not refunded, event
+#   not cancelled), because that's the only money the host is paid out from.
+_FEE_KEPT = "(ea.fee_paid_inr - GREATEST(0, COALESCE(ea.refund_amount_inr, 0) - ea.price_paid_inr) + ea.prior_fees_kept_inr)"
+_TICKET_STANDS = "(ea.status = 'going' AND ea.refunded_at IS NULL AND e.is_cancelled = FALSE)"
 _REVENUE_JOIN = """
     FROM event_attendees ea
     JOIN events e ON e.id = ea.event_id
-    WHERE ea.status = 'going'
+    WHERE ea.price_paid_inr IS NOT NULL
 """
 
 
@@ -40,8 +43,8 @@ def revenue_stats(current_admin: dict = Depends(get_current_admin)):
         cur.execute(
             f"""
             SELECT
-                COALESCE(SUM(e.platform_fee_inr), 0)::int AS total_platform_fee,
-                COALESCE(SUM(e.host_commission_inr) FILTER (WHERE e.is_cancelled = FALSE), 0)::int AS total_host_commission
+                COALESCE(SUM({_FEE_KEPT}), 0)::int AS total_platform_fee,
+                COALESCE(SUM(ea.commission_inr) FILTER (WHERE {_TICKET_STANDS}), 0)::int AS total_host_commission
             {_REVENUE_JOIN}
             """
         )
@@ -65,8 +68,8 @@ def revenue_by_day(current_admin: dict = Depends(get_current_admin)):
             f"""
             SELECT
                 ea.joined_at::date AS day,
-                COALESCE(SUM(e.platform_fee_inr), 0)::int AS platform_fee,
-                COALESCE(SUM(e.host_commission_inr) FILTER (WHERE e.is_cancelled = FALSE), 0)::int AS host_commission
+                COALESCE(SUM({_FEE_KEPT}), 0)::int AS platform_fee,
+                COALESCE(SUM(ea.commission_inr) FILTER (WHERE {_TICKET_STANDS}), 0)::int AS host_commission
             {_REVENUE_JOIN}
               AND ea.joined_at > NOW() - INTERVAL '30 days'
             GROUP BY day
@@ -87,7 +90,7 @@ def host_payout_ledger(
     current_admin: dict = Depends(get_current_admin),
 ):
     offset = (page - 1) * page_size
-    filters = ["e.price_inr > 0", "ea.status = 'going'", "e.is_cancelled = FALSE"]
+    filters = ["ea.price_paid_inr > 0", _TICKET_STANDS]
     params: list = []
     if q:
         filters.append("(u.name ILIKE %s OR u.phone ILIKE %s)")
@@ -118,8 +121,8 @@ def host_payout_ledger(
                 u.id::text AS host_id, u.name AS host_name, u.phone AS host_phone,
                 hpd.payout_method, (hpd.id IS NOT NULL) AS has_payout_details,
                 COUNT(DISTINCT e.id)::int AS paid_events_count,
-                COALESCE(SUM(e.price_inr), 0)::int AS gross_ticket_revenue,
-                COALESCE(SUM(e.host_commission_inr), 0)::int AS commission_taken
+                COALESCE(SUM(ea.price_paid_inr), 0)::int AS gross_ticket_revenue,
+                COALESCE(SUM(ea.commission_inr), 0)::int AS commission_taken
             FROM users u
             JOIN events e ON e.host_id = u.id
             JOIN event_attendees ea ON ea.event_id = e.id
@@ -150,11 +153,12 @@ def leaderboard(current_admin: dict = Depends(get_current_admin)):
             SELECT
                 u.id::text AS host_id, u.name AS host_name,
                 COUNT(DISTINCT e.id)::int AS paid_events_count,
-                COALESCE(SUM(e.price_inr), 0)::int AS gross_ticket_revenue,
-                COALESCE(SUM(e.host_commission_inr), 0)::int AS commission_taken
+                COALESCE(SUM(ea.price_paid_inr), 0)::int AS gross_ticket_revenue,
+                COALESCE(SUM(ea.commission_inr), 0)::int AS commission_taken
             FROM users u
-            JOIN events e ON e.host_id = u.id AND e.price_inr > 0 AND e.is_cancelled = FALSE
+            JOIN events e ON e.host_id = u.id AND e.is_cancelled = FALSE
             JOIN event_attendees ea ON ea.event_id = e.id AND ea.status = 'going'
+                AND ea.price_paid_inr > 0 AND ea.refunded_at IS NULL
             GROUP BY u.id, u.name
             ORDER BY gross_ticket_revenue DESC
             LIMIT 10

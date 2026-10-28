@@ -52,6 +52,67 @@ def _fee_snapshot(price_inr: int) -> tuple[int, int, int]:
     commission = round(price_inr * HOST_COMMISSION_RATE)
     return fee, commission, fee + commission
 
+# ── Cancelling your own spot ────────────────────────────────────────────────
+# Free: until 2h before the start (the spot goes to the next person).
+# Paid: until 48h before the start, the ticket price comes back to the
+#   wallet; the ₹50 platform fee is kept (the guest chose to leave).
+# Paid, event moved by more than 7 days after you bought: 48h from the move
+#   to cancel for everything back, ticket and fee.
+# A host or admin cancel always refunds everything (_cancel_event_and_refund).
+FREE_CANCEL_CUTOFF = timedelta(hours=2)
+PAID_CANCEL_CUTOFF = timedelta(hours=48)
+RESCHEDULE_REFUND_WINDOW = timedelta(hours=48)
+RESCHEDULE_THRESHOLD = timedelta(days=7)
+
+
+def _utc(dt):
+    if dt is None:
+        return None
+    return dt.replace(tzinfo=timezone.utc) if dt.tzinfo is None else dt
+
+
+def _cancel_quote(ev: dict, att: dict, now: datetime | None = None) -> dict:
+    """Whether a going guest can cancel, until when, and how much comes back.
+    `ev` needs date_time, is_cancelled, rescheduled_at; `att` needs status,
+    payment_id, price_paid_inr, fee_paid_inr, refunded_at, joined_at."""
+    now = now or datetime.now(timezone.utc)
+    start = _utc(ev["date_time"])
+    paid = bool(att.get("payment_id")) and (att.get("price_paid_inr") or 0) > 0
+    price = att.get("price_paid_inr") or 0
+    fee = att.get("fee_paid_inr") or 0
+    quote = {"allowed": False, "kind": "paid" if paid else "free", "refund_inr": 0,
+             "fee_kept_inr": 0, "deadline": None, "reason": None}
+
+    if att.get("status") != "going" or ev.get("is_cancelled"):
+        return {**quote, "reason": "Nothing to cancel"}
+    if att.get("refunded_at"):
+        return {**quote, "reason": "This ticket was already refunded"}
+    if now >= start:
+        return {**quote, "reason": "The event has already started"}
+
+    if not paid:
+        deadline = start - FREE_CANCEL_CUTOFF
+        if now < deadline:
+            return {**quote, "allowed": True, "deadline": deadline.isoformat()}
+        return {**quote, "deadline": deadline.isoformat(),
+                "reason": "Free spots can be cancelled up to 2 hours before the start"}
+
+    moved = _utc(ev.get("rescheduled_at"))
+    bought = _utc(att.get("joined_at"))
+    if moved and (bought is None or bought < moved):
+        window_end = min(moved + RESCHEDULE_REFUND_WINDOW, start)
+        if now < window_end:
+            return {**quote, "allowed": True, "kind": "moved", "refund_inr": price + fee,
+                    "deadline": window_end.isoformat()}
+
+    deadline = start - PAID_CANCEL_CUTOFF
+    if now < deadline:
+        return {**quote, "allowed": True, "refund_inr": price, "fee_kept_inr": fee,
+                "deadline": deadline.isoformat()}
+    return {**quote, "deadline": deadline.isoformat(),
+            "reason": "Paid tickets can be cancelled up to 48 hours before the start"}
+
+
 def _calc_age(dob: date) -> int:
     today = date.today()
     return today.year - dob.year - ((today.month, today.day) < (dob.month, dob.day))
@@ -211,6 +272,8 @@ class EventDetail(EventSummary):
     my_waitlist_position: Optional[int] = None  # position in queue (1-indexed), None if not on waitlist
     my_offer_expires_at: Optional[str] = None   # ISO string when promoted, else None
     my_review_rating: Optional[int] = None
+    # Can I cancel my spot, until when, and what comes back (see _cancel_quote).
+    my_cancel: Optional[dict] = None
     my_can_request_again: bool = True
     my_requests_left: int = _MAX_JOIN_REQUESTS    # join requests this user can still send for this event
     max_join_requests: int = _MAX_JOIN_REQUESTS
@@ -1321,11 +1384,18 @@ def get_event(event_id: str, current_user: dict = Depends(get_current_user)):
             d["pending_request_count"] = cur.fetchone()["n"]
         else:
             cur.execute(
-                "SELECT request_count FROM event_attendees WHERE event_id = %s AND user_id = %s::uuid",
+                """
+                SELECT ea.request_count, ea.status, ea.payment_id, ea.price_paid_inr, ea.fee_paid_inr,
+                       ea.refunded_at, ea.joined_at, e.date_time, e.is_cancelled, e.rescheduled_at
+                FROM event_attendees ea JOIN events e ON e.id = ea.event_id
+                WHERE ea.event_id = %s AND ea.user_id = %s::uuid
+                """,
                 (event_id, uid),
             )
             mine = cur.fetchone()
             used = mine["request_count"] if mine else 0
+            if mine and mine["status"] == "going":
+                d["my_cancel"] = _cancel_quote(mine, mine)
             d["my_requests_left"] = max(0, _MAX_JOIN_REQUESTS - used)
             d["my_can_request_again"] = (
                 d.get("my_rsvp_status") not in ("declined",)
@@ -1602,6 +1672,9 @@ def update_event(event_id: str, body: CreateEventBody, background_tasks: Backgro
     old_capacity = ev["capacity"]
     promoted_users = []
     affected_user_ids = []
+    # Moved by more than a week: paid guests get 48h from now to cancel for
+    # everything back (see _cancel_quote).
+    moved_far = bool(body_dt) and abs(body_dt - ev_dt) > RESCHEDULE_THRESHOLD
     fee_inr, commission_inr, profit_inr = _fee_snapshot(body.price_inr)
 
     with get_db() as (cur, conn):
@@ -1621,6 +1694,7 @@ def update_event(event_id: str, body: CreateEventBody, background_tasks: Backgro
                 -- An empty list means "unchanged" (older clients don't send
                 -- photos on edit) — a cover is mandatory, so never wipe it.
                 cover_photos = COALESCE(NULLIF(%s::jsonb, '[]'::jsonb), cover_photos),
+                rescheduled_at = CASE WHEN %s THEN NOW() ELSE rescheduled_at END,
                 updated_at=NOW()
             WHERE id=%s
             """,
@@ -1635,6 +1709,7 @@ def update_event(event_id: str, body: CreateEventBody, background_tasks: Backgro
                 body.price_inr,
                 fee_inr, commission_inr, profit_inr,
                 __import__('json').dumps([p for p in (body.cover_photos or []) if p]),
+                moved_far,
                 event_id,
             ),
         )
@@ -1654,6 +1729,16 @@ def update_event(event_id: str, body: CreateEventBody, background_tasks: Backgro
             affected_user_ids = [r["user_id"] for r in cur.fetchall()]
             for a_uid in affected_user_ids:
                 notify_event_updated(cur, a_uid, event_id, body.title)
+            paid_guest_ids = set()
+            if moved_far:
+                cur.execute(
+                    """
+                    SELECT user_id::text FROM event_attendees
+                    WHERE event_id = %s AND status = 'going' AND payment_id IS NOT NULL AND refunded_at IS NULL
+                    """,
+                    (event_id,),
+                )
+                paid_guest_ids = {r["user_id"] for r in cur.fetchall()}
 
         conn.commit()
 
@@ -1663,6 +1748,13 @@ def update_event(event_id: str, body: CreateEventBody, background_tasks: Backgro
 
     if affected_user_ids:
         for a_uid in affected_user_ids:
+            if a_uid in paid_guest_ids:
+                background_tasks.add_task(
+                    send_push, a_uid, "Your event moved to a new date",
+                    f"The host moved {body.title}. Can't make the new date? You have 48 hours to cancel for a full refund.",
+                    {"type": "event", "event_id": event_id}, cover_url, category="attending",
+                )
+                continue
             background_tasks.add_task(
                 send_push, a_uid, "Event details changed",
                 f"The host updated {body.title}. Check what's new.",
@@ -1952,7 +2044,12 @@ def rsvp_event(event_id: str, body: RsvpBody, background_tasks: BackgroundTasks,
 
         else:  # cancel
             cur.execute(
-                "SELECT status, offer_expires_at FROM event_attendees WHERE event_id = %s AND user_id = %s",
+                """
+                SELECT status, offer_expires_at, payment_id, price_paid_inr, fee_paid_inr,
+                       refunded_at, joined_at
+                FROM event_attendees WHERE event_id = %s AND user_id = %s
+                FOR UPDATE
+                """,
                 (event_id, current_user["id"]),
             )
             existing = cur.fetchone()
@@ -1967,14 +2064,29 @@ def rsvp_event(event_id: str, body: RsvpBody, background_tasks: BackgroundTasks,
                 conn.commit()
                 raise HTTPException(status_code=404, detail="Not attending this event")
 
-            if prev_status == "going" and ev["price_inr"] > 0:
-                conn.commit()
-                raise HTTPException(status_code=400, detail="Tickets for paid events cannot be cancelled.")
+            refund_inr = 0
+            if prev_status == "going":
+                cur.execute("SELECT rescheduled_at FROM events WHERE id = %s", (event_id,))
+                quote = _cancel_quote({**ev, **cur.fetchone()}, existing)
+                if not quote["allowed"]:
+                    conn.commit()
+                    raise HTTPException(status_code=400, detail=quote["reason"])
+                refund_inr = quote["refund_inr"]
 
             cur.execute(
-                "UPDATE event_attendees SET status = 'cancelled', offer_expires_at = NULL WHERE event_id = %s AND user_id = %s",
-                (event_id, current_user["id"]),
+                """
+                UPDATE event_attendees
+                SET status = 'cancelled', offer_expires_at = NULL,
+                    refund_amount_inr = CASE WHEN %s > 0 THEN %s ELSE refund_amount_inr END,
+                    refunded_at = CASE WHEN %s > 0 THEN NOW() ELSE refunded_at END
+                WHERE event_id = %s AND user_id = %s
+                """,
+                (refund_inr, refund_inr, refund_inr, event_id, current_user["id"]),
             )
+            if refund_inr > 0:
+                from routes.payments import _refund_to_wallet
+                _refund_to_wallet(cur, current_user["id"], event_id, refund_inr, ev["title"],
+                                  description=f"Refund — you cancelled {ev['title']}")
 
             # Only promote if event starts > 2h from now — under 2h the freed spot becomes an empty seat
             ev_dt_cancel = ev["date_time"]
@@ -2019,6 +2131,19 @@ def rsvp_event(event_id: str, body: RsvpBody, background_tasks: BackgroundTasks,
                 )
 
             status = "cancelled"
+            if refund_inr > 0:
+                background_tasks.add_task(
+                    send_push, current_user["id"], "Refund in your Gorave Wallet 💰",
+                    f"₹{refund_inr} from {event_title_cancel} is in your wallet.",
+                    {"type": "wallet", "event_id": event_id}, category="payments",
+                )
+            if prev_status == "going" and ev["join_mode"] != "request" and ev_cancel:
+                from utils.push import get_event_image_url
+                background_tasks.add_task(
+                    send_push, ev_cancel["host_id"], f"A guest cancelled {event_title_cancel}",
+                    "Their spot is open again" + (" and went to the next person on the waitlist." if promoted else "."),
+                    {"type": "event", "event_id": event_id}, get_event_image_url(event_id), category="hosting",
+                )
 
         # Queue expiry push notifications (outside transaction)
         if expired_user_ids:
@@ -2045,6 +2170,8 @@ def rsvp_event(event_id: str, body: RsvpBody, background_tasks: BackgroundTasks,
     result = {"ok": True, "status": status}
     if status == "waitlist":
         result["position"] = position
+    if status == "cancelled":
+        result["refund_inr"] = refund_inr
     return result
 
 
@@ -2385,13 +2512,21 @@ def _cancel_event_and_refund(event_id: str, background_tasks: BackgroundTasks, c
     authorization/deadline checks before calling this.
     """
     with get_db() as (cur, conn):
-        cur.execute("SELECT title, price_inr, host_id::text FROM events WHERE id = %s", (event_id,))
+        # Lock the event: a second cancel (double tap, retry, host + admin at
+        # once) waits here, then sees it's already cancelled and does nothing,
+        # so nobody is refunded twice.
+        cur.execute(
+            "SELECT title, price_inr, platform_fee_inr, host_id::text, is_cancelled FROM events WHERE id = %s FOR UPDATE",
+            (event_id,),
+        )
         ev_title_row = cur.fetchone()
-        ev_title = ev_title_row["title"] if ev_title_row else ""
-        ev_price = ev_title_row["price_inr"] if ev_title_row else 0
-        host_id = ev_title_row["host_id"] if ev_title_row else None
+        if not ev_title_row or ev_title_row["is_cancelled"]:
+            conn.commit()
+            return False
+        ev_title = ev_title_row["title"]
+        host_id = ev_title_row["host_id"]
 
-        cur.execute("UPDATE events SET is_cancelled = TRUE WHERE id = %s", (event_id,))
+        cur.execute("UPDATE events SET is_cancelled = TRUE, updated_at = NOW() WHERE id = %s", (event_id,))
 
         # Fetch waitlist users to notify
         cur.execute(
@@ -2429,24 +2564,29 @@ def _cancel_event_and_refund(event_id: str, background_tasks: BackgroundTasks, c
         for req_uid in requested_user_ids:
             notify_event_cancelled_attendee(cur, req_uid, event_id, ev_title)
 
-        # Refund paid attendees to Gorave Wallet
-        paid_user_ids = []
-        if ev_price > 0:
-            refund_amount = ev_price
-            for att_uid in going_user_ids:
-                paid_user_ids.append(att_uid)
-                cur.execute(
-                    "UPDATE users SET wallet_balance = wallet_balance + %s WHERE id = %s::uuid",
-                    (refund_amount, att_uid),
-                )
-                cur.execute(
-                    """
-                    INSERT INTO wallet_transactions
-                        (user_id, amount_inr, type, source, reference_id, description, expires_at)
-                    VALUES (%s::uuid, %s, 'credit', 'event_refund', %s::uuid, %s, NOW() + INTERVAL '6 months')
-                    """,
-                    (att_uid, refund_amount, event_id, f"Refund — {ev_title}"),
-                )
+        # Everyone who paid gets back everything they paid, ticket AND the
+        # platform fee: the night didn't happen and that isn't their doing.
+        # Each ticket is refunded once (refunded_at), from what it really cost.
+        from routes.payments import _refund_to_wallet
+        cur.execute(
+            """
+            SELECT user_id::text,
+                   COALESCE(price_paid_inr, %s) AS price_paid,
+                   COALESCE(fee_paid_inr, %s) AS fee_paid
+            FROM event_attendees
+            WHERE event_id = %s AND status = 'going' AND payment_id IS NOT NULL AND refunded_at IS NULL
+            FOR UPDATE
+            """,
+            (ev_title_row["price_inr"], ev_title_row["platform_fee_inr"], event_id),
+        )
+        refunds = [(r["user_id"], r["price_paid"] + r["fee_paid"]) for r in cur.fetchall()]
+        refunds = [(u, amt) for u, amt in refunds if amt > 0]
+        for att_uid, amount in refunds:
+            _refund_to_wallet(cur, att_uid, event_id, amount, ev_title, description=f"Refund — {ev_title}")
+            cur.execute(
+                "UPDATE event_attendees SET refund_amount_inr = %s, refunded_at = NOW() WHERE event_id = %s AND user_id = %s::uuid",
+                (amount, event_id, att_uid),
+            )
 
         conn.commit()
 
@@ -2479,20 +2619,21 @@ def _cancel_event_and_refund(event_id: str, background_tasks: BackgroundTasks, c
             {"type": "event", "event_id": event_id}, cover_url, category="attending",
         )
 
-    for att_uid in paid_user_ids:
+    for att_uid, amount in refunds:
         background_tasks.add_task(
             send_push, att_uid,
             "Refund in your Gorave Wallet 💰",
-            f"₹{ev_price} from '{ev_title}' is now in your Gorave Wallet.",
+            f"₹{amount} from '{ev_title}' is now in your Gorave Wallet.",
             {"type": "wallet", "event_id": event_id}, category="payments",
         )
+    return True
 
 
 @router.delete("/{event_id}")
 def cancel_event(event_id: str, background_tasks: BackgroundTasks, current_user: dict = Depends(get_current_user)):
     with get_db() as (cur, conn):
         cur.execute(
-            "SELECT host_id::text, date_time FROM events WHERE id = %s",
+            "SELECT host_id::text, date_time, is_cancelled FROM events WHERE id = %s",
             (event_id,),
         )
         ev = cur.fetchone()
@@ -2500,6 +2641,8 @@ def cancel_event(event_id: str, background_tasks: BackgroundTasks, current_user:
         raise HTTPException(status_code=404, detail="Event not found")
     if ev["host_id"] != current_user["id"]:
         raise HTTPException(status_code=403, detail="Not your event")
+    if ev["is_cancelled"]:
+        raise HTTPException(status_code=409, detail="This event is already cancelled")
 
     cancel_deadline = ev["date_time"] - timedelta(hours=48)
     now = datetime.now(timezone.utc)
@@ -2507,7 +2650,8 @@ def cancel_event(event_id: str, background_tasks: BackgroundTasks, current_user:
     if now > cd:
         raise HTTPException(status_code=403, detail="Events can only be cancelled up to 48 hours before start")
 
-    _cancel_event_and_refund(event_id, background_tasks)
+    if not _cancel_event_and_refund(event_id, background_tasks):
+        raise HTTPException(status_code=409, detail="This event is already cancelled")
     return {"ok": True}
 
 

@@ -1,0 +1,50 @@
+# EAS Build upload scope. EAS reads this file from the git repository root
+# (this folder) and, when it exists, uses it INSTEAD of every .gitignore, so
+# everything not wanted in the upload must be listed here.
+#
+# The app in client/ is self-contained: nothing outside it is needed to build.
+
+# The rest of the repo (server venv, Next.js build caches, ...)
+/server/
+/admin/
+/website/
+/docker-compose.yml
+/README.md
+/SCREENS.md
+.git/
+
+# Reinstalled / regenerated on the build server
+**/node_modules/
+**/.expo/
+/client/android/
+/client/ios/
+/client/dist/
+/client/web-build/
+**/.kotlin/
+**/*.tsbuildinfo
+**/.metro-health-check*
+**/.vscode/
+**/.claude/
+**/__pycache__/
+**/npm-debug.*
+**/yarn-debug.*
+**/yarn-error.*
+**/.DS_Store
+
+# Docs, not needed to build the app
+/client/AGENTS.md
+/client/DESIGN.md
+/client/README.md
+
+# Secrets: never uploaded. Give the build what it needs as EAS environment
+# variables (secret visibility) instead.
+**/.env*.local
+**/*.pem
+**/*firebase-adminsdk*.json
+**/google-services.json
+**/GoogleService-Info.plist
+**/*.jks
+**/*.p8
+**/*.p12
+**/*.key
+**/*.mobileprovision

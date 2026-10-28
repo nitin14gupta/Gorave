@@ -7,7 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import Svg, { Defs, LinearGradient as SvgLinear, RadialGradient, Rect, Stop } from 'react-native-svg'
 import QRCode from 'react-native-qrcode-svg'
 import ViewShot, { type ViewShotRef } from 'react-native-view-shot'
-import { ArrowLeft, ChevronRight, Download, Navigation, Share2, Ticket as TicketIcon } from 'lucide-react-native'
+import { ArrowLeft, ChevronRight, Download, Navigation, Share2, Ticket as TicketIcon, XCircle } from 'lucide-react-native'
 import { Colors, FontFamily, LogoBlack, withOpacity, eventImageHeight, EVENT_ICONS, EVENT_ICON_FALLBACK } from '@/constants'
 import { LogoMark } from '@/components/ui'
 import { eventDateParts } from '@/components/events/EventCard'
@@ -39,6 +39,8 @@ export interface TicketViewProps {
   onSave: () => void
   onDirections: () => void
   onAllTickets: () => void
+  /** "Cancel ticket" row, from the server's cancel rule. Hidden when null. */
+  cancelRow?: { label: string; sub: string; enabled: boolean; onPress: () => void } | null
 }
 
 /** "TKT-1A2B3C4D", the short reference printed under the QR. */
@@ -51,7 +53,7 @@ function ticketRef(token: string) {
  * fills the top and drifts slower than the scroll, and the maroon stub from
  * the website tears off below it with the date set big and the QR.
  */
-export function TicketView({ ticket, event, cardRef, onBack, onShare, onSave, onDirections, onAllTickets }: TicketViewProps) {
+export function TicketView({ ticket, event, cardRef, onBack, onShare, onSave, onDirections, onAllTickets, cancelRow }: TicketViewProps) {
   const insets = useSafeAreaInsets()
   const parts = eventDateParts(ticket.date_time)
   const cover = event?.cover_photos?.[0]?.url
@@ -155,6 +157,25 @@ export function TicketView({ ticket, event, cardRef, onBack, onShare, onSave, on
           <Row icon={<Share2 size={18} color={Colors.inkPrimary} strokeWidth={2} />} label="Tell your friends" onPress={onShare} />
           <Row icon={<TicketIcon size={18} color={Colors.inkPrimary} strokeWidth={2} />} label="All my tickets" onPress={onAllTickets} last />
         </View>
+
+        {cancelRow ? (
+          // Its own card, away from the everyday actions, like Cancel booking on other ticket apps.
+          <Pressable
+            style={[s.list, s.cancelCard]}
+            disabled={!cancelRow.enabled}
+            onPress={() => { hTap(); cancelRow.onPress() }}
+          >
+            <View style={s.row}>
+              <View style={[s.rowIcon, cancelRow.enabled && s.cancelIcon]}>
+                <XCircle size={18} color={cancelRow.enabled ? Colors.destructive : Colors.inkDisabled} strokeWidth={2} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[s.rowLabel, cancelRow.enabled ? s.cancelLabel : s.cancelLabelOff]}>{cancelRow.label}</Text>
+                <Text style={s.rowSub}>{cancelRow.sub}</Text>
+              </View>
+            </View>
+          </Pressable>
+        ) : null}
       </Animated.ScrollView>
 
       <Pressable style={[s.back, { top: insets.top + 8 }]} onPress={onBack} hitSlop={8}>
@@ -271,4 +292,8 @@ const s = StyleSheet.create({
   rowIcon: { width: 34, height: 34, borderRadius: 10, backgroundColor: withOpacity(Colors.inkPrimary, 0.06), alignItems: 'center', justifyContent: 'center' },
   rowLabel: { fontFamily: FontFamily.bodySemiBold, fontSize: 15, color: Colors.inkPrimary },
   rowSub: { fontFamily: FontFamily.bodyRegular, fontSize: 12, color: Colors.inkSecondary, marginTop: 1 },
+  cancelCard: { marginTop: 12 },
+  cancelIcon: { backgroundColor: withOpacity(Colors.destructive, 0.1) },
+  cancelLabel: { color: Colors.destructive },
+  cancelLabelOff: { color: Colors.inkDisabled },
 })
