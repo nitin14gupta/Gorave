@@ -3,11 +3,13 @@ import { View, Text, Pressable, StyleSheet, Dimensions, Modal, FlatList } from '
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Image } from 'expo-image'
 import { VideoView, useVideoPlayer } from 'expo-video'
-import { X, Send, Play, Check, Crop } from 'lucide-react-native'
+import { X, Send, Play, Check, Crop, ChevronDown } from 'lucide-react-native'
 import { Colors, FontFamily, withOpacity } from '@/constants'
 import ImagePicker from 'react-native-image-crop-picker'
 import { PrimaryButton } from '@/components/ui/PrimaryButton'
-import type { PendingMedia } from '@/hooks/useMediaPicker'
+import { VIEW_ONCE_MAX_VIDEO_SECONDS, type PendingMedia, type ViewLimit } from '@/hooks/useMediaPicker'
+import { ViewLimitIcon } from './ViewLimitIcon'
+import { hSelection } from '@/lib/haptics'
 
 const { width: SW } = Dimensions.get('window')
 const THUMB_SIZE = 56
@@ -31,14 +33,75 @@ interface Props {
   titleLabel?: string
   cropAspectRatio?: number
   freeStyleCrop?: boolean
+  /** Chat only: keep in chat / view once / view twice. Hidden when not given. */
+  viewLimit?: ViewLimit
+  onViewLimitChange?: (limit: ViewLimit) => void
 }
 
-export function MediaPreviewModal({ media, onSend, onCancel, onRemove, onUpdate, actionLabel = 'Send', titleLabel = 'Ready to send?', cropAspectRatio = 1, freeStyleCrop = false }: Props) {
+const VIEW_OPTIONS: { limit: ViewLimit; label: string }[] = [
+  { limit: 1, label: 'View once' },
+  { limit: 2, label: 'View twice' },
+  { limit: null, label: 'Unlimited views' },
+]
+
+// Instagram's control: a pill showing the current choice; tapping it opens a
+// small menu above it. The choice is remembered for next time.
+function ViewLimitMenu({ value, onChange, noun, onClose, bottom }: {
+  value: ViewLimit; onChange: (l: ViewLimit) => void; noun: string; onClose: () => void; bottom: number
+}) {
+  return (
+    <>
+      <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
+      <View style={[vl.menu, { bottom }]}>
+        <Text style={vl.caption}>Set how many times {noun} can be viewed.</Text>
+        {VIEW_OPTIONS.map(o => {
+          const on = o.limit === value
+          return (
+            <Pressable
+              key={o.label}
+              style={vl.item}
+              android_ripple={{ color: withOpacity(Colors.inkPrimary, 0.06) }}
+              onPress={() => { hSelection(); onChange(o.limit); onClose() }}
+            >
+              <ViewLimitIcon limit={o.limit} size={24} />
+              <Text style={vl.itemLabel}>{o.label}</Text>
+              {on ? <Check size={20} color={Colors.inkPrimary} strokeWidth={2.4} /> : null}
+            </Pressable>
+          )
+        })}
+      </View>
+    </>
+  )
+}
+
+const vl = StyleSheet.create({
+  pill: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    height: 48, paddingLeft: 12, paddingRight: 14, borderRadius: 24,
+    backgroundColor: withOpacity(Colors.inkPrimary, 0.08),
+  },
+  pillLabel: { fontFamily: FontFamily.bodySemiBold, fontSize: 14, color: Colors.inkPrimary },
+  menu: {
+    position: 'absolute', left: 16, width: 280,
+    borderRadius: 20, paddingTop: 14, paddingBottom: 6,
+    backgroundColor: Colors.elevated,
+    borderWidth: 1, borderColor: Colors.divider,
+  },
+  caption: { fontFamily: FontFamily.bodyRegular, fontSize: 13, lineHeight: 18, color: Colors.inkSecondary, paddingHorizontal: 18, paddingBottom: 6 },
+  item: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 18, height: 54 },
+  itemLabel: { flex: 1, fontFamily: FontFamily.bodyMedium, fontSize: 16, color: Colors.inkPrimary },
+})
+
+export function MediaPreviewModal({
+  media, onSend, onCancel, onRemove, onUpdate, actionLabel = 'Send', titleLabel = 'Ready to send?',
+  cropAspectRatio = 1, freeStyleCrop = false, viewLimit, onViewLimitChange,
+}: Props) {
   const insets = useSafeAreaInsets()
   const [pickedIndex, setActiveIndex] = useState(0)
   // Removing the last item steps back onto the new last one.
   const activeIndex = media.length > 0 ? Math.min(pickedIndex, media.length - 1) : pickedIndex
   const mainListRef = useRef<FlatList>(null)
+  const [menuOpen, setMenuOpen] = useState(false)
   const thumbListRef = useRef<FlatList>(null)
 
   const handleMomentumEnd = useCallback((e: any) => {
@@ -101,6 +164,19 @@ export function MediaPreviewModal({ media, onSend, onCancel, onRemove, onUpdate,
   if (media.length === 0) return null
 
   const multi = media.length > 1
+  const choosing = !!onViewLimitChange
+  const limit = viewLimit ?? null
+  // A view once video longer than 12s can't go (the server refuses it too).
+  const tooLong = limit === 1 && media.some(m => m.type === 'video' && (m.duration ?? Infinity) > VIEW_ONCE_MAX_VIDEO_SECONDS + 0.5)
+  const hasGif = limit !== null && media.some(m => m.type === 'gif')
+  const warning = tooLong
+    ? `View once videos can be up to ${VIEW_ONCE_MAX_VIDEO_SECONDS} seconds`
+    : hasGif
+    ? 'GIFs always stay in the chat'
+    : null
+  const allVideo = media.every(m => m.type === 'video')
+  const noun = multi ? 'these' : allVideo ? 'this video' : 'this photo'
+  const current = VIEW_OPTIONS.find(o => o.limit === limit)!
 
   return (
     <Modal visible animationType="fade" statusBarTranslucent>
@@ -184,20 +260,45 @@ export function MediaPreviewModal({ media, onSend, onCancel, onRemove, onUpdate,
         )}
 
         <View style={mp.footer}>
-          <Text style={mp.hint}>{titleLabel}</Text>
-          {multi ? <Text style={mp.hintSub}>{media.length} selected · swipe to check each one</Text> : null}
-          <View style={mp.sendBtn}>
+          {choosing ? (
+            warning ? <Text style={[mp.choiceHint, tooLong && mp.choiceHintWarn]}>{warning}</Text> : null
+          ) : (
+            <>
+              <Text style={mp.hint}>{titleLabel}</Text>
+              {multi ? <Text style={mp.hintSub}>{media.length} selected · swipe to check each one</Text> : null}
+            </>
+          )}
+          <View style={choosing ? mp.sendRow : mp.sendBtn}>
+            {choosing ? (
+              <Pressable style={vl.pill} onPress={() => { hSelection(); setMenuOpen(o => !o) }} hitSlop={4}>
+                <ViewLimitIcon limit={limit} size={22} />
+                <Text style={vl.pillLabel}>{current.label}</Text>
+                <ChevronDown size={16} color={Colors.inkSecondary} strokeWidth={2.4} />
+              </Pressable>
+            ) : null}
             <PrimaryButton
               label={`${actionLabel}${multi ? ` ${media.length}` : ''}`}
               onPress={onSend}
+              disabled={tooLong}
               icon={actionLabel === 'Add' ? (
                 <Check size={19} color={Colors.background} strokeWidth={2.5} />
               ) : (
                 <Send size={19} color={Colors.background} strokeWidth={2.5} fill={Colors.background} />
               )}
+              style={choosing ? mp.sendCompact : undefined}
             />
           </View>
         </View>
+
+        {choosing && menuOpen ? (
+          <ViewLimitMenu
+            value={limit}
+            onChange={onViewLimitChange!}
+            noun={noun}
+            onClose={() => setMenuOpen(false)}
+            bottom={insets.bottom + 76}
+          />
+        ) : null}
       </View>
 
     </Modal>
@@ -276,5 +377,9 @@ const mp = StyleSheet.create({
     color: Colors.inkPrimary,
   },
   hintSub: { fontFamily: FontFamily.bodyRegular, fontSize: 13, color: Colors.inkSecondary, marginTop: -6 },
+  choiceHint: { fontFamily: FontFamily.bodyRegular, fontSize: 13, color: Colors.inkSecondary, textAlign: 'center' },
+  choiceHintWarn: { fontFamily: FontFamily.bodySemiBold, color: Colors.destructive },
   sendBtn: { width: '100%' },
+  sendRow: { width: '100%', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
+  sendCompact: { minWidth: 130 },
 })

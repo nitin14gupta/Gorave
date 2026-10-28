@@ -41,6 +41,7 @@ WEBSITE_ORIGINS = [o.strip() for o in os.getenv("WEBSITE_ORIGINS", "http://local
 
 PURGE_INTERVAL_SECONDS = 24 * 60 * 60
 EVENT_WRAPUP_INTERVAL_SECONDS = 15 * 60
+CHAT_MEDIA_PURGE_INTERVAL_SECONDS = 15 * 60
 _scheduler_redis = None
 
 
@@ -104,11 +105,28 @@ async def _event_wrapup_loop():
         await asyncio.sleep(EVENT_WRAPUP_INTERVAL_SECONDS)
 
 
+async def _chat_media_purge_loop():
+    """Every 15 minutes — deletes view once/twice photos and videos from
+    storage once they're used up, unsent, or 14 days old. See
+    utils/chat_media_purge.py."""
+    while True:
+        try:
+            if await _try_acquire_lock("sched_lock:chat_media_purge", CHAT_MEDIA_PURGE_INTERVAL_SECONDS - 60):
+                from utils.chat_media_purge import purge_viewed_media
+                count = await asyncio.to_thread(purge_viewed_media)
+                if count:
+                    print(f"[CHAT] Deleted {count} viewed or expired view-once file(s)", flush=True)
+        except Exception as e:
+            print(f"[CHAT] View-once media purge failed: {e}", flush=True)
+        await asyncio.sleep(CHAT_MEDIA_PURGE_INTERVAL_SECONDS)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     tasks = [
         asyncio.create_task(_account_purge_loop()),
         asyncio.create_task(_event_wrapup_loop()),
+        asyncio.create_task(_chat_media_purge_loop()),
     ]
     yield
     for task in tasks:

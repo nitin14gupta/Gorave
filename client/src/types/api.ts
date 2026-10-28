@@ -366,6 +366,7 @@ export interface Conversation {
   partner_last_seen_at: string | null
   last_message: string | null
   last_message_type: string | null
+  last_view_limit?: 1 | 2 | null
   last_sender_id: string | null
   last_sent_at: string | null
   unread_count: number
@@ -420,6 +421,11 @@ export interface Message {
   delivered_at?: string | null
   /** The sender's phone's own id for it, so retries are never saved twice. */
   client_id?: string | null
+  /** null = keep in chat, 1 = view once, 2 = view twice. The file is never in `metadata` then. */
+  view_limit?: 1 | 2 | null
+  views_used?: number
+  /** The view once/twice file was deleted (used up, or 14 days unopened). */
+  media_expired?: boolean
 }
 
 export interface WalletTransaction {

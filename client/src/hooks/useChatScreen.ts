@@ -14,6 +14,7 @@ import { useVoiceRecorder } from './useVoiceRecorder'
 import type { MediaViewType, MediaViewerItem } from '@/components/chat/MediaViewerModal'
 import { canEditMessage } from '@/lib/messageEdit'
 import { peekConversation } from '@/lib/chatPartnerCache'
+import type { OpenedLimitedMedia } from '@/components/chat/ViewOnceViewer'
 
 const MARGIN = 8
 const MIN_INPUT_HEIGHT = 44
@@ -28,7 +29,8 @@ export type ListItem =
 
 const MEDIA_TYPES = new Set(['image', 'gif', 'video'])
 function isMediaMessage(msg: Message): boolean {
-  return MEDIA_TYPES.has(msg.content_type) && !!msg.metadata?.url
+  // View once/twice never stacks: it's opened on its own, from its own bubble.
+  return MEDIA_TYPES.has(msg.content_type) && !!msg.metadata?.url && !msg.view_limit
 }
 
 export interface EmojiTarget {
@@ -170,7 +172,7 @@ export function useChatScreen(convId: string) {
     isWsConnected, wsError, reconnectFailed, manualReconnect, loading, partnerSeenAt,
     failedIds, loadingMore, sendMessage, retryMessage, sendTyping, sendVoiceTyping, loadMore, reactToMessage,
     addOptimisticMedia, sendMediaMessage, markMediaFailed, clearMediaFailed,
-    applyUnsentLocally, removeMessageLocally, editMessageText, insertServerMessage,
+    applyUnsentLocally, removeMessageLocally, editMessageText, insertServerMessage, markViewed,
   } = useChat(convId)
 
   const { viewingMedia, openMedia, closeMedia } = useImageViewer()
@@ -401,7 +403,7 @@ export function useChatScreen(convId: string) {
       msgId, pageY, isMine, currentEmoji,
       content: msg.content, contentType: msg.content_type,
       canEdit: canEditMessage(msg, myId),
-      canForward: FORWARDABLE.has(msg.content_type) && !msg.id.startsWith('_temp_') && !failedIds?.has(msg.id),
+      canForward: FORWARDABLE.has(msg.content_type) && !msg.view_limit && !msg.id.startsWith('_temp_') && !failedIds?.has(msg.id),
     })
   }, [messages, myId, failedIds])
 
@@ -459,6 +461,7 @@ export function useChatScreen(convId: string) {
   // the user shouldn't wait on the R2 round trip to see that a send even happened.
   const uploadAndSendMedia = useCallback(async (
     tempId: string, uri: string, type: 'image' | 'video' | 'gif', width?: number, height?: number,
+    duration?: number, viewLimit: 1 | 2 | null = null,
   ) => {
     try {
       const { url, media_type, key } = await ApiService.uploadChatMedia(uri)
@@ -468,17 +471,38 @@ export function useChatScreen(convId: string) {
       const meta: Record<string, any> = key ? { url, key } : { url }
       if (width) meta.width = width
       if (height) meta.height = height
-      await sendMediaMessage(tempId, finalType, meta)
+      if (duration) meta.duration = Math.round(duration * 10) / 10
+      await sendMediaMessage(tempId, finalType, meta, viewLimit)
     } catch {
       markMediaFailed(tempId)
       showPill("Media didn't send, try again", 'error')
     }
   }, [sendMediaMessage, markMediaFailed, showPill])
 
-  const handleMediaSend = useCallback((uri: string, type: 'image' | 'video' | 'gif', width?: number, height?: number) => {
-    const tempId = addOptimisticMedia(uri, type, width, height)
-    uploadAndSendMedia(tempId, uri, type, width, height)
+  const handleMediaSend = useCallback((
+    uri: string, type: 'image' | 'video' | 'gif', width?: number, height?: number,
+    duration?: number, viewLimit: 1 | 2 | null = null,
+  ) => {
+    const tempId = addOptimisticMedia(uri, type, width, height, viewLimit)
+    uploadAndSendMedia(tempId, uri, type, width, height, duration, viewLimit)
   }, [addOptimisticMedia, uploadAndSendMedia])
+
+  // ── View once / view twice ─────────────────────────────────────────────────
+  const [openedLimited, setOpenedLimited] = useState<OpenedLimitedMedia | null>(null)
+  const handleOpenLimited = useCallback(async (msg: Message) => {
+    try {
+      const res = await ApiService.viewLimitedMessage(msg.id)
+      markViewed(msg.id, res.views_used)
+      setOpenedLimited({ url: res.url, type: res.content_type, viewLimit: res.view_limit, viewsUsed: res.views_used })
+    } catch (e: any) {
+      if (e?.status === 410) {
+        markViewed(msg.id, msg.view_limit ?? 1)
+        showPill(e?.message === 'This has expired' ? 'This has expired' : 'Already opened', 'default')
+      } else {
+        showPill(e?.message || "Couldn't open it, try again", 'error')
+      }
+    }
+  }, [markViewed, showPill])
 
   const handleRetry = useCallback((tempId: string) => {
     const msg = messages.find(m => m.id === tempId)
@@ -488,7 +512,10 @@ export function useChatScreen(convId: string) {
       && !/^https?:\/\//.test(msg.metadata.url)
     if (isLocalMedia && msg) {
       clearMediaFailed(tempId)
-      uploadAndSendMedia(tempId, msg.metadata!.url, msg.content_type as 'image' | 'video' | 'gif', msg.metadata?.width, msg.metadata?.height)
+      uploadAndSendMedia(
+        tempId, msg.metadata!.url, msg.content_type as 'image' | 'video' | 'gif',
+        msg.metadata?.width, msg.metadata?.height, msg.metadata?.duration, msg.view_limit ?? null,
+      )
       return
     }
     retryMessage(tempId)
@@ -557,6 +584,7 @@ export function useChatScreen(convId: string) {
     handleBlock, handleUnblock, handleDeleteChat, handleReport,
     handleDoubleTap, handleLongPress, handleSwipeReply, handleReplyFromMenu,
     handleEmojiSelect, handleReactionPillPress, handleMediaSend,
+    openedLimited, handleOpenLimited, closeLimited: () => setOpenedLimited(null),
     handleRetry, handleMediaTap, handleMediaGroupTap,
     handleCopyMessage, handleReportMessageSubmit, handleReportSheetClosed,
     handleUnsendMessage, handleDeleteMessageForMe,

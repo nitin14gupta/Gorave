@@ -20,6 +20,7 @@ import type { MediaViewType } from '@/components/chat/MediaViewerModal'
 import { ReactionPills } from './ReactionPills'
 import { PlaybackWave, OutlineButton } from '@/components/ui'
 import { LinkPreviewCard } from './LinkPreviewCard'
+import { ViewLimitIcon } from './ViewLimitIcon'
 import { isUrlOnly, normalizeUrl } from '@/lib/linkify'
 
 // Your messages are a neutral grey bubble.
@@ -386,6 +387,47 @@ interface Props {
   onMediaTap?: (url: string, type: MediaViewType) => void
   onRetry?: (tempId: string) => void
   onLinkTap?: (url: string) => void
+  /** Recipient taps a view once/twice bubble. */
+  onOpenLimited?: (msg: Message) => void
+}
+
+// View once / view twice, WhatsApp-style: never a preview, just what it is
+// and where it stands. The file only comes from the server when the
+// recipient taps (see useChatScreen.handleOpenLimited).
+function ViewOnceBubble({ msg, isMine, isPending, isFailed }: {
+  msg: Message; isMine: boolean; isPending: boolean; isFailed?: boolean
+}) {
+  const limit = msg.view_limit as 1 | 2
+  const used = msg.views_used ?? 0
+  const left = Math.max(0, limit - used)
+  const kind = msg.content_type === 'video' ? 'Video' : 'Photo'
+  const spent = left === 0
+  const expired = !!msg.media_expired && !spent
+  const status = isPending
+    ? 'Sending…'
+    : isFailed
+    ? 'Not sent'
+    : expired
+    ? 'Expired'
+    : spent
+    ? 'Opened'
+    : isMine
+    ? (limit === 1 ? 'View once' : used > 0 ? 'Opened once' : 'View twice')
+    : (limit === 2 && used > 0 ? '1 view left · tap to open' : 'Tap to open')
+  const done = spent || expired
+  return (
+    <View style={[s.limited, isMine ? s.bubbleMine : s.bubbleTheirs, done && s.limitedDone]}>
+      {isPending ? (
+        <ActivityIndicator size="small" color={Colors.inkSecondary} />
+      ) : (
+        <ViewLimitIcon limit={limit} size={26} color={done ? Colors.inkDisabled : Colors.inkPrimary} />
+      )}
+      <View>
+        <Text style={[s.limitedTitle, done && s.limitedTitleDone]}>{done ? status : kind}</Text>
+        {!done ? <Text style={s.limitedSub}>{status}</Text> : null}
+      </View>
+    </View>
+  )
 }
 
 // Instagram-style: a quiet line above a forwarded message. It never says
@@ -404,7 +446,7 @@ export function MessageBubble({
   msg, isMine, myId, isFailed,
   selectMode, isSelected, onToggleSelect,
   onDoubleTap, onLongPress, onSwipeReply,
-  onReactionPillPress, onReplyTap, onMediaTap, onRetry, onLinkTap,
+  onReactionPillPress, onReplyTap, onMediaTap, onRetry, onLinkTap, onOpenLimited,
 }: Props) {
   const translateX = useSharedValue(0)
   const hasTriggeredReply = useSharedValue(false)
@@ -415,6 +457,15 @@ export function MessageBubble({
   const handleDoubleTap = useCallback(() => { hSelection(); onDoubleTap(msg.id) }, [msg.id, onDoubleTap])
   const handleSwipeReply = useCallback(() => { hTap(); onSwipeReply(msg) }, [msg, onSwipeReply])
   const handleSingleTap = useCallback(() => {
+    if (msg.view_limit) {
+      // Only the recipient opens it, only while views are left.
+      const left = (msg.view_limit ?? 0) - (msg.views_used ?? 0)
+      if (!isMine && left > 0 && !msg.media_expired && !msg.id.startsWith('_temp_')) {
+        hTap()
+        onOpenLimited?.(msg)
+      }
+      return
+    }
     if (isLinkMessage && msg.content) {
       hTap()
       onLinkTap?.(normalizeUrl(msg.content))
@@ -439,7 +490,7 @@ export function MessageBubble({
       if (msg.metadata.user_id === myId) router.push('/(tabs)/profile' as any)
       else router.push(`/(profile)/${msg.metadata.user_id}` as any)
     }
-  }, [isLinkMessage, msg.content, msg.content_type, msg.metadata, myId, onMediaTap, onLinkTap, voiceBubble])
+  }, [isLinkMessage, msg, isMine, myId, onMediaTap, onLinkTap, onOpenLimited, voiceBubble])
 
   const doubleTap = Gesture.Tap()
     .numberOfTaps(2)
@@ -497,6 +548,28 @@ export function MessageBubble({
           <View style={[s.bubble, s.bubbleTheirs, s.unavailable]}>
             <Text style={s.unavailableText}>Message unavailable</Text>
           </View>
+        </View>
+      )
+    }
+    if (msg.view_limit && (msg.content_type === 'image' || msg.content_type === 'video')) {
+      return (
+        <View style={[s.bubbleWrap, isMine ? s.wrapMine : s.wrapTheirs]}>
+          <GestureDetector gesture={gesture}>
+            <Animated.View style={animStyle}>
+              <ViewOnceBubble msg={msg} isMine={isMine} isPending={isPending} isFailed={isFailed} />
+            </Animated.View>
+          </GestureDetector>
+          {msg.reactions && (
+            <ReactionPills reactions={msg.reactions} myId={myId} onPillPress={emoji => onReactionPillPress(msg.id, emoji)} />
+          )}
+          <Animated.Text style={[s.timeBelow, isMine ? s.timeBelowMine : s.timeBelowTheirs, timeRevealStyle]}>
+            {timeStr}
+          </Animated.Text>
+          {isFailed && (
+            <Pressable onPress={() => onRetry?.(msg.id)} hitSlop={4}>
+              <Text style={s.failedText}>⚠ Failed · Tap to retry</Text>
+            </Pressable>
+          )}
         </View>
       )
     }
@@ -723,6 +796,11 @@ const sel = StyleSheet.create({
 const s = StyleSheet.create({
   bubbleWrap: { marginBottom: 4, maxWidth: '82%', overflow: 'visible' },
   forwarded: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 4, paddingHorizontal: 4 },
+  limited: { flexDirection: 'row', alignItems: 'center', gap: 10, borderRadius: 18, paddingHorizontal: 14, paddingVertical: 11, minWidth: 150 },
+  limitedDone: { backgroundColor: 'transparent', borderWidth: 1, borderColor: Colors.divider },
+  limitedTitle: { fontFamily: FontFamily.bodySemiBold, fontSize: 15, color: Colors.inkPrimary },
+  limitedTitleDone: { fontFamily: FontFamily.bodyMedium, color: Colors.inkDisabled },
+  limitedSub: { fontFamily: FontFamily.bodyRegular, fontSize: 12, color: Colors.inkSecondary, marginTop: 1 },
   forwardedText: { fontFamily: FontFamily.bodyMedium, fontSize: 11.5, color: Colors.inkDisabled },
   wrapMine: { alignSelf: 'flex-end', alignItems: 'flex-end' },
   wrapTheirs: { alignSelf: 'flex-start', alignItems: 'flex-start' },

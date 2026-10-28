@@ -530,9 +530,18 @@ class ApiService {
     return this.get<Message[]>(`${endpoint}${qs}`)
   }
 
-  static async sendMessage(convId: string, content: string, contentType = 'text', metadata?: object, clientId?: string): Promise<Message> {
+  static async sendMessage(
+    convId: string, content: string, contentType = 'text', metadata?: object, clientId?: string, viewLimit?: 1 | 2 | null,
+  ): Promise<Message> {
     const endpoint = ENDPOINTS.CONVERSATION_MESSAGES.replace(':id', convId)
-    return this.post<Message>(endpoint, { content, content_type: contentType, metadata, client_id: clientId })
+    return this.post<Message>(endpoint, { content, content_type: contentType, metadata, client_id: clientId, view_limit: viewLimit ?? undefined })
+  }
+
+  /** Open a view once/twice photo or video: spends a view, returns a 5-minute link. */
+  static async viewLimitedMessage(msgId: string): Promise<{
+    url: string; content_type: 'image' | 'video'; view_limit: 1 | 2; views_used: number
+  }> {
+    return this.post(`/chat/messages/${msgId}/view`, {})
   }
 
   /** Copy one message into up to 5 of your chats (the server reads the source itself). */

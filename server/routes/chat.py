@@ -35,8 +35,55 @@ _notify_inbox = rt.emit_inbox
 # Every column a message is sent to the app with.
 MSG_COLUMNS = (
     "id::text, conversation_id::text, sender_id::text, content, content_type, metadata, "
-    "sent_at, read_at, delivered_at, reactions, forward_score, client_id::text"
+    "sent_at, read_at, delivered_at, reactions, forward_score, client_id::text, "
+    "view_limit, views_used, media_purged_at"
 )
+
+# View once / view twice: photos and videos only, and a view-once video can
+# be at most 12 seconds (a little slack for how phones round durations).
+VIEW_LIMITS = {1, 2}
+LIMITED_TYPES = {"image", "video"}
+VIEW_ONCE_MAX_VIDEO_SECONDS = 12
+# The link handed out on open only needs to last while the file downloads.
+LIMITED_URL_TTL_SECONDS = 5 * 60
+# What a limited message may show before it's opened: its shape, never the file.
+_LIMITED_PUBLIC_METADATA = ("width", "height", "duration")
+
+
+def _check_view_limit(view_limit, content_type: str, metadata) -> Optional[int]:
+    """None for a normal message, 1 or 2 for view once/twice. Raises ValueError
+    with what to tell the sender when the combination isn't allowed."""
+    if view_limit in (None, 0):
+        return None
+    if view_limit not in VIEW_LIMITS:
+        raise ValueError("View limit must be once or twice")
+    if content_type not in LIMITED_TYPES:
+        raise ValueError("Only photos and videos can be sent as view once")
+    md = metadata if isinstance(metadata, dict) else {}
+    if not (md.get("url") or md.get("key")):
+        raise ValueError("Missing the photo or video")
+    if content_type == "video" and view_limit == 1:
+        try:
+            duration = float(md.get("duration") or 0)
+        except (TypeError, ValueError):
+            duration = 0
+        if duration <= 0 or duration > VIEW_ONCE_MAX_VIDEO_SECONDS + 0.5:
+            raise ValueError(f"View once videos can be up to {VIEW_ONCE_MAX_VIDEO_SECONDS} seconds")
+    return int(view_limit)
+
+
+def _hide_limited_media(msg: dict) -> dict:
+    """A view once/twice message goes out to everyone (sender included)
+    without its file: just the shape, and whether it's been opened. The file
+    is only reachable through POST /chat/messages/{id}/view."""
+    if not msg.get("view_limit"):
+        msg.pop("media_purged_at", None)
+        return msg
+    md = msg.get("metadata") if isinstance(msg.get("metadata"), dict) else {}
+    out = {**msg, "metadata": {k: md[k] for k in _LIMITED_PUBLIC_METADATA if k in md} or None}
+    out["media_expired"] = msg.get("media_purged_at") is not None
+    out.pop("media_purged_at", None)
+    return out
 
 
 def _parse_client_id(value) -> Optional[str]:
@@ -52,6 +99,7 @@ def _parse_client_id(value) -> Optional[str]:
 def _insert_message(
     cur, conv_id: str, uid: str, content, content_type: str, metadata,
     client_id: Optional[str] = None, forward_score: int = 0, forwarded_from_id: Optional[str] = None,
+    view_limit: Optional[int] = None,
 ) -> tuple[dict, bool]:
     """Save a message once per (sender, client_id). Returns (row, created):
     a retry of something already saved gets the saved row back and
@@ -59,13 +107,13 @@ def _insert_message(
     cur.execute(
         f"""
         INSERT INTO messages (conversation_id, sender_id, content, content_type, metadata,
-                              client_id, forward_score, forwarded_from_id)
-        VALUES (%s::uuid, %s::uuid, %s, %s, %s, %s::uuid, %s, %s::uuid)
+                              client_id, forward_score, forwarded_from_id, view_limit)
+        VALUES (%s::uuid, %s::uuid, %s, %s, %s, %s::uuid, %s, %s::uuid, %s)
         ON CONFLICT (sender_id, client_id) WHERE client_id IS NOT NULL DO NOTHING
         RETURNING {MSG_COLUMNS}
         """,
         (conv_id, uid, content, content_type, json.dumps(metadata) if metadata else None,
-         client_id, forward_score, forwarded_from_id),
+         client_id, forward_score, forwarded_from_id, view_limit),
     )
     row = cur.fetchone()
     if row:
@@ -83,7 +131,7 @@ def _serialize(msg: dict) -> dict:
     for k in ("sent_at", "read_at", "delivered_at", "unsent_at", "edited_at"):
         if out.get(k) is not None and not isinstance(out[k], str):
             out[k] = out[k].isoformat()
-    return rt.with_signed_media(out)
+    return rt.with_signed_media(_hide_limited_media(out))
 
 
 async def _announce_delivered(conv_ids, uid: str) -> None:
@@ -114,6 +162,8 @@ class SendMessageRequest(BaseModel):
     metadata: Optional[dict] = None
     # The phone's id for this message; retries reuse it (see _insert_message).
     client_id: Optional[str] = None
+    # None = keep in chat, 1 = view once, 2 = view twice (photos/videos only).
+    view_limit: Optional[int] = None
 
 
 class MessageReportRequest(BaseModel):
@@ -198,6 +248,7 @@ def list_conversations(
                 -- Last message
                 m.content AS last_message,
                 m.content_type AS last_message_type,
+                m.view_limit AS last_view_limit,
                 m.sender_id::text AS last_sender_id,
                 m.sent_at AS last_sent_at,
                 -- Unread count (messages not read by current user sent by partner)
@@ -236,7 +287,7 @@ def list_conversations(
                 -- Unsent messages are excluded here so the preview falls back
                 -- to the previous message, exactly as if the unsent one was
                 -- never sent at all — no "message was unsent" trace anywhere.
-                SELECT content, content_type, sender_id, sent_at FROM messages
+                SELECT content, content_type, sender_id, sent_at, view_limit FROM messages
                 WHERE conversation_id = c.id
                   AND NOT (%s::uuid = ANY(COALESCE(deleted_for, '{}'::uuid[])))
                   AND unsent_at IS NULL
@@ -338,7 +389,8 @@ async def list_messages(
                     SELECT id::text, conversation_id::text, sender_id::text,
                            content, content_type, metadata, sent_at, read_at, reactions,
                            unsent_at, edited_at, deleted_for, forward_score,
-                           delivered_at, client_id::text
+                           delivered_at, client_id::text,
+                           view_limit, views_used, media_purged_at
                     FROM messages
                     WHERE conversation_id = %s::uuid AND sent_at < %s
                       AND unsent_at IS NULL
@@ -353,7 +405,8 @@ async def list_messages(
                     SELECT id::text, conversation_id::text, sender_id::text,
                            content, content_type, metadata, sent_at, read_at, reactions,
                            unsent_at, edited_at, deleted_for, forward_score,
-                           delivered_at, client_id::text
+                           delivered_at, client_id::text,
+                           view_limit, views_used, media_purged_at
                     FROM messages
                     WHERE conversation_id = %s::uuid
                       AND unsent_at IS NULL
@@ -367,7 +420,7 @@ async def list_messages(
         result = []
         for r_row in rows:
             d = dict(r_row)
-            for k in ("sent_at", "read_at", "delivered_at", "unsent_at", "edited_at"):
+            for k in ("sent_at", "read_at", "delivered_at", "unsent_at", "edited_at", "media_purged_at"):
                 if d.get(k) is not None:
                     d[k] = d[k].isoformat()
             result.append(d)
@@ -416,7 +469,7 @@ async def list_messages(
             await _announce_delivered([conv_id], uid)
 
     # Private media gets a fresh, expiring link per request (never cached).
-    return [rt.with_signed_media(m) for m in result]
+    return [rt.with_signed_media(_hide_limited_media(m)) for m in result]
 
 
 @router.patch("/chat/conversations/{conv_id}/read")
@@ -520,7 +573,11 @@ async def unsend_message(msg_id: str, current_user: dict = Depends(get_current_u
             raise HTTPException(status_code=403, detail="You can only unsend your own messages")
         conv_id = row["conversation_id"]
         cur.execute(
-            "UPDATE messages SET content = NULL, metadata = NULL, reactions = NULL, unsent_at = NOW() WHERE id = %s::uuid",
+            # A view once/twice file stays referenced so the cleanup job
+            # (utils/chat_media_purge.py) can delete it from storage.
+            "UPDATE messages SET content = NULL, reactions = NULL, unsent_at = NOW(), "
+            "metadata = CASE WHEN view_limit IS NOT NULL THEN metadata ELSE NULL END "
+            "WHERE id = %s::uuid",
             (msg_id,),
         )
         conn.commit()
@@ -641,6 +698,10 @@ async def send_message_rest(
         metadata = await rt.clean_outgoing_metadata(body.metadata, uid)
     except PermissionError:
         raise HTTPException(status_code=403, detail="That file isn't yours to send")
+    try:
+        view_limit = _check_view_limit(body.view_limit, body.content_type, metadata)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
 
     with get_db() as (cur, conn):
         conv = _get_conversation(cur, conv_id, uid)
@@ -664,7 +725,7 @@ async def send_message_rest(
 
         msg, created = _insert_message(
             cur, conv_id, uid, body.content, body.content_type, metadata,
-            client_id=_parse_client_id(body.client_id),
+            client_id=_parse_client_id(body.client_id), view_limit=view_limit,
         )
         cur.execute("SELECT name FROM users WHERE id = %s::uuid", (uid,))
         sender_row = cur.fetchone()
@@ -687,6 +748,76 @@ async def _deliver_new_message(
     await _emit(conv_id, {"type": "message", **out}, skip_user=sender_id)
     await _notify_inbox({sender_id, partner_id}, conv_id)
     asyncio.create_task(rt.notify_new_message(partner_id, conv_id, sender_name))
+
+
+# ── View once / view twice ────────────────────────────────────────────────────
+
+@router.post("/chat/messages/{msg_id}/view")
+async def view_limited_message(msg_id: str, current_user: dict = Depends(get_current_user)):
+    """Open a view once/twice photo or video: spends one view and hands back a
+    link that lasts 5 minutes. Only the recipient can open it, never the
+    sender, and never again once the views are used up."""
+    uid = current_user["id"]
+    with get_db() as (cur, conn):
+        cur.execute(
+            """
+            SELECT m.sender_id::text, m.conversation_id::text, m.view_limit, m.views_used,
+                   m.media_purged_at, m.unsent_at,
+                   COALESCE(u.is_deleted, FALSE) AS sender_deleted
+            FROM messages m
+            JOIN conversations c ON c.id = m.conversation_id
+            JOIN users u ON u.id = m.sender_id
+            WHERE m.id = %s::uuid AND (c.user1_id = %s::uuid OR c.user2_id = %s::uuid)
+              AND NOT (%s::uuid = ANY(COALESCE(m.deleted_for, '{}'::uuid[])))
+            """,
+            (msg_id, uid, uid, uid),
+        )
+        row = cur.fetchone()
+        if not row or row["unsent_at"] is not None or row["sender_deleted"] or not row["view_limit"]:
+            raise HTTPException(status_code=404, detail="Message not found")
+        if row["sender_id"] == uid:
+            raise HTTPException(status_code=403, detail="You can't open a view once message you sent")
+        if row["media_purged_at"] is not None:
+            raise HTTPException(status_code=410, detail="This has expired")
+        # Spend a view atomically: two taps at once can't both get the last one.
+        cur.execute(
+            """
+            UPDATE messages
+            SET views_used = views_used + 1,
+                first_viewed_at = COALESCE(first_viewed_at, NOW()),
+                last_viewed_at = NOW(),
+                read_at = COALESCE(read_at, NOW()),
+                delivered_at = COALESCE(delivered_at, NOW())
+            WHERE id = %s::uuid AND views_used < view_limit AND media_purged_at IS NULL
+            RETURNING content_type, metadata, view_limit, views_used
+            """,
+            (msg_id,),
+        )
+        spent = cur.fetchone()
+        conn.commit()
+    if not spent:
+        raise HTTPException(status_code=410, detail="Already opened")
+
+    md = spent["metadata"] or {}
+    key = md.get("key")
+    if key and rt.chat_media_private():
+        url = rt.sign_chat_key(key, LIMITED_URL_TTL_SECONDS)
+    else:
+        url = md.get("url")
+    conv_id = row["conversation_id"]
+    await _invalidate_page_cache(conv_id)
+    # Sender sees "Opened"; the viewer's other devices update their count.
+    await _emit(conv_id, {
+        "type": "message_viewed", "message_id": msg_id,
+        "views_used": spent["views_used"], "view_limit": spent["view_limit"],
+    })
+    return {
+        "url": url,
+        "content_type": spent["content_type"],
+        "metadata": {k: md[k] for k in _LIMITED_PUBLIC_METADATA if k in md},
+        "view_limit": spent["view_limit"],
+        "views_used": spent["views_used"],
+    }
 
 
 # ── Forward ───────────────────────────────────────────────────────────────────
@@ -728,7 +859,7 @@ async def forward_message(
     with get_db() as (cur, conn):
         cur.execute(
             """
-            SELECT m.content, m.content_type, m.metadata, m.forward_score,
+            SELECT m.content, m.content_type, m.metadata, m.forward_score, m.view_limit,
                    COALESCE(u.is_deleted, FALSE) AS sender_deleted
             FROM messages m
             JOIN conversations c ON c.id = m.conversation_id
@@ -746,6 +877,8 @@ async def forward_message(
         src = dict(src)
         if src["content_type"] not in FORWARDABLE_TYPES:
             raise HTTPException(status_code=422, detail="This message can't be forwarded")
+        if src["view_limit"]:
+            raise HTTPException(status_code=422, detail="View once photos and videos can't be forwarded")
         if src["forward_score"] >= FREQUENT_FORWARD_SCORE and len(targets) > 1:
             raise HTTPException(
                 status_code=422,
@@ -1017,8 +1150,14 @@ async def chat_websocket(
                     continue
                 try:
                     metadata = await rt.clean_outgoing_metadata(data.get("metadata"), uid)
+                    view_limit = _check_view_limit(data.get("view_limit"), content_type, metadata)
                 except PermissionError:
                     await websocket.send_text(json.dumps({"type": "error", "code": "send_failed", "client_id": client_id}))
+                    continue
+                except ValueError as e:
+                    await websocket.send_text(json.dumps({
+                        "type": "error", "code": "invalid", "detail": str(e), "client_id": client_id,
+                    }))
                     continue
 
                 try:
@@ -1035,7 +1174,10 @@ async def chat_websocket(
                         if cur.fetchone():
                             await websocket.send_text(json.dumps({"type": "error", "code": "blocked", "client_id": client_id}))
                             continue
-                        msg, created = _insert_message(cur, conv_id, uid, content, content_type, metadata, client_id=client_id)
+                        msg, created = _insert_message(
+                            cur, conv_id, uid, content, content_type, metadata,
+                            client_id=client_id, view_limit=view_limit,
+                        )
                         if created and sender_name is None:
                             cur.execute("SELECT name FROM users WHERE id = %s::uuid", (uid,))
                             row = cur.fetchone()

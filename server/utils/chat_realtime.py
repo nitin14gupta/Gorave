@@ -489,9 +489,9 @@ def _get_signer():
     return _signer
 
 
-def sign_chat_key(key: str) -> str:
+def sign_chat_key(key: str, ttl: int = SIGNED_URL_TTL_SECONDS) -> str:
     return _get_signer().generate_presigned_url(
-        "get_object", Params={"Bucket": CHAT_BUCKET, "Key": key}, ExpiresIn=SIGNED_URL_TTL_SECONDS,
+        "get_object", Params={"Bucket": CHAT_BUCKET, "Key": key}, ExpiresIn=ttl,
     )
 
 

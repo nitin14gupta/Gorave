@@ -19,7 +19,10 @@ const WS_SESSION_EXPIRED = 4000
 const tempIdFor = (clientId: string) => `_temp_${clientId}`
 const clientIdOf = (tempId: string) => tempId.slice('_temp_'.length)
 
-type OutgoingFrame = { content: string; content_type: string; metadata?: object | null; client_id: string }
+type OutgoingFrame = {
+  content: string; content_type: string; metadata?: object | null; client_id: string
+  view_limit?: 1 | 2 | null
+}
 
 export function useChat(conversationId: string) {
   const [initialCache] = useState(() => peekCached<Message[]>(messagesCacheKey(conversationId)))
@@ -133,7 +136,7 @@ export function useChat(conversationId: string) {
     }
     // No live socket: send over HTTP. Same client id, so if the socket copy
     // also lands later the server keeps only one.
-    ApiService.sendMessage(conversationId, frame.content, frame.content_type, frame.metadata ?? undefined, frame.client_id)
+    ApiService.sendMessage(conversationId, frame.content, frame.content_type, frame.metadata ?? undefined, frame.client_id, frame.view_limit)
       .then(confirmSent)
       .catch(() => markFailed(tempId))
   }, [conversationId, confirmSent, markFailed])
@@ -192,6 +195,7 @@ export function useChat(conversationId: string) {
             })
           } else if (data.type === 'error') {
             if (data.code === 'blocked') setWsError('blocked')
+            if (data.code === 'invalid' && data.detail) usePillStore.getState().show(data.detail, 'error')
             if (data.client_id) markFailed(tempIdFor(data.client_id))
           } else if (data.type === 'typing') {
             if (data.user_id !== myId) {
@@ -216,6 +220,9 @@ export function useChat(conversationId: string) {
               ? prev.map(m => (m.sender_id === myId && !m.delivered_at && !m.id.startsWith('_temp_') ? { ...m, delivered_at: now } : m))
               : prev)
             if (data.type === 'read') setPartnerSeenAt(now)
+          } else if (data.type === 'message_viewed') {
+            // A view once/twice was opened (by them: "Opened"; by my other phone: one view less).
+            setMessages(prev => prev.map(m => (m.id === data.message_id ? { ...m, views_used: data.views_used } : m)))
           } else if (data.type === 'reaction') {
             applyReactionUpdate(data.message_id, data.user_id, data.emoji ?? null)
           } else if (data.type === 'message_unsent') {
@@ -329,6 +336,7 @@ export function useChat(conversationId: string) {
       content_type: msg.content_type,
       metadata: msg.metadata,
       client_id: clientIdOf(tempId),
+      view_limit: msg.view_limit ?? null,
     })
   }, [messages, transmit])
 
@@ -337,7 +345,9 @@ export function useChat(conversationId: string) {
   // happens in the background — unlike text, the "send" call can't fire until
   // the upload finishes, so we split "show the bubble" from "transmit it".
 
-  const addOptimisticMedia = useCallback((uri: string, type: string, width?: number, height?: number) => {
+  const addOptimisticMedia = useCallback((
+    uri: string, type: string, width?: number, height?: number, viewLimit: 1 | 2 | null = null,
+  ) => {
     const clientId = uuidv4()
     const tempId = tempIdFor(clientId)
     const metadata: Record<string, any> = { url: uri }
@@ -354,15 +364,22 @@ export function useChat(conversationId: string) {
       read_at: null,
       reactions: null,
       client_id: clientId,
+      view_limit: viewLimit,
+      views_used: 0,
     }
     pendingTempIds.current.add(tempId)
     setMessages(prev => [optimistic, ...prev])
     return tempId
   }, [conversationId, myId])
 
-  const sendMediaMessage = useCallback(async (tempId: string, contentType: string, metadata: object) => {
-    transmit(tempId, { content: '', content_type: contentType, metadata, client_id: clientIdOf(tempId) })
+  const sendMediaMessage = useCallback(async (tempId: string, contentType: string, metadata: object, viewLimit: 1 | 2 | null = null) => {
+    transmit(tempId, { content: '', content_type: contentType, metadata, client_id: clientIdOf(tempId), view_limit: viewLimit })
   }, [transmit])
+
+  /** After opening a view once/twice here: one view fewer, right away. */
+  const markViewed = useCallback((msgId: string, viewsUsed: number) => {
+    setMessages(prev => prev.map(m => (m.id === msgId ? { ...m, views_used: viewsUsed } : m)))
+  }, [])
 
   const markMediaFailed = useCallback((tempId: string) => {
     markFailed(tempId)
@@ -468,6 +485,7 @@ export function useChat(conversationId: string) {
     removeMessageLocally,
     applyEditLocally,
     insertServerMessage,
+    markViewed,
     editMessageText,
   }
 }

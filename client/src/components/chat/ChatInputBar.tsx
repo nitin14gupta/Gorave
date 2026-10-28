@@ -15,7 +15,8 @@ import type { RecordedVoice } from '@/hooks/useVoiceRecorder'
 import { ReplyBar } from './ReplyBar'
 import { MediaPickerSheet } from './MediaPickerSheet'
 import { MediaPreviewModal } from './MediaPreviewModal'
-import { useMediaPicker } from '@/hooks/useMediaPicker'
+import { useMediaPicker, type ViewLimit } from '@/hooks/useMediaPicker'
+import { useViewLimitStore } from '@/store/viewLimitStore'
 
 // One chat message holds up to 1,000 characters, same as Instagram and the server.
 const MAX_MESSAGE_CHARS = 1000
@@ -44,7 +45,7 @@ interface Props {
   onDeleteChat: () => void
   onCancelReply: () => void
   onCancelEdit: () => void
-  onMediaSend: (uri: string, type: 'image' | 'video' | 'gif', width?: number, height?: number) => void
+  onMediaSend: (uri: string, type: 'image' | 'video' | 'gif', width?: number, height?: number, duration?: number, viewLimit?: ViewLimit) => void
   onLayout: (e: LayoutChangeEvent) => void
 }
 
@@ -111,6 +112,9 @@ export function ChatInputBar({
   const sheetRef = useRef<BottomSheetModal>(null)
 
   const { handleCamera, handleLibrary, pendingMedia, confirmSend, cancelPreview, removeFromPreview, updatePreview } = useMediaPicker({ onMediaSend })
+  // View once / twice / unlimited: starts on whatever you picked last time.
+  const viewLimit = useViewLimitStore(st => st.last)
+  const setViewLimit = useViewLimitStore(st => st.setLast)
 
   useEffect(() => {
     if (replyingTo) {
@@ -275,7 +279,16 @@ export function ChatInputBar({
       </View>
 
       <MediaPickerSheet ref={sheetRef} onCamera={handleCamera} onLibrary={handleLibrary} />
-      <MediaPreviewModal media={pendingMedia} onSend={confirmSend} onCancel={cancelPreview} onRemove={removeFromPreview} onUpdate={updatePreview} freeStyleCrop />
+      <MediaPreviewModal
+        media={pendingMedia}
+        onSend={() => confirmSend(viewLimit)}
+        onCancel={cancelPreview}
+        onRemove={removeFromPreview}
+        onUpdate={updatePreview}
+        freeStyleCrop
+        viewLimit={viewLimit}
+        onViewLimitChange={setViewLimit}
+      />
     </>
   )
 }

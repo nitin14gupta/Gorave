@@ -24,6 +24,7 @@ import { ChatScrollView } from '@/components/chat/ChatScrollView'
 import { ChatPartnerPreview } from '@/components/chat/ChatPartnerPreview'
 import { InAppBrowserModal } from '@/components/ui/InAppBrowserModal'
 import { ShareToChatSheet } from '@/components/ui/ShareToChatSheet'
+import { ViewOnceViewer } from '@/components/chat/ViewOnceViewer'
 
 type ListItem =
   | Message
@@ -192,9 +193,10 @@ export default function ChatDetailScreen() {
         onMediaTap={screen.handleMediaTap}
         onRetry={screen.handleRetry}
         onLinkTap={setBrowserUrl}
+        onOpenLimited={screen.handleOpenLimited}
       />
     )
-  }, [screen.myId, screen.failedIds, screen.selectMode, screen.selectedIds, screen.handleToggleSelected, screen.handleDoubleTap, screen.handleLongPress, screen.handleSwipeReply, screen.handleReactionPillPress, screen.handleMediaTap, screen.handleMediaGroupTap, screen.handleRetry, handleReplyTap])
+  }, [screen.handleOpenLimited, screen.myId, screen.failedIds, screen.selectMode, screen.selectedIds, screen.handleToggleSelected, screen.handleDoubleTap, screen.handleLongPress, screen.handleSwipeReply, screen.handleReactionPillPress, screen.handleMediaTap, screen.handleMediaGroupTap, screen.handleRetry, handleReplyTap])
 
   const listHeader = screen.isPartnerRecording
     ? <VoiceIndicator />
@@ -393,6 +395,8 @@ export default function ChatDetailScreen() {
           onClose={() => screen.setForwardMsg(null)}
         />
       )}
+
+      <ViewOnceViewer key={screen.openedLimited?.url ?? 'none'} media={screen.openedLimited} onClose={screen.closeLimited} />
 
       <InAppBrowserModal
         visible={!!browserUrl}

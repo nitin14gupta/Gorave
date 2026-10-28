@@ -116,7 +116,7 @@ class R2Client:
             "path": r2_key
         }
     
-    def delete_file(self, file_path: str) -> bool:
+    def delete_file(self, file_path: str, bucket: Optional[str] = None) -> bool:
         """
         Delete a file from R2 storage
         
@@ -128,7 +128,7 @@ class R2Client:
         """
         try:
             self.r2_client.delete_object(
-                Bucket=self.r2_bucket,
+                Bucket=bucket or self.r2_bucket,
                 Key=file_path
             )
             return True

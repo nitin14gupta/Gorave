@@ -49,7 +49,9 @@ function formatLastMessage(conv: Conversation, currentUserId: string | null): st
   const isMine = !!currentUserId && conv.last_sender_id === currentUserId
   const prefix = isMine ? 'You: ' : ''
 
-  const mediaPreview = conv.last_message_type ? MEDIA_PREVIEWS[conv.last_message_type] : undefined
+  const mediaPreview = conv.last_view_limit && (conv.last_message_type === 'image' || conv.last_message_type === 'video')
+    ? `${conv.last_view_limit === 1 ? 'View once' : 'View twice'} ${conv.last_message_type === 'video' ? 'video' : 'photo'}`
+    : conv.last_message_type ? MEDIA_PREVIEWS[conv.last_message_type] : undefined
   if (mediaPreview) return prefix + mediaPreview
 
   if (!conv.last_message) {

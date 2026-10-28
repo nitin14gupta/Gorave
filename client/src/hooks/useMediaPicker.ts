@@ -7,20 +7,30 @@ export interface PendingMedia {
   type: 'image' | 'video' | 'gif'
   width?: number
   height?: number
+  /** Seconds, for videos (view once videos can be up to 12s). */
+  duration?: number
 }
 
+/** null = keep in chat, 1 = view once, 2 = view twice. */
+export type ViewLimit = 1 | 2 | null
+export const VIEW_ONCE_MAX_VIDEO_SECONDS = 12
+
 interface Options {
-  onMediaSend: (uri: string, type: 'image' | 'video' | 'gif', width?: number, height?: number) => void
+  onMediaSend: (uri: string, type: 'image' | 'video' | 'gif', width?: number, height?: number, duration?: number, viewLimit?: ViewLimit) => void
 }
 
 const MAX_SELECTION = 12
 const MAX_VIDEO_DURATION_SEC = 60
 
-// Video picking is disabled for now — chat-media upload has no server-side
-// transcoding/compression, so raw phone-camera video would upload and store
-// at whatever codec/bitrate/size the device produced. Re-enable by adding
-// 'videos' back to the mediaTypes arrays below once that's in place.
-const ALLOW_VIDEO = false
+// Videos are on (for view once/twice and normal sends). There is still no
+// server-side transcoding, so clips are capped at 1 min, iOS exports them at
+// 720p, and the server refuses anything over 50 MB.
+const ALLOW_VIDEO = true
+const VIDEO_PICK_OPTIONS = {
+  videoMaxDuration: MAX_VIDEO_DURATION_SEC,
+  videoExportPreset: ImagePicker.VideoExportPreset.H264_1280x720,
+  videoQuality: ImagePicker.UIImagePickerControllerQualityType.Medium,
+}
 
 export function useMediaPicker({ onMediaSend }: Options) {
   const showPill = usePillStore(s => s.show)
@@ -35,7 +45,7 @@ export function useMediaPicker({ onMediaSend }: Options) {
     const result = await ImagePicker.launchCameraAsync({
       mediaTypes: ALLOW_VIDEO ? ['images', 'videos'] : ['images'],
       quality: 0.85,
-      videoMaxDuration: MAX_VIDEO_DURATION_SEC,
+      ...VIDEO_PICK_OPTIONS,
     })
     if (!result.canceled && result.assets.length > 0) {
       const asset = result.assets[0]
@@ -49,6 +59,7 @@ export function useMediaPicker({ onMediaSend }: Options) {
         type,
         width: asset.width,
         height: asset.height,
+        duration: asset.duration ? asset.duration / 1000 : undefined,
       }])
     }
   }, [showPill])
@@ -64,6 +75,7 @@ export function useMediaPicker({ onMediaSend }: Options) {
       quality: 0.85,
       allowsMultipleSelection: true,
       selectionLimit: MAX_SELECTION,
+      ...VIDEO_PICK_OPTIONS,
     })
     if (!result.canceled && result.assets.length > 0) {
       const valid: PendingMedia[] = []
@@ -75,7 +87,10 @@ export function useMediaPicker({ onMediaSend }: Options) {
           rejectedVideos++
           continue
         }
-        valid.push({ uri: asset.uri, type, width: asset.width, height: asset.height })
+        valid.push({
+          uri: asset.uri, type, width: asset.width, height: asset.height,
+          duration: asset.duration ? asset.duration / 1000 : undefined,
+        })
       }
       if (rejectedVideos > 0) {
         showPill(
@@ -89,11 +104,12 @@ export function useMediaPicker({ onMediaSend }: Options) {
     }
   }, [showPill])
 
-  const confirmSend = useCallback(async () => {
+  const confirmSend = useCallback(async (viewLimit: ViewLimit = null) => {
     const batch = pendingMedia
     setPendingMedia([])
     for (const item of batch) {
-      await onMediaSend(item.uri, item.type, item.width, item.height)
+      // GIFs always stay in the chat.
+      await onMediaSend(item.uri, item.type, item.width, item.height, item.duration, item.type === 'gif' ? null : viewLimit)
     }
   }, [pendingMedia, onMediaSend])
 
