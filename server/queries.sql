@@ -116,7 +116,12 @@ CREATE TABLE IF NOT EXISTS public.event_attendees (
   refund_amount_inr integer,
   refunded_at timestamp with time zone,
   prior_fees_kept_inr integer DEFAULT 0 NOT NULL,
-  CONSTRAINT event_attendees_status_chk CHECK (status = ANY (ARRAY['going'::text, 'waitlist'::text, 'cancelled'::text, 'requested'::text, 'declined'::text, 'expired'::text])),
+  paid_by_user_id uuid,
+  transferred_from_user_id uuid,
+  transfer_count smallint DEFAULT 0 NOT NULL,
+  cancel_reason text,
+  CONSTRAINT event_attendees_cancel_reason_check CHECK (cancel_reason IS NULL OR (cancel_reason = ANY (ARRAY['plans_changed'::text, 'unwell'::text, 'date'::text, 'price'::text, 'other'::text]))),
+  CONSTRAINT event_attendees_status_chk CHECK (status = ANY (ARRAY['going'::text, 'waitlist'::text, 'cancelled'::text, 'requested'::text, 'declined'::text, 'expired'::text, 'transferred'::text])),
   CONSTRAINT event_attendees_pkey PRIMARY KEY (id),
   CONSTRAINT event_attendees_ticket_token_key UNIQUE (ticket_token),
   CONSTRAINT event_attendees_unique UNIQUE (event_id, user_id)
@@ -253,7 +258,7 @@ CREATE TABLE IF NOT EXISTS public.messages (
   first_viewed_at timestamp with time zone,
   last_viewed_at timestamp with time zone,
   media_purged_at timestamp with time zone,
-  CONSTRAINT messages_content_type_check CHECK (content_type = ANY (ARRAY['text'::text, 'event'::text, 'profile'::text, 'image'::text, 'voice'::text, 'video'::text, 'gif'::text])),
+  CONSTRAINT messages_content_type_check CHECK (content_type = ANY (ARRAY['text'::text, 'event'::text, 'profile'::text, 'image'::text, 'voice'::text, 'video'::text, 'gif'::text, 'ticket'::text])),
   CONSTRAINT messages_forward_score_check CHECK (forward_score >= 0),
   CONSTRAINT messages_view_limit_check CHECK (view_limit IS NULL OR (view_limit = ANY (ARRAY[1, 2]))),
   CONSTRAINT messages_views_used_check CHECK (views_used >= 0 AND (view_limit IS NULL OR views_used <= view_limit)),
@@ -325,6 +330,21 @@ CREATE TABLE IF NOT EXISTS public.support_requests (
   created_at timestamp with time zone DEFAULT now(),
   CONSTRAINT support_requests_status_check CHECK (status = ANY (ARRAY['open'::text, 'resolved'::text, 'closed'::text])),
   CONSTRAINT support_requests_pkey PRIMARY KEY (id)
+);
+
+CREATE TABLE IF NOT EXISTS public.ticket_transfers (
+  id uuid DEFAULT gen_random_uuid() NOT NULL,
+  event_id uuid NOT NULL,
+  from_user_id uuid NOT NULL,
+  to_user_id uuid,
+  token text NOT NULL,
+  status text DEFAULT 'pending'::text NOT NULL,
+  created_at timestamp with time zone DEFAULT now() NOT NULL,
+  decided_at timestamp with time zone,
+  accepted_by uuid,
+  CONSTRAINT ticket_transfers_status_check CHECK (status = ANY (ARRAY['pending'::text, 'accepted'::text, 'cancelled'::text])),
+  CONSTRAINT ticket_transfers_pkey PRIMARY KEY (id),
+  CONSTRAINT ticket_transfers_token_key UNIQUE (token)
 );
 
 CREATE TABLE IF NOT EXISTS public.user_blocks (
@@ -441,6 +461,7 @@ ALTER TABLE public.conversations ADD CONSTRAINT conversations_user1_id_fkey FORE
 ALTER TABLE public.conversations ADD CONSTRAINT conversations_user2_id_fkey FOREIGN KEY (user2_id) REFERENCES users(id) ON DELETE CASCADE;
 ALTER TABLE public.device_tokens ADD CONSTRAINT device_tokens_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
 ALTER TABLE public.event_attendees ADD CONSTRAINT event_attendees_event_id_fkey FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE;
+ALTER TABLE public.event_attendees ADD CONSTRAINT event_attendees_paid_by_user_id_fkey FOREIGN KEY (paid_by_user_id) REFERENCES users(id) ON DELETE SET NULL;
 ALTER TABLE public.event_attendees ADD CONSTRAINT event_attendees_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE RESTRICT;
 ALTER TABLE public.event_hotlist ADD CONSTRAINT event_hotlist_event_id_fkey FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE;
 ALTER TABLE public.event_hotlist ADD CONSTRAINT event_hotlist_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
@@ -464,6 +485,10 @@ ALTER TABLE public.payment_orders ADD CONSTRAINT payment_orders_user_id_fkey FOR
 ALTER TABLE public.refresh_tokens ADD CONSTRAINT refresh_tokens_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
 ALTER TABLE public.saved_upi_ids ADD CONSTRAINT saved_upi_ids_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
 ALTER TABLE public.support_requests ADD CONSTRAINT support_requests_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE RESTRICT;
+ALTER TABLE public.ticket_transfers ADD CONSTRAINT ticket_transfers_accepted_by_fkey FOREIGN KEY (accepted_by) REFERENCES users(id) ON DELETE SET NULL;
+ALTER TABLE public.ticket_transfers ADD CONSTRAINT ticket_transfers_event_id_fkey FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE;
+ALTER TABLE public.ticket_transfers ADD CONSTRAINT ticket_transfers_from_user_id_fkey FOREIGN KEY (from_user_id) REFERENCES users(id) ON DELETE CASCADE;
+ALTER TABLE public.ticket_transfers ADD CONSTRAINT ticket_transfers_to_user_id_fkey FOREIGN KEY (to_user_id) REFERENCES users(id) ON DELETE SET NULL;
 ALTER TABLE public.user_blocks ADD CONSTRAINT user_blocks_blocked_id_fkey FOREIGN KEY (blocked_id) REFERENCES users(id) ON DELETE CASCADE;
 ALTER TABLE public.user_blocks ADD CONSTRAINT user_blocks_blocker_id_fkey FOREIGN KEY (blocker_id) REFERENCES users(id) ON DELETE CASCADE;
 ALTER TABLE public.user_photos ADD CONSTRAINT user_photos_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
@@ -499,6 +524,7 @@ CREATE INDEX messages_undelivered_idx ON public.messages USING btree (conversati
 CREATE INDEX messages_unsent_media_idx ON public.messages USING btree (unsent_at) WHERE ((unsent_at IS NOT NULL) AND (media_purged_at IS NULL) AND (content_type = ANY (ARRAY['image'::text, 'video'::text, 'gif'::text, 'voice'::text])));
 CREATE INDEX idx_notif_user_created ON public.notifications USING btree (user_id, created_at DESC);
 CREATE INDEX idx_refresh_tokens_user_id ON public.refresh_tokens USING btree (user_id);
+CREATE UNIQUE INDEX ticket_transfers_one_pending ON public.ticket_transfers USING btree (event_id, from_user_id) WHERE (status = 'pending'::text);
 CREATE INDEX idx_users_dob ON public.users USING btree (dob) WHERE ((dob IS NOT NULL) AND (COALESCE(is_deleted, false) = false));
 CREATE INDEX idx_users_last_seen ON public.users USING btree (last_seen_at) WHERE (COALESCE(is_deleted, false) = false);
 CREATE INDEX idx_users_name_trgm ON public.users USING gin (name gin_trgm_ops);

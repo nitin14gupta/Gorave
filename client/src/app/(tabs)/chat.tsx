@@ -42,6 +42,7 @@ const MEDIA_PREVIEWS: Record<string, string> = {
   gif: 'GIF',
   video: 'Video',
   voice: 'Voice message',
+  ticket: 'Sent a ticket',
   unavailable: 'Message unavailable',
 }
 

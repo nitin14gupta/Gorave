@@ -6,6 +6,8 @@ import { useAuthStore } from '@/store/auth'
 import { useLockStore } from '@/store/lockStore'
 import { useMaintenanceStore } from '@/store/maintenanceStore'
 import type {
+  CancelReason,
+  TransferPreview,
   TokenResponse,
   UserResponse,
   PayoutDetailsResponse,
@@ -49,7 +51,10 @@ import type {
 // Response/request shapes live in '@/types/api' — re-exported here so
 // existing `import { X } from '@/api/apiService'` call sites keep working.
 export type {
+  CancelReason,
   MyCancelQuote,
+  MyTransferQuote,
+  TransferPreview,
   JoinMode,
   RsvpStatus,
   CrowdRatio,
@@ -751,8 +756,28 @@ class ApiService {
     return this.patch<EventDetail>(ENDPOINTS.EVENT_UPDATE.replace(':id', id), data)
   }
 
-  static async rsvpEvent(id: string, action: 'going' | 'cancel'): Promise<{ status: string; position?: number; refund_inr?: number }> {
-    return this.post<{ status: string; position?: number; refund_inr?: number }>(ENDPOINTS.EVENT_RSVP.replace(':id', id), { action })
+  static async rsvpEvent(
+    id: string, action: 'going' | 'cancel', reason?: CancelReason,
+  ): Promise<{ status: string; position?: number; refund_inr?: number }> {
+    return this.post<{ status: string; position?: number; refund_inr?: number }>(ENDPOINTS.EVENT_RSVP.replace(':id', id), { action, reason })
+  }
+
+  // ── Ticket transfer ("Can't make it? Send it to a friend") ─────────────────
+  /** Offer my ticket to a friend I chat with (a card in our chat), or as a link anyone can claim. */
+  static async offerTicketTransfer(eventId: string, toUserId?: string): Promise<{ transfer_id: string; token: string; conversation_id: string | null }> {
+    return this.post(`/events/${eventId}/transfer`, { to_user_id: toUserId ?? null })
+  }
+
+  static async withdrawTicketTransfer(eventId: string): Promise<void> {
+    await this.delete(`/events/${eventId}/transfer`)
+  }
+
+  static async getTicketTransfer(token: string): Promise<TransferPreview> {
+    return this.get<TransferPreview>(`/events/transfers/${encodeURIComponent(token)}`)
+  }
+
+  static async acceptTicketTransfer(token: string): Promise<{ ok: boolean; event_id: string }> {
+    return this.post(`/events/transfers/${encodeURIComponent(token)}/accept`, {})
   }
 
   // ── Join requests (free events are host-approved) ──────────────────────────

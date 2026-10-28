@@ -400,7 +400,9 @@ def wallet_pay(body: WalletPayBody, current_user: dict = Depends(get_current_use
                               THEN GREATEST(0, COALESCE(event_attendees.fee_paid_inr, 0)
                                    - GREATEST(0, COALESCE(event_attendees.refund_amount_inr, 0) - COALESCE(event_attendees.price_paid_inr, 0)))
                               ELSE 0 END,
-                          refund_amount_inr = NULL, refunded_at = NULL, joined_at = NOW()
+                          refund_amount_inr = NULL, refunded_at = NULL, joined_at = NOW(),
+                          paid_by_user_id = NULL, transferred_from_user_id = NULL,
+                          transfer_count = 0, cancel_reason = NULL
             """,
             (body.event_id, uid, ticket_price, platform_fee, commission),
         )
@@ -591,7 +593,9 @@ def _complete_paid_booking(*, event_id: str, uid: str, payment_id: str, wallet_a
                               THEN GREATEST(0, COALESCE(event_attendees.fee_paid_inr, 0)
                                    - GREATEST(0, COALESCE(event_attendees.refund_amount_inr, 0) - COALESCE(event_attendees.price_paid_inr, 0)))
                               ELSE 0 END,
-                          refund_amount_inr = NULL, refunded_at = NULL, joined_at = NOW()
+                          refund_amount_inr = NULL, refunded_at = NULL, joined_at = NOW(),
+                          paid_by_user_id = NULL, transferred_from_user_id = NULL,
+                          transfer_count = 0, cancel_reason = NULL
             """,
             (event_id, uid, payment_id, price_paid, fee_paid, commission),
         )

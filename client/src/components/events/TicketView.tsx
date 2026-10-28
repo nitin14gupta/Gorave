@@ -7,7 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import Svg, { Defs, LinearGradient as SvgLinear, RadialGradient, Rect, Stop } from 'react-native-svg'
 import QRCode from 'react-native-qrcode-svg'
 import ViewShot, { type ViewShotRef } from 'react-native-view-shot'
-import { ArrowLeft, ChevronRight, Download, Navigation, Share2, Ticket as TicketIcon, XCircle } from 'lucide-react-native'
+import { ArrowLeft, ChevronRight, Download, Navigation, Share2, Ticket as TicketIcon, CalendarX } from 'lucide-react-native'
 import { Colors, FontFamily, LogoBlack, withOpacity, eventImageHeight, EVENT_ICONS, EVENT_ICON_FALLBACK } from '@/constants'
 import { LogoMark } from '@/components/ui'
 import { eventDateParts } from '@/components/events/EventCard'
@@ -39,7 +39,7 @@ export interface TicketViewProps {
   onSave: () => void
   onDirections: () => void
   onAllTickets: () => void
-  /** "Cancel ticket" row, from the server's cancel rule. Hidden when null. */
+  /** "Can't make it?" row (pass it on or cancel). Hidden when null. */
   cancelRow?: { label: string; sub: string; enabled: boolean; onPress: () => void } | null
 }
 
@@ -159,20 +159,22 @@ export function TicketView({ ticket, event, cardRef, onBack, onShare, onSave, on
         </View>
 
         {cancelRow ? (
-          // Its own card, away from the everyday actions, like Cancel booking on other ticket apps.
+          // Its own card, away from the everyday actions. Neutral on purpose:
+          // it leads to passing the ticket on, not straight to cancelling.
           <Pressable
             style={[s.list, s.cancelCard]}
             disabled={!cancelRow.enabled}
             onPress={() => { hTap(); cancelRow.onPress() }}
           >
             <View style={s.row}>
-              <View style={[s.rowIcon, cancelRow.enabled && s.cancelIcon]}>
-                <XCircle size={18} color={cancelRow.enabled ? Colors.destructive : Colors.inkDisabled} strokeWidth={2} />
+              <View style={s.rowIcon}>
+                <CalendarX size={18} color={cancelRow.enabled ? Colors.inkPrimary : Colors.inkDisabled} strokeWidth={2} />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={[s.rowLabel, cancelRow.enabled ? s.cancelLabel : s.cancelLabelOff]}>{cancelRow.label}</Text>
+                <Text style={[s.rowLabel, !cancelRow.enabled && s.cancelLabelOff]}>{cancelRow.label}</Text>
                 <Text style={s.rowSub}>{cancelRow.sub}</Text>
               </View>
+              {cancelRow.enabled ? <ChevronRight size={16} color={Colors.inkDisabled} strokeWidth={2} /> : null}
             </View>
           </Pressable>
         ) : null}
@@ -293,7 +295,5 @@ const s = StyleSheet.create({
   rowLabel: { fontFamily: FontFamily.bodySemiBold, fontSize: 15, color: Colors.inkPrimary },
   rowSub: { fontFamily: FontFamily.bodyRegular, fontSize: 12, color: Colors.inkSecondary, marginTop: 1 },
   cancelCard: { marginTop: 12 },
-  cancelIcon: { backgroundColor: withOpacity(Colors.destructive, 0.1) },
-  cancelLabel: { color: Colors.destructive },
   cancelLabelOff: { color: Colors.inkDisabled },
 })

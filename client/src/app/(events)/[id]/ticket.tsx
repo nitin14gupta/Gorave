@@ -6,44 +6,34 @@ import { type ViewShotRef } from 'react-native-view-shot'
 import { Asset as MediaAsset, requestPermissionsAsync as requestMediaPermissionsAsync } from 'expo-media-library'
 import { hSuccess } from '@/lib/haptics'
 import { CacheKeys, Colors, FontFamily } from '@/constants'
-import ApiService, { type EventDetail, type MyCancelQuote, type TicketInfo } from '@/api/apiService'
+import ApiService, { type EventDetail, type MyCancelQuote, type MyTransferQuote, type TicketInfo } from '@/api/apiService'
 import { usePillStore } from '@/store/pillStore'
-import { getOrFetch, peekCached } from '@/lib/queryCache'
+import { getOrFetch, invalidate, peekCached, setCached } from '@/lib/queryCache'
 import { BrandedLoader } from '@/components/ui'
 import { useGoBack } from '@/hooks/useGoBack'
 import { EventShareCard } from '@/components/events/EventShareCard'
 import { fmtDate, fmtTime, parseTs } from '@/lib/ticketDates'
 import { useImageShare } from '@/hooks/useImageShare'
 import { TicketView } from '@/components/events/TicketView'
-import { ConfirmSheet } from '@/components/ui/ConfirmSheet'
-import { useCancelSpot } from '@/hooks/useCancelSpot'
+import { CantMakeItSheet } from '@/components/events/CantMakeItSheet'
+import { ShareToChatSheet } from '@/components/ui/ShareToChatSheet'
+import { useCantMakeIt } from '@/hooks/useCantMakeIt'
 
-// ── Cancel copy ───────────────────────────────────────────────────────────────
+// ── "Can't make it?" row ─────────────────────────────────────────────────────
 
 const until = (iso: string | null) => (iso ? `${fmtDate(iso)}, ${fmtTime(iso)}` : '')
 
-function cancelCopy(q: MyCancelQuote) {
-  const free = q.kind === 'free'
-  const label = free ? 'Cancel my spot' : 'Cancel ticket'
-  if (!q.allowed) return { label, sub: q.reason ?? "This can't be cancelled now", title: '', body: '' }
-  if (free) {
-    return {
-      label, sub: `Free cancellation until ${until(q.deadline)}`,
-      title: 'Cancel your spot?', body: 'Your spot goes to the next person. This free event has nothing to refund.',
-    }
+/** The line under "Can't make it?" on the ticket: what you can still do. */
+function cantMakeItSub(c: MyCancelQuote | null, t: MyTransferQuote | null): string {
+  if (t?.pending) return t.pending.to_name ? `Waiting for ${t.pending.to_name} to accept` : 'Your ticket link is out'
+  if (t?.allowed && c?.allowed) return 'Send it to a friend, or cancel'
+  if (t?.allowed) return 'Send it to a friend'
+  if (c?.allowed) {
+    if (c.kind === 'free') return `Free cancellation until ${until(c.deadline)}`
+    if (c.kind === 'moved') return `Event moved: full ₹${c.refund_inr} back until ${until(c.deadline)}`
+    return `₹${c.refund_inr} back to your wallet until ${until(c.deadline)}`
   }
-  if (q.kind === 'moved') {
-    return {
-      label, sub: `Event moved: full ₹${q.refund_inr} back until ${until(q.deadline)}`,
-      title: 'Cancel your ticket?',
-      body: `The host moved this event, so the full ₹${q.refund_inr} goes back to your Gorave Wallet.`,
-    }
-  }
-  return {
-    label, sub: `₹${q.refund_inr} back to your wallet until ${until(q.deadline)}`,
-    title: 'Cancel your ticket?',
-    body: `₹${q.refund_inr} goes back to your Gorave Wallet. The ₹${q.fee_kept_inr} platform fee isn't refunded.`,
-  }
+  return c?.reason ?? t?.reason ?? "This can't be changed now"
 }
 
 // ── Screen ────────────────────────────────────────────────────────────────────
@@ -59,24 +49,36 @@ export default function TicketScreen() {
   const [loadError, setLoadError] = useState(false)
   const [event, setEvent] = useState<EventDetail | null>(null)
   const cardRef = useRef<ViewShotRef | null>(null)
-  const cancelSpot = useCancelSpot(id)
-  const [confirmCancel, setConfirmCancel] = useState(false)
-  const copy = cancelSpot.quote ? cancelCopy(cancelSpot.quote) : null
+  // Passed on or cancelled (maybe from another phone): the saved ticket is dead.
+  const [gone, setGone] = useState(false)
+  const cant = useCantMakeIt(id, ticket?.event_title ?? '')
+  const [cantOpen, setCantOpen] = useState(false)
+  const [pickFriend, setPickFriend] = useState(false)
+  const cantLoaded = cant.cancelQuote !== null || cant.transfer !== null
   const shareCardRef = useRef<View>(null)
   const { shareImage } = useImageShare()
 
+  // The saved ticket shows instantly (and works at the door with no signal),
+  // but is always checked: it may have been passed on or cancelled since.
   const fetchTicket = () => {
     if (!id) return
-    getOrFetch(CacheKeys.ticket(id), () => ApiService.getMyTicket(id), {
-      ttlMs: t => {
+    ApiService.getMyTicket(id)
+      .then(t => {
+        setTicket(t)
         const d = parseTs(t.date_time)
-        return d ? Math.max(d.getTime() - Date.now(), 0) : 60_000
-      },
-    })
-      .then(setTicket)
-      .catch(() => {
-        setLoadError(true)
-        showPill("Couldn't load your ticket", 'error')
+        setCached(CacheKeys.ticket(id), t, d ? Math.max(d.getTime() - Date.now(), 0) : 60_000)
+      })
+      .catch((e: any) => {
+        if (e?.status === 404 || e?.status === 403) {
+          invalidate(CacheKeys.ticket(id))
+          setTicket(null)
+          setGone(true)
+          return
+        }
+        if (!peekCached<TicketInfo>(CacheKeys.ticket(id))) {
+          setLoadError(true)
+          showPill("Couldn't load your ticket", 'error')
+        }
       })
       .finally(() => setLoading(false))
   }
@@ -158,7 +160,7 @@ export default function TicketScreen() {
       <View style={[s.root, s.center]}>
         <StatusBar style="light" />
         <Text style={s.errorText}>
-          {loadError ? "Couldn't load your ticket" : 'Ticket not found'}
+          {loadError ? "Couldn't load your ticket" : gone ? "This ticket isn't yours any more" : 'Ticket not found'}
         </Text>
         {loadError && (
           <Pressable onPress={loadTicket} style={s.retryBtn}>
@@ -184,23 +186,34 @@ export default function TicketScreen() {
         onSave={handleSave}
         onDirections={handleDirections}
         onAllTickets={() => router.replace('/(settings)/joined-events' as any)}
-        cancelRow={copy ? {
-          label: cancelSpot.busy ? 'Cancelling…' : copy.label,
-          sub: copy.sub,
-          enabled: !!cancelSpot.quote?.allowed && !cancelSpot.busy,
-          onPress: () => setConfirmCancel(true),
+        cancelRow={cantLoaded ? {
+          label: cant.busy ? 'Cancelling…' : "Can't make it?",
+          sub: cantMakeItSub(cant.cancelQuote, cant.transfer),
+          enabled: !cant.busy,
+          onPress: () => setCantOpen(true),
         } : null}
       />
 
-      <ConfirmSheet
-        visible={confirmCancel && !!copy?.title}
-        title={copy?.title ?? ''}
-        body={copy?.body ?? ''}
-        confirmLabel={copy?.label ?? 'Cancel'}
-        cancelLabel="Keep it"
-        destructive
-        onConfirm={cancelSpot.cancel}
-        onClose={() => setConfirmCancel(false)}
+      <CantMakeItSheet
+        visible={cantOpen}
+        cancelQuote={cant.cancelQuote}
+        transfer={cant.transfer}
+        busy={cant.busy}
+        onSendToFriend={() => setPickFriend(true)}
+        onShareLink={cant.shareLink}
+        onWithdraw={cant.withdraw}
+        onCancel={cant.cancel}
+        onClose={() => setCantOpen(false)}
+      />
+
+      <ShareToChatSheet
+        visible={pickFriend}
+        title="Send your ticket"
+        pick={{ label: 'Send ticket', send: cant.sendToFriend }}
+        previewTitle={ticket.event_title}
+        previewSubtitle={`${fmtDate(ticket.date_time)} · They get a fresh ticket`}
+        previewImage={coverUrl || null}
+        onClose={() => setPickFriend(false)}
       />
 
       {/* Off-screen — captured and shared as an image, never shown to the user */}

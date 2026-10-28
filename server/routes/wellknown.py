@@ -24,7 +24,7 @@ APPLE_TEAM_ID = "REPLACE_WITH_APPLE_TEAM_ID"
 # Android > Keystore) or `keytool -list -v -keystore your.keystore`.
 ANDROID_SHA256_FINGERPRINT = "REPLACE_WITH_SHA256_FINGERPRINT"
 
-_ALLOWED_PATHS = ["/event/*", "/profile/*", "/chat/*", "/wallet", "/notifications"]
+_ALLOWED_PATHS = ["/event/*", "/profile/*", "/chat/*", "/wallet", "/notifications", "/t/*"]
 
 
 @router.get("/.well-known/apple-app-site-association")

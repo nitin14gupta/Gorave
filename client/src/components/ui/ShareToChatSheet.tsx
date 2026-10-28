@@ -27,6 +27,9 @@ interface Props {
   metadata?: Record<string, any>
   /** Forwarding a chat message instead: the server copies it, up to `maxTargets` chats. */
   forward?: { messageId: string; maxTargets: number; onForwarded?: (sent: Message[]) => void }
+  /** Pick a friend and do something else with them (e.g. pass a ticket on). The
+   * caller shows its own pills; return true to close the sheet. */
+  pick?: { label: string; send: (conv: Conversation) => Promise<boolean> }
   title?: string
   previewTitle: string
   previewSubtitle?: string | null
@@ -101,7 +104,7 @@ function TargetsSkeleton() {
 // ── Sheet ─────────────────────────────────────────────────────────────────────
 
 function ShareToChatSheetCore({
-  onClose, contentType, metadata, forward, title = 'Send to friends', previewTitle, previewSubtitle, previewImage,
+  onClose, contentType, metadata, forward, pick, title = 'Send to friends', previewTitle, previewSubtitle, previewImage,
 }: Omit<Props, 'visible'>) {
   const sheetRef = useRef<BottomSheetModal>(null)
   const insets = useSafeAreaInsets()
@@ -120,6 +123,12 @@ function ShareToChatSheetCore({
   useEffect(() => { sheetRef.current?.present() }, [])
 
   const toggle = (id: string) => {
+    if (pick) {
+      // One friend: tapping another moves the choice.
+      hSelection()
+      setSelected(prev => (prev.has(id) ? new Set() : new Set([id])))
+      return
+    }
     if (forward && !selected.has(id) && selected.size >= forward.maxTargets) {
       showPill(forward.maxTargets === 1
         ? 'This was forwarded many times, so it can go to one chat at a time'
@@ -142,6 +151,13 @@ function ShareToChatSheetCore({
     if (selected.size === 0 || sending) return
     setSending(true)
     const ids = Array.from(selected)
+    if (pick) {
+      const conv = pool.find(c => c.id === ids[0])
+      const done = conv ? await pick.send(conv) : false
+      setSending(false)
+      if (done) onClose()
+      return
+    }
     let failed = 0
     if (forward) {
       // One request: the server copies the message into each chat.
@@ -206,7 +222,7 @@ function ShareToChatSheetCore({
     <BottomSheetFooter {...props}>
       <View style={[st.footer, { paddingBottom: insets.bottom + 12 }]}>
         <PrimaryButton
-          label={selected.size > 0 ? `Send to ${selected.size}` : 'Pick people to send to'}
+          label={pick ? (selected.size > 0 ? pick.label : 'Pick a friend') : selected.size > 0 ? `Send to ${selected.size}` : 'Pick people to send to'}
           disabled={selected.size === 0}
           loading={sending}
           onPress={handleSend}

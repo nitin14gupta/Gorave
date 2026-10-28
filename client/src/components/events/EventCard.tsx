@@ -32,19 +32,37 @@ const StaggerIn = memo(function StaggerIn({ index, style, children }: { index: n
 // Stacked avatars (up to 3) + "+N" overflow badge + "{count} going" label,
 // each staggering in on mount. Shared by EventCard's grid layout and
 // EventListCard's compact row so both list modes show the same social proof.
+/**
+ * "Riya is going", "Riya and Kabir are going", "Riya and 3 friends going":
+ * people you know beat a head count as a reason to book.
+ */
+export function friendsGoingLabel(count: number, names?: string[]): string | null {
+  if (!count || !names?.length) return null
+  const [a, b] = names
+  if (count === 1) return `${a} is going`
+  if (count === 2 && b) return `${a} and ${b} are going`
+  return `${a} and ${count - 1} friends going`
+}
+
 export function AttendeeAvatarStack({
   avatars,
   count,
   avatarSize = 18,
   style,
   textStyle,
+  friendsCount = 0,
+  friendNames,
 }: {
   avatars: string[] | undefined
   count: number
   avatarSize?: number
   style?: StyleProp<ViewStyle>
   textStyle?: StyleProp<TextStyle>
+  /** People you know who are going; their faces already lead the stack. */
+  friendsCount?: number
+  friendNames?: string[]
 }) {
+  const friends = friendsGoingLabel(friendsCount, friendNames)
   const avatarStyle = { width: avatarSize, height: avatarSize, borderRadius: avatarSize / 2 }
   const overlap = -(avatarSize * 0.44)
 
@@ -69,13 +87,14 @@ export function AttendeeAvatarStack({
           </View>
         </StaggerIn>
       )}
-      <Text style={[aas.going, textStyle]}>{count} going</Text>
+      <Text style={[aas.going, textStyle, friends ? aas.friends : null]} numberOfLines={1}>{friends ?? `${count} going`}</Text>
     </View>
   )
 }
 
 const aas = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center' },
+  friends: { fontFamily: FontFamily.bodySemiBold, color: Colors.inkPrimary, flexShrink: 1 },
   avatar: {
     borderWidth: 1.5, borderColor: Colors.surface,
     backgroundColor: Colors.surfaceMuted,
@@ -304,7 +323,10 @@ export const EventCard = memo(function EventCard({ event, onPress, showHost, isP
           </Text>
           <View style={pa.foot}>
             {event.attendee_count > 0 ? (
-              <AttendeeAvatarStack avatars={event.attendee_avatars} count={event.attendee_count} avatarSize={16} textStyle={pa.going} />
+              <AttendeeAvatarStack
+                avatars={event.attendee_avatars} count={event.attendee_count} avatarSize={16} textStyle={pa.going}
+                friendsCount={event.friends_going_count} friendNames={event.friends_going_names}
+              />
             ) : <View />}
             <View style={pa.price}><Text style={pa.priceText}>{price}</Text></View>
           </View>

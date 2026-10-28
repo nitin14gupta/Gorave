@@ -16,6 +16,7 @@ export type DeepLinkTarget =
   | { screen: 'notifications' }
   | { screen: 'createEvent' }
   | { screen: 'browseEvents' }
+  | { screen: 'transfer'; token: string }
 
 export function targetToHref(t: DeepLinkTarget, currentUserId?: string | null): string {
   switch (t.screen) {
@@ -30,6 +31,7 @@ export function targetToHref(t: DeepLinkTarget, currentUserId?: string | null): 
     case 'notifications': return '/(settings)/notifications'
     case 'createEvent': return '/(events)/create'
     case 'browseEvents': return '/(tabs)/events'
+    case 'transfer': return `/(events)/transfer/${t.token}`
   }
 }
 
@@ -89,6 +91,11 @@ export function buildEventShareUrl(eventId: string): string {
   return `${APP_SCHEME}://event/${eventId}`
 }
 
+// A ticket someone is passing on ("t" keeps the link short for WhatsApp).
+export function buildTransferUrl(token: string): string {
+  return `${APP_SCHEME}://t/${token}`
+}
+
 // Parses an externally-opened URL (gorave://event/123, and later
 // https://link.gorave.in/event/123 — same path shape, different scheme/host)
 // into a canonical target.
@@ -112,6 +119,8 @@ export function parseIncomingUrl(url: string): DeepLinkTarget | null {
       return { screen: 'wallet' }
     case 'notifications':
       return { screen: 'notifications' }
+    case 't':
+      return id ? { screen: 'transfer', token: id } : null
     default:
       return null
   }

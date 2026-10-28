@@ -81,7 +81,9 @@ def _cancel_quote(ev: dict, att: dict, now: datetime | None = None) -> dict:
     price = att.get("price_paid_inr") or 0
     fee = att.get("fee_paid_inr") or 0
     quote = {"allowed": False, "kind": "paid" if paid else "free", "refund_inr": 0,
-             "fee_kept_inr": 0, "deadline": None, "reason": None}
+             "fee_kept_inr": 0, "deadline": None, "reason": None,
+             # A ticket you were given: money goes back to the friend who paid.
+             "refund_to_buyer": bool(att.get("paid_by_user_id"))}
 
     if att.get("status") != "going" or ev.get("is_cancelled"):
         return {**quote, "reason": "Nothing to cancel"}
@@ -237,6 +239,9 @@ class EventSummary(BaseModel):
     age_restriction: int
     attendee_count: int = 0
     attendee_avatars: List[str] = []
+    # People you know who are going: anyone you follow or chat with.
+    friends_going_count: int = 0
+    friends_going_names: List[str] = []   # first names, up to 2
     is_cancelled: bool = False
     is_following_host: bool = False
     attended_host_before: bool = False
@@ -274,6 +279,8 @@ class EventDetail(EventSummary):
     my_review_rating: Optional[int] = None
     # Can I cancel my spot, until when, and what comes back (see _cancel_quote).
     my_cancel: Optional[dict] = None
+    # Can I pass my ticket to a friend, and is an offer waiting (see ticket_transfer.py).
+    my_transfer: Optional[dict] = None
     my_can_request_again: bool = True
     my_requests_left: int = _MAX_JOIN_REQUESTS    # join requests this user can still send for this event
     max_join_requests: int = _MAX_JOIN_REQUESTS
@@ -318,8 +325,13 @@ class CreateEventBody(BaseModel):
     cover_photos: List[str] = []
 
 
+CANCEL_REASONS = {"plans_changed", "unwell", "date", "price", "other"}
+
+
 class RsvpBody(BaseModel):
     action: str  # "going" | "cancel"
+    # Why you're cancelling (one of CANCEL_REASONS), from the "Can't make it?" sheet.
+    reason: Optional[str] = None
 
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
@@ -577,12 +589,31 @@ def list_events(
         paid_attended_host_before DESC,
         attended_host_before DESC,
         is_following_host DESC,
+        friends_going_count DESC,
         {text_rank_sql}
         {default_order}
     """
     order_params = [q, f"{q}%"] if q else []
 
+    # Friends = people you follow + people you have an active chat with,
+    # minus anyone blocked either way. Their faces lead the avatar stack and
+    # the card says "Riya and 2 friends going": the strongest reason to book.
+    friends_cte = """
+        WITH friends AS (
+            SELECT following_id AS uid FROM follows WHERE follower_id = %s::uuid
+            UNION
+            SELECT CASE WHEN c.user1_id = %s::uuid THEN c.user2_id ELSE c.user1_id END
+            FROM conversations c
+            WHERE c.status = 'active' AND (c.user1_id = %s::uuid OR c.user2_id = %s::uuid)
+            EXCEPT
+            (SELECT blocked_id FROM user_blocks WHERE blocker_id = %s::uuid
+             UNION SELECT blocker_id FROM user_blocks WHERE blocked_id = %s::uuid)
+        )
+    """
+    friends_params = [viewer_id] * 6
+
     sql = f"""
+        {friends_cte}
         SELECT
             e.id::text,
             e.title, e.event_type,
@@ -604,10 +635,19 @@ def list_events(
                 SELECT (SELECT p.url FROM user_photos p WHERE p.user_id = eav.user_id ORDER BY p.position LIMIT 1) AS avatar_url
                 FROM event_attendees eav
                 WHERE eav.event_id = e.id AND eav.status = 'going'
-                ORDER BY EXISTS(
-                    SELECT 1 FROM follows fo WHERE fo.follower_id = %s::uuid AND fo.following_id = eav.user_id
-                ) DESC, eav.joined_at ASC LIMIT 3
+                ORDER BY (eav.user_id IN (SELECT uid FROM friends)) DESC, eav.joined_at ASC LIMIT 3
             ) au WHERE au.avatar_url IS NOT NULL) AS attendee_avatars,
+            (SELECT COUNT(*) FROM event_attendees fa JOIN users fu ON fu.id = fa.user_id
+             WHERE fa.event_id = e.id AND fa.status = 'going'
+               AND fa.user_id IN (SELECT uid FROM friends) AND COALESCE(fu.is_deleted, FALSE) = FALSE
+            )::int AS friends_going_count,
+            (SELECT COALESCE(json_agg(fn.first_name), '[]'::json) FROM (
+                SELECT split_part(fu.name, ' ', 1) AS first_name
+                FROM event_attendees fa JOIN users fu ON fu.id = fa.user_id
+                WHERE fa.event_id = e.id AND fa.status = 'going'
+                  AND fa.user_id IN (SELECT uid FROM friends) AND COALESCE(fu.is_deleted, FALSE) = FALSE
+                ORDER BY fa.joined_at ASC LIMIT 2
+            ) fn) AS friends_going_names,
             {relationship_select}
         FROM events e
         JOIN users u ON u.id = e.host_id
@@ -615,7 +655,7 @@ def list_events(
         ORDER BY {order_sql}
         LIMIT %s
     """
-    params = [viewer_id, viewer_id] + relationship_params + filter_params + order_params + [limit]
+    params = friends_params + [viewer_id] + relationship_params + filter_params + order_params + [limit]
 
     with get_db() as (cur, _):
         cur.execute(sql, params)
@@ -1386,7 +1426,8 @@ def get_event(event_id: str, current_user: dict = Depends(get_current_user)):
             cur.execute(
                 """
                 SELECT ea.request_count, ea.status, ea.payment_id, ea.price_paid_inr, ea.fee_paid_inr,
-                       ea.refunded_at, ea.joined_at, e.date_time, e.is_cancelled, e.rescheduled_at
+                       ea.refunded_at, ea.joined_at, ea.transfer_count, ea.paid_by_user_id::text,
+                       e.date_time, e.is_cancelled, e.rescheduled_at
                 FROM event_attendees ea JOIN events e ON e.id = ea.event_id
                 WHERE ea.event_id = %s AND ea.user_id = %s::uuid
                 """,
@@ -1396,6 +1437,8 @@ def get_event(event_id: str, current_user: dict = Depends(get_current_user)):
             used = mine["request_count"] if mine else 0
             if mine and mine["status"] == "going":
                 d["my_cancel"] = _cancel_quote(mine, mine)
+                from routes.ticket_transfer import transfer_quote, pending_offer
+                d["my_transfer"] = {**transfer_quote(mine, mine), "pending": pending_offer(cur, event_id, uid)}
             d["my_requests_left"] = max(0, _MAX_JOIN_REQUESTS - used)
             d["my_can_request_again"] = (
                 d.get("my_rsvp_status") not in ("declined",)
@@ -2046,7 +2089,7 @@ def rsvp_event(event_id: str, body: RsvpBody, background_tasks: BackgroundTasks,
             cur.execute(
                 """
                 SELECT status, offer_expires_at, payment_id, price_paid_inr, fee_paid_inr,
-                       refunded_at, joined_at
+                       refunded_at, joined_at, paid_by_user_id::text
                 FROM event_attendees WHERE event_id = %s AND user_id = %s
                 FOR UPDATE
                 """,
@@ -2078,15 +2121,22 @@ def rsvp_event(event_id: str, body: RsvpBody, background_tasks: BackgroundTasks,
                 UPDATE event_attendees
                 SET status = 'cancelled', offer_expires_at = NULL,
                     refund_amount_inr = CASE WHEN %s > 0 THEN %s ELSE refund_amount_inr END,
-                    refunded_at = CASE WHEN %s > 0 THEN NOW() ELSE refunded_at END
+                    refunded_at = CASE WHEN %s > 0 THEN NOW() ELSE refunded_at END,
+                    cancel_reason = %s
                 WHERE event_id = %s AND user_id = %s
                 """,
-                (refund_inr, refund_inr, refund_inr, event_id, current_user["id"]),
+                (refund_inr, refund_inr, refund_inr,
+                 body.reason if body.reason in CANCEL_REASONS else None,
+                 event_id, current_user["id"]),
             )
+            from routes.ticket_transfer import cancel_pending_offers
+            cancel_pending_offers(cur, event_id, current_user["id"])
+            # A ticket you were given goes back to the friend who paid for it.
+            refund_to = existing.get("paid_by_user_id") or current_user["id"]
             if refund_inr > 0:
                 from routes.payments import _refund_to_wallet
-                _refund_to_wallet(cur, current_user["id"], event_id, refund_inr, ev["title"],
-                                  description=f"Refund — you cancelled {ev['title']}")
+                _refund_to_wallet(cur, refund_to, event_id, refund_inr, ev["title"],
+                                  description=f"Refund — ticket to {ev['title']} was cancelled")
 
             # Only promote if event starts > 2h from now — under 2h the freed spot becomes an empty seat
             ev_dt_cancel = ev["date_time"]
@@ -2133,7 +2183,7 @@ def rsvp_event(event_id: str, body: RsvpBody, background_tasks: BackgroundTasks,
             status = "cancelled"
             if refund_inr > 0:
                 background_tasks.add_task(
-                    send_push, current_user["id"], "Refund in your Gorave Wallet 💰",
+                    send_push, refund_to, "Refund in your Gorave Wallet 💰",
                     f"₹{refund_inr} from {event_title_cancel} is in your wallet.",
                     {"type": "wallet", "event_id": event_id}, category="payments",
                 )
@@ -2570,7 +2620,7 @@ def _cancel_event_and_refund(event_id: str, background_tasks: BackgroundTasks, c
         from routes.payments import _refund_to_wallet
         cur.execute(
             """
-            SELECT user_id::text,
+            SELECT user_id::text, COALESCE(paid_by_user_id, user_id)::text AS payer,
                    COALESCE(price_paid_inr, %s) AS price_paid,
                    COALESCE(fee_paid_inr, %s) AS fee_paid
             FROM event_attendees
@@ -2579,14 +2629,18 @@ def _cancel_event_and_refund(event_id: str, background_tasks: BackgroundTasks, c
             """,
             (ev_title_row["price_inr"], ev_title_row["platform_fee_inr"], event_id),
         )
-        refunds = [(r["user_id"], r["price_paid"] + r["fee_paid"]) for r in cur.fetchall()]
-        refunds = [(u, amt) for u, amt in refunds if amt > 0]
-        for att_uid, amount in refunds:
-            _refund_to_wallet(cur, att_uid, event_id, amount, ev_title, description=f"Refund — {ev_title}")
+        rows = [r for r in cur.fetchall() if r["price_paid"] + r["fee_paid"] > 0]
+        # Money goes to whoever paid (a passed-on ticket refunds the buyer).
+        refunds = [(r["payer"], r["price_paid"] + r["fee_paid"]) for r in rows]
+        for r in rows:
+            amount = r["price_paid"] + r["fee_paid"]
+            _refund_to_wallet(cur, r["payer"], event_id, amount, ev_title, description=f"Refund — {ev_title}")
             cur.execute(
                 "UPDATE event_attendees SET refund_amount_inr = %s, refunded_at = NOW() WHERE event_id = %s AND user_id = %s::uuid",
-                (amount, event_id, att_uid),
+                (amount, event_id, r["user_id"]),
             )
+        from routes.ticket_transfer import cancel_pending_offers
+        cancel_pending_offers(cur, event_id)
 
         conn.commit()
 

@@ -50,6 +50,11 @@ LIMITED_URL_TTL_SECONDS = 5 * 60
 _LIMITED_PUBLIC_METADATA = ("width", "height", "duration")
 
 
+# What an app may send. A "ticket" card is created only by the server when
+# someone passes a ticket on (routes/ticket_transfer.py), never by a client.
+CLIENT_CONTENT_TYPES = {"text", "event", "profile", "image", "voice", "video", "gif"}
+
+
 def _check_view_limit(view_limit, content_type: str, metadata) -> Optional[int]:
     """None for a normal message, 1 or 2 for view once/twice. Raises ValueError
     with what to tell the sender when the combination isn't allowed."""
@@ -706,6 +711,8 @@ async def send_message_rest(
         metadata = await rt.clean_outgoing_metadata(body.metadata, uid)
     except PermissionError:
         raise HTTPException(status_code=403, detail="That file isn't yours to send")
+    if body.content_type not in CLIENT_CONTENT_TYPES:
+        raise HTTPException(status_code=422, detail="Unsupported message type")
     try:
         view_limit = _check_view_limit(body.view_limit, body.content_type, metadata)
     except ValueError as e:
@@ -1155,6 +1162,9 @@ async def chat_websocket(
                 content = data.get("content")
                 if isinstance(content, str) and len(content) > MAX_MESSAGE_CHARS:
                     await websocket.send_text(json.dumps({"type": "error", "code": "too_long", "client_id": client_id}))
+                    continue
+                if content_type not in CLIENT_CONTENT_TYPES:
+                    await websocket.send_text(json.dumps({"type": "error", "code": "invalid", "detail": "Unsupported message type", "client_id": client_id}))
                     continue
                 try:
                     metadata = await rt.clean_outgoing_metadata(data.get("metadata"), uid)

@@ -106,6 +106,8 @@ function EventListCardBase({
           <AttendeeAvatarStack
             avatars={event.attendee_avatars}
             count={event.attendee_count}
+            friendsCount={event.friends_going_count}
+            friendNames={event.friends_going_names}
             avatarSize={15}
             textStyle={s.going}
           />

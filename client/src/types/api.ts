@@ -155,6 +155,9 @@ export interface EventSummary {
   age_restriction: number
   attendee_count: number
   attendee_avatars: string[]
+  /** People you know (follow or chat with) who are going, and up to 2 first names. */
+  friends_going_count?: number
+  friends_going_names?: string[]
   is_cancelled?: boolean
   waitlist_count: number
   is_waitlist_full: boolean
@@ -212,6 +215,8 @@ export interface EventDetail extends EventSummary {
   my_can_request_again?: boolean
   /** Can I cancel my own spot, until when, and what comes back. Only when going. */
   my_cancel?: MyCancelQuote | null
+  /** Can I pass my ticket to a friend (paid only, once), and is an offer waiting. */
+  my_transfer?: MyTransferQuote | null
   /** Join requests this viewer can still send for this event (server caps at max_join_requests) */
   my_requests_left?: number
   max_join_requests?: number
@@ -410,7 +415,7 @@ export interface Message {
   conversation_id: string
   sender_id: string
   content: string | null
-  content_type: 'text' | 'event' | 'profile' | 'image' | 'voice' | 'video' | 'gif' | 'unavailable'
+  content_type: 'text' | 'event' | 'profile' | 'image' | 'voice' | 'video' | 'gif' | 'ticket' | 'unavailable'
   metadata: Record<string, any> | null
   sent_at: string
   read_at: string | null
@@ -517,4 +522,26 @@ export interface MyCancelQuote {
   deadline: string | null
   /** Why it isn't allowed, ready to show */
   reason: string | null
+  /** A ticket you were given: the money goes back to the friend who paid */
+  refund_to_buyer?: boolean
 }
+
+export interface MyTransferQuote {
+  allowed: boolean
+  reason: string | null
+  /** An offer waiting to be accepted (to a friend, or a link when to_user_id is null) */
+  pending: { id: string; token: string; to_user_id: string | null; to_name: string | null; created_at: string } | null
+}
+
+/** What GET /events/transfers/{token} returns: a ticket someone is passing on. */
+export interface TransferPreview {
+  status: 'pending' | 'accepted' | 'cancelled'
+  can_accept: boolean
+  reason: string | null
+  is_sender: boolean
+  from: { id: string; name: string | null; avatar: string | null }
+  event: { id: string; title: string; date_time: string; area: string | null; city: string | null; price_inr: number; cover_url: string | null }
+}
+
+/** Why a guest cancelled (from the "Can't make it?" sheet). */
+export type CancelReason = 'plans_changed' | 'unwell' | 'date' | 'price' | 'other'
