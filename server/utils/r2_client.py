@@ -43,7 +43,7 @@ class R2Client:
         #     config=boto3.session.Config(signature_version='s3v4')
         # )
     
-    def upload_file(self, file_bytes: BytesIO, file_name: str, folder: str = "storyboard") -> Dict[str, Any]:
+    def upload_file(self, file_bytes: BytesIO, file_name: str, folder: str = "storyboard", bucket: Optional[str] = None) -> Dict[str, Any]:
         """
         Upload a file to R2 storage
         
@@ -51,6 +51,7 @@ class R2Client:
             file_bytes: The file content as BytesIO
             file_name: Original file name
             folder: Folder to store the file in (default: storyboard)
+            bucket: Another bucket than R2_BUCKET (e.g. the private chat bucket)
             
         Returns:
             Dictionary with file information including URL
@@ -96,7 +97,7 @@ class R2Client:
         # Upload the file
         self.r2_client.upload_fileobj(
             file_bytes,
-            self.r2_bucket,
+            bucket or self.r2_bucket,
             r2_key,
             ExtraArgs={"ContentType": content_type},
         )

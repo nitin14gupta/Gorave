@@ -6,8 +6,20 @@ import { peekCached, setCached } from '@/lib/queryCache'
 import { CacheKeys } from '@/constants'
 import { usePillStore } from '@/store/pillStore'
 import { useChatUnreadStore } from '@/store/chatUnreadStore'
+import { uuidv4 } from '@/lib/uuid'
 
 const messagesCacheKey = CacheKeys.chatMessages
+
+// The server closes a socket with this when its hourly login is up; reconnect
+// straight away with a fresh ticket.
+const WS_SESSION_EXPIRED = 4000
+
+// A waiting bubble's id is `_temp_<client id>`: the same id the server gets,
+// so its reply is matched exactly instead of guessed.
+const tempIdFor = (clientId: string) => `_temp_${clientId}`
+const clientIdOf = (tempId: string) => tempId.slice('_temp_'.length)
+
+type OutgoingFrame = { content: string; content_type: string; metadata?: object | null; client_id: string }
 
 export function useChat(conversationId: string) {
   const [initialCache] = useState(() => peekCached<Message[]>(messagesCacheKey(conversationId)))
@@ -27,7 +39,11 @@ export function useChat(conversationId: string) {
   const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const typingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const pendingTempIds = useRef<Set<string>>(new Set())
-  const activeSendTempIdRef = useRef<string | null>(null)
+  // The outbox: every message sent but not yet confirmed, by temp id. Resent
+  // on every reconnect; the server's client_id check makes that safe.
+  const outboxRef = useRef<Map<string, OutgoingFrame>>(new Map())
+  const connectingRef = useRef(false)
+  const aliveRef = useRef(true)
   const noMoreRef = useRef(false)
   const loadingMoreRef = useRef(false)
   const isBackgrounded = useRef(false)
@@ -78,110 +94,60 @@ export function useChat(conversationId: string) {
     }))
   }, [])
 
-  const markTempFailed = useCallback((messages: Message[]) => {
-    const tempMsg = messages.find(m => m.id.startsWith('_temp_') && m.sender_id === myId && pendingTempIds.current.has(m.id))
-    if (tempMsg) {
-      pendingTempIds.current.delete(tempMsg.id)
-      setFailedIds(prev => new Set([...prev, tempMsg.id]))
+  const markFailed = useCallback((tempId: string) => {
+    outboxRef.current.delete(tempId)
+    pendingTempIds.current.delete(tempId)
+    setFailedIds(prev => new Set([...prev, tempId]))
+  }, [])
+
+  // The saved copy of a message we sent: swap it in for its waiting bubble.
+  const confirmSent = useCallback((saved: Message) => {
+    setMessages(prev => {
+      // A server from before client ids doesn't echo one back: fall back to the
+      // oldest waiting bubble of the same kind.
+      const tempId = saved.client_id
+        ? tempIdFor(saved.client_id)
+        : [...prev].reverse().find(m => pendingTempIds.current.has(m.id) && m.content_type === saved.content_type)?.id ?? null
+      if (tempId) {
+        outboxRef.current.delete(tempId)
+        pendingTempIds.current.delete(tempId)
+      }
+      const idx = tempId ? prev.findIndex(m => m.id === tempId) : -1
+      if (idx === -1) return prev.some(m => m.id === saved.id) ? prev : [saved, ...prev]
+      const next = prev.filter(m => m.id !== saved.id)
+      const at = next.findIndex(m => m.id === tempId)
+      next[at] = saved
+      return next
+    })
+  }, [])
+
+  const transmit = useCallback((tempId: string, frame: OutgoingFrame) => {
+    outboxRef.current.set(tempId, frame)
+    pendingTempIds.current.add(tempId)
+    const ws = wsRef.current
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      try {
+        ws.send(JSON.stringify({ type: 'message', ...frame }))
+        return
+      } catch {}
     }
-  }, [myId])
+    // No live socket: send over HTTP. Same client id, so if the socket copy
+    // also lands later the server keeps only one.
+    ApiService.sendMessage(conversationId, frame.content, frame.content_type, frame.metadata ?? undefined, frame.client_id)
+      .then(confirmSent)
+      .catch(() => markFailed(tempId))
+  }, [conversationId, confirmSent, markFailed])
 
   const connect = useCallback(() => {
-    if (isBackgrounded.current) return
+    if (isBackgrounded.current || connectingRef.current) return
     const existing = wsRef.current
     if (existing && (existing.readyState === WebSocket.OPEN || existing.readyState === WebSocket.CONNECTING)) {
       return
     }
+    if (!useAuthStore.getState().accessToken || !conversationId) return
 
-    const { accessToken } = useAuthStore.getState()
-    if (!accessToken || !conversationId) return
-
-    const url = ApiService.getChatWsUrl(conversationId, accessToken)
-    const ws = new WebSocket(url)
-
-    ws.onopen = () => {
-      retryCountRef.current = 0
-      setIsWsConnected(true)
-      setReconnectFailed(false)
-    }
-
-    ws.onmessage = (evt: MessageEvent) => {
-      try {
-        const data = JSON.parse(evt.data as string)
-        if (data.type === 'message') {
-          setMessages(prev => {
-            if (data.sender_id === myId && pendingTempIds.current.size > 0) {
-              // Reconcile the exact in-flight temp message (not just "any temp for me") —
-              // several optimistic media bubbles can coexist while only one is actually
-              // in-flight over the network at a time.
-              const activeId = activeSendTempIdRef.current
-              const tempIdx = activeId
-                ? prev.findIndex(m => m.id === activeId)
-                : prev.findIndex(m => m.id.startsWith('_temp_') && m.sender_id === myId)
-              if (tempIdx !== -1) {
-                const next = [...prev]
-                pendingTempIds.current.delete(prev[tempIdx].id)
-                if (activeSendTempIdRef.current === prev[tempIdx].id) activeSendTempIdRef.current = null
-                next[tempIdx] = { ...data } as Message
-                return next
-              }
-            }
-            if (prev.some(m => m.id === data.id)) return prev
-            if (data.sender_id !== myId) {
-              const liveWs = wsRef.current
-              if (liveWs && liveWs.readyState === WebSocket.OPEN) {
-                liveWs.send(JSON.stringify({ type: 'read' }))
-              }
-            }
-            return [data as Message, ...prev]
-          })
-        } else if (data.type === 'error') {
-          if (data.code === 'blocked') {
-            setWsError('blocked')
-          } else if (data.code === 'send_failed') {
-            setMessages(prev => {
-              markTempFailed(prev)
-              return prev
-            })
-          }
-        } else if (data.type === 'typing') {
-          if (data.user_id !== myId) {
-            const mode: string = data.mode ?? 'text'
-            if (mode === 'voice') {
-              setIsPartnerRecording(!!data.is_typing)
-            } else {
-              setIsPartnerTyping(!!data.is_typing)
-              if (data.is_typing) {
-                if (typingTimerRef.current) clearTimeout(typingTimerRef.current)
-                typingTimerRef.current = setTimeout(() => setIsPartnerTyping(false), 3000)
-              }
-            }
-          }
-        } else if (data.type === 'online') {
-          setIsPartnerOnline(!!data.is_online)
-        } else if (data.type === 'read') {
-          if (data.user_id !== myId) {
-            setPartnerSeenAt(new Date().toISOString())
-          }
-        } else if (data.type === 'reaction') {
-          applyReactionUpdate(data.message_id, data.user_id, data.emoji ?? null)
-        } else if (data.type === 'message_unsent') {
-          // Unsend means gone without a trace on both sides — drop it from
-          // the thread entirely rather than swapping in an "unsent" bubble.
-          setMessages(prev => prev.filter(m => m.id !== data.message_id))
-        } else if (data.type === 'message_edited') {
-          setMessages(prev => prev.map(m =>
-            m.id === data.message_id
-              ? { ...m, content: data.content, edited_at: data.edited_at }
-              : m,
-          ))
-        }
-      } catch {}
-    }
-
-    ws.onclose = () => {
-      setIsWsConnected(false)
-      if (isBackgrounded.current) return
+    const scheduleRetry = () => {
+      if (isBackgrounded.current || !aliveRef.current) return
       if (retryCountRef.current < 10) {
         const delay = Math.min(1000 * Math.pow(2, retryCountRef.current), 30000)
         retryCountRef.current++
@@ -191,20 +157,116 @@ export function useChat(conversationId: string) {
       }
     }
 
-    ws.onerror = () => {
-      setIsWsConnected(false)
-      // onclose fires immediately after onerror and handles reconnect
-    }
+    connectingRef.current = true
+    // A one-time ticket, so the access token never goes in the socket URL.
+    ApiService.getChatWsUrl(conversationId).then(url => {
+      connectingRef.current = false
+      if (isBackgrounded.current || !aliveRef.current) return
+      const ws = new WebSocket(url)
 
-    wsRef.current = ws
-  }, [conversationId, myId, applyReactionUpdate, markTempFailed])
+      ws.onopen = () => {
+        retryCountRef.current = 0
+        setIsWsConnected(true)
+        setReconnectFailed(false)
+        // Anything still waiting from before the drop goes again.
+        for (const frame of outboxRef.current.values()) {
+          try { ws.send(JSON.stringify({ type: 'message', ...frame })) } catch {}
+        }
+      }
+
+      ws.onmessage = (evt: MessageEvent) => {
+        try {
+          const data = JSON.parse(evt.data as string)
+          if (data.type === 'message') {
+            if (data.sender_id === myId) {
+              confirmSent(data as Message)
+              return
+            }
+            setMessages(prev => {
+              if (prev.some(m => m.id === data.id)) return prev
+              const liveWs = wsRef.current
+              if (liveWs && liveWs.readyState === WebSocket.OPEN) {
+                liveWs.send(JSON.stringify({ type: 'read' }))
+              }
+              return [data as Message, ...prev]
+            })
+          } else if (data.type === 'error') {
+            if (data.code === 'blocked') setWsError('blocked')
+            if (data.client_id) markFailed(tempIdFor(data.client_id))
+          } else if (data.type === 'typing') {
+            if (data.user_id !== myId) {
+              const mode: string = data.mode ?? 'text'
+              if (mode === 'voice') {
+                setIsPartnerRecording(!!data.is_typing)
+              } else {
+                setIsPartnerTyping(!!data.is_typing)
+                if (data.is_typing) {
+                  if (typingTimerRef.current) clearTimeout(typingTimerRef.current)
+                  typingTimerRef.current = setTimeout(() => setIsPartnerTyping(false), 3000)
+                }
+              }
+            }
+          } else if (data.type === 'online') {
+            if (data.user_id !== myId) setIsPartnerOnline(!!data.is_online)
+          } else if (data.type === 'delivered' || data.type === 'read') {
+            if (data.user_id === myId) return
+            const now = new Date().toISOString()
+            // Their app has everything we sent: ticks go Sent -> Delivered.
+            setMessages(prev => prev.some(m => m.sender_id === myId && !m.delivered_at)
+              ? prev.map(m => (m.sender_id === myId && !m.delivered_at && !m.id.startsWith('_temp_') ? { ...m, delivered_at: now } : m))
+              : prev)
+            if (data.type === 'read') setPartnerSeenAt(now)
+          } else if (data.type === 'reaction') {
+            applyReactionUpdate(data.message_id, data.user_id, data.emoji ?? null)
+          } else if (data.type === 'message_unsent') {
+            // Unsend means gone without a trace on both sides — drop it from
+            // the thread entirely rather than swapping in an "unsent" bubble.
+            setMessages(prev => prev.filter(m => m.id !== data.message_id))
+          } else if (data.type === 'message_edited') {
+            setMessages(prev => prev.map(m =>
+              m.id === data.message_id
+                ? { ...m, content: data.content, edited_at: data.edited_at }
+                : m,
+            ))
+          }
+        } catch {}
+      }
+
+      ws.onclose = (evt: CloseEvent) => {
+        setIsWsConnected(false)
+        if (wsRef.current === ws) wsRef.current = null
+        if (isBackgrounded.current || !aliveRef.current) return
+        if (evt?.code === WS_SESSION_EXPIRED) {
+          retryCountRef.current = 0
+          connectRef.current()
+          return
+        }
+        scheduleRetry()
+      }
+
+      ws.onerror = () => {
+        setIsWsConnected(false)
+        // onclose fires immediately after onerror and handles reconnect
+      }
+
+      wsRef.current = ws
+    }).catch(() => {
+      connectingRef.current = false
+      setIsWsConnected(false)
+      scheduleRetry()
+    })
+  }, [conversationId, myId, applyReactionUpdate, confirmSent, markFailed])
   useEffect(() => { connectRef.current = connect }, [connect])
 
   useEffect(() => {
     const sub = AppState.addEventListener('change', (state) => {
-      if (state === 'background' || state === 'inactive') {
+      if (state === 'background') {
         isBackgrounded.current = true
         if (retryTimerRef.current) clearTimeout(retryTimerRef.current)
+        // Leave the chat while the app is away, so the server knows you aren't
+        // looking at it and sends pushes again.
+        wsRef.current?.close()
+        wsRef.current = null
       } else if (state === 'active') {
         isBackgrounded.current = false
         const ws = wsRef.current
@@ -226,71 +288,49 @@ export function useChat(conversationId: string) {
   }, [connect])
 
   useEffect(() => {
+    aliveRef.current = true
     connect()
     return () => {
+      aliveRef.current = false
       if (retryTimerRef.current) clearTimeout(retryTimerRef.current)
       if (typingTimerRef.current) clearTimeout(typingTimerRef.current)
       wsRef.current?.close()
+      wsRef.current = null
     }
   }, [connect])
 
   const sendMessage = useCallback(async (content: string, contentType = 'text', metadata?: object): Promise<void> => {
-    const tempId = `_temp_${Date.now()}`
+    const clientId = uuidv4()
+    const tempId = tempIdFor(clientId)
     const optimistic: Message = {
       id: tempId,
       conversation_id: conversationId,
       sender_id: myId ?? '',
       content,
       content_type: contentType as Message['content_type'],
-      metadata: metadata ?? null,
+      metadata: (metadata as Record<string, any>) ?? null,
       sent_at: new Date().toISOString(),
       read_at: null,
       reactions: null,
+      client_id: clientId,
     }
-    pendingTempIds.current.add(tempId)
     setMessages(prev => [optimistic, ...prev])
-    activeSendTempIdRef.current = tempId
+    transmit(tempId, { content, content_type: contentType, metadata: metadata ?? null, client_id: clientId })
+  }, [conversationId, myId, transmit])
 
-    const ws = wsRef.current
-    if (ws && ws.readyState === WebSocket.OPEN) {
-      try {
-        ws.send(JSON.stringify({ type: 'message', content, content_type: contentType, metadata }))
-      } catch {
-        activeSendTempIdRef.current = null
-        pendingTempIds.current.delete(tempId)
-        setFailedIds(prev => new Set([...prev, tempId]))
-      }
-      return
-    }
-
-    // REST fallback
-    try {
-      const msg = await ApiService.sendMessage(conversationId, content, contentType, metadata)
-      activeSendTempIdRef.current = null
-      pendingTempIds.current.delete(tempId)
-      setMessages(prev => {
-        const idx = prev.findIndex(m => m.id === tempId)
-        if (idx === -1) return prev.some(m => m.id === msg.id) ? prev : [msg, ...prev]
-        const next = [...prev]
-        next[idx] = msg
-        return next
-      })
-    } catch {
-      activeSendTempIdRef.current = null
-      pendingTempIds.current.delete(tempId)
-      setFailedIds(prev => new Set([...prev, tempId]))
-    }
-  }, [conversationId, myId])
-
+  // Same bubble, same client id: if the first try actually reached the
+  // server, this just gets the saved copy back.
   const retryMessage = useCallback(async (tempId: string) => {
     const msg = messages.find(m => m.id === tempId)
     if (!msg) return
     setFailedIds(prev => { const n = new Set(prev); n.delete(tempId); return n })
-    setMessages(prev => prev.filter(m => m.id !== tempId))
-    try {
-      await sendMessage(msg.content ?? '', msg.content_type, msg.metadata ?? undefined)
-    } catch {}
-  }, [messages, sendMessage])
+    transmit(tempId, {
+      content: msg.content ?? '',
+      content_type: msg.content_type,
+      metadata: msg.metadata,
+      client_id: clientIdOf(tempId),
+    })
+  }, [messages, transmit])
 
   // ── Optimistic media (image/video/gif) send ────────────────────────────────
   // Media needs to appear instantly from the local file while the R2 upload
@@ -298,7 +338,8 @@ export function useChat(conversationId: string) {
   // the upload finishes, so we split "show the bubble" from "transmit it".
 
   const addOptimisticMedia = useCallback((uri: string, type: string, width?: number, height?: number) => {
-    const tempId = `_temp_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`
+    const clientId = uuidv4()
+    const tempId = tempIdFor(clientId)
     const metadata: Record<string, any> = { url: uri }
     if (width) metadata.width = width
     if (height) metadata.height = height
@@ -312,6 +353,7 @@ export function useChat(conversationId: string) {
       sent_at: new Date().toISOString(),
       read_at: null,
       reactions: null,
+      client_id: clientId,
     }
     pendingTempIds.current.add(tempId)
     setMessages(prev => [optimistic, ...prev])
@@ -319,43 +361,12 @@ export function useChat(conversationId: string) {
   }, [conversationId, myId])
 
   const sendMediaMessage = useCallback(async (tempId: string, contentType: string, metadata: object) => {
-    activeSendTempIdRef.current = tempId
-    const ws = wsRef.current
-    if (ws && ws.readyState === WebSocket.OPEN) {
-      try {
-        ws.send(JSON.stringify({ type: 'message', content: '', content_type: contentType, metadata }))
-      } catch {
-        activeSendTempIdRef.current = null
-        pendingTempIds.current.delete(tempId)
-        setFailedIds(prev => new Set([...prev, tempId]))
-      }
-      return
-    }
-
-    // REST fallback
-    try {
-      const msg = await ApiService.sendMessage(conversationId, '', contentType, metadata)
-      activeSendTempIdRef.current = null
-      pendingTempIds.current.delete(tempId)
-      setMessages(prev => {
-        const idx = prev.findIndex(m => m.id === tempId)
-        if (idx === -1) return prev.some(m => m.id === msg.id) ? prev : [msg, ...prev]
-        const next = [...prev]
-        next[idx] = msg
-        return next
-      })
-    } catch {
-      activeSendTempIdRef.current = null
-      pendingTempIds.current.delete(tempId)
-      setFailedIds(prev => new Set([...prev, tempId]))
-    }
-  }, [conversationId])
+    transmit(tempId, { content: '', content_type: contentType, metadata, client_id: clientIdOf(tempId) })
+  }, [transmit])
 
   const markMediaFailed = useCallback((tempId: string) => {
-    if (activeSendTempIdRef.current === tempId) activeSendTempIdRef.current = null
-    pendingTempIds.current.delete(tempId)
-    setFailedIds(prev => new Set([...prev, tempId]))
-  }, [])
+    markFailed(tempId)
+  }, [markFailed])
 
   const clearMediaFailed = useCallback((tempId: string) => {
     setFailedIds(prev => { const n = new Set(prev); n.delete(tempId); return n })

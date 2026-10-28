@@ -4,16 +4,30 @@ import ApiService from '@/api/apiService'
 
 export function useInboxSocket(onUpdate: () => void) {
   useEffect(() => {
-    const { accessToken } = useAuthStore.getState()
-    if (!accessToken) return
+    if (!useAuthStore.getState().accessToken) return
 
     let ws: WebSocket | null = null
     let retryTimer: ReturnType<typeof setTimeout> | null = null
     let retryCount = 0
     let closedByUs = false
 
+    const retry = () => {
+      if (closedByUs || retryCount >= 10) return
+      const delay = Math.min(1000 * 2 ** retryCount, 30000)
+      retryCount++
+      retryTimer = setTimeout(connect, delay)
+    }
+
     const connect = () => {
-      ws = new WebSocket(ApiService.getInboxWsUrl(accessToken))
+      // One-time ticket per socket; the access token never goes in the URL.
+      ApiService.getInboxWsUrl().then(url => {
+        if (closedByUs) return
+        open(url)
+      }).catch(retry)
+    }
+
+    const open = (url: string) => {
+      ws = new WebSocket(url)
       ws.onopen = () => { retryCount = 0 }
       ws.onmessage = (evt) => {
         try {
@@ -21,11 +35,11 @@ export function useInboxSocket(onUpdate: () => void) {
           if (data.type === 'conversation_updated') onUpdate()
         } catch {}
       }
-      ws.onclose = () => {
-        if (closedByUs || retryCount >= 10) return
-        const delay = Math.min(1000 * 2 ** retryCount, 30000)
-        retryCount++
-        retryTimer = setTimeout(connect, delay)
+      ws.onclose = (evt) => {
+        if (closedByUs) return
+        // Hourly re-login: reconnect right away with a fresh ticket.
+        if (evt?.code === 4000) { retryCount = 0; connect(); return }
+        retry()
       }
       ws.onerror = () => {}
     }

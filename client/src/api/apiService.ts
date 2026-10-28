@@ -530,9 +530,9 @@ class ApiService {
     return this.get<Message[]>(`${endpoint}${qs}`)
   }
 
-  static async sendMessage(convId: string, content: string, contentType = 'text', metadata?: object): Promise<Message> {
+  static async sendMessage(convId: string, content: string, contentType = 'text', metadata?: object, clientId?: string): Promise<Message> {
     const endpoint = ENDPOINTS.CONVERSATION_MESSAGES.replace(':id', convId)
-    return this.post<Message>(endpoint, { content, content_type: contentType, metadata })
+    return this.post<Message>(endpoint, { content, content_type: contentType, metadata, client_id: clientId })
   }
 
   /** Copy one message into up to 5 of your chats (the server reads the source itself). */
@@ -549,12 +549,26 @@ class ApiService {
     await this.patch<{ ok: boolean }>(endpoint, {})
   }
 
-  static getChatWsUrl(convId: string, accessToken: string): string {
-    return `${WS_BASE_URL}/ws/chat/${convId}?token=${accessToken}`
+  /**
+   * A socket URL with a one-time, 30-second ticket instead of the access token
+   * (proxies log URLs). Servers from before tickets get the old token URL.
+   */
+  private static async wsAuthQuery(): Promise<string> {
+    try {
+      const { ticket } = await this.post<{ ticket: string }>('/chat/ws-ticket', {})
+      return `ticket=${encodeURIComponent(ticket)}`
+    } catch (e: any) {
+      if (e?.status !== 404) throw e
+      return `token=${useAuthStore.getState().accessToken ?? ''}`
+    }
   }
 
-  static getInboxWsUrl(accessToken: string): string {
-    return `${WS_BASE_URL}/ws/inbox?token=${accessToken}`
+  static async getChatWsUrl(convId: string): Promise<string> {
+    return `${WS_BASE_URL}/ws/chat/${convId}?${await this.wsAuthQuery()}`
+  }
+
+  static async getInboxWsUrl(): Promise<string> {
+    return `${WS_BASE_URL}/ws/inbox?${await this.wsAuthQuery()}`
   }
 
   // ── Block / Report ─────────────────────────────────────────────────────────
@@ -1066,7 +1080,8 @@ class ApiService {
     }
   }
 
-  static async uploadChatVoice(uri: string): Promise<string> {
+  /** `key` is set when chat files are private: store it, the server signs links per viewer. */
+  static async uploadChatVoice(uri: string): Promise<{ url: string; key?: string }> {
     const ext = (uri.split('/').pop() ?? 'voice.m4a').split('.').pop()?.toLowerCase() ?? 'm4a'
     const mime = ext === 'mp4' ? 'audio/mp4' : ext === '3gp' ? 'audio/3gpp' : 'audio/m4a'
 
@@ -1083,13 +1098,14 @@ class ApiService {
     }
 
     try {
-      return JSON.parse(result.body).url
+      const body = JSON.parse(result.body)
+      return { url: body.url, key: body.key }
     } catch {
       throw new Error('Invalid server response')
     }
   }
 
-  static async uploadChatMedia(uri: string): Promise<{ url: string; media_type: string }> {
+  static async uploadChatMedia(uri: string): Promise<{ url: string; media_type: string; key?: string }> {
     const ext = (uri.split('/').pop() ?? 'image.jpg').split('.').pop()?.toLowerCase() ?? 'jpg'
     const mimeMap: Record<string, string> = {
       jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png',

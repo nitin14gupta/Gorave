@@ -416,6 +416,10 @@ export interface Message {
   edited_at?: string | null
   /** 0 = original; 1+ = a forwarded copy (5+ shows "Forwarded many times"). */
   forward_score?: number
+  /** When the recipient's app first loaded it ("Delivered"). */
+  delivered_at?: string | null
+  /** The sender's phone's own id for it, so retries are never saved twice. */
+  client_id?: string | null
 }
 
 export interface WalletTransaction {

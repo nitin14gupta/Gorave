@@ -3,6 +3,7 @@ from fastapi import APIRouter, Depends, File, Form, UploadFile, HTTPException, s
 from pydantic import BaseModel
 from middleware.auth import get_current_user
 from utils.r2_client import r2_client
+from utils import chat_realtime as rt
 from utils.face_detect import has_face
 from utils.image_utils import convert_to_webp, ImageConversionError
 from db.config import get_db
@@ -229,12 +230,23 @@ async def upload_chat_voice(
             io.BytesIO(contents),
             file.filename or "voice.m4a",
             folder="chat/voice",
+            bucket=rt.CHAT_BUCKET,
         )
     except Exception as e:
         print(f"[UPLOAD] R2 error: {e!r}", flush=True)
         raise HTTPException(status_code=500, detail="Storage upload failed, please try again")
 
-    return {"url": result["url"]}
+    return await _chat_upload_response(result, current_user["id"])
+
+
+async def _chat_upload_response(result: dict, uid: str, **extra) -> dict:
+    """Public bucket: the file's URL, as before. Private chat bucket: the
+    file's key (what the message stores) plus a short-lived link to show it
+    right away; viewers each get their own fresh link from the chat API."""
+    if not rt.chat_media_private():
+        return {"url": result["url"], **extra}
+    await rt.remember_upload(result["path"], uid)
+    return {"url": rt.sign_chat_key(result["path"]), "key": result["path"], **extra}
 
 
 MAX_MEDIA_SIZE = 50 * 1024 * 1024  # 50 MB (videos)
@@ -284,13 +296,14 @@ async def upload_chat_media(
             io.BytesIO(contents),
             filename,
             folder="chat/media",
+            bucket=rt.CHAT_BUCKET,
         )
     except Exception as e:
         print(f"[UPLOAD] R2 error: {e!r}", flush=True)
         raise HTTPException(status_code=500, detail="Storage upload failed, please try again")
 
     media_type = "video" if is_video else ("gif" if is_gif else "image")
-    return {"url": result["url"], "media_type": media_type}
+    return await _chat_upload_response(result, current_user["id"], media_type=media_type)
 
 
 class ReorderItem(BaseModel):

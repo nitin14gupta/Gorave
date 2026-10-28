@@ -120,10 +120,13 @@ export function ChatSearchModal({ visible, onClose, conversations, onSelectConve
     <Modal visible={visible} animationType="slide" onRequestClose={handleClose}>
       <View style={[s.root, { paddingTop: insets.top + 12 }]}>
         <View style={s.header}>
-          <Pressable onPress={handleClose} hitSlop={10} style={s.backBtn}>
-            <ArrowLeft size={20} color={Colors.inkPrimary} strokeWidth={2} />
-          </Pressable>
-          <Text style={s.title}>Find a chat</Text>
+          {/* One bar: back on the left, the title centred on the screen. */}
+          <View style={s.topBar}>
+            <Text style={s.title} numberOfLines={1}>Find a chat</Text>
+            <Pressable onPress={handleClose} hitSlop={10} style={s.backBtn}>
+              <ArrowLeft size={20} color={Colors.inkPrimary} strokeWidth={2} />
+            </Pressable>
+          </View>
           <SearchBar
             variant="glass"
             value={query}
@@ -227,13 +230,19 @@ const AVATAR = 52
 
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: Colors.background },
-  header: { paddingHorizontal: 20, paddingBottom: 10, gap: 12 },
+  header: { paddingHorizontal: 20, paddingBottom: 10, gap: 10 },
+  topBar: { height: 40, justifyContent: 'center' },
   backBtn: {
     width: 40, height: 40, borderRadius: 20,
     alignItems: 'center', justifyContent: 'center',
     backgroundColor: withOpacity(Colors.inkPrimary, 0.08),
   },
-  title: { fontFamily: FontFamily.displayExtraBold, fontSize: 30, letterSpacing: -0.8, color: Colors.inkPrimary },
+  // Laid across the whole bar so it centres on the screen, not between the
+  // back button and the edge; the button sits on top of it.
+  title: {
+    position: 'absolute', left: 48, right: 48, textAlign: 'center',
+    fontFamily: FontFamily.headingBold, fontSize: 17, color: Colors.inkPrimary,
+  },
   searchBar: { height: 48 },
   listContent: { paddingBottom: 32 },
   section: { marginBottom: 4 },

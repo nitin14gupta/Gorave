@@ -239,6 +239,8 @@ CREATE TABLE IF NOT EXISTS public.messages (
   edited_at timestamp with time zone,
   forward_score smallint DEFAULT 0 NOT NULL,
   forwarded_from_id uuid,
+  client_id uuid,
+  delivered_at timestamp with time zone,
   CONSTRAINT messages_content_type_check CHECK (content_type = ANY (ARRAY['text'::text, 'event'::text, 'profile'::text, 'image'::text, 'voice'::text, 'video'::text, 'gif'::text])),
   CONSTRAINT messages_forward_score_check CHECK (forward_score >= 0),
   CONSTRAINT messages_pkey PRIMARY KEY (id)
@@ -475,6 +477,8 @@ CREATE UNIQUE INDEX host_payout_account_fingerprint_uidx ON public.host_payout_d
 CREATE UNIQUE INDEX host_payout_upi_fingerprint_uidx ON public.host_payout_details USING btree (upi_fingerprint) WHERE (upi_fingerprint IS NOT NULL);
 CREATE INDEX messages_conv_sent_idx ON public.messages USING btree (conversation_id, sent_at DESC);
 CREATE INDEX messages_forwarded_from_idx ON public.messages USING btree (forwarded_from_id) WHERE (forwarded_from_id IS NOT NULL);
+CREATE UNIQUE INDEX messages_sender_client_id_key ON public.messages USING btree (sender_id, client_id) WHERE (client_id IS NOT NULL);
+CREATE INDEX messages_undelivered_idx ON public.messages USING btree (conversation_id) WHERE (delivered_at IS NULL);
 CREATE INDEX idx_notif_user_created ON public.notifications USING btree (user_id, created_at DESC);
 CREATE INDEX idx_refresh_tokens_user_id ON public.refresh_tokens USING btree (user_id);
 CREATE INDEX idx_users_dob ON public.users USING btree (dob) WHERE ((dob IS NOT NULL) AND (COALESCE(is_deleted, false) = false));

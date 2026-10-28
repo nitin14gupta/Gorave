@@ -178,8 +178,8 @@ export function useChatScreen(convId: string) {
   // ── Voice recorder ──────────────────────────────────────────────────────────
 
   const sendVoice = useCallback(async (uri: string, durationSecs: number) => {
-    const url = await ApiService.uploadChatVoice(uri)
-    await sendMessage('', 'voice', { url, duration: durationSecs })
+    const { url, key } = await ApiService.uploadChatVoice(uri)
+    await sendMessage('', 'voice', { url, duration: durationSecs, ...(key ? { key } : {}) })
   }, [sendMessage])
 
   const {
@@ -461,9 +461,11 @@ export function useChatScreen(convId: string) {
     tempId: string, uri: string, type: 'image' | 'video' | 'gif', width?: number, height?: number,
   ) => {
     try {
-      const { url, media_type } = await ApiService.uploadChatMedia(uri)
+      const { url, media_type, key } = await ApiService.uploadChatMedia(uri)
       const finalType = type === 'gif' ? 'gif' : media_type
-      const meta: Record<string, any> = { url }
+      // With private chat files the server stores `key` and hands every
+      // viewer a fresh signed link.
+      const meta: Record<string, any> = key ? { url, key } : { url }
       if (width) meta.width = width
       if (height) meta.height = height
       await sendMediaMessage(tempId, finalType, meta)
@@ -502,15 +504,24 @@ export function useChatScreen(convId: string) {
 
   // ── Derived data ────────────────────────────────────────────────────────────
 
-  // Seen indicator: find the last message I sent that the partner has actually read
+  // Status under my latest message, like Instagram: "Sent" -> "Delivered"
+  // (their app has it) -> "Seen 2m ago". If they've replied since, "Seen"
+  // stays on the last message of mine they read.
   const seenInfo = useMemo(() => {
-    if (!partnerSeenAt) return null
-    const seenTime = new Date(partnerSeenAt).getTime()
-    const lastSeenMsg = messages.find(
-      m => !m.id.startsWith('_temp_') && m.sender_id === myId && new Date(m.sent_at).getTime() <= seenTime,
-    )
-    if (!lastSeenMsg) return null
-    return { msgId: lastSeenMsg.id, label: formatSeen(partnerSeenAt) }
+    const mine = messages.filter(m => m.sender_id === myId && !m.id.startsWith('_temp_'))
+    const newestMine = mine[0]
+    if (!newestMine) return null
+    const seenTime = partnerSeenAt ? new Date(partnerSeenAt).getTime() : null
+    if (seenTime != null && new Date(newestMine.sent_at).getTime() <= seenTime) {
+      return { msgId: newestMine.id, label: formatSeen(partnerSeenAt!) }
+    }
+    const newestInThread = messages.find(m => !m.id.startsWith('_temp_'))
+    if (newestInThread?.id === newestMine.id) {
+      return { msgId: newestMine.id, label: newestMine.delivered_at ? 'Delivered' : 'Sent' }
+    }
+    if (seenTime == null) return null
+    const lastSeenMsg = mine.find(m => new Date(m.sent_at).getTime() <= seenTime)
+    return lastSeenMsg ? { msgId: lastSeenMsg.id, label: formatSeen(partnerSeenAt!) } : null
   }, [partnerSeenAt, messages, myId])
 
   const listData = useMemo(() => buildListData(messages, seenInfo), [messages, seenInfo])

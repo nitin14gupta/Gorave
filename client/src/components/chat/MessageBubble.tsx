@@ -160,8 +160,8 @@ const vb = StyleSheet.create({
 
 const MEDIA_WIDTH = 220
 
-function ImageChatBubble({ url, isMine, width: srcW, height: srcH, isPending }: {
-  url: string; isMine: boolean; width?: number; height?: number; isPending: boolean
+function ImageChatBubble({ url, cacheKey, isMine, width: srcW, height: srcH, isPending }: {
+  url: string; cacheKey?: string; isMine: boolean; width?: number; height?: number; isPending: boolean
 }) {
   const aspectRatio = srcW && srcH ? srcW / srcH : 4 / 3
   const displayH = Math.round(MEDIA_WIDTH / aspectRatio)
@@ -172,7 +172,7 @@ function ImageChatBubble({ url, isMine, width: srcW, height: srcH, isPending }: 
   return (
     <View style={{ width: MEDIA_WIDTH, height: h }}>
       <Image
-        source={{ uri: url }}
+        source={{ uri: url, cacheKey }}
         style={[mc.img, { width: MEDIA_WIDTH, height: h }]}
         contentFit="cover"
         cachePolicy="memory-disk"
@@ -508,6 +508,7 @@ export function MessageBubble({
             <Animated.View style={animStyle}>
               <ImageChatBubble
                 url={msg.metadata.url}
+                cacheKey={msg.metadata.key}
                 isMine={isMine}
                 width={msg.metadata.width}
                 height={msg.metadata.height}
