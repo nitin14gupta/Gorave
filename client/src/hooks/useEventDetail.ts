@@ -8,7 +8,7 @@ import { useAuthStore } from '@/store/auth'
 import { useRecentEventsStore } from '@/store/recentEventsStore'
 import { usePillStore } from '@/store/pillStore'
 import { useOnboardingStore } from '@/store/onboarding'
-import { peekCached } from '@/lib/queryCache'
+import { peekCached, setCached } from '@/lib/queryCache'
 import { CacheKeys } from '@/constants'
 import { genderBucket } from '@/lib/crowdMix'
 import type { ProfileResponse } from '@/api/user'
@@ -24,9 +24,15 @@ export function useEventDetail(id: string | undefined) {
   const storedGender = useOnboardingStore(s => s.gender)
   const myGender = peekCached<ProfileResponse>(CacheKeys.profile())?.gender ?? storedGender ?? null
 
-  const [event, setEvent] = useState<EventDetail | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [rsvpStatus, setRsvpStatus] = useState<RsvpStatus>('idle')
+  // Reopening an event paints the copy from your last visit at once. It's
+  // only for looking: spots, price and your status can have moved, so the
+  // booking button stays locked (`stale`) until the fresh copy arrives.
+  const [cached] = useState(() => (id ? peekCached<EventDetail>(CacheKeys.eventDetail(id)) : null))
+  const [event, setEvent] = useState<EventDetail | null>(cached)
+  const [loading, setLoading] = useState(!cached)
+  const [stale, setStale] = useState(!!cached)
+  const [rsvpStatus, setRsvpStatus] = useState<RsvpStatus>(() =>
+    cached?.my_rsvp_status === 'going' || cached?.my_rsvp_status === 'waitlist' ? cached.my_rsvp_status : 'idle')
   const [optionsOpen, setOptionsOpen] = useState(false)
   const [cancelConfirm, setCancelConfirm] = useState(false)
   const [reportOpen, setReportOpen] = useState(false)
@@ -50,6 +56,8 @@ export function useEventDetail(id: string | undefined) {
     ApiService.getEvent(id)
       .then(ev => {
         setEvent(ev)
+        setStale(false)
+        setCached(CacheKeys.eventDetail(id), ev, null, false)
         checkAgainstCache(ev)
         useRecentEventsStore.getState().add(ev)
         if (ev.my_rsvp_status === 'going' || ev.my_rsvp_status === 'waitlist') {
@@ -102,6 +110,8 @@ export function useEventDetail(id: string | undefined) {
     try {
       const ev = await ApiService.getEvent(id)
       setEvent(ev)
+      setStale(false)
+      setCached(CacheKeys.eventDetail(id), ev, null, false)
       checkAgainstCache(ev)
     } catch (e: any) {
       showPill(e?.message || "Couldn't refresh this event", 'error')
@@ -296,6 +306,7 @@ export function useEventDetail(id: string | undefined) {
     myId,
     event,
     loading,
+    stale,
     rsvpStatus,
     optionsOpen, setOptionsOpen,
     cancelConfirm, setCancelConfirm,

@@ -33,6 +33,24 @@ export function peekCached<T>(key: string): T | null {
   return entry ? entry.value : null
 }
 
+/**
+ * Copy what's saved on the phone into memory, so screens that read with
+ * peekCached (your profile, the chat list, Home) paint on their very first
+ * frame after a cold start instead of showing a loader while they refetch.
+ * Run once at startup; stale values are fine, the screens revalidate.
+ */
+export async function warmFromDisk(keys: readonly string[]): Promise<void> {
+  try {
+    const rows = await AsyncStorage.multiGet(keys.map(k => PREFIX + k))
+    for (const [fullKey, raw] of rows) {
+      if (!raw) continue
+      const key = fullKey.slice(PREFIX.length)
+      if (memory.has(key)) continue
+      try { memory.set(key, JSON.parse(raw)) } catch {}
+    }
+  } catch {}
+}
+
 /** What's cached for this key, fresh or not, and whether it's still fresh. */
 export async function peekEntry<T>(key: string): Promise<{ value: T; fresh: boolean } | null> {
   const mem = memory.get(key) as Entry<T> | undefined

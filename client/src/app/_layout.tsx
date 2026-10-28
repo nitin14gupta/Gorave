@@ -28,6 +28,9 @@ import { BottomSheetModalProvider } from '@gorhom/bottom-sheet'
 import { Stack } from 'expo-router'
 import { StatusBar } from 'expo-status-bar'
 import * as SplashScreen from 'expo-splash-screen'
+import { warmFromDisk } from '@/lib/queryCache'
+import { MY_EVENT_KEYS } from '@/lib/myEventsCache'
+import { CacheKeys } from '@/constants'
 import { SplashScreen as AppSplashScreen } from '@/components/ui/SplashScreen'
 import { useVibeFonts } from '@/lib/fonts'
 import { useAuthStore } from '@/store/auth'
@@ -67,6 +70,7 @@ function RootNavigator() {
 
 // ── Root layout — bootstraps stored session before rendering ─────────────────
 const BUTTON_NAV_INSET_THRESHOLD = 30
+const WARM_CACHE_KEYS = [CacheKeys.profile(), CacheKeys.chatConversations, ...MY_EVENT_KEYS]
 
 function RootLayout() {
   const [fontsLoaded, fontError] = useVibeFonts()
@@ -84,6 +88,9 @@ function RootLayout() {
   useEffect(() => {
     async function bootstrap() {
       try {
+        // While the splash is up anyway: last-known profile, chats and Home
+        // go into memory so the first screen opens instantly.
+        await warmFromDisk(WARM_CACHE_KEYS)
         const stored = await tokenStorage.load()
         if (stored?.refreshToken) {
           // Always refresh on startup — access tokens are short-lived (15 min)

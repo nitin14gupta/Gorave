@@ -1,10 +1,12 @@
-import { View, Text, Pressable, StyleSheet, Modal, ActivityIndicator } from 'react-native'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { View, Text, Pressable, StyleSheet, ActivityIndicator, BackHandler } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Image } from 'expo-image'
 import { VideoView, useVideoPlayer } from 'expo-video'
+import { usePreventScreenCapture, useScreenshotListener } from 'expo-screen-capture'
 import { X } from 'lucide-react-native'
 import { Colors, FontFamily, withOpacity } from '@/constants'
+import { usePillStore } from '@/store/pillStore'
 import { ViewLimitIcon } from './ViewLimitIcon'
 
 export interface OpenedLimitedMedia {
@@ -24,54 +26,65 @@ function LimitedVideo({ url }: { url: string }) {
  * Full screen view of a view once/twice photo or video. Nothing to download,
  * share or forward; closing it is the only way out. The open was already
  * counted by the server when this link was handed out.
+ *
+ * While it's on screen, screenshots and screen recording are blocked: iOS
+ * hides the content from both, Android's secure flag blocks screenshots and
+ * records black. It's drawn as a layer over the chat rather than a Modal,
+ * because an Android Modal is its own window and wouldn't get that flag.
  */
-export function ViewOnceViewer({ media, onClose }: { media: OpenedLimitedMedia | null; onClose: () => void }) {
+export function ViewOnceViewer({ media, onClose }: { media: OpenedLimitedMedia; onClose: () => void }) {
   const insets = useSafeAreaInsets()
   const [loaded, setLoaded] = useState(false)
-  if (!media) return null
+  const showPill = usePillStore(s => s.show)
+
+  usePreventScreenCapture('view-once')
+  useScreenshotListener(() => showPill("Screenshots are blocked for view once", 'default'))
+
+  useEffect(() => {
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => { onClose(); return true })
+    return () => sub.remove()
+  }, [onClose])
 
   const left = media.viewLimit - media.viewsUsed
   const label = media.type === 'video' ? 'Video' : 'Photo'
   const sub = left > 0 ? `${left} view left` : media.viewLimit === 1 ? 'View once' : 'Last view'
 
   return (
-    <Modal visible animationType="fade" onRequestClose={onClose} statusBarTranslucent>
-      <View style={s.root}>
-        {media.type === 'video' ? (
-          <LimitedVideo url={media.url} />
-        ) : (
-          <>
-            <Image
-              source={{ uri: media.url }}
-              style={StyleSheet.absoluteFill}
-              contentFit="contain"
-              // Never kept on the phone: view once means it's gone after this.
-              cachePolicy="none"
-              onLoad={() => setLoaded(true)}
-            />
-            {!loaded && <ActivityIndicator style={StyleSheet.absoluteFill} color={Colors.white} />}
-          </>
-        )}
+    <View style={s.root}>
+      {media.type === 'video' ? (
+        <LimitedVideo url={media.url} />
+      ) : (
+        <>
+          <Image
+            source={{ uri: media.url }}
+            style={StyleSheet.absoluteFill}
+            contentFit="contain"
+            // Never kept on the phone: view once means it's gone after this.
+            cachePolicy="none"
+            onLoad={() => setLoaded(true)}
+          />
+          {!loaded && <ActivityIndicator style={StyleSheet.absoluteFill} color={Colors.white} />}
+        </>
+      )}
 
-        <View style={[s.header, { paddingTop: insets.top + 8 }]}>
-          <View style={s.badge}>
-            <ViewLimitIcon limit={media.viewLimit} color={Colors.white} />
-            <View>
-              <Text style={s.title}>{label}</Text>
-              <Text style={s.sub}>{sub}</Text>
-            </View>
+      <View style={[s.header, { paddingTop: insets.top + 8 }]}>
+        <View style={s.badge}>
+          <ViewLimitIcon limit={media.viewLimit} color={Colors.white} />
+          <View>
+            <Text style={s.title}>{label}</Text>
+            <Text style={s.sub}>{sub}</Text>
           </View>
-          <Pressable onPress={onClose} hitSlop={10} style={s.close}>
-            <X size={20} color={Colors.white} strokeWidth={2.2} />
-          </Pressable>
         </View>
+        <Pressable onPress={onClose} hitSlop={10} style={s.close}>
+          <X size={20} color={Colors.white} strokeWidth={2.2} />
+        </Pressable>
       </View>
-    </Modal>
+    </View>
   )
 }
 
 const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#000' },
+  root: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 100, elevation: 100, backgroundColor: '#000' },
   header: {
     position: 'absolute', top: 0, left: 0, right: 0,
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',

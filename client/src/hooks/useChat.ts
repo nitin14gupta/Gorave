@@ -2,13 +2,16 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { AppState } from 'react-native'
 import ApiService, { Message } from '@/api/apiService'
 import { useAuthStore } from '@/store/auth'
-import { peekCached, setCached } from '@/lib/queryCache'
+import { peekCached, peekEntry, setCached } from '@/lib/queryCache'
 import { CacheKeys } from '@/constants'
 import { usePillStore } from '@/store/pillStore'
 import { useChatUnreadStore } from '@/store/chatUnreadStore'
 import { uuidv4 } from '@/lib/uuid'
 
 const messagesCacheKey = CacheKeys.chatMessages
+// Saved on the phone per chat so it opens instantly even after a restart,
+// like WhatsApp. Only the newest page: older history loads on scroll anyway.
+const SAVED_MESSAGES = 30
 
 // The server closes a socket with this when its hourly login is up; reconnect
 // straight away with a fresh ticket.
@@ -57,8 +60,19 @@ export function useChat(conversationId: string) {
   // Initial load + mark read
   useEffect(() => {
     noMoreRef.current = false
+    let fetched = false
+    // Not in memory (cold start): paint the copy saved on the phone while the
+    // fresh page loads. Waiting bubbles never get saved, so none come back.
+    if (!initialCache) {
+      peekEntry<Message[]>(messagesCacheKey(conversationId)).then(saved => {
+        if (fetched || !saved?.value?.length) return
+        setMessages(prev => (prev.length ? prev : saved.value))
+        setLoading(false)
+      }).catch(() => {})
+    }
     ;(async () => {
       const msgs = await ApiService.getMessages(conversationId)
+      fetched = true
       setMessages(msgs)
       setLoading(false)
       const hadUnread = msgs.some(m => m.sender_id !== myId && m.read_at == null)
@@ -84,7 +98,8 @@ export function useChat(conversationId: string) {
 
   useEffect(() => {
     if (loading) return
-    setCached(messagesCacheKey(conversationId), messages, 5 * 60_000, false)
+    const saved = messages.filter(m => !m.id.startsWith('_temp_')).slice(0, SAVED_MESSAGES)
+    setCached(messagesCacheKey(conversationId), saved, 5 * 60_000, true)
   }, [messages, loading, conversationId])
 
   const applyReactionUpdate = useCallback((messageId: string, userId: string, emoji: string | null) => {

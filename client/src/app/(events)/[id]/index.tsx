@@ -134,7 +134,8 @@ export default function EventDetailScreen() {
         crowdIneligible={d.crowdIneligible}
         crowdFull={d.crowdFull}
         myBucket={d.myBucket}
-        requestBusy={d.requestBusy}
+        // Showing last visit's copy: no booking until the fresh one lands.
+        requestBusy={d.requestBusy || d.stale}
         onWithdrawRequest={() => d.setWithdrawConfirm(true)}
       />
 

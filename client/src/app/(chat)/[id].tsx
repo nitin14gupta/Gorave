@@ -396,7 +396,9 @@ export default function ChatDetailScreen() {
         />
       )}
 
-      <ViewOnceViewer key={screen.openedLimited?.url ?? 'none'} media={screen.openedLimited} onClose={screen.closeLimited} />
+      {screen.openedLimited && (
+        <ViewOnceViewer key={screen.openedLimited.url} media={screen.openedLimited} onClose={screen.closeLimited} />
+      )}
 
       <InAppBrowserModal
         visible={!!browserUrl}
