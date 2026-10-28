@@ -1,15 +1,16 @@
 import { SectionHeader } from '@/components/ui/SectionHeader'
 import { forwardRef, memo, useCallback, useImperativeHandle, useRef, useState, useEffect } from 'react'
-import { View, Text, Pressable, StyleSheet, FlatList } from 'react-native'
-import { ShieldCheck } from 'lucide-react-native'
+import { View, Text, Pressable, StyleSheet } from 'react-native'
+import { Image } from 'expo-image'
+import { QrCode, Ticket } from 'lucide-react-native'
 import { router, useFocusEffect } from 'expo-router'
 import ApiService, { type EventSummary } from '@/api/apiService'
 import { invalidate } from '@/lib/queryCache'
 import { fetchMine } from '@/lib/myEventsCache'
-import { EventCard } from '@/components/events/EventCard'
 import { SosPill } from '@/components/events/SosButton'
 import { parseServerDate, isEventActive } from '@/lib/dates'
-import { CacheKeys, Colors, FontFamily, EVENT_CARD_CAROUSEL_W } from '@/constants'
+import { hTap } from '@/lib/haptics'
+import { CacheKeys, Colors, FontFamily, withOpacity } from '@/constants'
 
 
 function activeSorted(events: EventSummary[]) {
@@ -18,21 +19,50 @@ function activeSorted(events: EventSummary[]) {
     .sort((a, b) => (parseServerDate(a.date_time)?.getTime() ?? 0) - (parseServerDate(b.date_time)?.getTime() ?? 0))
 }
 
+/** "Ends 11:30 pm", from the end time (or six hours after the start). */
+function endsLabel(e: EventSummary): string {
+  const start = parseServerDate(e.date_time)
+  const end = parseServerDate(e.end_time) ?? (start ? new Date(start.getTime() + 6 * 3600_000) : null)
+  if (!end) return 'On now'
+  const h = end.getHours()
+  const m = end.getMinutes()
+  return `Ends ${h % 12 || 12}${m ? ':' + String(m).padStart(2, '0') : ''} ${h < 12 ? 'am' : 'pm'}`
+}
+
+/**
+ * You're at this event right now, so the two things you could need are one
+ * tap away: your ticket for the door, and SOS. Full width, never squeezed:
+ * the 4:5 poster, LIVE with when it ends and where, the title, two buttons.
+ */
 const ActiveEventCard = memo(function ActiveEventCard({ event }: { event: EventSummary }) {
+  const cover = event.cover_photos?.[0]?.url
+  const area = event.area || event.city || event.location_name
+  const openEvent = () => { hTap(); router.push(`/(events)/${event.id}` as any) }
+  const openTicket = () => { hTap(); router.push(`/(events)/${event.id}/ticket` as any) }
+  const meta = [endsLabel(event), area].filter(Boolean).join(' · ')
+
   return (
-    <View style={{ width: EVENT_CARD_CAROUSEL_W }}>
-      <EventCard event={event} showHost onPress={() => router.push(`/(events)/${event.id}` as any)} />
-      <View style={s.safety}>
-        <Pressable style={s.safetyInfo} onPress={() => router.push('/(safety)' as any)} hitSlop={6}>
-          <ShieldCheck size={18} color={Colors.inkSecondary} strokeWidth={1.8} />
-          <View style={{ flex: 1 }}>
-            <Text style={s.safetyTitle}>Feeling unsafe?</Text>
-            <Text style={s.safetySub} numberOfLines={1}>SOS texts your contacts where you are</Text>
-          </View>
-        </Pressable>
-        <SosPill eventId={event.id} />
+    <Pressable style={a.card} onPress={openEvent}>
+      <View style={a.poster}>
+        {cover ? <Image source={{ uri: cover }} style={StyleSheet.absoluteFill} contentFit="cover" /> : (
+          <View style={[StyleSheet.absoluteFill, a.posterFallback]}><Ticket size={22} color={Colors.inkDisabled} strokeWidth={1.6} /></View>
+        )}
       </View>
-    </View>
+      <View style={a.body}>
+        <View style={a.liveRow}>
+          <View style={live.pill}><View style={live.dot} /><Text style={live.text}>LIVE</Text></View>
+          <Text style={a.meta} numberOfLines={1}>{meta}</Text>
+        </View>
+        <Text style={a.title} numberOfLines={2}>{event.title}</Text>
+        <View style={a.actions}>
+          <Pressable style={a.ticketBtn} onPress={openTicket}>
+            <QrCode size={15} color={Colors.inkPrimary} strokeWidth={2.2} />
+            <Text style={a.ticketText}>Show ticket</Text>
+          </Pressable>
+          <SosPill eventId={event.id} style={a.sos} />
+        </View>
+      </View>
+    </Pressable>
   )
 })
 
@@ -84,14 +114,10 @@ export const ActiveEventsSection = forwardRef<ActiveEventsSectionHandle, Props>(
   return (
     <View style={s.wrap}>
       <SectionHeader title="Happening Now" leading={<View style={s.liveDot} />} />
-      <FlatList
-        data={events}
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        keyExtractor={e => e.id}
-        contentContainerStyle={s.list}
-        renderItem={({ item }) => <ActiveEventCard event={item} />}
-      />
+      {/* Rarely more than one at a time, so they stack instead of scrolling sideways. */}
+      <View style={s.list}>
+        {events.map(e => <ActiveEventCard key={e.id} event={e} />)}
+      </View>
     </View>
   )
 })
@@ -99,9 +125,35 @@ export const ActiveEventsSection = forwardRef<ActiveEventsSectionHandle, Props>(
 const s = StyleSheet.create({
   wrap: { gap: 10 },
   liveDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: Colors.destructive },
-  list: { gap: 12, paddingRight: 4 },
-  safety: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 8, paddingLeft: 12, paddingRight: 8, paddingVertical: 8, borderRadius: 20, backgroundColor: Colors.surface, borderWidth: 1, borderColor: Colors.divider },
-  safetyInfo: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10 },
-  safetyTitle: { fontFamily: FontFamily.bodySemiBold, fontSize: 13, color: Colors.inkPrimary },
-  safetySub: { fontFamily: FontFamily.bodyRegular, fontSize: 11, color: Colors.inkSecondary },
+  list: { gap: 12 },
 })
+
+const live = StyleSheet.create({
+  pill: {
+    flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 8, height: 22, borderRadius: 7,
+    backgroundColor: Colors.destructive,
+  },
+  dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: Colors.white },
+  text: { fontFamily: FontFamily.bodySemiBold, fontSize: 10.5, letterSpacing: 1, color: Colors.white },
+})
+
+const a = StyleSheet.create({
+  card: {
+    flexDirection: 'row', gap: 14, padding: 12, borderRadius: 22,
+    backgroundColor: Colors.surface, borderWidth: 1, borderColor: Colors.divider,
+  },
+  poster: { width: 92, height: 115, borderRadius: 14, overflow: 'hidden' }, // 4:5
+  posterFallback: { backgroundColor: Colors.surfaceMuted, alignItems: 'center', justifyContent: 'center' },
+  body: { flex: 1, justifyContent: 'space-between' },
+  liveRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  meta: { flex: 1, fontFamily: FontFamily.bodyMedium, fontSize: 12.5, color: Colors.inkSecondary },
+  title: { fontFamily: FontFamily.headingBold, fontSize: 17, lineHeight: 21, color: Colors.inkPrimary, marginTop: 6 },
+  actions: { flexDirection: 'row', gap: 8, marginTop: 10 },
+  ticketBtn: {
+    flex: 1, height: 40, borderRadius: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+    backgroundColor: withOpacity(Colors.inkPrimary, 0.08),
+  },
+  ticketText: { fontFamily: FontFamily.bodySemiBold, fontSize: 14, color: Colors.inkPrimary },
+  sos: { height: 40, paddingHorizontal: 16 },
+})
+
