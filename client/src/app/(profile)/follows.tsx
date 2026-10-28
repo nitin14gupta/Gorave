@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useMemo, useState } from 'react'
 import { StyleSheet, View } from 'react-native'
 import { useLocalSearchParams } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -47,12 +47,11 @@ export default function FollowsScreen() {
   const [confirmTarget, setConfirmTarget] = useState<{ user: FollowUser; action: 'unfollow' | 'remove' } | null>(null)
 
   const displayName = decodeURIComponent(name ?? '')
+  // Each list fetches the first time its tab is shown, then stays loaded.
   const [followersEverActive, setFollowersEverActive] = useState(initTab === 'followers')
   const [followingEverActive, setFollowingEverActive] = useState(initTab === 'following')
-  useEffect(() => {
-    if (activeTab === 'followers') setFollowersEverActive(true)
-    else setFollowingEverActive(true)
-  }, [activeTab])
+  if (activeTab === 'followers' && !followersEverActive) setFollowersEverActive(true)
+  if (activeTab !== 'followers' && !followingEverActive) setFollowingEverActive(true)
 
   const followersList = useFollowsList(userId, 'followers', followersEverActive)
   const followingList = useFollowsList(userId, 'following', followingEverActive)

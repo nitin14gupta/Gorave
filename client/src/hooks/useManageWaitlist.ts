@@ -29,7 +29,17 @@ export function useManageWaitlist(id: string | undefined) {
     }
   }, [id])
 
-  useEffect(() => { load() }, [load])
+  // First load: loading is already on, so just fetch.
+  useEffect(() => {
+    if (!id) return
+    ApiService.getEventWaitlist(id)
+      .then(res => setWaitlist(res.waitlist))
+      .catch(() => {
+        setLoadError(true)
+        showPill("Couldn't load waitlist", 'error')
+      })
+      .finally(() => setLoading(false))
+  }, [id, showPill])
 
   const handleAdmit = async () => {
     if (!id || admitting) return

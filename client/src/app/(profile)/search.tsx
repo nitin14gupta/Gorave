@@ -65,15 +65,20 @@ export default function SearchScreen() {
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current)
     const q = query.trim()
-    if (!q) {
-      setResults([])
-      setSearched(false)
-      setSearchError(false)
-      return
-    }
+    if (!q) return
     debounceRef.current = setTimeout(() => runSearch(q), 400)
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current) }
   }, [query])
+
+  // Emptying the box drops the last results straight away.
+  const handleQuery = (q: string) => {
+    setQuery(q)
+    if (!q.trim()) {
+      setResults([])
+      setSearched(false)
+      setSearchError(false)
+    }
+  }
 
   const handleResultTap = (user: DiscoverUser) => {
     add({
@@ -89,7 +94,7 @@ export default function SearchScreen() {
     <View style={{ flex: 1, backgroundColor: Colors.background }}>
       <SearchPeopleView
         query={query}
-        onQuery={setQuery}
+        onQuery={handleQuery}
         onSubmit={() => runSearch(query)}
         loading={loading}
         searched={searched}

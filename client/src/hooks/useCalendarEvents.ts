@@ -52,9 +52,10 @@ export function useCalendarEvents(visibleMonth: Date, selectedDate: Date, filter
   const [monthLoading, setMonthLoading] = useState(true)
   const [monthError, setMonthError] = useState(false)
 
-  const [dayRaw, setDayRaw] = useState<CalendarDayEvents>(EMPTY_DAY)
-  const [dayLoading, setDayLoading] = useState(true)
-  const [dayError, setDayError] = useState(false)
+  // The last day fetched, tagged with which day and city it was for: a
+  // different key means the selected day is still loading.
+  const [day, setDay] = useState<{ key: string; raw: CalendarDayEvents; error: boolean } | null>(null)
+  const [reloading, setReloading] = useState(false)
 
   const [monthStart, monthEnd] = monthBounds(visibleMonth)
   const selKey = dateKey(selectedDate)
@@ -82,28 +83,31 @@ export function useCalendarEvents(visibleMonth: Date, selectedDate: Date, filter
 
   useFocusEffect(useCallback(() => { loadMonth() }, [loadMonth]))
 
-  const loadDay = useCallback(async () => {
-    if (selectedIsPast) {
-      setDayRaw(EMPTY_DAY)
-      setDayError(false)
-      setDayLoading(false)
-      return
-    }
-    setDayLoading(true)
-    try {
-      const data = await ApiService.getCalendarDay(selKey, null, null, cityName)
-      setDayRaw(data)
-      setDayError(false)
-    } catch (e: any) {
-      setDayRaw(EMPTY_DAY)
-      setDayError(true)
-      showPill(e?.message || "Couldn't load this day's events", 'error')
-    } finally {
-      setDayLoading(false)
-    }
-  }, [selKey, selectedIsPast, cityName, showPill])
+  const dayKey = `${selKey}|${cityName ?? ''}`
+  // Past days have nothing to show, so they never fetch.
+  const dayRaw = selectedIsPast ? EMPTY_DAY : day?.raw ?? EMPTY_DAY
+  const dayError = !selectedIsPast && !!day?.error
+  const dayLoading = !selectedIsPast && (day?.key !== dayKey || reloading)
 
-  useEffect(() => { loadDay() }, [loadDay])
+  const fetchDay = useCallback(() => {
+    return ApiService.getCalendarDay(selKey, null, null, cityName)
+      .then(data => setDay({ key: dayKey, raw: data, error: false }))
+      .catch((e: any) => {
+        setDay({ key: dayKey, raw: EMPTY_DAY, error: true })
+        showPill(e?.message || "Couldn't load this day's events", 'error')
+      })
+  }, [selKey, cityName, dayKey, showPill])
+
+  useEffect(() => {
+    if (!selectedIsPast) fetchDay()
+  }, [fetchDay, selectedIsPast])
+
+  // Retry: show the spinner again while the same day refetches.
+  const loadDay = useCallback(() => {
+    if (selectedIsPast) return
+    setReloading(true)
+    fetchDay().finally(() => setReloading(false))
+  }, [fetchDay, selectedIsPast])
 
   const hasEventsOnDate = useCallback((key: string) => {
     const s = summary.get(key)

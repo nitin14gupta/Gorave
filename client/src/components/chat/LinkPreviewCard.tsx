@@ -18,16 +18,17 @@ interface Props {
 // independent tap target here would hit the same nested-gesture conflict
 // that broke video playback until it got the same treatment.
 export function LinkPreviewCard({ url, isMine }: Props) {
-  const [preview, setPreview] = useState<LinkPreview | null>(null)
-  const [loading, setLoading] = useState(true)
+  // Which URL the stored preview belongs to: a new URL is loading until its
+  // own result lands.
+  const [result, setResult] = useState<{ url: string; preview: LinkPreview | null } | null>(null)
+  const loading = result?.url !== url
+  const preview = loading ? null : result.preview
 
   useEffect(() => {
     let cancelled = false
-    setLoading(true)
     ApiService.getLinkPreview(url)
-      .then(p => { if (!cancelled) setPreview(p) })
-      .catch(() => { if (!cancelled) setPreview(null) })
-      .finally(() => { if (!cancelled) setLoading(false) })
+      .then(p => { if (!cancelled) setResult({ url, preview: p }) })
+      .catch(() => { if (!cancelled) setResult({ url, preview: null }) })
     return () => { cancelled = true }
   }, [url])
 

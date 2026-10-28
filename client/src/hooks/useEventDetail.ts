@@ -39,7 +39,8 @@ export function useEventDetail(id: string | undefined) {
   const [guestWaitlist, setGuestWaitlist] = useState<EventGuest[]>([])
   const [guestsLoading, setGuestsLoading] = useState(false)
   const [guestSheetOpen, setGuestSheetOpen] = useState(false)
-  const [offerSecondsLeft, setOfferSecondsLeft] = useState<number | null>(null)
+  // Countdown for a held waitlist spot, tagged with the offer it counts down.
+  const [offerTick, setOfferTick] = useState<{ expires: string; secs: number } | null>(null)
   const [shareSheetOpen, setShareSheetOpen] = useState(false)
   const [addressSheetOpen, setAddressSheetOpen] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
@@ -75,22 +76,25 @@ export function useEventDetail(id: string | undefined) {
       .finally(() => setLoading(false))
   }, [id, myId]))
 
+  const offerExpiresAt = event?.my_offer_expires_at ?? null
+  const eventDateTime = event?.date_time
+  const offerSecondsLeft = offerExpiresAt && offerTick?.expires === offerExpiresAt ? offerTick.secs : null
   useEffect(() => {
-    if (!event?.my_offer_expires_at) { setOfferSecondsLeft(null); return }
+    if (!offerExpiresAt) return
     const tick = () => {
-      const offerExpiry = parseDate(event.my_offer_expires_at)
-      const eventStart = parseDate(event.date_time)
+      const offerExpiry = parseDate(offerExpiresAt)
+      const eventStart = parseDate(eventDateTime)
       if (!offerExpiry) return
       // Confirm deadline = whichever comes first: offer window OR event start
       const deadline = eventStart
         ? Math.min(offerExpiry.getTime(), eventStart.getTime())
         : offerExpiry.getTime()
-      setOfferSecondsLeft(Math.max(0, Math.floor((deadline - Date.now()) / 1000)))
+      setOfferTick({ expires: offerExpiresAt, secs: Math.max(0, Math.floor((deadline - Date.now()) / 1000)) })
     }
-    tick()
+    const first = setTimeout(tick, 0)
     const t = setInterval(tick, 1000)
-    return () => clearInterval(t)
-  }, [event?.my_offer_expires_at, event?.date_time])
+    return () => { clearTimeout(first); clearInterval(t) }
+  }, [offerExpiresAt, eventDateTime])
 
   const handleRefresh = useCallback(async () => {
     if (!id) return

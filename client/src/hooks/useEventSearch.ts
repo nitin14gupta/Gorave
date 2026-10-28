@@ -79,19 +79,24 @@ export function useEventSearch(lat?: number | null, lng?: number | null) {
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current)
     const q = query.trim()
-    if (!q) {
-      setResults([])
-      setSearched(false)
-      setSearchError(false)
-      return
-    }
+    if (!q) return
     debounceRef.current = setTimeout(() => runSearch(q), DEBOUNCE_MS)
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [query, chipKey, lat, lng])
 
+  // Emptying the box drops the last results straight away.
+  const changeQuery = (q: string) => {
+    setQuery(q)
+    if (!q.trim()) {
+      setResults([])
+      setSearched(false)
+      setSearchError(false)
+    }
+  }
+
   return {
-    query, setQuery,
+    query, setQuery: changeQuery,
     chipKey, setChipKey,
     results, loading, searched, searchError,
     hostedEvents, hostedLoading, fetchHostedOnce,

@@ -12,28 +12,28 @@ interface Props {
 }
 
 export function ProfileUsernameField({ username, setUsername, originalUsername }: Props) {
-  const [status, setStatus] = useState<UsernameStatus>('idle')
+  // The server's answer, and which name it was for.
+  const [checked, setChecked] = useState<{ name: string; status: UsernameStatus } | null>(null)
+  const unchanged = !username || username === originalUsername
+  const valid = /^[a-z0-9_]{3,30}$/.test(username)
+  const status: UsernameStatus =
+    unchanged ? 'idle'
+    : !valid ? 'invalid'
+    : checked?.name === username ? checked.status
+    : 'checking'
 
   useEffect(() => {
-    if (!username || username === originalUsername) {
-      setStatus('idle')
-      return
-    }
-    if (!/^[a-z0-9_]{3,30}$/.test(username)) {
-      setStatus('invalid')
-      return
-    }
-    setStatus('checking')
+    if (unchanged || !valid) return
     const t = setTimeout(async () => {
       try {
         const res = await ApiService.checkUsername(username)
-        setStatus(res.available ? 'available' : 'taken')
+        setChecked({ name: username, status: res.available ? 'available' : 'taken' })
       } catch {
-        setStatus('idle')
+        setChecked({ name: username, status: 'idle' })
       }
     }, 400)
     return () => clearTimeout(t)
-  }, [username, originalUsername])
+  }, [username, unchanged, valid])
 
   return (
     <View style={styles.section}>

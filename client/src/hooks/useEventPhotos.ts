@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useLayoutEffect, useRef } from 'react'
+import { useState, useCallback, useLayoutEffect, useRef } from 'react'
 import * as ImagePicker from 'expo-image-picker'
 import ApiService from '@/api/apiService'
 import { usePillStore } from '@/store/pillStore'
@@ -15,19 +15,21 @@ export function useEventPhotos(
   set: <K extends keyof CreateEventForm>(key: K, value: CreateEventForm[K]) => void,
 ) {
   const showPill = usePillStore(s => s.show)
-  const [localUris, setLocalUris] = useState<(string | null)[]>(EMPTY_URIS)
+  const [localUris, setLocalUris] = useState<(string | null)[]>(() =>
+    coverPhotos.some(Boolean) ? Array.from({ length: SLOT_COUNT }, (_, i) => coverPhotos[i] ?? null) : EMPTY_URIS)
   const [slotStates, setSlotStates] = useState<PhotoSlotState[]>(EMPTY_STATES)
 
   const coverPhotosRef = useRef(coverPhotos)
   useLayoutEffect(() => { coverPhotosRef.current = coverPhotos })
 
   // Sync when edit mode loads existing photos (localUris are all null but coverPhotos has URLs)
-  useEffect(() => {
-    const hasLocal = localUris.some(Boolean)
-    if (!hasLocal && coverPhotos.some(Boolean)) {
+  const [seenCovers, setSeenCovers] = useState(coverPhotos)
+  if (coverPhotos !== seenCovers) {
+    setSeenCovers(coverPhotos)
+    if (!localUris.some(Boolean) && coverPhotos.some(Boolean)) {
       setLocalUris(Array.from({ length: SLOT_COUNT }, (_, i) => coverPhotos[i] ?? null))
     }
-  }, [coverPhotos])
+  }
 
   // Display URI: local file takes priority (immediate feedback), falls back to server URL
   const displayUri = useCallback(

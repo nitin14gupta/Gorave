@@ -19,19 +19,21 @@ export function useFollowsList(userId: string, type: 'followers' | 'following', 
   const [refreshing, setRefreshing] = useState(false)
   const offset = useRef(0)
 
-  const fetchPage = useCallback(async (off: number, append: boolean) => {
-    try {
-      const page = type === 'followers'
-        ? await ApiService.getFollowers(userId, PAGE, off)
-        : await ApiService.getFollowing(userId, PAGE, off)
-      setAllUsers(prev => append ? [...prev, ...page.users] : page.users)
-      setHasMore(page.has_more)
-      offset.current = off + page.users.length
-      setError(false)
-    } catch {
-      setError(true)
-      if (!append) showPill("Couldn't load the list, try again", 'error')
-    }
+  const fetchPage = useCallback((off: number, append: boolean) => {
+    const req = type === 'followers'
+      ? ApiService.getFollowers(userId, PAGE, off)
+      : ApiService.getFollowing(userId, PAGE, off)
+    return req
+      .then(page => {
+        setAllUsers(prev => append ? [...prev, ...page.users] : page.users)
+        setHasMore(page.has_more)
+        offset.current = off + page.users.length
+        setError(false)
+      })
+      .catch(() => {
+        setError(true)
+        if (!append) showPill("Couldn't load the list, try again", 'error')
+      })
   }, [userId, type, showPill])
 
   const load = useCallback(async (isRefresh = false) => {
@@ -53,8 +55,9 @@ export function useFollowsList(userId: string, type: 'followers' | 'following', 
   // Only fetches once this list is actually needed — the caller marks
   // `enabled` true the first time its tab becomes active, and it stays true
   // from then on, so this fires exactly once per tab, not on every mount.
+  // Loading is already on from the initial state, so this only fetches.
   useEffect(() => {
-    if (enabled) load()
+    if (enabled) fetchPage(0, false).then(() => setLoading(false))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enabled])
 

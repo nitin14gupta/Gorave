@@ -28,7 +28,17 @@ export function useJoinRequests(id: string | undefined) {
     }
   }, [id, showPill])
 
-  useEffect(() => { load() }, [load])
+  // First load: loading is already on, so just fetch.
+  useEffect(() => {
+    if (!id) return
+    ApiService.getJoinRequests(id)
+      .then(setData)
+      .catch(() => {
+        setLoadError(true)
+        showPill("Couldn't load requests", 'error')
+      })
+      .finally(() => setLoading(false))
+  }, [id, showPill])
 
   const accept = useCallback(async (userId: string, name: string | null) => {
     if (!id || busy) return

@@ -142,7 +142,7 @@ export function useChatScreen(convId: string) {
   const [partnerId, setPartnerId] = useState<string | null>(seed?.partner_id ?? null)
   const [partnerIsDeleted, setPartnerIsDeleted] = useState(!!seed?.partner_is_deleted)
   const [partnerLastSeenAt, setPartnerLastSeenAt] = useState<string | null>(seed?.partner_last_seen_at ?? null)
-  const [blockStatus, setBlockStatus] = useState<'none' | 'i_blocked' | 'they_blocked'>((seed as any)?.block_status ?? 'none')
+  const [storedBlockStatus, setBlockStatus] = useState<'none' | 'i_blocked' | 'they_blocked'>((seed as any)?.block_status ?? 'none')
 
   // UI state
   const [inputText, setInputText] = useState('')
@@ -198,9 +198,8 @@ export function useChatScreen(convId: string) {
     }).catch(() => {})
   }, [convId])
 
-  useEffect(() => {
-    if (wsError === 'blocked') setBlockStatus(prev => prev === 'none' ? 'they_blocked' : prev)
-  }, [wsError])
+  // The socket refusing us means they blocked us, unless we already know more.
+  const blockStatus = wsError === 'blocked' && storedBlockStatus === 'none' ? 'they_blocked' : storedBlockStatus
 
   useEffect(() => {
     return () => {

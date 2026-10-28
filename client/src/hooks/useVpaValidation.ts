@@ -9,13 +9,16 @@ export interface VpaResult {
 const VPA_FORMAT_REGEX = /^[\w.\-]+@[\w]+$/
 
 export function useVpaValidation(vpa: string, rzpKey: string) {
-  const [vpaResult, setVpaResult] = useState<VpaResult | null>(null)
-  const [vpaError, setVpaError] = useState(false)
+  // The last check, and which UPI ID it was for: typing anything else clears it.
+  const [check, setCheck] = useState<{ vpa: string; result: VpaResult | null; error: boolean } | null>(null)
   const [checking, setChecking] = useState(false)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const initializedRef = useRef(false)
 
   const validFormat = VPA_FORMAT_REGEX.test(vpa.trim())
+  const current = validFormat && check?.vpa === vpa.trim() ? check : null
+  const vpaResult = current?.result ?? null
+  const vpaError = !!current?.error
 
   useEffect(() => {
     if (rzpKey && !initializedRef.current) {
@@ -26,20 +29,19 @@ export function useVpaValidation(vpa: string, rzpKey: string) {
 
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current)
-    setVpaResult(null)
-    setVpaError(false)
     if (!validFormat) return
+    const trimmed = vpa.trim()
     debounceRef.current = setTimeout(async () => {
       setChecking(true)
       try {
-        const res: any = await RazorpayCustomUI.isValidVpa(vpa.trim())
+        const res: any = await RazorpayCustomUI.isValidVpa(trimmed)
         if (res?.customer_name || res?.name) {
-          setVpaResult({ name: res.customer_name ?? res.name, vpa: vpa.trim() })
+          setCheck({ vpa: trimmed, result: { name: res.customer_name ?? res.name, vpa: trimmed }, error: false })
         } else {
-          setVpaError(true)
+          setCheck({ vpa: trimmed, result: null, error: true })
         }
       } catch {
-        setVpaError(true)
+        setCheck({ vpa: trimmed, result: null, error: true })
       } finally {
         setChecking(false)
       }

@@ -24,32 +24,37 @@ export function useDeviceContacts() {
   const [status, setStatus] = useState<DeviceContactsStatus>('loading')
   const [canAskAgain, setCanAskAgain] = useState(true)
 
-  const load = useCallback(async () => {
-    setStatus('loading')
-    try {
-      const perm = await requestPermissionsAsync()
-      setCanAskAgain(perm.canAskAgain)
-      if (!perm.granted) {
+  // Starts with status 'loading'; Retry sets it again before calling this.
+  const fetchContacts = useCallback(() => {
+    requestPermissionsAsync()
+      .then(async perm => {
+        setCanAskAgain(perm.canAskAgain)
+        if (!perm.granted) {
+          setStatus('denied')
+          return
+        }
+        const details = await Contact.getAllDetails([ContactField.FULL_NAME, ContactField.PHONES], {
+          sortOrder: ContactsSortOrder.GivenName,
+        })
+        const parsed: DeviceContact[] = details.flatMap(c => {
+          const number = c.phones?.[0]?.number
+          if (!c.fullName || !number) return []
+          return [{ id: c.id, name: c.fullName, phone: number.replace(/[^\d+]/g, '') }]
+        })
+        setContacts(parsed)
+        setStatus('granted')
+      })
+      .catch(() => {
+        showPill("Couldn't load your contacts", 'error')
         setStatus('denied')
-        return
-      }
-      const details = await Contact.getAllDetails([ContactField.FULL_NAME, ContactField.PHONES], {
-        sortOrder: ContactsSortOrder.GivenName,
       })
-      const parsed: DeviceContact[] = details.flatMap(c => {
-        const number = c.phones?.[0]?.number
-        if (!c.fullName || !number) return []
-        return [{ id: c.id, name: c.fullName, phone: number.replace(/[^\d+]/g, '') }]
-      })
-      setContacts(parsed)
-      setStatus('granted')
-    } catch {
-      showPill("Couldn't load your contacts", 'error')
-      setStatus('denied')
-    }
   }, [showPill])
+  const load = useCallback(() => {
+    setStatus('loading')
+    fetchContacts()
+  }, [fetchContacts])
 
-  useEffect(() => { load() }, [load])
+  useEffect(() => { fetchContacts() }, [fetchContacts])
 
   return { contacts, status, canAskAgain, reload: load, openSettings: Linking.openSettings }
 }

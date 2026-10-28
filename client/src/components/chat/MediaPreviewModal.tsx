@@ -35,13 +35,11 @@ interface Props {
 
 export function MediaPreviewModal({ media, onSend, onCancel, onRemove, onUpdate, actionLabel = 'Send', titleLabel = 'Ready to send?', cropAspectRatio = 1, freeStyleCrop = false }: Props) {
   const insets = useSafeAreaInsets()
-  const [activeIndex, setActiveIndex] = useState(0)
+  const [pickedIndex, setActiveIndex] = useState(0)
+  // Removing the last item steps back onto the new last one.
+  const activeIndex = media.length > 0 ? Math.min(pickedIndex, media.length - 1) : pickedIndex
   const mainListRef = useRef<FlatList>(null)
   const thumbListRef = useRef<FlatList>(null)
-
-  useEffect(() => {
-    if (activeIndex >= media.length && media.length > 0) setActiveIndex(media.length - 1)
-  }, [media.length, activeIndex])
 
   const handleMomentumEnd = useCallback((e: any) => {
     setActiveIndex(Math.round(e.nativeEvent.contentOffset.x / SW))

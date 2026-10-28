@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useState } from 'react'
 import ApiService, { type EventDetail } from '@/api/apiService'
 import { useHomeCity } from '@/hooks/useHomeCity'
 
@@ -72,9 +72,11 @@ export function useCreateEvent() {
   const [form, setFormState] = useState<CreateEventForm>(initial)
   // The cached profile may arrive after mount — fill the city once it does,
   // without overriding a city the host already picked.
-  useEffect(() => {
+  const [seenHomeCity, setSeenHomeCity] = useState(homeCity)
+  if (homeCity !== seenHomeCity) {
+    setSeenHomeCity(homeCity)
     if (homeCity) setFormState(prev => (prev.city ? prev : { ...prev, city: homeCity }))
-  }, [homeCity])
+  }
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
 

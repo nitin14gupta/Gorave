@@ -21,7 +21,7 @@ export function useChatShareTargets(active: boolean, pageSize = 100): Result {
   const fetchingRef = useRef(false)
 
   useEffect(() => {
-    if (!active) { setPeople(null); setHasMore(true); offsetRef.current = 0; return }
+    if (!active) return
     let cancelled = false
     fetchingRef.current = true
     ApiService.getConversations(pageSize, 0, true)
@@ -38,7 +38,13 @@ export function useChatShareTargets(active: boolean, pageSize = 100): Result {
         setHasMore(false)
       })
       .finally(() => { fetchingRef.current = false })
-    return () => { cancelled = true }
+    // Closing the sheet forgets the list, so the next open starts fresh.
+    return () => {
+      cancelled = true
+      setPeople(null)
+      setHasMore(true)
+      offsetRef.current = 0
+    }
   }, [active, pageSize])
 
   const loadMore = useCallback(() => {
