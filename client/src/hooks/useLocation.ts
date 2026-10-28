@@ -29,16 +29,6 @@ export function useLocation() {
     })
   }, [])
 
-  // Auto-detect once permission is granted AND the city list has settled
-  // (loaded or failed) — cities.length alone can't distinguish "still
-  // loading" from "loaded empty", so gate on the hook's own loading flag.
-  useEffect(() => {
-    if (!permissionGranted || citiesLoading || autoDetected.current) return
-    autoDetected.current = true
-    runDetect(cities)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [permissionGranted, citiesLoading])
-
   // Core GPS detection — takes cityList explicitly so it works before state settles
   const runDetect = async (cityList: CityResponse[]) => {
     setDetecting(true)
@@ -73,6 +63,16 @@ export function useLocation() {
       setDetecting(false)
     }
   }
+
+  // Auto-detect once permission is granted AND the city list has settled
+  // (loaded or failed) — cities.length alone can't distinguish "still
+  // loading" from "loaded empty", so gate on the hook's own loading flag.
+  useEffect(() => {
+    if (!permissionGranted || citiesLoading || autoDetected.current) return
+    autoDetected.current = true
+    runDetect(cities)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [permissionGranted, citiesLoading])
 
   // Manual "Use my current location" button
   const detectLocation = async () => {

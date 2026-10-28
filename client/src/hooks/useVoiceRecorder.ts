@@ -28,22 +28,6 @@ export function useVoiceRecorder({ onSend, onVoiceTyping }: Options) {
   const autoStopRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const startTimeRef = useRef(0)
 
-  const handleMicPress = useCallback(async () => {
-    try {
-      const perm = await AudioModule.requestRecordingPermissionsAsync()
-      if (!perm.granted) { showPill('Allow microphone access to record voice', 'error'); return }
-      await setAudioModeAsync({ allowsRecording: true, playsInSilentMode: true })
-      await recorder.prepareToRecordAsync()
-      recorder.record()
-      startTimeRef.current = Date.now()
-      onVoiceTyping(true)
-      setRecordState('recording')
-      autoStopRef.current = setTimeout(() => handleRecordStop(), 120_000)
-    } catch {
-      showPill("Couldn't start recording, try again", 'error')
-    }
-  }, [recorder, onVoiceTyping, showPill])
-
   const handleRecordStop = useCallback(async () => {
     if (autoStopRef.current) clearTimeout(autoStopRef.current)
     onVoiceTyping(false)
@@ -60,6 +44,22 @@ export function useVoiceRecorder({ onSend, onVoiceTyping }: Options) {
       setRecordState('idle')
     }
   }, [recorder, onVoiceTyping, showPill])
+
+  const handleMicPress = useCallback(async () => {
+    try {
+      const perm = await AudioModule.requestRecordingPermissionsAsync()
+      if (!perm.granted) { showPill('Allow microphone access to record voice', 'error'); return }
+      await setAudioModeAsync({ allowsRecording: true, playsInSilentMode: true })
+      await recorder.prepareToRecordAsync()
+      recorder.record()
+      startTimeRef.current = Date.now()
+      onVoiceTyping(true)
+      setRecordState('recording')
+      autoStopRef.current = setTimeout(() => handleRecordStop(), 120_000)
+    } catch {
+      showPill("Couldn't start recording, try again", 'error')
+    }
+  }, [recorder, onVoiceTyping, showPill, handleRecordStop])
 
   const handleRecordCancel = useCallback(async () => {
     if (autoStopRef.current) clearTimeout(autoStopRef.current)

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { Platform, StyleSheet, View } from 'react-native'
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller'
 import { useLocalSearchParams, useRouter } from 'expo-router'
@@ -42,7 +42,7 @@ export default function EditEventScreen() {
     isFree: boolean; priceInr: number; coverPhotos: string
     dateTime: number | null; endTime: number | null
   }
-  const originalRef = useRef<Snapshot | null>(null)
+  const [original, setOriginal] = useState<Snapshot | null>(null)
 
   useEffect(() => {
     if (!id) return
@@ -82,7 +82,7 @@ export default function EditEventScreen() {
         if ((ev.pending_request_count ?? 0) > 0) setHasRequests(true)
         setBookedCount(ev.attendee_count)
 
-        originalRef.current = {
+        setOriginal({
           title: ev.title,
           eventType: ev.event_type,
           description: ev.description ?? '',
@@ -102,7 +102,7 @@ export default function EditEventScreen() {
           coverPhotos: JSON.stringify(ev.cover_photos?.map((p: { url: string }) => p.url) ?? []),
           dateTime: parseTs(ev.date_time).getTime(),
           endTime: ev.end_time ? parseTs(ev.end_time).getTime() : null,
-        }
+        })
       })
       .catch(() => showPill("Couldn't load this event", 'error'))
       .finally(() => setLoading(false))
@@ -130,7 +130,7 @@ export default function EditEventScreen() {
 
     const start = form.dateTime ? new Date(form.dateTime) : new Date()
     const end = form.endTime ? new Date(form.endTime) : null
-    const o = originalRef.current
+    const o = original
 
     const startChanged = o ? start.getTime() !== o.dateTime : false
     const endChanged = o ? (end?.getTime() ?? null) !== o.endTime : false
@@ -197,7 +197,7 @@ export default function EditEventScreen() {
     }
   }
 
-  const o = originalRef.current
+  const o = original
   const isDirty = o !== null && (
     form.title !== o.title ||
     form.eventType !== o.eventType ||

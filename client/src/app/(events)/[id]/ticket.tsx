@@ -25,17 +25,15 @@ export default function TicketScreen() {
   const showPill = usePillStore(s => s.show)
 
   const [ticket, setTicket] = useState<TicketInfo | null>(() => id ? peekCached<TicketInfo>(CacheKeys.ticket(id)) : null)
-  const [loading, setLoading] = useState(() => !(id && peekCached<TicketInfo>(CacheKeys.ticket(id))))
+  const [loading, setLoading] = useState(() => !!id && !peekCached<TicketInfo>(CacheKeys.ticket(id)))
   const [loadError, setLoadError] = useState(false)
   const [event, setEvent] = useState<EventDetail | null>(null)
   const cardRef = useRef<ViewShotRef | null>(null)
   const shareCardRef = useRef<View>(null)
   const { shareImage } = useImageShare()
 
-  const loadTicket = () => {
+  const fetchTicket = () => {
     if (!id) return
-    setLoading(true)
-    setLoadError(false)
     getOrFetch(CacheKeys.ticket(id), () => ApiService.getMyTicket(id), {
       ttlMs: t => {
         const d = parseTs(t.date_time)
@@ -49,13 +47,16 @@ export default function TicketScreen() {
       })
       .finally(() => setLoading(false))
   }
+  // Retry after a failed load.
+  const loadTicket = () => {
+    setLoading(true)
+    setLoadError(false)
+    fetchTicket()
+  }
 
   useEffect(() => {
-    if (!id) {
-      setLoading(false)
-      return
-    }
-    loadTicket()
+    if (!id) return
+    fetchTicket()
     // Cover photo only — this screen never touches live fields (RSVP status,
     // spots left), just cosmetic display for the share card, so it's as safe
     // to cache-until-event-ends as the ticket itself.

@@ -1,4 +1,4 @@
-import { useCallback, useRef } from 'react'
+import { useCallback, useLayoutEffect, useRef } from 'react'
 import { useFocusEffect } from 'expo-router'
 
 interface RefreshTarget {
@@ -17,7 +17,7 @@ interface RefreshTarget {
 // every render without re-subscribing the focus listener each time.
 export function useFocusRefresh(getTarget: () => RefreshTarget | null | undefined) {
   const getTargetRef = useRef(getTarget)
-  getTargetRef.current = getTarget
+  useLayoutEffect(() => { getTargetRef.current = getTarget })
 
   useFocusEffect(
     useCallback(() => {

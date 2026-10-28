@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useLayoutEffect } from 'react'
 import * as ImagePicker from 'expo-image-picker'
 import { router } from 'expo-router'
 import { getMe, uploadPhoto, deletePhoto, reorderPhotos } from '@/api/user'
@@ -40,7 +40,7 @@ export function useEditPhotos() {
   const [deletedRemoteIds, setDeletedRemoteIds] = useState<string[]>([])
 
   const itemsRef = useRef(items)
-  itemsRef.current = items
+  useLayoutEffect(() => { itemsRef.current = items })
 
   useEffect(() => {
     ImagePicker.requestMediaLibraryPermissionsAsync()

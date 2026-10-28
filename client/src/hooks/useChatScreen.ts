@@ -262,7 +262,7 @@ export function useChatScreen(convId: string) {
   const handleInputLayout = useCallback((e: LayoutChangeEvent) => {
     const h = e.nativeEvent.layout.height
     setInputBarHeight(h)
-    extraContentPadding.value = withTiming(Math.max(h - MIN_INPUT_HEIGHT, 0), { duration: 200 })
+    extraContentPadding.set(withTiming(Math.max(h - MIN_INPUT_HEIGHT, 0), { duration: 200 }))
   }, [extraContentPadding])
 
   const handleBlock = useCallback(async () => {

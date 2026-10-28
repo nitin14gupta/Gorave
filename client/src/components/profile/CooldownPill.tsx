@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Pressable, Text, View, StyleSheet } from "react-native";
 import { Clock, Flame } from "lucide-react-native";
 import { Colors, FontFamily } from "@/constants";
@@ -21,10 +22,11 @@ interface Props {
 }
 
 export function CooldownPill({ cooldownUntil, onExpiredPress }: Props) {
-  const deadline = parseServerDate(cooldownUntil);
-  const initialSeconds = deadline
-    ? Math.max(0, Math.round((deadline.getTime() - Date.now()) / 1000))
-    : 0;
+  // Read the clock once, when the pill first shows; useCountdown ticks from there.
+  const [initialSeconds] = useState(() => {
+    const deadline = parseServerDate(cooldownUntil);
+    return deadline ? Math.max(0, Math.round((deadline.getTime() - Date.now()) / 1000)) : 0;
+  });
   const { seconds, isExpired } = useCountdown(initialSeconds);
 
   if (isExpired) {

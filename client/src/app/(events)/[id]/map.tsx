@@ -38,7 +38,7 @@ export default function EventMapScreen() {
   if (!event) {
     return (
       <View style={[s.root, s.center]}>
-        <Text style={s.errorText}>Couldn't load this event</Text>
+        <Text style={s.errorText}>Couldn&apos;t load this event</Text>
         <Pressable style={s.iconBtn} onPress={() => router.back()} hitSlop={10}>
           <ArrowLeft size={22} color={Colors.inkPrimary} strokeWidth={2} />
         </Pressable>

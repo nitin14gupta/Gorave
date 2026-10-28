@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react'
+import React, { useEffect, useState } from 'react'
 import { Animated, Dimensions, StyleSheet, View } from 'react-native'
 import { Colors } from '@/constants'
 
@@ -7,7 +7,7 @@ const { width: W, height: H } = Dimensions.get('window')
 const COUNT = 32
 
 export function ConfettiRain() {
-  const pieces = useRef(
+  const [pieces] = useState(() =>
     Array.from({ length: COUNT }, (_, i) => ({
       key: String(i),
       fall: new Animated.Value(0),
@@ -20,7 +20,7 @@ export function ConfettiRain() {
       maxDrift: (i % 2 === 0 ? 1 : -1) * (18 + i % 22),
       duration: 2300 + (i % 5) * 380,
     }))
-  ).current
+  )
 
   useEffect(() => {
     const handles: ReturnType<typeof setTimeout>[] = []

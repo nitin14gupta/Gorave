@@ -7,7 +7,7 @@ export function useExpandTabBarOnFocus() {
   const progress = useTabBarMinimized()
   useFocusEffect(
     useCallback(() => {
-      progress.value = withSpring(0, MINIMIZE_SPRING)
+      progress.set(withSpring(0, MINIMIZE_SPRING))
     }, [progress])
   )
 }

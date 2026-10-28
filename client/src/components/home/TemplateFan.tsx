@@ -65,9 +65,9 @@ function FanCard({ p, source, center, settledCenter, onTapActive }: {
       return
     }
     const target = center.value + centeredMod(p - center.value, PHYSICAL_COUNT)
-    center.value = withTiming(target, { duration: SPIN_MS, easing: Easing.out(Easing.cubic) }, finished => {
-      if (finished) settledCenter.value = target
-    })
+    center.set(withTiming(target, { duration: SPIN_MS, easing: Easing.out(Easing.cubic) }, finished => {
+      if (finished) settledCenter.set(target)
+    }))
   })
 
   return (
@@ -111,12 +111,12 @@ export function TemplateFan({ startIndex = 0, onCreatePress }: Props) {
       const direction = distance > 0 ? -1 : 1
       const duration = SPIN_MS + Math.min(steps - 1, 10) * 70
 
-      center.value = withTiming(center.value + steps * direction, {
+      center.set(withTiming(center.value + steps * direction, {
         duration,
         easing: Easing.out(Easing.cubic),
       }, finished => {
-        if (finished) settledCenter.value = center.value
-      })
+        if (finished) settledCenter.set(center.value)
+      }))
     })
 
   const cards = Array.from({ length: PHYSICAL_COUNT }, (_, p) => p)

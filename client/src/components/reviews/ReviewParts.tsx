@@ -1,4 +1,4 @@
-import React, { memo, useEffect, useMemo, useRef } from 'react'
+import React, { memo, useEffect, useMemo, useState } from 'react'
 import { Animated, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import ReanimatedView, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated'
 import { Image } from 'expo-image'
@@ -26,7 +26,7 @@ export const StarRow = memo(function StarRow({ rating, size = 13 }: { rating: nu
 })
 
 function DistBar({ pct, delay }: { pct: number; delay: number }) {
-  const width = useRef(new Animated.Value(0)).current
+  const [width] = useState(() => new Animated.Value(0))
 
   useEffect(() => {
     Animated.timing(width, {

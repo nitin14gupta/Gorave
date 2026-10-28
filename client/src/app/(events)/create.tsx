@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useRouter } from 'expo-router'
@@ -26,6 +26,8 @@ const STEPS = [
   { title: 'Pricing', sub: 'Set a ticket price or keep it free' },
   { title: 'Photos', sub: 'Make it look good' },
 ]
+
+const PIN_OUTSIDE_INDIA = 'Pin must be inside India'
 
 export default function CreateScreen() {
   const router = useRouter()
@@ -63,18 +65,14 @@ export default function CreateScreen() {
 
   // Surface the inline error the moment the pin lands outside India, not
   // only after the user presses a now-disabled Continue button.
-  useEffect(() => {
-    setErrors(prev => {
-      if (pinOutsideIndia) {
-        return prev.pin ? prev : { ...prev, pin: 'Pin must be inside India' }
-      }
-      if (prev.pin === 'Pin must be inside India') {
-        const { pin, ...rest } = prev
-        return rest
-      }
-      return prev
-    })
-  }, [pinOutsideIndia])
+  const shownErrors = useMemo(() => {
+    if (pinOutsideIndia) return errors.pin ? errors : { ...errors, pin: PIN_OUTSIDE_INDIA }
+    if (errors.pin === PIN_OUTSIDE_INDIA) {
+      const { pin: _pin, ...rest } = errors
+      return rest
+    }
+    return errors
+  }, [errors, pinOutsideIndia])
 
   if (profileLoading || !profile || !profile.is_host_onboarding_finished || !profile.host_agreement_accepted_at) {
     return (
@@ -145,7 +143,7 @@ export default function CreateScreen() {
 
       {step === 3 ? (
         <View style={{ flex: 1 }}>
-          <Step3Where form={form} set={set} errors={errors} setErrors={setErrors} />
+          <Step3Where form={form} set={set} errors={shownErrors} setErrors={setErrors} />
           <View style={[s.step3Footer, { paddingBottom: Math.max(insets.bottom, 16) }]}>
             <PrimaryButton
               label="Continue"
@@ -157,7 +155,7 @@ export default function CreateScreen() {
         </View>
       ) : step === 5 ? (
         <View style={{ flex: 1 }}>
-          <Step5Photos form={form} set={set} errors={errors} setErrors={setErrors} />
+          <Step5Photos form={form} set={set} errors={shownErrors} setErrors={setErrors} />
           <View style={[s.step3Footer, s.step5Footer, { paddingBottom: Math.max(insets.bottom, 16) }]}>
             <OutlineButton
               label="Preview"
@@ -182,13 +180,13 @@ export default function CreateScreen() {
 
             {step === 1 && (
               <Step1Basics
-                form={form} set={set} errors={errors} setErrors={setErrors}
+                form={form} set={set} errors={shownErrors} setErrors={setErrors}
                 scrollable={false}
               />
             )}
             {step === 2 && (
               <Step2When
-                form={form} set={set} errors={errors} setErrors={setErrors}
+                form={form} set={set} errors={shownErrors} setErrors={setErrors}
                 openDate={openDate} openStartTime={openStartTime}
                 openEndDate={openEndDate} openEndTime={openEndTime}
                 scrollable={false}
@@ -196,7 +194,7 @@ export default function CreateScreen() {
             )}
             {step === 4 && (
               <Step4Pricing
-                form={form} set={set} errors={errors} setErrors={setErrors}
+                form={form} set={set} errors={shownErrors} setErrors={setErrors}
                 submitError={submitError}
                 scrollable={false}
                 freeUsed={freeSlots?.used ?? 0}

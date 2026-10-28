@@ -34,10 +34,10 @@ export default function ReviewsScreen() {
 
   useEffect(() => { if (id) ApiService.getEvent(id).then(setEvent).catch(() => {}) }, [id])
 
-  const fetchFirstPage = useCallback((isRefresh: boolean) => {
+  // Whoever asks for a first page shows its spinner (initial state, a filter
+  // change, Retry, pull-to-refresh), so this only fetches.
+  const fetchFirstPage = useCallback(() => {
     if (!id) return
-    if (isRefresh) setRefreshing(true)
-    else setLoading(true)
     ApiService.getEventReviews(id, { rating: activeRating, limit: PAGE_SIZE, offset: 0 })
       .then(res => {
         setLoadError(false)
@@ -51,7 +51,7 @@ export default function ReviewsScreen() {
       .finally(() => { setLoading(false); setRefreshing(false) })
   }, [id, activeRating])
 
-  useEffect(() => { fetchFirstPage(false) }, [id, activeRating])
+  useEffect(() => { fetchFirstPage() }, [id, activeRating])
 
   const loadMore = useCallback(() => {
     if (!id || loadingMore || !hasMore) return
@@ -76,9 +76,9 @@ export default function ReviewsScreen() {
           distribution={distribution}
           reviews={reviews}
           activeRating={activeRating}
-          onFilter={setActiveRating}
+          onFilter={r => { if (r !== activeRating) { setLoading(true); setActiveRating(r) } }}
           refreshing={refreshing}
-          onRefresh={() => fetchFirstPage(true)}
+          onRefresh={() => { setRefreshing(true); fetchFirstPage() }}
           onEndReached={loadMore}
           loadingMore={loadingMore}
           onBack={() => router.back()}
@@ -107,7 +107,7 @@ export default function ReviewsScreen() {
           <Star size={48} color={Colors.inkDisabled} strokeWidth={1.2} />
           <Text style={s.emptyTitle}>Couldn’t load reviews</Text>
           <Text style={s.emptySub}>Something went wrong.</Text>
-          <Pressable style={s.retryBtn} onPress={() => fetchFirstPage(false)}>
+          <Pressable style={s.retryBtn} onPress={() => { setLoading(true); fetchFirstPage() }}>
             <Text style={s.retryText}>Try again</Text>
           </Pressable>
         </View>

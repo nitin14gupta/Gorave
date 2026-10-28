@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useLayoutEffect } from 'react'
 import { router } from 'expo-router'
 import * as ImagePicker from 'expo-image-picker'
 import { uploadPhoto } from '@/api/user'
@@ -36,7 +36,7 @@ export function usePhotos() {
   const [nextLoading, setNextLoading] = useState(false)
 
   const itemsRef = useRef(items)
-  itemsRef.current = items
+  useLayoutEffect(() => { itemsRef.current = items })
 
   // Request permission on enter so the picker opens instantly on first tap
   useEffect(() => {

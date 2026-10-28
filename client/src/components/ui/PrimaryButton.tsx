@@ -25,12 +25,12 @@ export function PrimaryButton({ label, onPress, disabled, loading, icon, style, 
 
   const handlePressIn = () => {
     if (!disabled && !loading) {
-      scale.value = withSpring(0.97, { duration: 120 })
+      scale.set(withSpring(0.97, { duration: 120 }))
       hTap()
     }
   }
   const handlePressOut = () => {
-    scale.value = withSpring(1, { duration: 120 })
+    scale.set(withSpring(1, { duration: 120 }))
   }
 
   return (

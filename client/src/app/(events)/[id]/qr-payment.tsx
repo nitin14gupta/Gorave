@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useLayoutEffect, useRef } from 'react'
 import { View, Text, StyleSheet, Pressable, BackHandler } from 'react-native'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -30,57 +30,52 @@ export default function QrPaymentScreen() {
   const { shareImage } = useImageShare()
   const walletApplied = parseInt(walletParam ?? '0', 10) || 0
 
-  const [status, setStatus]         = useState<Status>('loading')
-  const [qrId, setQrId]             = useState('')
-  const [imageUrl, setImageUrl]     = useState('')
-  const [paymentUrl, setPaymentUrl] = useState('')  // UPI string for QRCode svg
-  const [amountInr, setAmountInr]   = useState(0)
-  const [expiresAt, setExpiresAt]   = useState<Date | null>(null)
+  // Pre-loaded from the payment screen: start with that QR, no API call.
+  const [status, setStatus]         = useState<Status>(qrIdParam ? 'active' : 'loading')
+  const [qrId, setQrId]             = useState(qrIdParam ?? '')
+  const [imageUrl, setImageUrl]     = useState(qrIdParam ? iurl ?? '' : '')
+  const [paymentUrl, setPaymentUrl] = useState(qrIdParam ? purl ?? '' : '')  // UPI string for QRCode svg
+  const [amountInr, setAmountInr]   = useState(qrIdParam ? parseInt(amount ?? '0', 10) || 0 : 0)
+  const [expiresAt, setExpiresAt]   = useState<Date | null>(() => (qrIdParam && exp ? new Date(exp) : null))
   const [timeLeft, setTimeLeft]     = useState(0)
   const [verifying, setVerifying]   = useState(false)
-  const [eventTitle, setEventTitle] = useState(etitle ?? '')
+  const eventTitle = etitle ?? ''
   const [leaveConfirmOpen, setLeaveConfirmOpen] = useState(false)
 
   const statusRef  = useRef<Status>('loading')
-  statusRef.current = status
+  useLayoutEffect(() => { statusRef.current = status })
   const qrCardRef  = useRef<View>(null)
 
   // ── Load QR on mount (skip if pre-loaded from params) ─────────────────────
 
-  const loadQr = async () => {
+  const fetchQr = () => {
+    ApiService.createQrPayment(id!, walletApplied)
+      .then(res => {
+        setQrId(res.qr_id)
+        setImageUrl(res.image_url)
+        setPaymentUrl(res.payment_url ?? '')
+        setAmountInr(res.amount_inr)
+        setExpiresAt(new Date(res.expires_at))
+        setStatus('active')
+      })
+      .catch((err: any) => {
+        const detail = err?.detail ?? err?.message ?? ''
+        if (detail.toLowerCase().includes('unavailable') || detail.toLowerCase().includes('busy') || detail.toLowerCase().includes('try again')) {
+          showPill('Please try again in a few minutes.', 'error')
+        } else {
+          showPill(detail || 'Could not generate QR. Try again.', 'error')
+        }
+        setStatus('error')
+      })
+  }
+  // A fresh QR on demand (new QR, Try again).
+  const loadQr = () => {
     setStatus('loading')
-    try {
-      const res = await ApiService.createQrPayment(id!, walletApplied)
-      setQrId(res.qr_id)
-      setImageUrl(res.image_url)
-      setPaymentUrl(res.payment_url ?? '')
-      setAmountInr(res.amount_inr)
-      setExpiresAt(new Date(res.expires_at))
-      setStatus('active')
-    } catch (err: any) {
-      const detail = err?.detail ?? err?.message ?? ''
-      if (detail.toLowerCase().includes('unavailable') || detail.toLowerCase().includes('busy') || detail.toLowerCase().includes('try again')) {
-        showPill('Please try again in a few minutes.', 'error')
-      } else {
-        showPill(detail || 'Could not generate QR. Try again.', 'error')
-      }
-      setStatus('error')
-    }
+    fetchQr()
   }
 
   useEffect(() => {
-    if (qrIdParam) {
-      // Pre-loaded from payment screen — initialize directly without an API call
-      setQrId(qrIdParam)
-      setImageUrl(iurl ?? '')
-      setPaymentUrl(purl ?? '')
-      setAmountInr(parseInt(amount ?? '0', 10) || 0)
-      setExpiresAt(exp ? new Date(exp) : null)
-      setEventTitle(etitle ?? '')
-      setStatus('active')
-    } else {
-      loadQr()
-    }
+    if (!qrIdParam) fetchQr()
   }, [])
 
   // ── Countdown ──────────────────────────────────────────────────────────────

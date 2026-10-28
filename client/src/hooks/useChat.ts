@@ -31,6 +31,8 @@ export function useChat(conversationId: string) {
   const noMoreRef = useRef(false)
   const loadingMoreRef = useRef(false)
   const isBackgrounded = useRef(false)
+  // The latest connect(), for the reconnect timer inside connect itself.
+  const connectRef = useRef<() => void>(() => {})
   const myId = useAuthStore.getState().userId
 
   // Initial load + mark read
@@ -183,7 +185,7 @@ export function useChat(conversationId: string) {
       if (retryCountRef.current < 10) {
         const delay = Math.min(1000 * Math.pow(2, retryCountRef.current), 30000)
         retryCountRef.current++
-        retryTimerRef.current = setTimeout(() => connect(), delay)
+        retryTimerRef.current = setTimeout(() => connectRef.current(), delay)
       } else {
         setReconnectFailed(true)
       }
@@ -196,6 +198,7 @@ export function useChat(conversationId: string) {
 
     wsRef.current = ws
   }, [conversationId, myId, applyReactionUpdate, markTempFailed])
+  useEffect(() => { connectRef.current = connect }, [connect])
 
   useEffect(() => {
     const sub = AppState.addEventListener('change', (state) => {

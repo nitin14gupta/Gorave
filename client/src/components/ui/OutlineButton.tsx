@@ -27,7 +27,7 @@ export function OutlineButton({ label, onPress, disabled, loading, icon, style, 
       onPress={!disabled && !loading ? onPress : undefined}
       onPressIn={() => {
         if (!disabled) {
-          scale.value = withSpring(0.97, { duration: 120 })
+          scale.set(withSpring(0.97, { duration: 120 }))
           destructive ? hError() : hTap()
         }
       }}

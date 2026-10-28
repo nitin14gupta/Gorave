@@ -65,10 +65,6 @@ export function useVoice({ mode = 'onboarding' }: { mode?: 'onboarding' | 'edit'
     }
   }, [metering, isRecording])
 
-  useEffect(() => {
-    if (isRecording && recordingSeconds >= MAX_SECONDS) stopRecording()
-  }, [recordingSeconds, isRecording])
-
   const stopRecording = async () => {
     const durationSeconds = recordingSeconds
     try {
@@ -88,6 +84,13 @@ export function useVoice({ mode = 'onboarding' }: { mode?: 'onboarding' | 'edit'
       showPill("Recording stopped unexpectedly, try again", 'error')
     }
   }
+
+  // Hit the 30s cap: stop. stopRecording only sets state after awaiting the
+  // recorder, so nothing re-renders synchronously from this effect.
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (isRecording && recordingSeconds >= MAX_SECONDS) stopRecording()
+  }, [recordingSeconds, isRecording])
 
   const tapRecord = async () => {
     if (isRecording) {

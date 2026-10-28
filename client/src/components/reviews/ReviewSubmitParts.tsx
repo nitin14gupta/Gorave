@@ -16,9 +16,9 @@ export function NotCheckedInGate({ onBack }: { onBack: () => void }) {
         <View style={g.iconWrap}>
           <Lock size={36} color={Colors.inkDisabled} strokeWidth={1.5} />
         </View>
-        <Text style={g.title}>You didn't make it</Text>
+        <Text style={g.title}>You didn&apos;t make it</Text>
         <Text style={g.sub}>
-          Reviews are only for attendees who actually checked in at the event. Since you weren't scanned in, you can't leave a review.
+          Reviews are only for attendees who actually checked in at the event. Since you weren&apos;t scanned in, you can&apos;t leave a review.
         </Text>
       </View>
     </View>

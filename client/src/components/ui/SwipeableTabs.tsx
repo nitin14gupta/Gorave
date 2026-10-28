@@ -38,8 +38,8 @@ export function SwipeableTabs({ tabs, activeTab, onChange, children }: Props) {
   const activeIndex = useSharedValue(index)
 
   useEffect(() => {
-    activeIndex.value = index
-    translateX.value = withTiming(-index * SCREEN_W, { duration: SETTLE_MS, easing: Easing.out(Easing.cubic) })
+    activeIndex.set(index)
+    translateX.set(withTiming(-index * SCREEN_W, { duration: SETTLE_MS, easing: Easing.out(Easing.cubic) }))
   }, [index])
 
   const commit = (i: number) => onChange(tabs[i].key)
@@ -50,7 +50,7 @@ export function SwipeableTabs({ tabs, activeTab, onChange, children }: Props) {
     .onUpdate(e => {
       const base = -activeIndex.value * SCREEN_W
       const min = -(n - 1) * SCREEN_W
-      translateX.value = Math.min(0, Math.max(min, base + e.translationX))
+      translateX.set(Math.min(0, Math.max(min, base + e.translationX)))
     })
     .onEnd(e => {
       const raw = -translateX.value / SCREEN_W
@@ -60,7 +60,7 @@ export function SwipeableTabs({ tabs, activeTab, onChange, children }: Props) {
         else if (e.velocityX > FLICK_VELOCITY) target -= 1
       }
       target = Math.min(n - 1, Math.max(0, target))
-      translateX.value = withTiming(-target * SCREEN_W, { duration: SETTLE_MS, easing: Easing.out(Easing.cubic) })
+      translateX.set(withTiming(-target * SCREEN_W, { duration: SETTLE_MS, easing: Easing.out(Easing.cubic) }))
       if (target !== activeIndex.value) runOnJS(commit)(target)
     })
 

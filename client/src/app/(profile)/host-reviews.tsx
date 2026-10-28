@@ -42,10 +42,10 @@ export default function HostReviewsScreen() {
   const [profile, setProfile] = useState<ExtendedProfile | null>(null)
   useEffect(() => { if (id) ApiService.getUserProfile(id).then(setProfile).catch(() => {}) }, [id])
 
-  const fetchFirstPage = useCallback((isRefresh: boolean) => {
+  // Whoever asks for a first page shows its spinner (initial state, a filter
+  // change, Retry, pull-to-refresh), so this only fetches.
+  const fetchFirstPage = useCallback(() => {
     if (!id) return
-    if (isRefresh) setRefreshing(true)
-    else setLoading(true)
     ApiService.getHostReviews(id, { eventId: activeEventId, rating: activeRating, limit: PAGE_SIZE, offset: 0 })
       .then(res => {
         setAvgRating(res.avg_rating)
@@ -59,7 +59,7 @@ export default function HostReviewsScreen() {
       .finally(() => { setLoading(false); setRefreshing(false) })
   }, [id, activeEventId, activeRating])
 
-  useEffect(() => { fetchFirstPage(false) }, [id, activeEventId, activeRating])
+  useEffect(() => { fetchFirstPage() }, [id, activeEventId, activeRating])
 
   const loadMore = useCallback(() => {
     if (!id || loadingMore || !hasMore) return
@@ -85,11 +85,11 @@ export default function HostReviewsScreen() {
           events={events}
           reviews={reviews}
           activeEventId={activeEventId}
-          onEvent={setActiveEventId}
+          onEvent={e => { if (e !== activeEventId) { setLoading(true); setActiveEventId(e) } }}
           activeRating={activeRating}
-          onRating={setActiveRating}
+          onRating={r => { if (r !== activeRating) { setLoading(true); setActiveRating(r) } }}
           refreshing={refreshing}
-          onRefresh={() => fetchFirstPage(true)}
+          onRefresh={() => { setRefreshing(true); fetchFirstPage() }}
           onEndReached={loadMore}
           loadingMore={loadingMore}
           onBack={() => router.back()}

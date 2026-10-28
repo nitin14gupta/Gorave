@@ -1,4 +1,4 @@
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
 import { Animated, NativeScrollEvent, NativeSyntheticEvent } from 'react-native'
 
 const SCROLL_THRESHOLD = 8 // ignore sub-pixel jitter from rubber-banding
@@ -9,7 +9,7 @@ const SCROLL_THRESHOLD = 8 // ignore sub-pixel jitter from rubber-banding
 // Pass the returned `hideProgress` to <AppHeader hideProgress={...} />, and
 // spread {...onScroll} onto the screen's scrollable.
 export function useHeaderScroll() {
-  const hideProgress = useRef(new Animated.Value(0)).current
+  const [hideProgress] = useState(() => new Animated.Value(0))
   const lastOffset = useRef(0)
   const hidden = useRef(false)
 

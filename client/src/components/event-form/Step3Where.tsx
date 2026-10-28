@@ -175,8 +175,8 @@ export function Step3Where({ form, set, errors, setErrors, disabled, inline = fa
   return (
     <View style={ef.step3Container}>
       <ScrollView style={ef.stepScroll} contentContainerStyle={ef.stepContent} keyboardShouldPersistTaps="handled">
-        <Text style={ef.stepTitle}>Where's the VIBE?</Text>
-        <Text style={ef.stepSub}>Guests get the exact address once they're in</Text>
+        <Text style={ef.stepTitle}>Where&apos;s the VIBE?</Text>
+        <Text style={ef.stepSub}>Guests get the exact address once they&apos;re in</Text>
         {fields}
         {mapBlock}
       </ScrollView>

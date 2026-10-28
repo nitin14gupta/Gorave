@@ -1,4 +1,4 @@
-import { useCallback, useState, useEffect, useRef, forwardRef, useImperativeHandle } from 'react'
+import { useCallback, useState, useEffect, forwardRef, useImperativeHandle } from 'react'
 import {
   View, Text, StyleSheet, ActivityIndicator,
 } from 'react-native'
@@ -396,7 +396,7 @@ export function MessageBubble({
 }: Props) {
   const translateX = useSharedValue(0)
   const hasTriggeredReply = useSharedValue(false)
-  const voiceBubbleRef = useRef<VoiceBubbleHandle>(null)
+  const [voiceBubble, setVoiceBubble] = useState<VoiceBubbleHandle | null>(null)
 
   const isLinkMessage = msg.content_type === 'text' && !!msg.content && isUrlOnly(msg.content)
 
@@ -414,7 +414,7 @@ export function MessageBubble({
     }
     if (msg.content_type === 'voice') {
       hTap()
-      voiceBubbleRef.current?.toggle()
+      voiceBubble?.toggle()
       return
     }
     if (msg.content_type === 'event' && msg.metadata?.event_id) {
@@ -427,7 +427,7 @@ export function MessageBubble({
       if (msg.metadata.user_id === myId) router.push('/(tabs)/profile' as any)
       else router.push(`/(profile)/${msg.metadata.user_id}` as any)
     }
-  }, [isLinkMessage, msg.content, msg.content_type, msg.metadata, myId, onMediaTap, onLinkTap])
+  }, [isLinkMessage, msg.content, msg.content_type, msg.metadata, myId, onMediaTap, onLinkTap, voiceBubble])
 
   const doubleTap = Gesture.Tap()
     .numberOfTaps(2)
@@ -552,7 +552,7 @@ export function MessageBubble({
         <View style={[s.bubbleWrap, isMine ? s.wrapMine : s.wrapTheirs]}>
           <GestureDetector gesture={gesture}>
             <Animated.View style={animStyle}>
-              <VoiceBubble ref={voiceBubbleRef} url={msg.metadata.url} duration={msg.metadata.duration} isMine={isMine} isPending={isPending} />
+              <VoiceBubble ref={setVoiceBubble} url={msg.metadata.url} duration={msg.metadata.duration} isMine={isMine} isPending={isPending} />
             </Animated.View>
           </GestureDetector>
           {msg.reactions && (

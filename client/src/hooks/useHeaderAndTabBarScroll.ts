@@ -1,4 +1,4 @@
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
 import { Animated as RNAnimated } from 'react-native'
 import { runOnJS, useAnimatedScrollHandler, useSharedValue, withSpring } from 'react-native-reanimated'
 import { useTabBarMinimized, MINIMIZE_SPRING } from 'expo-glass-tabs'
@@ -13,7 +13,7 @@ const SCROLL_THRESHOLD = 8 // ignore sub-pixel jitter from rubber-banding
 // Animated.ScrollView/Animated.FlatList, and `hideProgress` to
 // <AppHeader hideProgress={...} />.
 export function useHeaderAndTabBarScroll() {
-  const hideProgress = useRef(new RNAnimated.Value(0)).current
+  const [hideProgress] = useState(() => new RNAnimated.Value(0))
   const headerHidden = useRef(false)
   const headerLastOffset = useRef(0)
 
@@ -53,14 +53,14 @@ export function useHeaderAndTabBarScroll() {
       if (y < 24) {
         if (minimizeTarget.value !== 0) {
           minimizeTarget.value = 0
-          minimizeProgress.value = withSpring(0, MINIMIZE_SPRING)
+          minimizeProgress.set(withSpring(0, MINIMIZE_SPRING))
         }
       } else if (dy > 3 && minimizeTarget.value !== 1) {
         minimizeTarget.value = 1
-        minimizeProgress.value = withSpring(1, MINIMIZE_SPRING)
+        minimizeProgress.set(withSpring(1, MINIMIZE_SPRING))
       } else if (dy < -3 && minimizeTarget.value !== 0) {
         minimizeTarget.value = 0
-        minimizeProgress.value = withSpring(0, MINIMIZE_SPRING)
+        minimizeProgress.set(withSpring(0, MINIMIZE_SPRING))
       }
 
       runOnJS(onHeaderScroll)(y)

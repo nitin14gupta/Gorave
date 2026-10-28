@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from 'react'
+import { useState, useCallback, useEffect, useLayoutEffect, useRef } from 'react'
 import * as ImagePicker from 'expo-image-picker'
 import ApiService from '@/api/apiService'
 import { usePillStore } from '@/store/pillStore'
@@ -19,7 +19,7 @@ export function useEventPhotos(
   const [slotStates, setSlotStates] = useState<PhotoSlotState[]>(EMPTY_STATES)
 
   const coverPhotosRef = useRef(coverPhotos)
-  coverPhotosRef.current = coverPhotos
+  useLayoutEffect(() => { coverPhotosRef.current = coverPhotos })
 
   // Sync when edit mode loads existing photos (localUris are all null but coverPhotos has URLs)
   useEffect(() => {

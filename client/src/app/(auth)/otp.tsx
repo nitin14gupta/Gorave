@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { View } from 'react-native'
 import { router, useLocalSearchParams } from 'expo-router'
 import { DeletedAccountSheet } from '@/components/ui'
@@ -21,13 +21,13 @@ export default function OTPScreen() {
 
   const isComplete = code.length === 6
 
-  const handleVerify = async () => {
-    if (!isComplete || tooManyAttempts) return
+  const handleVerify = async (entered: string = code) => {
+    if (entered.length !== 6 || tooManyAttempts) return
     setLoading(true)
     setError(false)
     setErrorMsg('')
     try {
-      await handleVerifyOTP(phone, code)
+      await handleVerifyOTP(phone, entered)
     } catch (e: any) {
       const msg: string = e?.message ?? ''
       if (msg.startsWith('ACCOUNT_DELETED:')) {
@@ -50,10 +50,6 @@ export default function OTPScreen() {
     }
   }
 
-  useEffect(() => {
-    if (isComplete && !loading && !tooManyAttempts) handleVerify()
-  }, [isComplete])
-
   const handleResend = async () => {
     try {
       await handleSendOTP(phone)
@@ -73,7 +69,12 @@ export default function OTPScreen() {
       <OtpView
         phone={phone}
         code={code}
-        onCode={c => { setCode(c); if (error) { setError(false); setErrorMsg('') } }}
+        onCode={c => {
+          setCode(c)
+          if (error) { setError(false); setErrorMsg('') }
+          // The sixth digit sends it, no tap needed.
+          if (c.length === 6 && !isComplete && !loading && !tooManyAttempts) handleVerify(c)
+        }}
         error={error}
         errorMsg={errorMsg}
         loading={loading}
@@ -83,7 +84,7 @@ export default function OTPScreen() {
         onResend={handleResend}
         onEditNumber={() => router.back()}
         onBack={() => router.back()}
-        onVerify={handleVerify}
+        onVerify={() => handleVerify()}
       />
     </View>
   )
