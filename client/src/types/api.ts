@@ -414,6 +414,8 @@ export interface Message {
   reactions: Record<string, string> | null
   unsent_at?: string | null
   edited_at?: string | null
+  /** 0 = original; 1+ = a forwarded copy (5+ shows "Forwarded many times"). */
+  forward_score?: number
 }
 
 export interface WalletTransaction {

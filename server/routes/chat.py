@@ -2,6 +2,7 @@ import asyncio
 import json
 import os
 import time
+import uuid
 from collections import deque
 from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, WebSocket, WebSocketDisconnect
@@ -25,6 +26,12 @@ def _msg_cache_key(conv_id: str) -> str:
     return f"conv_msgs:{conv_id}:{DEFAULT_MSG_PAGE_SIZE}"
 
 
+# Every event is delivered to this worker's own sockets directly and published
+# to Redis for the other workers. Tagging what we publish with this id lets our
+# own Redis listeners skip it, so nobody on this worker gets everything twice.
+_WORKER_ID = uuid.uuid4().hex
+
+
 # ── In-memory socket registry (fallback when Redis is unavailable) ────────────
 
 _conv_sockets: dict[str, set] = {}
@@ -34,12 +41,15 @@ _conv_sockets: dict[str, set] = {}
 _user_sockets: dict[str, set] = {}
 
 
-async def _broadcast_local(conv_id: str, data: dict, exclude=None) -> None:
-    """Broadcast directly to every WS in this conversation except the sender."""
+async def _broadcast_local(conv_id: str, data: dict, exclude=None, exclude_user: Optional[str] = None) -> None:
+    """Broadcast directly to every WS in this conversation except the sender
+    (one socket via `exclude`, or all of a user's sockets via `exclude_user`)."""
     room = _conv_sockets.get(conv_id, set())
     dead = set()
     for ws in list(room):
         if ws is exclude:
+            continue
+        if exclude_user and getattr(ws.state, "uid", None) == exclude_user:
             continue
         try:
             await ws.send_text(json.dumps(data))
@@ -92,6 +102,14 @@ _typing_limiter = RateLimiter(max_events=20, window_seconds=10)
 _reaction_limiter = RateLimiter(max_events=20, window_seconds=10)
 
 
+async def _emit(conv_id: str, data: dict, exclude=None, exclude_user: Optional[str] = None) -> None:
+    """Send an event to everyone in a conversation: this worker's sockets
+    directly, every other worker through Redis (whose listeners already skip
+    a user's own messages)."""
+    await _broadcast_local(conv_id, data, exclude=exclude, exclude_user=exclude_user)
+    await _publish(f"conv:{conv_id}", data)
+
+
 async def _notify_inbox(participant_ids: set[str], conv_id: str) -> None:
     """Tells both participants' conversation-list screens that this
     conversation has a new last message, so they can bump it to the top —
@@ -137,7 +155,7 @@ async def _publish(channel: str, data: dict) -> None:
     r = await _get_redis()
     if r:
         try:
-            await r.publish(channel, json.dumps(data))
+            await r.publish(channel, json.dumps({**data, "_origin": _WORKER_ID}))
         except Exception as e:
             _warn_redis("publish", e)
 
@@ -355,7 +373,7 @@ async def list_messages(
                     """
                     SELECT id::text, conversation_id::text, sender_id::text,
                            content, content_type, metadata, sent_at, read_at, reactions,
-                           unsent_at, edited_at, deleted_for
+                           unsent_at, edited_at, deleted_for, forward_score
                     FROM messages
                     WHERE conversation_id = %s::uuid AND sent_at < %s
                       AND unsent_at IS NULL
@@ -369,7 +387,7 @@ async def list_messages(
                     """
                     SELECT id::text, conversation_id::text, sender_id::text,
                            content, content_type, metadata, sent_at, read_at, reactions,
-                           unsent_at, edited_at, deleted_for
+                           unsent_at, edited_at, deleted_for, forward_score
                     FROM messages
                     WHERE conversation_id = %s::uuid
                       AND unsent_at IS NULL
@@ -527,8 +545,7 @@ async def unsend_message(msg_id: str, current_user: dict = Depends(get_current_u
         except Exception as e:
             _warn_redis("invalidate cache on unsend", e)
     payload = {"type": "message_unsent", "message_id": msg_id, "conversation_id": conv_id}
-    await _broadcast_local(conv_id, payload)
-    await _publish(f"conv:{conv_id}", payload)
+    await _emit(conv_id, payload)
     return {"ok": True}
 
 
@@ -590,8 +607,7 @@ async def edit_message(msg_id: str, body: EditMessageBody, current_user: dict = 
         "type": "message_edited", "message_id": msg_id, "conversation_id": conv_id,
         "content": content, "edited_at": edited_at,
     }
-    await _broadcast_local(conv_id, payload)
-    await _publish(f"conv:{conv_id}", payload)
+    await _emit(conv_id, payload)
     return {"ok": True, "content": content, "edited_at": edited_at}
 
 
@@ -662,7 +678,8 @@ async def send_message_rest(
             """
             INSERT INTO messages (conversation_id, sender_id, content, content_type, metadata)
             VALUES (%s::uuid, %s::uuid, %s, %s, %s)
-            RETURNING id::text, sender_id::text, content, content_type, metadata, sent_at
+            RETURNING id::text, conversation_id::text, sender_id::text, content, content_type,
+                      metadata, sent_at, read_at, reactions, forward_score
             """,
             (conv_id, uid, body.content, body.content_type, json.dumps(body.metadata) if body.metadata else None),
         )
@@ -677,26 +694,150 @@ async def send_message_rest(
         conn.commit()
 
     out = {**msg, "sent_at": msg["sent_at"].isoformat()}
+    await _deliver_new_message(conv_id, out, uid, partner_id, sender_name, background_tasks)
+    return out
+
+
+async def _deliver_new_message(
+    conv_id: str, out: dict, sender_id: str, partner_id: Optional[str],
+    sender_name: str, background_tasks: BackgroundTasks,
+) -> None:
+    """After a REST insert: drop the cached first page, send the message live
+    to both sides (the sender's other devices too), bump both inboxes, push."""
     r = await _get_redis()
     if r:
         try:
             await r.delete(_msg_cache_key(conv_id))
         except Exception as e:
             _warn_redis("invalidate cache on REST send", e)
-    asyncio.create_task(_publish(f"conv:{conv_id}", {"type": "message", **out}))
-    asyncio.create_task(_notify_inbox({uid, partner_id}, conv_id))
-
+    # The sender's app adds its own copy from the HTTP response.
+    await _emit(conv_id, {"type": "message", **out}, exclude_user=sender_id)
+    asyncio.create_task(_notify_inbox({sender_id, partner_id}, conv_id))
     if partner_id:
         # Deliberately generic — no message preview in the push payload, even
         # though the server can read the plaintext, to avoid leaking content
         # into notification trays/lockscreens. Same copy for text and media.
-        preview = "Sent you a message"
         background_tasks.add_task(
-            send_push, partner_id, sender_name, preview,
+            send_push, partner_id, sender_name, "Sent you a message",
             {"type": "conversation", "conv_id": conv_id},
         )
 
-    return out
+
+# ── Forward ───────────────────────────────────────────────────────────────────
+
+FORWARDABLE_TYPES = {"text", "image", "video", "voice", "gif", "event", "profile"}
+# Instagram-style: pick a few chats and send. Past FREQUENT_FORWARD_SCORE hops
+# the app shows "Forwarded many times" and only one chat at a time is allowed.
+MAX_FORWARD_TARGETS = 5
+FREQUENT_FORWARD_SCORE = 5
+# Context that belongs to the original thread, not the copy.
+_THREAD_ONLY_METADATA = ("reply_to",)
+
+
+class ForwardMessageBody(BaseModel):
+    conversation_ids: list[str] = Field(..., min_length=1, max_length=MAX_FORWARD_TARGETS)
+
+
+@router.post("/chat/messages/{msg_id}/forward", status_code=200)
+async def forward_message(
+    msg_id: str,
+    body: ForwardMessageBody,
+    background_tasks: BackgroundTasks,
+    current_user: dict = Depends(get_current_user),
+):
+    """Copy one message into up to 5 of your chats. The server reads the
+    source itself, so only something you can actually see can be forwarded,
+    and the copy never says who first sent it."""
+    uid = current_user["id"]
+    targets = list(dict.fromkeys(body.conversation_ids))  # de-dupe, keep order
+
+    with get_db() as (cur, conn):
+        cur.execute(
+            """
+            SELECT m.content, m.content_type, m.metadata, m.forward_score,
+                   COALESCE(u.is_deleted, FALSE) AS sender_deleted
+            FROM messages m
+            JOIN conversations c ON c.id = m.conversation_id
+            JOIN users u ON u.id = m.sender_id
+            WHERE m.id = %s::uuid
+              AND (c.user1_id = %s::uuid OR c.user2_id = %s::uuid)
+              AND m.unsent_at IS NULL
+              AND NOT (%s::uuid = ANY(COALESCE(m.deleted_for, '{}'::uuid[])))
+            """,
+            (msg_id, uid, uid, uid),
+        )
+        src = cur.fetchone()
+        if not src or src["sender_deleted"]:
+            raise HTTPException(status_code=404, detail="Message not found")
+        src = dict(src)
+        if src["content_type"] not in FORWARDABLE_TYPES:
+            raise HTTPException(status_code=422, detail="This message can't be forwarded")
+        if src["forward_score"] >= FREQUENT_FORWARD_SCORE and len(targets) > 1:
+            raise HTTPException(
+                status_code=422,
+                detail="This was forwarded many times, so it can go to one chat at a time",
+            )
+
+        metadata = dict(src["metadata"] or {})
+        for k in _THREAD_ONLY_METADATA:
+            metadata.pop(k, None)
+        score = src["forward_score"] + 1
+
+        cur.execute("SELECT name FROM users WHERE id = %s::uuid", (uid,))
+        me = cur.fetchone()
+        sender_name = me["name"] if me else "Someone"
+
+        sent: list[tuple[str, Optional[str], dict]] = []
+        failed: list[dict] = []
+        for conv_id in targets:
+            # Same per-user bucket as typing a message, so forwarding can't be
+            # used to get around the send rate limit.
+            if not _message_limiter.allow(f"msg:{uid}"):
+                failed.append({"conversation_id": conv_id, "reason": "rate_limited"})
+                continue
+            cur.execute(
+                """
+                SELECT c.user1_id::text, c.user2_id::text, c.status,
+                       COALESCE(p.is_deleted, FALSE) AS partner_deleted,
+                       EXISTS (
+                         SELECT 1 FROM user_blocks b
+                         WHERE (b.blocker_id = %s::uuid AND b.blocked_id = p.id)
+                            OR (b.blocker_id = p.id AND b.blocked_id = %s::uuid)
+                       ) AS blocked
+                FROM conversations c
+                JOIN users p ON p.id = CASE WHEN c.user1_id = %s::uuid THEN c.user2_id ELSE c.user1_id END
+                WHERE c.id = %s::uuid AND (c.user1_id = %s::uuid OR c.user2_id = %s::uuid)
+                """,
+                (uid, uid, uid, conv_id, uid, uid),
+            )
+            conv = cur.fetchone()
+            if not conv or conv["status"] != "active":
+                failed.append({"conversation_id": conv_id, "reason": "not_found"})
+                continue
+            if conv["blocked"] or conv["partner_deleted"]:
+                failed.append({"conversation_id": conv_id, "reason": "unavailable"})
+                continue
+            partner_id = conv["user2_id"] if conv["user1_id"] == uid else conv["user1_id"]
+            cur.execute(
+                """
+                INSERT INTO messages (conversation_id, sender_id, content, content_type, metadata,
+                                      forward_score, forwarded_from_id)
+                VALUES (%s::uuid, %s::uuid, %s, %s, %s, %s, %s::uuid)
+                RETURNING id::text, conversation_id::text, sender_id::text, content, content_type,
+                          metadata, sent_at, read_at, reactions, forward_score
+                """,
+                (conv_id, uid, src["content"], src["content_type"],
+                 json.dumps(metadata) if metadata else None, score, msg_id),
+            )
+            msg = dict(cur.fetchone())
+            cur.execute("UPDATE conversations SET last_message_at = NOW() WHERE id = %s::uuid", (conv_id,))
+            sent.append((conv_id, partner_id, {**msg, "sent_at": msg["sent_at"].isoformat()}))
+        conn.commit()
+
+    for conv_id, partner_id, out in sent:
+        await _deliver_new_message(conv_id, out, uid, partner_id, sender_name, background_tasks)
+
+    return {"sent": [c for c, _, _ in sent], "failed": failed, "messages": [o for _, _, o in sent]}
 
 
 # ── WebSocket ─────────────────────────────────────────────────────────────────
@@ -739,6 +880,7 @@ async def chat_websocket(
         return
 
     await websocket.accept()
+    websocket.state.uid = uid
 
     # Register this socket for direct in-memory broadcast
     _conv_sockets.setdefault(conv_id, set()).add(websocket)
@@ -755,12 +897,16 @@ async def chat_websocket(
                     if raw["type"] != "message":
                         continue
                     data = json.loads(raw["data"])
-                    # Don't echo back to sender
-                    if data.get("sender_id") != uid:
-                        try:
-                            await websocket.send_text(json.dumps(data))
-                        except Exception:
-                            break
+                    # Already delivered on this worker by _broadcast_local.
+                    if data.pop("_origin", None) == _WORKER_ID:
+                        continue
+                    # Never echo someone's own message, typing or presence back to them.
+                    if data.get("sender_id") == uid or data.get("user_id") == uid:
+                        continue
+                    try:
+                        await websocket.send_text(json.dumps(data))
+                    except Exception:
+                        break
         except Exception as e:
             _warn_redis(f"pubsub listener conv:{conv_id}", e)
 
@@ -802,8 +948,7 @@ async def chat_websocket(
             _warn_redis("read partner online", e)
     await websocket.send_text(json.dumps({"type": "online", "user_id": partner_id, "is_online": partner_online}))
     online_payload = {"type": "online", "user_id": uid, "is_online": True}
-    await _broadcast_local(conv_id, online_payload, exclude=websocket)
-    await _publish(f"conv:{conv_id}", online_payload)
+    await _emit(conv_id, online_payload, exclude=websocket)
 
     try:
         while True:
@@ -833,8 +978,7 @@ async def chat_websocket(
                     "is_typing": data.get("is_typing", False),
                     "mode": data.get("mode", "text"),
                 }
-                await _broadcast_local(conv_id, payload, exclude=websocket)
-                await _publish(f"conv:{conv_id}", payload)
+                await _emit(conv_id, payload, exclude=websocket)
 
             elif msg_type == "read":
                 with get_db() as (cur, conn):
@@ -847,7 +991,7 @@ async def chat_websocket(
                         (conv_id, uid),
                     )
                     conn.commit()
-                await _publish(f"conv:{conv_id}", {"type": "read", "user_id": uid})
+                await _emit(conv_id, {"type": "read", "user_id": uid}, exclude=websocket)
 
             elif msg_type == "reaction":
                 if not _reaction_limiter.allow(f"reaction:{uid}"):
@@ -889,8 +1033,7 @@ async def chat_websocket(
                         conn.commit()
                     payload = {"type": "reaction", "message_id": msg_id, "user_id": uid, "emoji": emoji}
                     await websocket.send_text(json.dumps(payload))
-                    await _broadcast_local(conv_id, payload, exclude=websocket)
-                    await _publish(f"conv:{conv_id}", payload)
+                    await _emit(conv_id, payload, exclude=websocket)
 
             elif msg_type == "message":
                 if not _message_limiter.allow(f"msg:{uid}"):
@@ -923,7 +1066,8 @@ async def chat_websocket(
                             INSERT INTO messages (conversation_id, sender_id, content, content_type, metadata)
                             VALUES (%s::uuid, %s::uuid, %s, %s, %s)
                             RETURNING id::text, conversation_id::text, sender_id::text,
-                                      content, content_type, metadata, sent_at, read_at, reactions
+                                      content, content_type, metadata, sent_at, read_at, reactions,
+                                      forward_score
                             """,
                             (conv_id, uid, content, content_type,
                              json.dumps(metadata) if metadata else None),
@@ -953,8 +1097,7 @@ async def chat_websocket(
                 # Echo back to sender immediately
                 await websocket.send_text(json.dumps(out))
                 # Broadcast to partner — in-memory first (always works), Redis as fallback for multi-server
-                await _broadcast_local(conv_id, out, exclude=websocket)
-                await _publish(f"conv:{conv_id}", out)
+                await _emit(conv_id, out, exclude=websocket)
                 await _notify_inbox({uid, partner_id}, conv_id)
 
                 # Push notification to partner
@@ -988,8 +1131,7 @@ async def chat_websocket(
         except Exception as e:
             print(f"[WS] failed to write last_seen_at on disconnect: {e}", flush=True)
         offline_payload = {"type": "online", "user_id": uid, "is_online": False}
-        await _broadcast_local(conv_id, offline_payload)
-        await _publish(f"conv:{conv_id}", offline_payload)
+        await _emit(conv_id, offline_payload)
         if r:
             try:
                 await r.delete(f"online:{uid}")
@@ -1024,8 +1166,11 @@ async def inbox_websocket(websocket: WebSocket, token: str = Query(...)):
                 async for raw in ps.listen():
                     if raw["type"] != "message":
                         continue
+                    data = json.loads(raw["data"])
+                    if data.pop("_origin", None) == _WORKER_ID:
+                        continue
                     try:
-                        await websocket.send_text(raw["data"])
+                        await websocket.send_text(json.dumps(data))
                     except Exception:
                         break
         except Exception as e:

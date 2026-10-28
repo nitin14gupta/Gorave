@@ -237,7 +237,10 @@ CREATE TABLE IF NOT EXISTS public.messages (
   unsent_at timestamp with time zone,
   deleted_for uuid[] DEFAULT '{}'::uuid[],
   edited_at timestamp with time zone,
+  forward_score smallint DEFAULT 0 NOT NULL,
+  forwarded_from_id uuid,
   CONSTRAINT messages_content_type_check CHECK (content_type = ANY (ARRAY['text'::text, 'event'::text, 'profile'::text, 'image'::text, 'voice'::text, 'video'::text, 'gif'::text])),
+  CONSTRAINT messages_forward_score_check CHECK (forward_score >= 0),
   CONSTRAINT messages_pkey PRIMARY KEY (id)
 );
 
@@ -436,6 +439,7 @@ ALTER TABLE public.host_payout_details ADD CONSTRAINT host_payout_details_user_i
 ALTER TABLE public.message_reports ADD CONSTRAINT message_reports_message_id_fkey FOREIGN KEY (message_id) REFERENCES messages(id) ON DELETE CASCADE;
 ALTER TABLE public.message_reports ADD CONSTRAINT message_reports_reporter_id_fkey FOREIGN KEY (reporter_id) REFERENCES users(id) ON DELETE RESTRICT;
 ALTER TABLE public.messages ADD CONSTRAINT messages_conversation_id_fkey FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE;
+ALTER TABLE public.messages ADD CONSTRAINT messages_forwarded_from_id_fkey FOREIGN KEY (forwarded_from_id) REFERENCES messages(id) ON DELETE SET NULL;
 ALTER TABLE public.messages ADD CONSTRAINT messages_sender_id_fkey FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE RESTRICT;
 ALTER TABLE public.notifications ADD CONSTRAINT notifications_actor_id_fkey FOREIGN KEY (actor_id) REFERENCES users(id) ON DELETE SET NULL;
 ALTER TABLE public.notifications ADD CONSTRAINT notifications_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
@@ -470,6 +474,7 @@ CREATE INDEX idx_follows_following ON public.follows USING btree (following_id);
 CREATE UNIQUE INDEX host_payout_account_fingerprint_uidx ON public.host_payout_details USING btree (account_fingerprint) WHERE (account_fingerprint IS NOT NULL);
 CREATE UNIQUE INDEX host_payout_upi_fingerprint_uidx ON public.host_payout_details USING btree (upi_fingerprint) WHERE (upi_fingerprint IS NOT NULL);
 CREATE INDEX messages_conv_sent_idx ON public.messages USING btree (conversation_id, sent_at DESC);
+CREATE INDEX messages_forwarded_from_idx ON public.messages USING btree (forwarded_from_id) WHERE (forwarded_from_id IS NOT NULL);
 CREATE INDEX idx_notif_user_created ON public.notifications USING btree (user_id, created_at DESC);
 CREATE INDEX idx_refresh_tokens_user_id ON public.refresh_tokens USING btree (user_id);
 CREATE INDEX idx_users_dob ON public.users USING btree (dob) WHERE ((dob IS NOT NULL) AND (COALESCE(is_deleted, false) = false));

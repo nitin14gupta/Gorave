@@ -39,7 +39,11 @@ export interface EmojiTarget {
   content: string | null
   contentType: Message['content_type']
   canEdit: boolean
+  canForward: boolean
 }
+
+// What can be forwarded (matches the server's FORWARDABLE_TYPES).
+const FORWARDABLE = new Set<Message['content_type']>(['text', 'image', 'video', 'voice', 'gif', 'event', 'profile'])
 
 // ── Date helpers ──────────────────────────────────────────────────────────────
 
@@ -77,11 +81,12 @@ function buildListData(
     let end = i
 
     // Group consecutive media messages from the same sender, same day, into one stack
-    if (isMediaMessage(start)) {
+    if (isMediaMessage(start) && !start.forward_score) {
       const startDay = new Date(start.sent_at).toDateString()
       while (
         end + 1 < messages.length &&
         isMediaMessage(messages[end + 1]) &&
+        !messages[end + 1].forward_score &&
         messages[end + 1].sender_id === start.sender_id &&
         new Date(messages[end + 1].sent_at).toDateString() === startDay &&
         !(seenInfo && messages[end + 1].id === seenInfo.msgId)
@@ -155,6 +160,8 @@ export function useChatScreen(convId: string) {
   const [editingMessage, setEditingMessage] = useState<Message | null>(null)
   const [selectMode, setSelectMode] = useState(false)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  // The message being forwarded (opens the Send to sheet).
+  const [forwardMsg, setForwardMsg] = useState<Message | null>(null)
 
   const extraContentPadding = useSharedValue(0)
 
@@ -163,7 +170,7 @@ export function useChatScreen(convId: string) {
     isWsConnected, wsError, reconnectFailed, manualReconnect, loading, partnerSeenAt,
     failedIds, loadingMore, sendMessage, retryMessage, sendTyping, sendVoiceTyping, loadMore, reactToMessage,
     addOptimisticMedia, sendMediaMessage, markMediaFailed, clearMediaFailed,
-    applyUnsentLocally, removeMessageLocally, editMessageText,
+    applyUnsentLocally, removeMessageLocally, editMessageText, insertServerMessage,
   } = useChat(convId)
 
   const { viewingMedia, openMedia, closeMedia } = useImageViewer()
@@ -394,14 +401,26 @@ export function useChatScreen(convId: string) {
       msgId, pageY, isMine, currentEmoji,
       content: msg.content, contentType: msg.content_type,
       canEdit: canEditMessage(msg, myId),
+      canForward: FORWARDABLE.has(msg.content_type) && !msg.id.startsWith('_temp_') && !failedIds?.has(msg.id),
     })
-  }, [messages, myId])
+  }, [messages, myId, failedIds])
 
   const handleBeginEdit = useCallback((msg: Message) => {
     setReplyingTo(null)
     setEditingMessage(msg)
     setInputText(msg.content ?? '')
   }, [])
+
+  const handleForwardFromMenu = useCallback((msgId: string) => {
+    const msg = messages.find(m => m.id === msgId)
+    if (msg) setForwardMsg(msg)
+  }, [messages])
+
+  // Forwarded into this same chat: the server doesn't echo our own sends
+  // back, so add the copy here.
+  const handleForwarded = useCallback((sent: Message[]) => {
+    for (const m of sent) if (m.conversation_id === convId) insertServerMessage(m)
+  }, [convId, insertServerMessage])
 
   const handleEditFromMenu = useCallback((msgId: string) => {
     const msg = messages.find(m => m.id === msgId)
@@ -512,6 +531,8 @@ export function useChatScreen(convId: string) {
     menuOpen, setMenuOpen, reportOpen, setReportOpen,
     // message action menu / report
     reportMsgId, setReportMsgId,
+    // forward
+    forwardMsg, setForwardMsg, handleForwardFromMenu, handleForwarded,
     // scroll
     extraContentPadding, stickyOffset,
     // failed + retry

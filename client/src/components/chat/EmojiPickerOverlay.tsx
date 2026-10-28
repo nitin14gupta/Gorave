@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { View, Text, Pressable, Modal, StyleSheet, Dimensions } from 'react-native'
 import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated'
 import EmojiKeyboard, { type EmojiType } from 'rn-emoji-keyboard'
-import { Reply, Copy, Flag, Trash2, Undo2, Pencil, CheckSquare } from 'lucide-react-native'
+import { Reply, Copy, Forward, Flag, Trash2, Undo2, Pencil, CheckSquare } from 'lucide-react-native'
 import { hSelection, hTap } from '@/lib/haptics'
 import { Colors, FontFamily, withOpacity } from '@/constants'
 
@@ -19,9 +19,11 @@ interface Props {
   currentEmoji: string | null
   canCopy: boolean
   canEdit: boolean
+  canForward: boolean
   onSelect: (msgId: string, emoji: string | null) => void
   onReply: () => void
   onCopy: () => void
+  onForward: () => void
   onReport: () => void
   /** Unsend — mine only, both-sided (message vanishes for both, no trace) */
   onUnsend: () => void
@@ -34,8 +36,8 @@ interface Props {
 }
 
 export function EmojiPickerOverlay({
-  msgId, pageY, isMine, currentEmoji, canCopy, canEdit,
-  onSelect, onReply, onCopy, onReport, onUnsend, onDeleteForMe, onSelectMessage, onEdit, onClose,
+  msgId, pageY, isMine, currentEmoji, canCopy, canEdit, canForward,
+  onSelect, onReply, onCopy, onForward, onReport, onUnsend, onDeleteForMe, onSelectMessage, onEdit, onClose,
 }: Props) {
   const [showFullPicker, setShowFullPicker] = useState(false)
   const scale = useSharedValue(0.7)
@@ -51,7 +53,7 @@ export function EmojiPickerOverlay({
     opacity: opacity.value,
   }))
 
-  const actionRowCount = 1 + (canCopy ? 1 : 0) + (isMine && canEdit ? 1 : 0) + (!isMine ? 1 : 0) + (isMine ? 1 : 0) + 1 + 1 // reply, copy?, edit?, report?, unsend?, delete for me, select
+  const actionRowCount = 1 + (canForward ? 1 : 0) + (canCopy ? 1 : 0) + (isMine && canEdit ? 1 : 0) + (!isMine ? 1 : 0) + (isMine ? 1 : 0) + 1 + 1 // reply, forward?, copy?, edit?, report?, unsend?, delete for me, select
   const actionCardHeight = actionRowCount * ACTION_ROW_HEIGHT + 8
   const totalHeight = PICKER_HEIGHT + GAP + actionCardHeight
 
@@ -98,6 +100,12 @@ export function EmojiPickerOverlay({
               <Reply size={19} color={Colors.inkPrimary} strokeWidth={1.8} />
               <Text style={s.actionText}>Reply</Text>
             </Pressable>
+            {canForward && (
+              <Pressable style={s.actionRow} onPress={() => runAction(onForward)} hitSlop={2}>
+                <Forward size={19} color={Colors.inkPrimary} strokeWidth={1.8} />
+                <Text style={s.actionText}>Forward</Text>
+              </Pressable>
+            )}
             {canCopy && (
               <Pressable style={s.actionRow} onPress={() => runAction(onCopy)} hitSlop={2}>
                 <Copy size={19} color={Colors.inkPrimary} strokeWidth={1.8} />

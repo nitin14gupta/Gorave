@@ -416,6 +416,11 @@ export function useChat(conversationId: string) {
     setMessages(prev => prev.filter(m => m.id !== msgId))
   }, [])
 
+  /** A message saved over HTTP (e.g. forwarded into this chat), newest first, once. */
+  const insertServerMessage = useCallback((msg: Message) => {
+    setMessages(prev => (prev.some(m => m.id === msg.id) ? prev : [msg, ...prev]))
+  }, [])
+
   const applyEditLocally = useCallback((msgId: string, content: string, editedAt: string) => {
     setMessages(prev => prev.map(m => (m.id === msgId ? { ...m, content, edited_at: editedAt } : m)))
   }, [])
@@ -451,6 +456,7 @@ export function useChat(conversationId: string) {
     applyUnsentLocally,
     removeMessageLocally,
     applyEditLocally,
+    insertServerMessage,
     editMessageText,
   }
 }

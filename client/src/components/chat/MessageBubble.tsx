@@ -13,7 +13,7 @@ import { Gesture, GestureDetector } from 'react-native-gesture-handler'
 import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio'
 import * as FileSystem from 'expo-file-system/legacy'
 import { router } from 'expo-router'
-import { Play, Pause, Download, Film, Mic, Image as ImageIcon, Calendar, User, Check } from 'lucide-react-native'
+import { Play, Pause, Download, Film, Mic, Image as ImageIcon, Calendar, User, Check, Forward } from 'lucide-react-native'
 import { Colors, FontFamily, withOpacity, EVENT_IMAGE_ASPECT } from '@/constants'
 import type { Message } from '@/api/apiService'
 import type { MediaViewType } from '@/components/chat/MediaViewerModal'
@@ -388,6 +388,18 @@ interface Props {
   onLinkTap?: (url: string) => void
 }
 
+// Instagram-style: a quiet line above a forwarded message. It never says
+// who first sent it; past 5 hops it reads "Forwarded many times".
+function ForwardedTag({ score }: { score?: number }) {
+  if (!score) return null
+  return (
+    <View style={s.forwarded}>
+      <Forward size={12} color={Colors.inkDisabled} strokeWidth={2.2} />
+      <Text style={s.forwardedText}>{score >= 5 ? 'Forwarded many times' : 'Forwarded'}</Text>
+    </View>
+  )
+}
+
 export function MessageBubble({
   msg, isMine, myId, isFailed,
   selectMode, isSelected, onToggleSelect,
@@ -491,6 +503,7 @@ export function MessageBubble({
     if ((msg.content_type === 'image' || msg.content_type === 'gif') && msg.metadata?.url) {
       return (
         <View style={[s.bubbleWrap, isMine ? s.wrapMine : s.wrapTheirs]}>
+          <ForwardedTag score={msg.forward_score} />
           <GestureDetector gesture={gesture}>
             <Animated.View style={animStyle}>
               <ImageChatBubble
@@ -520,6 +533,7 @@ export function MessageBubble({
     if (msg.content_type === 'video' && msg.metadata?.url) {
       return (
         <View style={[s.bubbleWrap, isMine ? s.wrapMine : s.wrapTheirs]}>
+          <ForwardedTag score={msg.forward_score} />
           <GestureDetector gesture={gesture}>
             <Animated.View style={animStyle}>
               <VideoChatBubble
@@ -550,6 +564,7 @@ export function MessageBubble({
     if (msg.content_type === 'voice' && msg.metadata?.url) {
       return (
         <View style={[s.bubbleWrap, isMine ? s.wrapMine : s.wrapTheirs]}>
+          <ForwardedTag score={msg.forward_score} />
           <GestureDetector gesture={gesture}>
             <Animated.View style={animStyle}>
               <VoiceBubble ref={setVoiceBubble} url={msg.metadata.url} duration={msg.metadata.duration} isMine={isMine} isPending={isPending} />
@@ -573,6 +588,7 @@ export function MessageBubble({
     if (msg.content_type === 'event' && msg.metadata) {
       return (
         <View style={[s.bubbleWrap, isMine ? s.wrapMine : s.wrapTheirs]}>
+          <ForwardedTag score={msg.forward_score} />
           <GestureDetector gesture={gesture}>
             <Animated.View style={animStyle}>
               <EventCard metadata={msg.metadata} />
@@ -595,6 +611,7 @@ export function MessageBubble({
     if (msg.content_type === 'profile' && msg.metadata) {
       return (
         <View style={[s.bubbleWrap, isMine ? s.wrapMine : s.wrapTheirs]}>
+          <ForwardedTag score={msg.forward_score} />
           <GestureDetector gesture={gesture}>
             <Animated.View style={animStyle}>
               <ProfileCard metadata={msg.metadata} myId={myId} />
@@ -618,6 +635,7 @@ export function MessageBubble({
     // Text bubble (or, if the whole message is a link, a rich preview card)
     return (
       <View style={[s.bubbleWrap, isMine ? s.wrapMine : s.wrapTheirs]}>
+        <ForwardedTag score={msg.forward_score} />
         <GestureDetector gesture={gesture}>
           <Animated.View style={[
             s.bubble,
@@ -703,6 +721,8 @@ const sel = StyleSheet.create({
 
 const s = StyleSheet.create({
   bubbleWrap: { marginBottom: 4, maxWidth: '82%', overflow: 'visible' },
+  forwarded: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 4, paddingHorizontal: 4 },
+  forwardedText: { fontFamily: FontFamily.bodyMedium, fontSize: 11.5, color: Colors.inkDisabled },
   wrapMine: { alignSelf: 'flex-end', alignItems: 'flex-end' },
   wrapTheirs: { alignSelf: 'flex-start', alignItems: 'flex-start' },
 

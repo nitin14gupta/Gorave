@@ -535,6 +535,15 @@ class ApiService {
     return this.post<Message>(endpoint, { content, content_type: contentType, metadata })
   }
 
+  /** Copy one message into up to 5 of your chats (the server reads the source itself). */
+  static async forwardMessage(msgId: string, conversationIds: string[]): Promise<{
+    sent: string[]
+    failed: { conversation_id: string; reason: string }[]
+    messages: Message[]
+  }> {
+    return this.post(`/chat/messages/${msgId}/forward`, { conversation_ids: conversationIds })
+  }
+
   static async markRead(convId: string): Promise<void> {
     const endpoint = ENDPOINTS.CONVERSATION_READ.replace(':id', convId)
     await this.patch<{ ok: boolean }>(endpoint, {})

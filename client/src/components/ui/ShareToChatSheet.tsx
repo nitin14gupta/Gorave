@@ -13,6 +13,7 @@ import { Colors, FontFamily, withOpacity } from '@/constants'
 import { usePillStore } from '@/store/pillStore'
 import { useChatShareTargets } from '@/hooks/useChatShareTargets'
 import ApiService, { type Conversation } from '@/api/apiService'
+import type { Message } from '@/types/api'
 import { SearchBar } from './SearchBar'
 import { PrimaryButton } from './PrimaryButton'
 
@@ -21,8 +22,12 @@ const SNAP_POINTS = ['82%']
 interface Props {
   visible: boolean
   onClose: () => void
-  contentType: 'event' | 'profile'
-  metadata: Record<string, any>
+  /** Sharing an event or profile card (ignored when forwarding). */
+  contentType?: 'event' | 'profile'
+  metadata?: Record<string, any>
+  /** Forwarding a chat message instead: the server copies it, up to `maxTargets` chats. */
+  forward?: { messageId: string; maxTargets: number; onForwarded?: (sent: Message[]) => void }
+  title?: string
   previewTitle: string
   previewSubtitle?: string | null
   previewImage?: string | null
@@ -96,7 +101,7 @@ function TargetsSkeleton() {
 // ── Sheet ─────────────────────────────────────────────────────────────────────
 
 function ShareToChatSheetCore({
-  onClose, contentType, metadata, previewTitle, previewSubtitle, previewImage,
+  onClose, contentType, metadata, forward, title = 'Send to friends', previewTitle, previewSubtitle, previewImage,
 }: Omit<Props, 'visible'>) {
   const sheetRef = useRef<BottomSheetModal>(null)
   const insets = useSafeAreaInsets()
@@ -115,6 +120,12 @@ function ShareToChatSheetCore({
   useEffect(() => { sheetRef.current?.present() }, [])
 
   const toggle = (id: string) => {
+    if (forward && !selected.has(id) && selected.size >= forward.maxTargets) {
+      showPill(forward.maxTargets === 1
+        ? 'This was forwarded many times, so it can go to one chat at a time'
+        : `You can forward to ${forward.maxTargets} chats at a time`, 'default')
+      return
+    }
     hSelection()
     setSelected(prev => {
       const next = new Set(prev)
@@ -131,11 +142,23 @@ function ShareToChatSheetCore({
     if (selected.size === 0 || sending) return
     setSending(true)
     const ids = Array.from(selected)
-    const results = await Promise.allSettled(
-      ids.map(id => ApiService.sendMessage(id, '', contentType, metadata)),
-    )
+    let failed = 0
+    if (forward) {
+      // One request: the server copies the message into each chat.
+      try {
+        const res = await ApiService.forwardMessage(forward.messageId, ids)
+        failed = ids.length - res.sent.length
+        forward.onForwarded?.(res.messages)
+      } catch {
+        failed = ids.length
+      }
+    } else {
+      const results = await Promise.allSettled(
+        ids.map(id => ApiService.sendMessage(id, '', contentType, metadata)),
+      )
+      failed = results.filter(r => r.status === 'rejected').length
+    }
     setSending(false)
-    const failed = results.filter(r => r.status === 'rejected').length
     if (failed === 0) {
       hSuccess()
       showPill(ids.length === 1 ? 'Sent!' : `Sent to ${ids.length} people`, 'default')
@@ -152,7 +175,7 @@ function ShareToChatSheetCore({
 
   const Header = (
     <View style={st.header}>
-      <Text style={st.title}>Send to friends</Text>
+      <Text style={st.title}>{title}</Text>
 
       <View style={st.preview}>
         {previewImage ? (

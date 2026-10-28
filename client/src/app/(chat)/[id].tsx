@@ -23,12 +23,27 @@ import { ReportMessageSheet } from '@/components/chat/ReportMessageSheet'
 import { ChatScrollView } from '@/components/chat/ChatScrollView'
 import { ChatPartnerPreview } from '@/components/chat/ChatPartnerPreview'
 import { InAppBrowserModal } from '@/components/ui/InAppBrowserModal'
+import { ShareToChatSheet } from '@/components/ui/ShareToChatSheet'
 
 type ListItem =
   | Message
   | { type: 'date_sep'; label: string; id: string }
   | { type: 'seen_label'; label: string; id: string }
   | { type: 'media_group'; id: string; messages: Message[] }
+
+// What the Forward sheet shows at the top for each kind of message.
+function forwardPreview(msg: Message): { title: string; subtitle?: string; image?: string | null } {
+  const m = msg.metadata ?? {}
+  switch (msg.content_type) {
+    case 'image': return { title: 'Photo', image: m.url }
+    case 'gif': return { title: 'GIF', image: m.url }
+    case 'video': return { title: 'Video' }
+    case 'voice': return { title: 'Voice message', subtitle: m.duration ? `${Math.round(m.duration)}s` : undefined }
+    case 'event': return { title: m.title ?? 'Event', subtitle: [m.date, m.city].filter(Boolean).join(' · ') || undefined, image: m.cover_url }
+    case 'profile': return { title: m.name ?? 'Profile', subtitle: m.city ?? undefined, image: m.avatar_url }
+    default: return { title: msg.content ?? '', subtitle: 'Message' }
+  }
+}
 
 // VoiceIndicator lives here as a micro-component — too small for its own file
 function VoiceIndicator() {
@@ -319,9 +334,11 @@ export default function ChatDetailScreen() {
           currentEmoji={screen.emojiTarget.currentEmoji}
           canCopy={screen.emojiTarget.contentType === 'text' && !!screen.emojiTarget.content}
           canEdit={screen.emojiTarget.canEdit}
+          canForward={screen.emojiTarget.canForward}
           onSelect={screen.handleEmojiSelect}
           onReply={() => screen.handleReplyFromMenu(screen.emojiTarget!.msgId)}
           onCopy={() => { if (screen.emojiTarget!.content) screen.handleCopyMessage(screen.emojiTarget!.content) }}
+          onForward={() => screen.handleForwardFromMenu(screen.emojiTarget!.msgId)}
           onReport={() => screen.setReportMsgId(screen.emojiTarget!.msgId)}
           onEdit={() => screen.handleEditFromMenu(screen.emojiTarget!.msgId)}
           onUnsend={() => screen.handleUnsendMessage(screen.emojiTarget!.msgId)}
@@ -358,6 +375,22 @@ export default function ChatDetailScreen() {
           items={screen.viewingMedia.items}
           initialIndex={screen.viewingMedia.initialIndex}
           onClose={screen.closeMedia}
+        />
+      )}
+
+      {screen.forwardMsg && (
+        <ShareToChatSheet
+          visible
+          title="Forward"
+          forward={{
+            messageId: screen.forwardMsg.id,
+            maxTargets: (screen.forwardMsg.forward_score ?? 0) >= 5 ? 1 : 5,
+            onForwarded: screen.handleForwarded,
+          }}
+          previewTitle={forwardPreview(screen.forwardMsg).title}
+          previewSubtitle={forwardPreview(screen.forwardMsg).subtitle}
+          previewImage={forwardPreview(screen.forwardMsg).image}
+          onClose={() => screen.setForwardMsg(null)}
         />
       )}
 
