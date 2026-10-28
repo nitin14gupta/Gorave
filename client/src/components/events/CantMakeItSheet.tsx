@@ -34,6 +34,7 @@ function renderBackdrop(props: BottomSheetBackdropProps) {
 
 function refundLine(q: MyCancelQuote): string {
   if (q.kind === 'free') return 'Your spot goes to the next person. There is nothing to refund on a free event.'
+  if (q.kind === 'comp') return "Your spot goes to the next person. You didn't pay for this ticket, so there's nothing to refund."
   if (q.kind === 'moved') return `The host moved this event, so the full ₹${q.refund_inr} goes back to your Gorave Wallet.`
   return `₹${q.refund_inr} goes back to your Gorave Wallet. The ₹${q.fee_kept_inr} platform fee isn't refunded.`
 }

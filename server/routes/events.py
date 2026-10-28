@@ -80,7 +80,10 @@ def _cancel_quote(ev: dict, att: dict, now: datetime | None = None) -> dict:
     paid = bool(att.get("payment_id")) and (att.get("price_paid_inr") or 0) > 0
     price = att.get("price_paid_inr") or 0
     fee = att.get("fee_paid_inr") or 0
-    quote = {"allowed": False, "kind": "paid" if paid else "free", "refund_inr": 0,
+    # A spot on a paid event with nothing paid behind it (a guest the host
+    # added): cancels like a free spot, but it isn't a "free event".
+    kind = "paid" if paid else ("comp" if (ev.get("price_inr") or 0) > 0 else "free")
+    quote = {"allowed": False, "kind": kind, "refund_inr": 0,
              "fee_kept_inr": 0, "deadline": None, "reason": None}
 
     if att.get("status") != "going" or ev.get("is_cancelled"):
@@ -1429,7 +1432,7 @@ def get_event(event_id: str, current_user: dict = Depends(get_current_user)):
                 """
                 SELECT ea.request_count, ea.status, ea.payment_id, ea.price_paid_inr, ea.fee_paid_inr,
                        ea.refunded_at, ea.joined_at, ea.transfer_count, ea.paid_by_user_id::text,
-                       e.date_time, e.is_cancelled, e.rescheduled_at
+                       e.date_time, e.is_cancelled, e.rescheduled_at, e.price_inr
                 FROM event_attendees ea JOIN events e ON e.id = ea.event_id
                 WHERE ea.event_id = %s AND ea.user_id = %s::uuid
                 """,

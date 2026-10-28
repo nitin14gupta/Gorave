@@ -515,7 +515,8 @@ export interface NotificationPrefs {
  */
 export interface MyCancelQuote {
   allowed: boolean
-  kind: 'free' | 'paid' | 'moved'
+  /** 'comp': a spot on a paid event with nothing paid behind it (added by the host) */
+  kind: 'free' | 'paid' | 'moved' | 'comp'
   refund_inr: number
   fee_kept_inr: number
   /** ISO time the current option ends */

@@ -50,6 +50,8 @@ def transfer_quote(ev: dict, att: dict, now: datetime | None = None) -> dict:
     if now >= _utc(ev["date_time"]):
         return no("The event has already started")
     if not att.get("payment_id") or not (att.get("price_paid_inr") or 0) > 0:
+        if (ev.get("price_inr") or 0) > 0:
+            return no("Only tickets you paid for can be passed on")
         return no("Free spots are picked by the host, so they can't be passed on")
     if (att.get("transfer_count") or 0) >= MAX_TRANSFERS:
         return no("This ticket was already passed on once, so it can't be passed on again")
