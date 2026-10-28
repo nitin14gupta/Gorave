@@ -6,6 +6,7 @@ import { Siren } from 'lucide-react-native'
 import { ConfirmSheet } from '@/components/ui/ConfirmSheet'
 import { SafetyMenuRow } from '@/components/safety/SafetyMenuRow'
 import { useSos } from '@/hooks/useSos'
+import { SosHoldSheet } from './SosHoldSheet'
 import { useHasEmergencyContacts } from '@/hooks/useEmergencyContacts'
 import { useLocationStore } from '@/store/locationStore'
 import { hTap } from '@/lib/haptics'
@@ -29,15 +30,8 @@ export function useSosFlow(eventId: string) {
 
   const sheets = (
     <>
-      <ConfirmSheet
-        visible={sosOpen}
-        title="Need help?"
-        body="We'll text your emergency contacts once, with a map link to where you are right now and the name of this event."
-        confirmLabel="Send SOS"
-        destructive
-        onConfirm={sendSos}
-        onClose={() => setSosOpen(false)}
-      />
+      {/* Hold to send, not a Yes tap: an SOS should never go out by accident. */}
+      <SosHoldSheet visible={sosOpen} onSend={sendSos} onClose={() => setSosOpen(false)} />
       <ConfirmSheet
         visible={setupOpen}
         title="Add an emergency contact first"
