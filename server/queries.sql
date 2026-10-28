@@ -120,7 +120,7 @@ CREATE TABLE IF NOT EXISTS public.event_attendees (
   transferred_from_user_id uuid,
   transfer_count smallint DEFAULT 0 NOT NULL,
   cancel_reason text,
-  CONSTRAINT event_attendees_cancel_reason_check CHECK (cancel_reason IS NULL OR (cancel_reason = ANY (ARRAY['plans_changed'::text, 'unwell'::text, 'date'::text, 'price'::text, 'other'::text]))),
+  CONSTRAINT event_attendees_cancel_reason_check CHECK (cancel_reason IS NULL OR (cancel_reason = ANY (ARRAY['plans_changed'::text, 'unwell'::text, 'date'::text, 'other'::text]))),
   CONSTRAINT event_attendees_status_chk CHECK (status = ANY (ARRAY['going'::text, 'waitlist'::text, 'cancelled'::text, 'requested'::text, 'declined'::text, 'expired'::text, 'transferred'::text])),
   CONSTRAINT event_attendees_pkey PRIMARY KEY (id),
   CONSTRAINT event_attendees_ticket_token_key UNIQUE (ticket_token),

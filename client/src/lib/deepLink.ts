@@ -59,6 +59,8 @@ export function pushDataToTarget(data: any): DeepLinkTarget | null {
       return { screen: 'browseEvents' }
     case 'wallet':
       return { screen: 'wallet' }
+    case 'ticket_transfer':
+      return data.token ? { screen: 'transfer', token: data.token } : null
     case 'host_onboarding_complete':
     case 'createEvent':
       return { screen: 'createEvent' }

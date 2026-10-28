@@ -81,14 +81,16 @@ def _cancel_quote(ev: dict, att: dict, now: datetime | None = None) -> dict:
     price = att.get("price_paid_inr") or 0
     fee = att.get("fee_paid_inr") or 0
     quote = {"allowed": False, "kind": "paid" if paid else "free", "refund_inr": 0,
-             "fee_kept_inr": 0, "deadline": None, "reason": None,
-             # A ticket you were given: money goes back to the friend who paid.
-             "refund_to_buyer": bool(att.get("paid_by_user_id"))}
+             "fee_kept_inr": 0, "deadline": None, "reason": None}
 
     if att.get("status") != "going" or ev.get("is_cancelled"):
         return {**quote, "reason": "Nothing to cancel"}
     if att.get("refunded_at"):
         return {**quote, "reason": "This ticket was already refunded"}
+    # A ticket a friend gave you: you didn't pay for it, so it isn't yours to
+    # cancel for money (and it can't move again either, see ticket_transfer).
+    if att.get("paid_by_user_id"):
+        return {**quote, "reason": "A friend passed you this ticket, so it can't be cancelled"}
     if now >= start:
         return {**quote, "reason": "The event has already started"}
 
@@ -325,7 +327,7 @@ class CreateEventBody(BaseModel):
     cover_photos: List[str] = []
 
 
-CANCEL_REASONS = {"plans_changed", "unwell", "date", "price", "other"}
+CANCEL_REASONS = {"plans_changed", "unwell", "date", "other"}
 
 
 class RsvpBody(BaseModel):

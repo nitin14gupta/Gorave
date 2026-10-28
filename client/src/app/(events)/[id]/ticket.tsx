@@ -6,7 +6,7 @@ import { type ViewShotRef } from 'react-native-view-shot'
 import { Asset as MediaAsset, requestPermissionsAsync as requestMediaPermissionsAsync } from 'expo-media-library'
 import { hSuccess } from '@/lib/haptics'
 import { CacheKeys, Colors, FontFamily } from '@/constants'
-import ApiService, { type EventDetail, type MyCancelQuote, type MyTransferQuote, type TicketInfo } from '@/api/apiService'
+import ApiService, { type EventDetail, type TicketInfo } from '@/api/apiService'
 import { usePillStore } from '@/store/pillStore'
 import { getOrFetch, invalidate, peekCached, setCached } from '@/lib/queryCache'
 import { BrandedLoader } from '@/components/ui'
@@ -19,22 +19,6 @@ import { CantMakeItSheet } from '@/components/events/CantMakeItSheet'
 import { ShareToChatSheet } from '@/components/ui/ShareToChatSheet'
 import { useCantMakeIt } from '@/hooks/useCantMakeIt'
 
-// ── "Can't make it?" row ─────────────────────────────────────────────────────
-
-const until = (iso: string | null) => (iso ? `${fmtDate(iso)}, ${fmtTime(iso)}` : '')
-
-/** The line under "Can't make it?" on the ticket: what you can still do. */
-function cantMakeItSub(c: MyCancelQuote | null, t: MyTransferQuote | null): string {
-  if (t?.pending) return t.pending.to_name ? `Waiting for ${t.pending.to_name} to accept` : 'Your ticket link is out'
-  if (t?.allowed && c?.allowed) return 'Send it to a friend, or cancel'
-  if (t?.allowed) return 'Send it to a friend'
-  if (c?.allowed) {
-    if (c.kind === 'free') return `Free cancellation until ${until(c.deadline)}`
-    if (c.kind === 'moved') return `Event moved: full ₹${c.refund_inr} back until ${until(c.deadline)}`
-    return `₹${c.refund_inr} back to your wallet until ${until(c.deadline)}`
-  }
-  return c?.reason ?? t?.reason ?? "This can't be changed now"
-}
 
 // ── Screen ────────────────────────────────────────────────────────────────────
 
@@ -54,7 +38,9 @@ export default function TicketScreen() {
   const cant = useCantMakeIt(id, ticket?.event_title ?? '')
   const [cantOpen, setCantOpen] = useState(false)
   const [pickFriend, setPickFriend] = useState(false)
-  const cantLoaded = cant.cancelQuote !== null || cant.transfer !== null
+  // ⋯ only when there's something to do: a ticket a friend gave you can't be
+  // cancelled or passed on again, so it shows no menu at all.
+  const cantLoaded = !!(cant.cancelQuote?.allowed || cant.transfer?.allowed || cant.transfer?.pending)
   const shareCardRef = useRef<View>(null)
   const { shareImage } = useImageShare()
 
@@ -186,12 +172,7 @@ export default function TicketScreen() {
         onSave={handleSave}
         onDirections={handleDirections}
         onAllTickets={() => router.replace('/(settings)/joined-events' as any)}
-        cancelRow={cantLoaded ? {
-          label: cant.busy ? 'Cancelling…' : "Can't make it?",
-          sub: cantMakeItSub(cant.cancelQuote, cant.transfer),
-          enabled: !cant.busy,
-          onPress: () => setCantOpen(true),
-        } : null}
+        onMore={cantLoaded ? () => setCantOpen(true) : undefined}
       />
 
       <CantMakeItSheet

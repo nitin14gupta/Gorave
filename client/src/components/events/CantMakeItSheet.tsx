@@ -13,7 +13,6 @@ const REASONS: { key: CancelReason; label: string }[] = [
   { key: 'plans_changed', label: 'Plans changed' },
   { key: 'unwell', label: 'Not feeling well' },
   { key: 'date', label: "The date doesn't work" },
-  { key: 'price', label: 'Too expensive' },
   { key: 'other', label: 'Something else' },
 ]
 
@@ -35,7 +34,6 @@ function renderBackdrop(props: BottomSheetBackdropProps) {
 
 function refundLine(q: MyCancelQuote): string {
   if (q.kind === 'free') return 'Your spot goes to the next person. There is nothing to refund on a free event.'
-  if (q.refund_to_buyer) return `₹${q.refund_inr} goes back to the friend who paid for this ticket.`
   if (q.kind === 'moved') return `The host moved this event, so the full ₹${q.refund_inr} goes back to your Gorave Wallet.`
   return `₹${q.refund_inr} goes back to your Gorave Wallet. The ₹${q.fee_kept_inr} platform fee isn't refunded.`
 }

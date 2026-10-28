@@ -48,11 +48,11 @@ BEGIN
     ALTER TABLE public.event_attendees ADD CONSTRAINT event_attendees_paid_by_user_id_fkey
       FOREIGN KEY (paid_by_user_id) REFERENCES public.users(id) ON DELETE SET NULL;
   END IF;
-  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'event_attendees_cancel_reason_check') THEN
-    ALTER TABLE public.event_attendees ADD CONSTRAINT event_attendees_cancel_reason_check
-      CHECK (cancel_reason IS NULL OR cancel_reason IN ('plans_changed', 'unwell', 'date', 'price', 'other'));
-  END IF;
 END $$;
+
+ALTER TABLE public.event_attendees DROP CONSTRAINT IF EXISTS event_attendees_cancel_reason_check;
+ALTER TABLE public.event_attendees ADD CONSTRAINT event_attendees_cancel_reason_check
+  CHECK (cancel_reason IS NULL OR cancel_reason IN ('plans_changed', 'unwell', 'date', 'other'));
 
 -- 'transferred': the ticket moved to a friend (this row's QR no longer works).
 ALTER TABLE public.event_attendees DROP CONSTRAINT IF EXISTS event_attendees_status_chk;

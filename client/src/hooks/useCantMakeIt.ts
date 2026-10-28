@@ -31,7 +31,18 @@ export function useCantMakeIt(eventId: string | undefined, eventTitle: string) {
     } catch {}
   }, [eventId])
 
-  useEffect(() => { reload() }, [reload])
+  useEffect(() => {
+    if (!eventId) return
+    let live = true
+    ApiService.getEvent(eventId)
+      .then(ev => {
+        if (!live) return
+        setCancelQuote(ev.my_cancel ?? null)
+        setTransfer(ev.my_transfer ?? null)
+      })
+      .catch(() => {})
+    return () => { live = false }
+  }, [eventId])
 
   const forgetBooking = useCallback(() => {
     if (!eventId) return
@@ -48,12 +59,7 @@ export function useCantMakeIt(eventId: string | undefined, eventTitle: string) {
       const res = await ApiService.rsvpEvent(eventId, 'cancel', reason)
       hSuccess()
       const refund = res?.refund_inr ?? 0
-      showPill(
-        refund > 0
-          ? cancelQuote?.refund_to_buyer ? `₹${refund} went back to the friend who paid` : `₹${refund} added to your Gorave Wallet`
-          : 'Your spot is cancelled',
-        'default',
-      )
+      showPill(refund > 0 ? `₹${refund} added to your Gorave Wallet` : 'Your spot is cancelled', 'default')
       forgetBooking()
       router.replace(`/(events)/${eventId}` as any)
     } catch (e: any) {
@@ -61,7 +67,7 @@ export function useCantMakeIt(eventId: string | undefined, eventTitle: string) {
     } finally {
       setBusy(false)
     }
-  }, [eventId, busy, cancelQuote, forgetBooking, router, showPill])
+  }, [eventId, busy, forgetBooking, router, showPill])
 
   /** A ticket card in your chat with them; your ticket works until they accept. */
   const sendToFriend = useCallback(async (conv: Conversation): Promise<boolean> => {

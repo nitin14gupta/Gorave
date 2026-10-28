@@ -69,7 +69,8 @@ Routes live in `client/src/app/` (Expo Router). `(group)` folders don't show in 
 | 21 | Request sent | `(events)/[id]/requested` | After "Request to join" on a free event: what happens next, requests left, withdraw | ✅ |
 | 22 | Manage waitlist (host) | `(events)/[id]/waitlist` | Large title that folds into the top bar, waiting / offered / spots-left counts, the crowd-mix bar, the numbered queue, and "Add a spot for the next person". Opened from the "N on the waitlist" chip on the host's event page | ✅ |
 | 23 | On the waitlist | `(events)/[id]/waitlist-joined` | Poster with parallax, your place set huge with the queue drawn as seats, what happens next, leave | ✅ |
-| 24 | Ticket | `(events)/[id]/ticket` | Poster on top with parallax, then the website's maroon ticket stub: date set big, cream QR with the logo, directions, save, share | ✅ |
+| 24 | Ticket | `(events)/[id]/ticket` | Poster on top with parallax, then the website's maroon ticket stub: date set big, cream QR with the logo, directions, save, share; ⋯ top right opens "Can't make it?" (send to a friend, share a link, or cancel with a reason) | ✅ |
+| 24b | Accept a ticket | `(events)/transfer/[token]` | A friend passing you their ticket (chat card or link): who it's from, the ticket, Accept | 🧪 A ticket card you're handed · B poster stage (`ticketClaim`) |
 | 25 | Rate the night | `(events)/[id]/review` | Event photo with parallax, five big stars with a word for each, an optional note | ✅ |
 | 26 | Reviews | `(events)/[id]/reviews` | Event photo with parallax and the score set huge over it, 5-to-1 bars, star filter chips, a clean list with hairline dividers. Opened from My Events, Past, Reviews | ✅ |
 

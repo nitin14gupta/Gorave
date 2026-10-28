@@ -755,6 +755,7 @@ async def send_message_rest(
 
 async def _deliver_new_message(
     conv_id: str, out: dict, sender_id: str, partner_id: Optional[str], sender_name: str,
+    push: bool = True,
 ) -> None:
     """After a REST insert: drop the cached first page, send the message live
     (the sender's own app adds it from the HTTP response), bump both inboxes,
@@ -762,7 +763,8 @@ async def _deliver_new_message(
     await _invalidate_page_cache(conv_id)
     await _emit(conv_id, {"type": "message", **out}, skip_user=sender_id)
     await _notify_inbox({sender_id, partner_id}, conv_id)
-    asyncio.create_task(rt.notify_new_message(partner_id, conv_id, sender_name))
+    if push:
+        asyncio.create_task(rt.notify_new_message(partner_id, conv_id, sender_name))
 
 
 # ── View once / view twice ────────────────────────────────────────────────────

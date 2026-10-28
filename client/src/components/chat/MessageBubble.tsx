@@ -13,9 +13,9 @@ import { Gesture, GestureDetector } from 'react-native-gesture-handler'
 import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio'
 import * as FileSystem from 'expo-file-system/legacy'
 import { router } from 'expo-router'
-import { Play, Pause, Download, Film, Mic, Image as ImageIcon, Calendar, User, Check, Forward } from 'lucide-react-native'
+import { Play, Pause, Download, Film, Mic, Image as ImageIcon, Calendar, User, Check, Forward, Ticket } from 'lucide-react-native'
 import { Colors, FontFamily, withOpacity, EVENT_IMAGE_ASPECT } from '@/constants'
-import type { Message } from '@/api/apiService'
+import ApiService, { type Message, type TransferPreview } from '@/api/apiService'
 import type { MediaViewType } from '@/components/chat/MediaViewerModal'
 import { ReactionPills } from './ReactionPills'
 import { PlaybackWave, OutlineButton } from '@/components/ui'
@@ -326,6 +326,65 @@ function EventCard({ metadata }: { metadata: Record<string, any> }) {
   )
 }
 
+// A friend passing you their ticket. Tapping opens the accept screen; the
+// line under it says where the offer stands (it can be accepted, withdrawn
+// or replaced after it was sent, so it's looked up, not stored).
+function TicketOfferCard({ metadata, isMine }: { metadata: Record<string, any>; isMine: boolean }) {
+  const [offer, setOffer] = useState<TransferPreview | null>(null)
+  const token = metadata.transfer_token as string | undefined
+  useEffect(() => {
+    if (!token) return
+    let live = true
+    ApiService.getTicketTransfer(token).then(o => { if (live) setOffer(o) }).catch(() => {})
+    return () => { live = false }
+  }, [token])
+  const when = metadata.date_time
+    ? new Date(metadata.date_time).toLocaleString([], { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })
+    : ''
+  const status = !offer
+    ? ' '
+    : offer.status === 'accepted'
+    ? (isMine ? 'They accepted it' : 'Accepted')
+    : offer.status === 'cancelled'
+    ? 'No longer available'
+    : isMine
+    ? 'Waiting for them to accept'
+    : offer.can_accept ? 'Tap to accept your ticket' : (offer.reason ?? 'Not available')
+  const live = offer?.status === 'pending' && (isMine || offer.can_accept)
+  return (
+    <View style={tc.card}>
+      {metadata.cover_url ? (
+        <Image source={{ uri: metadata.cover_url }} style={tc.cover} contentFit="cover" cachePolicy="memory-disk" />
+      ) : <View style={[tc.cover, tc.coverFallback]}><Ticket size={20} color={Colors.inkDisabled} strokeWidth={1.8} /></View>}
+      <View style={tc.info}>
+        <View style={tc.eyebrowRow}>
+          <Ticket size={12} color={Colors.inkSecondary} strokeWidth={2.2} />
+          <Text style={tc.eyebrow}>{isMine ? 'YOU SENT A TICKET' : 'A TICKET FOR YOU'}</Text>
+        </View>
+        <Text style={tc.title} numberOfLines={2}>{metadata.title}</Text>
+        <Text style={tc.meta} numberOfLines={1}>{[when, metadata.area].filter(Boolean).join(' · ')}</Text>
+        <Text style={[tc.status, live && !isMine && tc.statusAction]} numberOfLines={1}>{status}</Text>
+      </View>
+    </View>
+  )
+}
+
+const tc = StyleSheet.create({
+  card: {
+    flexDirection: 'row', gap: 12, padding: 10, width: 270,
+    borderRadius: 18, backgroundColor: Colors.elevated, borderWidth: 1, borderColor: Colors.divider,
+  },
+  cover: { width: 64, height: 80, borderRadius: 12 },
+  coverFallback: { backgroundColor: Colors.surfaceMuted, alignItems: 'center', justifyContent: 'center' },
+  info: { flex: 1, justifyContent: 'center', gap: 2 },
+  eyebrowRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  eyebrow: { fontFamily: FontFamily.bodySemiBold, fontSize: 10, letterSpacing: 1.2, color: Colors.inkSecondary },
+  title: { fontFamily: FontFamily.bodySemiBold, fontSize: 15, color: Colors.inkPrimary },
+  meta: { fontFamily: FontFamily.bodyRegular, fontSize: 12, color: Colors.inkSecondary },
+  status: { fontFamily: FontFamily.bodyMedium, fontSize: 12, color: Colors.inkDisabled, marginTop: 4 },
+  statusAction: { fontFamily: FontFamily.bodySemiBold, color: Colors.inkPrimary },
+})
+
 function ProfileCard({ metadata, myId }: { metadata: Record<string, any>; myId: string }) {
   return (
     <View style={s.richCard}>
@@ -457,6 +516,11 @@ export function MessageBubble({
   const handleDoubleTap = useCallback(() => { hSelection(); onDoubleTap(msg.id) }, [msg.id, onDoubleTap])
   const handleSwipeReply = useCallback(() => { hTap(); onSwipeReply(msg) }, [msg, onSwipeReply])
   const handleSingleTap = useCallback(() => {
+    if (msg.content_type === 'ticket' && msg.metadata?.transfer_token) {
+      hTap()
+      router.push(`/(events)/transfer/${msg.metadata.transfer_token}` as any)
+      return
+    }
     if (msg.view_limit) {
       // Only the recipient opens it, only while views are left.
       const left = (msg.view_limit ?? 0) - (msg.views_used ?? 0)
@@ -679,6 +743,23 @@ export function MessageBubble({
               <Text style={s.failedText}>⚠ Failed · Tap to retry</Text>
             </Pressable>
           )}
+        </View>
+      )
+    }
+    if (msg.content_type === 'ticket' && msg.metadata) {
+      return (
+        <View style={[s.bubbleWrap, isMine ? s.wrapMine : s.wrapTheirs]}>
+          <GestureDetector gesture={gesture}>
+            <Animated.View style={animStyle}>
+              <TicketOfferCard metadata={msg.metadata} isMine={isMine} />
+            </Animated.View>
+          </GestureDetector>
+          {msg.reactions && (
+            <ReactionPills reactions={msg.reactions} myId={myId} onPillPress={emoji => onReactionPillPress(msg.id, emoji)} />
+          )}
+          <Animated.Text style={[s.timeBelow, isMine ? s.timeBelowMine : s.timeBelowTheirs, timeRevealStyle]}>
+            {timeStr}
+          </Animated.Text>
         </View>
       )
     }

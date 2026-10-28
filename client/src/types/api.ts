@@ -522,8 +522,6 @@ export interface MyCancelQuote {
   deadline: string | null
   /** Why it isn't allowed, ready to show */
   reason: string | null
-  /** A ticket you were given: the money goes back to the friend who paid */
-  refund_to_buyer?: boolean
 }
 
 export interface MyTransferQuote {
@@ -544,4 +542,4 @@ export interface TransferPreview {
 }
 
 /** Why a guest cancelled (from the "Can't make it?" sheet). */
-export type CancelReason = 'plans_changed' | 'unwell' | 'date' | 'price' | 'other'
+export type CancelReason = 'plans_changed' | 'unwell' | 'date' | 'other'

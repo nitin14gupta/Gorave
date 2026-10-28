@@ -85,6 +85,16 @@ def cancel_pending_offers(cur, event_id: str, from_user_id: Optional[str] = None
         )
 
 
+def _first_cover(photos) -> Optional[str]:
+    """Events store covers either as plain URLs or as {"url": ...} objects."""
+    if not photos:
+        return None
+    first = photos[0]
+    if isinstance(first, str):
+        return first
+    return first.get("url") if isinstance(first, dict) else None
+
+
 def _blocked(cur, a: str, b: str) -> bool:
     cur.execute(
         """
@@ -167,8 +177,7 @@ async def offer_transfer(event_id: str, body: TransferBody, current_user: dict =
             from routes.chat import _insert_message
             cur.execute("SELECT cover_photos, area, city FROM events WHERE id = %s", (event_id,))
             extra = cur.fetchone() or {}
-            photos = extra.get("cover_photos") or []
-            cover = photos[0].get("url") if photos and isinstance(photos[0], dict) else None
+            cover = _first_cover(extra.get("cover_photos"))
             msg, _ = _insert_message(cur, conv_id, uid, None, "ticket", {
                 "transfer_token": token, "event_id": event_id, "title": ev["title"],
                 "date_time": ev["date_time"].isoformat(), "area": extra.get("area"),
@@ -180,7 +189,14 @@ async def offer_transfer(event_id: str, body: TransferBody, current_user: dict =
 
     if msg:
         from routes.chat import _deliver_new_message, _serialize
-        await _deliver_new_message(conv_id, _serialize(msg), uid, to_uid, sender_name)
+        # Its own push instead of the generic "Sent you a message".
+        await _deliver_new_message(conv_id, _serialize(msg), uid, to_uid, sender_name, push=False)
+        import asyncio
+        asyncio.create_task(asyncio.to_thread(
+            send_push, to_uid, f"{sender_name.split(' ')[0]} sent you a ticket 🎟️",
+            f"{ev['title']} is yours if you want it. Tap to accept.",
+            {"type": "ticket_transfer", "token": token, "event_id": event_id}, category="attending",
+        ))
     return {"transfer_id": transfer_id, "token": token, "conversation_id": conv_id}
 
 
@@ -253,7 +269,6 @@ def preview_transfer(token: str, current_user: dict = Depends(get_current_user))
         )
         ev = dict(cur.fetchone())
         reason = _accept_check(cur, offer, ev, current_user["id"])
-    photos = ev.get("cover_photos") or []
     return {
         "status": offer["status"],
         "can_accept": reason is None,
@@ -263,7 +278,7 @@ def preview_transfer(token: str, current_user: dict = Depends(get_current_user))
         "event": {
             "id": ev["id"], "title": ev["title"], "date_time": ev["date_time"].isoformat(),
             "area": ev["area"], "city": ev["city"], "price_inr": ev["price_inr"],
-            "cover_url": photos[0].get("url") if photos and isinstance(photos[0], dict) else None,
+            "cover_url": _first_cover(ev.get("cover_photos")),
         },
     }
 
