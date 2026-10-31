@@ -4,13 +4,12 @@ import { Logo } from '@/components/ui/Logo'
 import { StoreBadges } from '@/components/ui/atoms'
 import { Parallax } from '@/components/motion/Parallax'
 import { Vortex } from '@/components/sections/city/Vortex'
-import type { PosterDef } from '@/constants'
 
 /** How every page ends: the ring of flyers, then the footer. */
-export function SiteFooter(props: { place?: string; areas?: string[]; posters?: PosterDef[] }) {
+export function SiteFooter({ place }: { place?: string }) {
   return (
     <>
-    <Vortex {...props} />
+    <Vortex place={place} />
     <footer id="site-footer" className="overflow-hidden bg-noir px-6 pt-20 md:px-20">
       <div className="mx-auto flex max-w-[1280px] flex-col justify-between gap-14 lg:flex-row">
         <div className="max-w-[340px]">

@@ -61,7 +61,7 @@ export function TypePageView({ city, slug, story, events }: Props) {
         <OtherTypes city={city} current={slug} />
       </main>
       </CityKitProvider>
-      <SiteFooter place={city.name} areas={city.areas} posters={kit.posters} />
+      <SiteFooter place={city.name} />
       <FloatingDock />
     </>
   )

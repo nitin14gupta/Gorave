@@ -54,7 +54,7 @@ export function CityPageView({ city, hero = CITY_HERO, events = [], hosts = [], 
         <OtherCities current={city} />
       </main>
       </CityKitProvider>
-      <SiteFooter place={city.name} areas={city.areas} posters={kit.posters} />
+      <SiteFooter place={city.name} />
       <FloatingDock />
     </>
   )
