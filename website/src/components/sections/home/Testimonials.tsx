@@ -34,8 +34,8 @@ export function Testimonials({ data }: { data: PublicReviews | null }) {
   if (!data || !reviews.length) return null
 
   return (
-    <section className="bg-paper py-24 md:py-28">
-      <div className="mx-auto max-w-[1280px] px-6 md:px-20 xl:px-0">
+    <section className="bg-paper px-6 py-24 md:px-20 md:py-28">
+      <div className="mx-auto max-w-[1280px]">
         <Reveal className="flex flex-col justify-between gap-5 md:flex-row md:items-end">
           <H2>Social life runs<br />on gorave.</H2>
           {data.avg_rating ? (
