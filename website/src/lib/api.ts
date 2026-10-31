@@ -126,7 +126,7 @@ export const fetchCities = () => get<PublicCity[]>('/public/cities')
 export interface PublicReviews {
   avg_rating: number | null
   review_count: number
-  reviews: { rating: number; body: string; name: string; city: string | null; event_type: string; event_title: string }[]
+  reviews: { rating: number; body: string; name: string; city: string | null; event_type: string; event_title: string; event_image?: string | null }[]
 }
 
 export const fetchReviews = (limit = 4) => get<PublicReviews>(`/public/reviews?limit=${limit}`)

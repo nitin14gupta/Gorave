@@ -1,46 +1,70 @@
+import Image from 'next/image'
+import { EVENT_TYPES, PHOTOS } from '@/constants'
 import type { PublicReviews } from '@/lib/api'
 import { H2 } from '@/components/ui/atoms'
-import { Reveal, Stagger, StaggerItem } from '@/components/motion/Reveal'
+import { Reveal } from '@/components/motion/Reveal'
+
+type Review = PublicReviews['reviews'][number]
+
+/** The strongest real reviews: 4 stars and up, no repeated lines. */
+function bestReviews(data: PublicReviews | null, limit: number) {
+  if (!data) return []
+  const seen = new Set<string>()
+  const picked: Review[] = []
+  for (const r of [...data.reviews].sort((a, b) => b.rating - a.rating)) {
+    const key = r.body.trim().toLowerCase()
+    if (r.rating < 4 || seen.has(key)) continue
+    seen.add(key)
+    picked.push(r)
+    if (picked.length === limit) break
+  }
+  return picked
+}
+
+function reviewPhoto(r: Review) {
+  return r.event_image ?? PHOTOS[(EVENT_TYPES.find(t => t.key === r.event_type) ?? EVENT_TYPES[EVENT_TYPES.length - 1]).photo]
+}
 
 /**
- * Real reviews from guests (public API): the platform-wide average and the
- * latest written ones. If there are none yet, the section doesn't render
- * no invented quotes or ratings.
+ * Each real review on the flyer of the night it came from. If there are none
+ * yet the section doesn't render: no invented quotes or ratings.
  */
 export function Testimonials({ data }: { data: PublicReviews | null }) {
-  if (!data || !data.reviews.length) return null
-  const { avg_rating, review_count, reviews } = data
+  const reviews = bestReviews(data, 4)
+  if (!data || !reviews.length) return null
+
   return (
-    <section className="bg-paper px-6 py-24 md:px-20 md:py-28">
-      <div className="mx-auto grid max-w-[1280px] items-center gap-14 rounded-[40px] bg-ink p-10 text-cream md:p-20 lg:grid-cols-2">
-        <Reveal>
-          <H2 dark className="!text-[clamp(44px,5.4vw,76px)]">Social life runs on <span className="text-brand">gorave</span></H2>
-          <p className="mt-3 font-sans text-lg text-noir-ink-2">What guests said after the night.</p>
-          {avg_rating && (
-            <div className="mt-8 flex items-center gap-5">
-              <div className="font-display text-[56px] font-extrabold leading-none">{avg_rating.toFixed(1)}</div>
-              <div>
-                <div className="text-[22px] leading-none tracking-[0.1em] text-gold" aria-label={`${avg_rating} out of 5`}>★★★★★</div>
-                <div className="mt-1 font-sans text-sm text-noir-ink-2">from {review_count.toLocaleString('en-IN')} event reviews</div>
-              </div>
+    <section className="bg-paper py-24 md:py-28">
+      <div className="mx-auto max-w-[1280px] px-6 md:px-20 xl:px-0">
+        <Reveal className="flex flex-col justify-between gap-5 md:flex-row md:items-end">
+          <H2>Social life runs<br />on gorave.</H2>
+          {data.avg_rating ? (
+            <div className="pb-2 font-sans text-[15px] text-ink-2 md:text-right">
+              <span className="font-bold text-ink">{data.avg_rating.toFixed(1)}</span> <span className="text-orange" aria-hidden>★</span> from {data.review_count.toLocaleString('en-IN')} event reviews
             </div>
-          )}
+          ) : null}
         </Reveal>
-        <Stagger className="flex flex-col gap-3.5">
-          {reviews.map((t, i) => (
-            <StaggerItem key={`${t.name}-${i}`}>
-              <figure
-                className="rounded-[22px] bg-noir-2 p-5.5 transition-transform duration-500 ease-out-expo hover:-translate-y-1"
-                style={{ marginLeft: i % 2 ? 30 : 0 }}
-              >
-                <blockquote className="font-sans text-[17px]">&ldquo;{t.body}&rdquo;</blockquote>
-                <figcaption className="mt-2 font-sans text-[14px] text-noir-ink-2">
-                  {t.name}{t.city ? `, ${t.city}` : ''} · <span className="text-gold">{'★'.repeat(t.rating)}</span> · {t.event_title}
-                </figcaption>
-              </figure>
-            </StaggerItem>
+
+        <div className="-mx-6 mt-11 flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-px-6 px-6 [scrollbar-width:none] md:mx-0 md:grid md:grid-cols-2 md:gap-5 md:overflow-visible md:px-0 lg:grid-cols-4">
+          {reviews.map((r, i) => (
+            <figure key={`${r.name}-${i}`} className="w-[76vw] max-w-[320px] shrink-0 snap-start md:w-auto md:max-w-none">
+              <div className="relative aspect-[4/5] overflow-hidden rounded-[20px] bg-tile">
+                <Image src={reviewPhoto(r)} alt={r.event_title} fill sizes="(max-width: 768px) 76vw, 300px" className="object-cover" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-transparent" />
+                <blockquote className="absolute inset-x-5 bottom-5 font-display text-[clamp(24px,2.1vw,28px)] font-extrabold leading-[1.08] tracking-[-0.03em] text-white">
+                  &ldquo;{r.body}&rdquo;
+                </blockquote>
+              </div>
+              <figcaption className="mt-3.5 font-sans">
+                <div className="flex items-center justify-between gap-3 text-[15px]">
+                  <span className="truncate font-bold text-ink">{r.name}{r.city ? `, ${r.city}` : ''}</span>
+                  <span className="shrink-0 font-bold text-ink"><span className="text-orange" aria-hidden>★</span> {r.rating}</span>
+                </div>
+                <div className="mt-0.5 truncate text-sm text-ink-2">After {r.event_title}</div>
+              </figcaption>
+            </figure>
           ))}
-        </Stagger>
+        </div>
       </div>
     </section>
   )

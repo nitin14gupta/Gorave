@@ -2,62 +2,64 @@
 
 import Image from 'next/image'
 import Link from 'next/link'
-import { useLayoutEffect, useRef, useState } from 'react'
-import { motion, useScroll, useSpring, useTransform } from 'motion/react'
+import { useState } from 'react'
 import { EVENT_TYPES, PHOTOS } from '@/constants'
 import { cn } from '@/lib/cn'
 import { Eyebrow, H2 } from '@/components/ui/atoms'
 
-/**
- * Horizontal scroll driven by vertical scroll: the section pins and the card
- * track slides sideways by exactly its overflow, then the page continues.
- */
+/** Six tall panels in one row; the one you point at opens up. A plain grid on phones. */
 export function EventTypes() {
-  const sectionRef = useRef<HTMLElement>(null)
-  const trackRef = useRef<HTMLDivElement>(null)
-  const [overflow, setOverflow] = useState(0)
-
-  useLayoutEffect(() => {
-    const measure = () => {
-      const track = trackRef.current
-      if (track) setOverflow(Math.max(0, track.scrollWidth - window.innerWidth))
-    }
-    measure()
-    window.addEventListener('resize', measure)
-    return () => window.removeEventListener('resize', measure)
-  }, [])
-
-  const { scrollYProgress } = useScroll({ target: sectionRef, offset: ['start start', 'end end'] })
-  const x = useSpring(useTransform(scrollYProgress, [0, 1], [0, -overflow]), { stiffness: 140, damping: 30 })
+  const [active, setActive] = useState(0)
 
   return (
-    <section ref={sectionRef} className="relative bg-cream" style={{ height: `calc(100vh + ${overflow}px)` }}>
-      <div className="sticky top-0 flex h-screen flex-col justify-center-safe overflow-hidden pt-24">
-        <div className="mx-auto mb-11 flex w-full max-w-[1280px] items-end justify-between px-6 md:px-20">
+    <section className="px-6 py-24 md:px-20 md:py-28">
+      <div className="mx-auto max-w-[1280px]">
+        <div className="flex items-end justify-between gap-6">
           <div>
             <Eyebrow>A million reasons to hang</Eyebrow>
             <H2 className="mt-3.5">Pick your kind<br />of night.</H2>
           </div>
-          <Link href="/events" className="hidden font-sans text-[15px] font-bold underline-offset-4 hover:underline md:block">Browse every type →</Link>
+          <Link href="/events" className="hidden shrink-0 pb-3 font-sans text-[15px] font-bold underline-offset-4 hover:underline md:block">Browse every type →</Link>
         </div>
-        <motion.div ref={trackRef} style={{ x }} className="flex w-max gap-5.5 px-6 md:px-20">
-          {EVENT_TYPES.map((t, i) => (
-            <Link
-              key={t.key}
-              href={`/${t.slug}`}
-              className={cn(
-                'group relative block h-[min(480px,58vh)] w-[min(340px,78vw)] shrink-0 overflow-hidden rounded-[32px] transition-transform duration-500 ease-out-expo hover:-translate-y-1.5',
-                i % 2 === 1 && 'md:translate-y-10 md:hover:translate-y-8.5',
-              )}
-            >
-              <Image src={PHOTOS[t.photo]} alt={t.label} fill sizes="(max-width: 768px) 80vw, 680px" className="object-cover transition-transform duration-[900ms] ease-out-expo group-hover:scale-[1.06]" />
-              <div className={cn('absolute inset-x-3.5 bottom-3.5 rounded-[22px] p-4.5', t.tint, t.ink)}>
-                <div className="font-display text-[26px] font-extrabold tracking-[-0.03em]">{t.label}</div>
-                <div className="mt-1 font-sans text-sm opacity-80">{t.blurb}</div>
-              </div>
+
+        <div className="mt-11 hidden h-[min(560px,68vh)] gap-3 md:flex">
+          {EVENT_TYPES.map((t, i) => {
+            const open = i === active
+            return (
+              <Link
+                key={t.key}
+                href={`/${t.slug}`}
+                onMouseEnter={() => setActive(i)}
+                onFocus={() => setActive(i)}
+                className="relative min-w-0 basis-0 overflow-hidden rounded-[20px] bg-tile transition-[flex-grow] duration-500 ease-out-expo"
+                style={{ flexGrow: open ? 5 : 1 }}
+              >
+                <Image src={PHOTOS[t.photo]} alt={t.label} fill sizes="600px" className="object-cover" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/10 to-transparent" />
+                <div className={cn('absolute bottom-5 left-5 right-5 transition-opacity duration-300', open ? 'opacity-100 delay-200' : 'opacity-0')}>
+                  <div className="whitespace-nowrap font-display text-[30px] font-extrabold tracking-[-0.03em] text-white">{t.label}</div>
+                  <div className="mt-1 whitespace-nowrap font-sans text-[15px] text-white/85">{t.blurb}</div>
+                </div>
+                <div className={cn(
+                  'absolute bottom-5 left-1/2 -translate-x-1/2 rotate-180 whitespace-nowrap font-display text-[19px] font-extrabold tracking-[-0.02em] text-white transition-opacity duration-200 [writing-mode:vertical-rl]',
+                  open ? 'opacity-0' : 'opacity-100',
+                )}>
+                  {t.label}
+                </div>
+              </Link>
+            )
+          })}
+        </div>
+
+        <div className="mt-9 grid grid-cols-2 gap-3 md:hidden">
+          {EVENT_TYPES.map(t => (
+            <Link key={t.key} href={`/${t.slug}`} className="relative aspect-[4/5] overflow-hidden rounded-[20px] bg-tile">
+              <Image src={PHOTOS[t.photo]} alt={t.label} fill sizes="50vw" className="object-cover" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/65 to-transparent" />
+              <div className="absolute bottom-3.5 left-3.5 right-3 font-display text-[19px] font-extrabold leading-tight tracking-[-0.02em] text-white">{t.label}</div>
             </Link>
           ))}
-        </motion.div>
+        </div>
       </div>
     </section>
   )

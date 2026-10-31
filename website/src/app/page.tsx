@@ -21,7 +21,8 @@ export const revalidate = 60
 export default async function HomePage() {
   const [perCity, reviews] = await Promise.all([
     Promise.all(BROWSE_CITIES.map(c => cardEvents({ city: c, limit: 12 }, e => e.city === c))),
-    fetchReviews(4),
+    // More than we show (20 is the API's cap): the section keeps the best, without repeats.
+    fetchReviews(20),
   ])
   const byCity = Object.fromEntries(BROWSE_CITIES.map((c, i) => [c, perCity[i].events]))
   // Mock-up screens show real events with photos; samples only if the API is down.

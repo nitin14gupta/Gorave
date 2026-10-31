@@ -52,7 +52,7 @@ invented stats, ratings or reviews on public pages (placeholders are marked
 ### ✅ Done
 | Screen | Route | Notes |
 |---|---|---|
-| Home / landing | `/` | 11 sections: Hero · This week · One link · Group chat→guest list (pinned) · Event types (horizontal) · Cities (cursor preview) · More than an invite · Safety · Hosts · Testimonials · Saturday CTA · Footer |
+| Home / landing | `/` | 11 sections: Hero · This week · One link · Group chat→guest list (pinned) · Event types (no pinned scroll) · Cities (cursor preview) · More than an invite · Safety · Hosts · Testimonials · Saturday CTA · Footer |
 | Global nav + mega menu | all pages | Floating pill, hide-on-scroll, Events/Cities Apple-style mega menu, mobile sheet |
 | Floating dock + footer | all pages | Dock appears after hero, hides at footer |
 | **City** | `/[city]` → all 8 cities | Told as one night out, 11 chapters: Hero · 01 The reasons (3D poster stack) · 02 The night (pinned 6 PM→3 AM scroll) · 03 The plan (departure board) · 04 The dare (spin your Saturday) · 05 The vibe (expanding panels) · 06 The neighbourhood (area reveal) · 07 The budget (price slider) · 08 The people (cursor-repel crowd) · 09 Your turn (host) · 10 FAQ · 11 See you out there (poster vortex). Same layout for every city — only data changes |

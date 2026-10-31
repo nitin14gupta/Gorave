@@ -365,7 +365,7 @@ def public_reviews(request: Request, response: Response, limit: int = Query(defa
         agg = cur.fetchone()
         cur.execute(
             """
-            SELECT er.rating, er.body, u.name AS reviewer, e.city, e.event_type, e.title AS event_title
+            SELECT er.rating, er.body, u.name AS reviewer, e.city, e.event_type, e.title AS event_title, e.cover_photos
             FROM event_reviews er
             JOIN events e ON e.id = er.event_id
             JOIN users u ON u.id = er.reviewer_id
@@ -389,7 +389,8 @@ def public_reviews(request: Request, response: Response, limit: int = Query(defa
         "review_count": agg["review_count"] or 0,
         "reviews": [
             {"rating": r["rating"], "body": r["body"].strip(), "name": short(r["reviewer"]), "city": r["city"],
-             "event_type": r["event_type"], "event_title": r["event_title"]}
+             "event_type": r["event_type"], "event_title": r["event_title"],
+             "event_image": next(iter(_photos(r["cover_photos"])), None)}
             for r in rows
         ],
     }
