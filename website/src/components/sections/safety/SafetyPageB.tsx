@@ -10,7 +10,6 @@ import { MapB } from './b/MapB'
 import { SosPhoneB } from './b/SosPhoneB'
 import { RequestsB } from './b/RequestsB'
 import { HabitsB } from './b/HabitsB'
-import { CtaB } from './b/CtaB'
 
 /**
  * /safety, variant B"Layers of trust". Noir, like the app at night: a
@@ -30,7 +29,6 @@ export function SafetyPageB({ crumbs }: { crumbs: Crumb[] }) {
         <RequestsB />
         <HabitsB />
         <Faq chapter="07" title="Safety, answered" items={SAFETY_FAQ} />
-        <CtaB chapter="08" />
       </main>
       <SiteFooter />
       <FloatingDock />

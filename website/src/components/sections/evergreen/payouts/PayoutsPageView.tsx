@@ -10,7 +10,6 @@ import { Calculator } from './a/Calculator'
 import { FreeVsPaid } from './b/FreeVsPaid'
 import { SetupSplit } from './b/SetupSplit'
 import { Rule48 } from './b/Rule48'
-import { FinalCtaB } from './b/FinalCtaB'
 
 /**
  * /host/payouts: the picked sections. A new "90%" hero, one ticket's three
@@ -33,7 +32,6 @@ export function PayoutsPageView({ stats, events }: PayoutsProps) {
         <SetupSplit cover={cover(paid.length ? paid : events, 0)} />
         <Rule48 />
         <Faq chapter="07" title="Payouts, answered" items={PAYOUT_FAQ} />
-        <FinalCtaB />
       </main>
       <SiteFooter />
       <FloatingDock />

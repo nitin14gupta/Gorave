@@ -9,7 +9,6 @@ import { RequestInbox } from './b/RequestInbox'
 import { HouseRules } from './b/HouseRules'
 import { MixingDesk } from './b/MixingDesk'
 import { Laminates } from './b/Laminates'
-import { CurtainCall } from './b/CurtainCall'
 
 /**
  * Host page, variant B"Backstage". Noir throughout: the curtain opens on
@@ -28,7 +27,6 @@ export function HostPageB() {
         <MixingDesk />
         <Laminates />
         <Faq chapter="07" title="Before doors" items={HOST_FAQ} />
-        <CurtainCall />
       </main>
       <SiteFooter />
       <FloatingDock />

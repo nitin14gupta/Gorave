@@ -1,4 +1,4 @@
-import { GUIDES_CRUMBS, GUIDES_FAQ, HOST_GUIDES, guideHref } from '@/lib/hostGuides'
+import { GUIDES_CRUMBS, GUIDES_FAQ, HOST_GUIDES } from '@/lib/hostGuides'
 import { Faq } from '@/components/sections/shared/Faq'
 import { SiteFooter } from '@/components/layout/SiteFooter'
 import { FloatingDock } from '@/components/layout/FloatingDock'
@@ -7,7 +7,6 @@ import { Featured } from './a/Featured'
 import { GuideIndex } from './a/GuideIndex'
 import { ReadingPath } from './a/ReadingPath'
 import { FinePrint } from './a/FinePrint'
-import { HostCtaA } from './a/HostCtaA'
 
 /**
  * Hosting guides, variant A"the magazine". Cream paper, a nameplate that
@@ -25,7 +24,6 @@ export function GuidesHubA() {
         <ReadingPath guides={HOST_GUIDES} />
         <FinePrint />
         <Faq chapter="05" title="Before you host" items={GUIDES_FAQ} />
-        <HostCtaA firstGuide={guideHref(HOST_GUIDES[0].slug)} />
       </main>
       <SiteFooter />
       <FloatingDock />

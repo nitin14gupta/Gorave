@@ -7,7 +7,6 @@ import { Reveal } from '@/components/motion/Reveal'
 import { SiteFooter } from '@/components/layout/SiteFooter'
 import { FloatingDock } from '@/components/layout/FloatingDock'
 import { ArticleHero, NextGuideCard, ReadingProgress, Toc } from '@/components/sections/guides/article/ArticleMotion'
-import { GoOutCta } from './kit'
 
 /**
  * One going-out or women's guide. Same reading experience as the hosting
@@ -118,7 +117,6 @@ export function OutGuideArticle({ guide }: { guide: OutGuide }) {
           </div>
         </section>
 
-        <GoOutCta n="→" />
       </main>
       <SiteFooter />
       <FloatingDock />

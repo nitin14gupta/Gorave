@@ -4,7 +4,6 @@ import { CityKitProvider } from '@/components/sections/city/CityKit'
 import { AreaReveal } from '@/components/sections/city/AreaReveal'
 import { Faq } from '@/components/sections/shared/Faq'
 import { ExploreLinks } from '@/components/sections/shared/ExploreLinks'
-import { GoOutCta } from '@/components/sections/goingOut/kit'
 import { SiteFooter } from '@/components/layout/SiteFooter'
 import { FloatingDock } from '@/components/layout/FloatingDock'
 import { OccasionHero } from './OccasionHero'
@@ -43,9 +42,8 @@ export function OccasionPageView(props: OccasionProps) {
         <Calendar {...props} />
         <Faq chapter="08" title={`${o.name}, answered`} items={o.faq} />
         <ExploreLinks place={place.city?.name ?? 'India'} citySlug={place.city?.slug ?? null} current={o.slug} />
-        <GoOutCta n="09" />
       </main>
-      <SiteFooter />
+      <SiteFooter place={place.name} />
       <FloatingDock />
     </CityKitProvider>
   )

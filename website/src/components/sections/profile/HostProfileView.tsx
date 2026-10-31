@@ -1,7 +1,6 @@
 import type { BRAND, SampleEvent } from '@/constants'
 import type { Crumb } from '@/lib/seo'
-import { Chapter, StoreBadges } from '@/components/ui/atoms'
-import { Button } from '@/components/ui/Button'
+import { Chapter } from '@/components/ui/atoms'
 import { EventCard } from '@/components/ui/EventCard'
 import { SiteFooter } from '@/components/layout/SiteFooter'
 import { FloatingDock } from '@/components/layout/FloatingDock'
@@ -60,17 +59,6 @@ export function HostProfileView({ host, events, crumbs, places }: { host: HostHe
                 </div>
               ))}
             </div>
-          </div>
-        </section>
-
-        <section className="bg-cream px-6 py-24 text-center md:px-20 md:py-28">
-          <Chapter n="05" title="Your turn" className="justify-center" />
-          <h2 className="mx-auto mt-4 max-w-[900px] font-display text-[clamp(44px,6vw,92px)] font-extrabold leading-[0.9] tracking-[-0.06em]">
-            Throw your own, <span className="font-serif font-normal italic tracking-[-0.03em] text-orange">like {first}.</span>
-          </h2>
-          <div className="mt-9 flex flex-wrap items-center justify-center gap-4">
-            <Button href="/host" size="lg">Start hosting</Button>
-            <StoreBadges height={46} />
           </div>
         </section>
       </main>

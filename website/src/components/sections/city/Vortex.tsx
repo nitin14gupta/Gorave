@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { POSTERS, type City, type PosterDef } from '@/constants'
+import { POSTERS, type PosterDef } from '@/constants'
 import { StoreBadges } from '@/components/ui/atoms'
 import { Poster } from '@/components/ui/Poster'
 
@@ -13,10 +13,11 @@ const RINGS = [
 ]
 
 /**
- * Chapter 11, see you out there. Rings of flyers rotate slowly
+ * See you out there: how every page ends. Rings of flyers rotate slowly
  * counter-clockwise around the call to action, smaller towards the centre.
+ * The call to action sits inside the innermost ring, about 350px across.
  */
-export function Vortex({ city, chapter = '11', posters = POSTERS.filter(p => p.kind === 'template') }: { city: City; chapter?: string; posters?: PosterDef[] }) {
+export function Vortex({ place, areas = [], posters = POSTERS.filter(p => p.kind === 'template') }: { place?: string; areas?: string[]; posters?: PosterDef[] }) {
   return (
     <section className="relative h-[920px] overflow-hidden bg-paper">
       <div className="absolute left-1/2 top-1/2" aria-hidden>
@@ -32,7 +33,7 @@ export function Vortex({ city, chapter = '11', posters = POSTERS.filter(p => p.k
                   style={{ transform: `rotate(${angle}deg) translateX(${ring.r}px) rotate(${90 + ((k * 13) % 30) - 15}deg) translate(-50%, -50%)` }}
                 >
                   <div className="transition-transform duration-500 hover:scale-125">
-                    <Poster poster={poster} area={city.areas[k % city.areas.length]} width={ring.size} height={ring.size} radius={Math.max(4, ring.size * 0.08)} />
+                    <Poster poster={poster} area={areas[k % areas.length]} width={ring.size} height={ring.size} radius={Math.max(4, ring.size * 0.08)} />
                   </div>
                 </div>
               )
@@ -42,17 +43,17 @@ export function Vortex({ city, chapter = '11', posters = POSTERS.filter(p => p.k
       </div>
 
       <div className="pointer-events-none relative z-10 flex h-full flex-col items-center justify-center px-6 text-center [&_a]:pointer-events-auto">
-        <div className="mb-5 font-sans text-xs font-bold uppercase tracking-[0.18em] text-ink-3">
-          <span className="font-serif text-xl normal-case italic tracking-normal text-orange">{chapter}</span> · See you out there
+        <div className="mb-3 font-sans text-[11px] font-bold uppercase tracking-[0.16em] text-ink-3">
+          See you out there
         </div>
         <Link
           href="/app"
-          className="rounded-full bg-ink px-14 py-8 font-display text-[clamp(40px,5vw,72px)] font-extrabold uppercase leading-none tracking-[-0.04em] text-cream shadow-pop transition-transform duration-500 hover:scale-105"
+          className="rounded-full bg-ink px-8 py-4 font-display text-[38px] font-extrabold uppercase leading-none tracking-[-0.04em] text-cream shadow-pop transition-transform duration-500 hover:scale-105"
         >
           Get the app
         </Link>
-        <p className="mt-6 font-sans text-xl text-ink-2">Your social life in {city.name} will thank you.</p>
-        <div className="mt-6"><StoreBadges /></div>
+        <p className="mt-3.5 font-sans text-[15px] text-ink-2">Your social life{place ? ` in ${place}` : ''} will thank you.</p>
+        <div className="mt-3.5"><StoreBadges height={40} /></div>
       </div>
     </section>
   )

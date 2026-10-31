@@ -9,7 +9,6 @@ import { MixDial } from './a/MixDial'
 import { Address } from './a/Address'
 import { BadgeLadder } from './a/BadgeLadder'
 import { ControlRoom } from './a/ControlRoom'
-import { HostCtaA } from './a/HostCtaA'
 
 /**
  * Host page, variant A"Your first party, start to finish". Daylight
@@ -27,7 +26,6 @@ export function HostPageA() {
         <BadgeLadder />
         <ControlRoom />
         <Faq chapter="07" title="Hosting, answered" items={HOST_FAQ} />
-        <HostCtaA />
       </main>
       <SiteFooter />
       <FloatingDock />

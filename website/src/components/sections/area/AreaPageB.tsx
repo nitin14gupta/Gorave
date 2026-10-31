@@ -14,7 +14,6 @@ import { SendPostcard } from './b/SendPostcard'
 import { HostPostcard } from './b/HostPostcard'
 import { FaqPostcard } from './b/FaqPostcard'
 import { HostsStrip } from '@/components/sections/hosts/HostsStrip'
-import { SignOff } from './b/SignOff'
 import { ExploreLinks } from '@/components/sections/shared/ExploreLinks'
 
 /**
@@ -42,9 +41,8 @@ export function AreaPageB({ area, events, crumbs, faq, hosts, hostTotal }: AreaV
         <FaqPostcard area={area}>
           <Faq chapter="10" title={`Good to know in ${area.name}.`} items={faq} />
         </FaqPostcard>
-        <SignOff area={area} />
       </main>
-      <SiteFooter />
+      <SiteFooter place={area.name} />
       <FloatingDock />
     </>
   )

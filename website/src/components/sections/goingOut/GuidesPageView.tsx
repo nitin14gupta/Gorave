@@ -5,7 +5,6 @@ import { GuidesHero } from './GuidesHero'
 import { Night } from './Night'
 import { AskAnything } from './AskAnything'
 import { ForWomen } from './ForWomen'
-import { GoOutCta } from './kit'
 
 /**
  * /guides. Every going-out and women's guide as the question you'd ask a
@@ -24,7 +23,6 @@ export function GuidesPageView() {
         <Night />
         <AskAnything all={ALL_OUT_GUIDES} />
         <ForWomen women={WOMEN} />
-        <GoOutCta n="04" />
       </main>
       <SiteFooter />
       <FloatingDock />

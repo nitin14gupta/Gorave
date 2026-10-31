@@ -11,7 +11,6 @@ import { FlyThrough } from './FlyThrough'
 import { Clock } from './Clock'
 import { GettingIn } from './GettingIn'
 import { CityGrid } from './CityGrid'
-import { SignOff } from './SignOff'
 
 /**
  * /[city]/[area]/[type], one kind of night in one neighbourhood, told as a
@@ -34,9 +33,8 @@ export function AreaTypePageView(props: AreaTypeProps) {
         <HostsStrip hosts={hosts} total={hostTotal} place={area.name} href={`/${area.city.slug}/${area.slug}/hosts`} />
         <Faq chapter="07" title={`${story.plural} in ${area.name}, answered`} items={faq} />
         <ExploreLinks place={area.city.name} citySlug={area.city.slug} current={type.slug} />
-        <SignOff {...props} />
       </main>
-      <SiteFooter />
+      <SiteFooter place={area.name} />
       <FloatingDock />
     </>
   )

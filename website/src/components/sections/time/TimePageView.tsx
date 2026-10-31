@@ -11,7 +11,6 @@ import { TearOff } from './a/TearOff'
 import { Places } from './a/Places'
 import { Why } from './b/Why'
 import { Others } from './b/Others'
-import { SignOff } from './b/SignOff'
 import { ExploreLinks } from '@/components/sections/shared/ExploreLinks'
 
 /**
@@ -35,9 +34,8 @@ export function TimePageView({ time, place, events, total, days, places, others,
         <Others place={place} others={others} chapter="08" />
         <ExploreLinks place={place.name} citySlug={place.citySlug} current={time.slug} />
         <Faq chapter="09" title={`${time.label} in ${place.name}, answered`} items={faq} />
-        <SignOff time={time} place={place} days={days} chapter="10" />
       </main>
-      <SiteFooter />
+      <SiteFooter place={place.name} />
       <FloatingDock />
     </>
   )

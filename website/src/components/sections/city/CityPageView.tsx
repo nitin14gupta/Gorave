@@ -15,7 +15,6 @@ import { Budget } from './Budget'
 import { Crowd } from './Crowd'
 import { CityHost } from './CityHost'
 import { OtherCities } from './OtherCities'
-import { Vortex } from './Vortex'
 import { Faq } from '@/components/sections/shared/Faq'
 import { SiteFooter } from '@/components/layout/SiteFooter'
 import { FloatingDock } from '@/components/layout/FloatingDock'
@@ -53,10 +52,9 @@ export function CityPageView({ city, hero = CITY_HERO, events = [], hosts = [], 
         <ExploreLinks place={city.name} citySlug={city.slug} />
         <Faq chapter="10" title={`Going out in ${city.name}`} items={cityFaq(city)} />
         <OtherCities current={city} />
-        <Vortex city={city} posters={kit.posters} />
       </main>
       </CityKitProvider>
-      <SiteFooter />
+      <SiteFooter place={city.name} areas={city.areas} posters={kit.posters} />
       <FloatingDock />
     </>
   )

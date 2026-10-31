@@ -2,7 +2,6 @@ import type { City, SampleEvent } from '@/constants'
 import type { TypeStory } from '@/lib/eventType'
 import { PosterStack } from '@/components/sections/city/PosterStack'
 import { AreaReveal } from '@/components/sections/city/AreaReveal'
-import { Vortex } from '@/components/sections/city/Vortex'
 import { Faq } from '@/components/sections/shared/Faq'
 import { SiteFooter } from '@/components/layout/SiteFooter'
 import { FloatingDock } from '@/components/layout/FloatingDock'
@@ -60,10 +59,9 @@ export function TypePageView({ city, slug, story, events }: Props) {
         <ExploreLinks place={city.name} citySlug={city.slug} current={slug} />
         <Faq chapter="08" title={`${story.plural} in ${city.name}`} items={faq(city)} />
         <OtherTypes city={city} current={slug} />
-        <Vortex city={city} chapter="10" posters={kit.posters} />
       </main>
       </CityKitProvider>
-      <SiteFooter />
+      <SiteFooter place={city.name} areas={city.areas} posters={kit.posters} />
       <FloatingDock />
     </>
   )

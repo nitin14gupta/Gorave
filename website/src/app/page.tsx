@@ -11,7 +11,6 @@ import { MoreThanInvite } from '@/components/sections/home/MoreThanInvite'
 import { Safety } from '@/components/sections/home/Safety'
 import { Hosts } from '@/components/sections/home/Hosts'
 import { Testimonials } from '@/components/sections/home/Testimonials'
-import { SaturdayCta } from '@/components/sections/home/SaturdayCta'
 import { SiteFooter } from '@/components/layout/SiteFooter'
 import { FloatingDock } from '@/components/layout/FloatingDock'
 import { LiveEventsProvider } from '@/components/ui/LiveEvents'
@@ -54,7 +53,6 @@ export default async function HomePage() {
         <Safety />
         <Hosts />
         <Testimonials data={reviews} />
-        <SaturdayCta />
       </main>
       <SiteFooter />
       <FloatingDock />

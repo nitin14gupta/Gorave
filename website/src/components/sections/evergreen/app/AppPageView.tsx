@@ -9,7 +9,6 @@ import { NightRail } from './b/NightRail'
 import { Bento } from './a/Bento'
 import { Explore } from './b/Explore'
 import { Cities } from './a/Cities'
-import { FinalCta } from './a/FinalCta'
 import { FAQ } from './data'
 
 /**
@@ -32,7 +31,6 @@ export function AppPageView({ events, stats, cities }: AppProps) {
         <Explore />
         <Cities cities={cities} events={events} />
         <Faq chapter="06" title="The app, answered" items={FAQ} />
-        <FinalCta />
       </main>
       <SiteFooter />
       <FloatingDock />

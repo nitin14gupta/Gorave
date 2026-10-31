@@ -1,4 +1,4 @@
-import { GUIDES_CRUMBS, GUIDES_FAQ, HOST_GUIDES, guideHref } from '@/lib/hostGuides'
+import { GUIDES_CRUMBS, GUIDES_FAQ, HOST_GUIDES } from '@/lib/hostGuides'
 import { Faq } from '@/components/sections/shared/Faq'
 import { SiteFooter } from '@/components/layout/SiteFooter'
 import { FloatingDock } from '@/components/layout/FloatingDock'
@@ -7,7 +7,6 @@ import { Deck } from './b/Deck'
 import { TitleList } from './b/TitleList'
 import { Checklist } from './b/Checklist'
 import { RuleCards } from './b/RuleCards'
-import { HostCtaB } from './b/HostCtaB'
 
 /**
  * Hosting guides, variant B"the playbook". Noir, every guide an index
@@ -24,7 +23,6 @@ export function GuidesHubB() {
         <Checklist guides={HOST_GUIDES} />
         <RuleCards />
         <Faq chapter="05" title="Before you deal" items={GUIDES_FAQ} />
-        <HostCtaB firstGuide={guideHref(HOST_GUIDES[0].slug)} />
       </main>
       <SiteFooter />
       <FloatingDock />

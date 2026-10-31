@@ -7,8 +7,6 @@ import { WhoWears } from './WhoWears'
 import { LevelUp } from './a/LevelUp'
 import { Progress } from './b/Progress'
 import { HostWall } from './b/HostWall'
-import { SummitCta } from './a/SummitCta'
-import { ShelfCta } from './b/ShelfCta'
 import { BADGE_FAQ } from './faq'
 
 /**
@@ -26,8 +24,6 @@ export function BadgesPageView({ tiers }: BadgesProps) {
         <Progress tiers={tiers} />
         <div id="who-holds" className="scroll-mt-20"><HostWall tiers={tiers} /></div>
         <Faq chapter="05" title="Badges, answered" items={BADGE_FAQ} />
-        <SummitCta tiers={tiers} />
-        <ShelfCta tiers={tiers} />
       </main>
       <SiteFooter />
       <FloatingDock />

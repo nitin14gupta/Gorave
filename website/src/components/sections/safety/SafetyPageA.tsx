@@ -9,7 +9,6 @@ import { AddressA } from './a/AddressA'
 import { SosA } from './a/SosA'
 import { CrowdA } from './a/CrowdA'
 import { TipsA } from './a/TipsA'
-import { CtaA } from './a/CtaA'
 
 /**
  * /safety, variant A"Your night, protected at every step". Daylight and
@@ -27,7 +26,6 @@ export function SafetyPageA({ crumbs }: { crumbs: Crumb[] }) {
         <CrowdA />
         <TipsA />
         <Faq chapter="06" title="Safety, answered" items={SAFETY_FAQ} />
-        <CtaA chapter="07" />
       </main>
       <SiteFooter />
       <FloatingDock />

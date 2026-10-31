@@ -3,7 +3,6 @@ import { CITIES } from '@/constants'
 import { priceHref, type PriceProps } from '@/lib/price'
 import { Faq } from '@/components/sections/shared/Faq'
 import { ExploreLinks } from '@/components/sections/shared/ExploreLinks'
-import { GoOutCta } from '@/components/sections/goingOut/kit'
 import { SiteFooter } from '@/components/layout/SiteFooter'
 import { FloatingDock } from '@/components/layout/FloatingDock'
 import { PriceHero } from './PriceHero'
@@ -68,9 +67,8 @@ export function PricePageView(props: PriceProps) {
 
         <Faq chapter="06" title={`${tier.label} nights, answered`} items={tier.faq} />
         <ExploreLinks place={place.city?.name ?? 'India'} citySlug={place.city?.slug ?? null} current={tier.slug} />
-        <GoOutCta n="07" />
       </main>
-      <SiteFooter />
+      <SiteFooter place={place.name} />
       <FloatingDock />
     </CityKitProvider>
   )

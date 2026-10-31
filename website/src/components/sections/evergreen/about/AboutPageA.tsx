@@ -8,7 +8,6 @@ import { Manifesto } from './a/Manifesto'
 import { Beliefs } from './a/Beliefs'
 import { Cities } from './a/Cities'
 import { HowItWorks } from './a/HowItWorks'
-import { SignOff } from './a/SignOff'
 import { Team } from './Founders'
 
 /**
@@ -28,7 +27,6 @@ export function AboutPageA({ stats, cities, events }: AboutProps) {
         <HowItWorks events={events} />
         <Team />
         <Faq chapter="06" title="About Gorave, answered" items={ABOUT_FAQ} />
-        <SignOff stats={stats} />
       </main>
       <SiteFooter />
       <FloatingDock />

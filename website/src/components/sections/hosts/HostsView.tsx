@@ -4,7 +4,7 @@ import type { PublicHostCard } from '@/lib/api'
 import { areaSlug } from '@/lib/city'
 import type { Crumb } from '@/lib/seo'
 import { Breadcrumbs } from '@/components/ui/Breadcrumbs'
-import { Chapter, StoreBadges } from '@/components/ui/atoms'
+import { Chapter } from '@/components/ui/atoms'
 import { Button } from '@/components/ui/Button'
 import { Stagger } from '@/components/sections/type/Stagger'
 import { SiteFooter } from '@/components/layout/SiteFooter'
@@ -77,19 +77,8 @@ export function HostsView({ city, area, hosts, total, crumbs }: Props) {
             </Link>
           </div>
         </section>
-
-        <section className="px-6 py-24 text-center md:px-20">
-          <Chapter n="02" title="Your turn" className="justify-center" />
-          <h2 className="mx-auto mt-4 max-w-[860px] font-display text-[clamp(44px,6vw,88px)] font-extrabold leading-[0.9] tracking-[-0.06em]">
-            Host in {place}.
-          </h2>
-          <div className="mt-9 flex flex-wrap items-center justify-center gap-4">
-            <Button href="/host" size="lg">Start hosting</Button>
-            <StoreBadges height={46} />
-          </div>
-        </section>
       </main>
-      <SiteFooter />
+      <SiteFooter place={place} />
       <FloatingDock />
     </>
   )

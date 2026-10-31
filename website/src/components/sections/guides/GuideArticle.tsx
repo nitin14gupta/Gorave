@@ -2,8 +2,7 @@ import { GUIDES_CRUMBS, guideHref, nextGuide, sectionId, type HostGuide } from '
 import { absoluteUrl, SITE_URL } from '@/lib/seo'
 import { PHOTOS } from '@/constants'
 import { JsonLd } from '@/components/ui/JsonLd'
-import { Button } from '@/components/ui/Button'
-import { Chapter, StoreBadges } from '@/components/ui/atoms'
+import { Chapter } from '@/components/ui/atoms'
 import { Reveal } from '@/components/motion/Reveal'
 import { SiteFooter } from '@/components/layout/SiteFooter'
 import { FloatingDock } from '@/components/layout/FloatingDock'
@@ -98,28 +97,6 @@ export function GuideArticle({ guide }: { guide: HostGuide }) {
         <section className="bg-cream px-6 pb-20 md:px-20 md:pb-28">
           <div className="mx-auto max-w-[1180px]">
             <NextGuideCard guide={next} href={guideHref(next.slug)} />
-          </div>
-        </section>
-
-        <section className="bg-paper px-6 py-24 text-ink md:px-20 md:py-28">
-          <div className="mx-auto flex max-w-[1180px] flex-wrap items-end justify-between gap-10">
-            <div>
-              <Chapter n="→" title="Your turn" />
-              <h2 className="mt-4 font-display text-[clamp(44px,6vw,92px)] font-extrabold leading-[0.88] tracking-[-0.06em]">
-                Ready to host<br />
-                <span className="font-serif font-normal italic tracking-[-0.02em] text-brand">your own?</span>
-              </h2>
-              <p className="mt-5 max-w-[460px] font-sans text-lg leading-relaxed text-ink-2">
-                Listing is free. Run two free-entry events a month, or sell tickets from ₹99 and keep 90%.
-              </p>
-            </div>
-            <div className="flex flex-col items-start gap-5">
-              <div className="flex flex-wrap gap-2.5">
-                <Button href="/host" size="lg">Start hosting</Button>
-                <Button href="/host/guides" kind="ghost" size="lg">All guides</Button>
-              </div>
-              <StoreBadges height={44} />
-            </div>
           </div>
         </section>
       </main>
