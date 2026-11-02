@@ -22,7 +22,7 @@ export default function TabsLayout() {
   const router = useRouter();
   const { profile } = useProfile();
   const avatarUrl = profile?.photos?.[0]?.url;
-  const unreadCount = useChatUnreadStore((s) => s.unreadCount);
+  const unreadCount = useChatUnreadStore((s) => s.unreadCount + s.unreadEventChats.length);
 
   useEffect(() => {
     syncChatUnreadCount();

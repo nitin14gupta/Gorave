@@ -42,6 +42,8 @@ interface Props {
   onSendVoice: () => void
   onDiscardVoice: () => void
   onUnblock: () => void
+  /** Off in group chats: one person's view would use it up for everyone. */
+  allowViewLimit?: boolean
   onDeleteChat: () => void
   onCancelReply: () => void
   onCancelEdit: () => void
@@ -102,7 +104,7 @@ const pv = StyleSheet.create({
 
 export function ChatInputBar({
   blockStatus, partnerIsDeleted, inputText, recordState, recordDurationMs, recordedVoice,
-  replyingTo, editingMessage, myId, partnerName,
+  replyingTo, editingMessage, myId, partnerName, allowViewLimit = true,
   onTextChange, onSend, onMicPress, onRecordStop, onRecordCancel,
   onSendVoice, onDiscardVoice,
   onUnblock, onDeleteChat, onCancelReply, onCancelEdit, onMediaSend, onLayout,
@@ -281,13 +283,13 @@ export function ChatInputBar({
       <MediaPickerSheet ref={sheetRef} onCamera={handleCamera} onLibrary={handleLibrary} />
       <MediaPreviewModal
         media={pendingMedia}
-        onSend={() => confirmSend(viewLimit)}
+        onSend={() => confirmSend(allowViewLimit ? viewLimit : null)}
         onCancel={cancelPreview}
         onRemove={removeFromPreview}
         onUpdate={updatePreview}
         freeStyleCrop
-        viewLimit={viewLimit}
-        onViewLimitChange={setViewLimit}
+        viewLimit={allowViewLimit ? viewLimit : undefined}
+        onViewLimitChange={allowViewLimit ? setViewLimit : undefined}
       />
     </>
   )

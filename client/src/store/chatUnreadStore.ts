@@ -4,11 +4,18 @@ import ApiService from '@/api/apiService'
 interface ChatUnreadState {
   unreadCount: number
   setUnreadCount: (n: number) => void
+  /** Event chats with something unread. */
+  unreadEventChats: string[]
+  setUnreadEventChats: (ids: string[]) => void
+  setEventChatRead: (eventId: string) => void
 }
 
 export const useChatUnreadStore = create<ChatUnreadState>((set) => ({
   unreadCount: 0,
   setUnreadCount: (n) => set({ unreadCount: n }),
+  unreadEventChats: [],
+  setUnreadEventChats: (ids) => set({ unreadEventChats: ids }),
+  setEventChatRead: (eventId) => set(s => ({ unreadEventChats: s.unreadEventChats.filter(id => id !== eventId) })),
 }))
 
 export async function syncChatUnreadCount() {

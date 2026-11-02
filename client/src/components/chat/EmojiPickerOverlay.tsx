@@ -33,11 +33,14 @@ interface Props {
   onSelectMessage: () => void
   onEdit: () => void
   onClose: () => void
+  /** Group chats: host actions, and no multi-select. */
+  extraActions?: { label: string; danger?: boolean; onPress: () => void }[]
+  hideSelect?: boolean
 }
 
 export function EmojiPickerOverlay({
   msgId, pageY, isMine, currentEmoji, canCopy, canEdit, canForward,
-  onSelect, onReply, onCopy, onForward, onReport, onUnsend, onDeleteForMe, onSelectMessage, onEdit, onClose,
+  onSelect, onReply, onCopy, onForward, onReport, onUnsend, onDeleteForMe, onSelectMessage, onEdit, onClose, extraActions = [], hideSelect = false
 }: Props) {
   const [showFullPicker, setShowFullPicker] = useState(false)
   const scale = useSharedValue(0.7)
@@ -53,7 +56,7 @@ export function EmojiPickerOverlay({
     opacity: opacity.value,
   }))
 
-  const actionRowCount = 1 + (canForward ? 1 : 0) + (canCopy ? 1 : 0) + (isMine && canEdit ? 1 : 0) + (!isMine ? 1 : 0) + (isMine ? 1 : 0) + 1 + 1 // reply, forward?, copy?, edit?, report?, unsend?, delete for me, select
+  const actionRowCount = extraActions.length - (hideSelect ? 1 : 0) + 1 + (canForward ? 1 : 0) + (canCopy ? 1 : 0) + (isMine && canEdit ? 1 : 0) + (!isMine ? 1 : 0) + (isMine ? 1 : 0) + 1 + 1 // reply, forward?, copy?, edit?, report?, unsend?, delete for me, select
   const actionCardHeight = actionRowCount * ACTION_ROW_HEIGHT + 8
   const totalHeight = PICKER_HEIGHT + GAP + actionCardHeight
 
@@ -134,10 +137,17 @@ export function EmojiPickerOverlay({
               <Trash2 size={19} color={Colors.destructive} strokeWidth={1.8} />
               <Text style={[s.actionText, s.danger]}>Delete for me</Text>
             </Pressable>
-            <Pressable style={s.actionRow} onPress={() => runAction(onSelectMessage)} hitSlop={2}>
-              <CheckSquare size={19} color={Colors.inkPrimary} strokeWidth={1.8} />
-              <Text style={s.actionText}>Select</Text>
-            </Pressable>
+            {extraActions.map(a => (
+              <Pressable key={a.label} style={s.actionRow} onPress={() => runAction(a.onPress)} hitSlop={2}>
+                <Text style={[s.actionText, a.danger && s.danger]}>{a.label}</Text>
+              </Pressable>
+            ))}
+            {!hideSelect && (
+              <Pressable style={s.actionRow} onPress={() => runAction(onSelectMessage)} hitSlop={2}>
+                <CheckSquare size={19} color={Colors.inkPrimary} strokeWidth={1.8} />
+                <Text style={s.actionText}>Select</Text>
+              </Pressable>
+            )}
           </View>
         </Animated.View>
       </Modal>

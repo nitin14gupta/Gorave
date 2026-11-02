@@ -8,6 +8,8 @@ export const CacheKeys = {
 
   chatConversations: 'chat:conversations',
   chatMessages: (conversationId: string) => `chat:messages:${conversationId}`,
+  /** The chat: prefix keeps it encrypted on disk. */
+  eventChat: (eventId: string) => `chat:event:${eventId}`,
 
   /** No userId → the signed-in user's own profile. */
   profile: (userId?: string) => (userId ? `profile:${userId}` : 'profile:me'),

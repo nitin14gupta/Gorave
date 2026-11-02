@@ -47,12 +47,22 @@ import type {
   BulkAcceptResponse,
   GenderCounts,
   AlbumPage,
+  EventChat,
+  EventChatMember,
+  EventChatMessage,
+  EventChatRow,
+  EventChatSeen,
 } from '@/types/api'
 
 // Response/request shapes live in '@/types/api' — re-exported here so
 // existing `import { X } from '@/api/apiService'` call sites keep working.
 export type {
   AlbumPage,
+  EventChat,
+  EventChatMember,
+  EventChatMessage,
+  EventChatRow,
+  EventChatSeen,
   AlbumPhoto,
   EventAlbum,
   CancelReason,
@@ -580,6 +590,30 @@ class ApiService {
       if (e?.status !== 404) throw e
       return `token=${useAuthStore.getState().accessToken ?? ''}`
     }
+  }
+
+  static getEventChats() { return this.get<EventChatRow[]>('/event-chats') }
+  static getEventChat(eventId: string) { return this.get<EventChat>(`/event-chats/${eventId}`) }
+  static getEventChatMembers(eventId: string) { return this.get<EventChatMember[]>(`/event-chats/${eventId}/members`) }
+
+  static getEventChatMessages(eventId: string, before?: string) {
+    const query = before ? `?before=${encodeURIComponent(before)}` : ''
+    return this.get<{ messages: EventChatMessage[]; seen: EventChatSeen[] }>(`/event-chats/${eventId}/messages${query}`)
+  }
+
+  static sendEventChatMessage(eventId: string, body: { content: string | null; content_type: string; metadata?: object | null; client_id: string }) {
+    return this.post<EventChatMessage>(`/event-chats/${eventId}/messages`, body)
+  }
+
+  static muteEventChat(eventId: string, muted: boolean) { return this.post(`/event-chats/${eventId}/mute`, { muted }) }
+  static lockEventChat(eventId: string, locked: boolean) { return this.post(`/event-chats/${eventId}/lock`, { locked }) }
+  static postEventChatUpdate(eventId: string, content: string) { return this.post(`/event-chats/${eventId}/update`, { content }) }
+  static pinEventChatMessage(eventId: string, messageId: string | null) { return this.post(`/event-chats/${eventId}/pin`, { message_id: messageId }) }
+  static deleteEventChatMessage(eventId: string, messageId: string) { return this.delete(`/event-chats/${eventId}/messages/${messageId}`) }
+  static removeEventChatMember(eventId: string, userId: string) { return this.post(`/event-chats/${eventId}/members/${userId}/remove`, {}) }
+
+  static async getEventChatWsUrl(eventId: string): Promise<string> {
+    return `${WS_BASE_URL}/ws/event-chat/${eventId}?${await this.wsAuthQuery()}`
   }
 
   static async getChatWsUrl(convId: string): Promise<string> {

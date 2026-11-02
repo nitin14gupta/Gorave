@@ -109,6 +109,11 @@ export interface EventPhoto {
 }
 
 /** After-party album on the event page. Null when this viewer isn't allowed in. */
+export interface EventChatSummary {
+  unread: number
+  closed: boolean
+}
+
 export interface EventAlbum {
   can_view: boolean
   can_add: boolean
@@ -252,6 +257,8 @@ export interface EventDetail extends EventSummary {
   /** Can I cancel my own spot, until when, and what comes back. Only when going. */
   my_cancel?: MyCancelQuote | null
   album?: EventAlbum | null
+  /** Null when this viewer isn't in the group chat. */
+  chat?: EventChatSummary | null
   /** Can I pass my ticket to a friend (paid only, once), and is an offer waiting. */
   my_transfer?: MyTransferQuote | null
   /** Join requests this viewer can still send for this event (server caps at max_join_requests) */
@@ -449,12 +456,45 @@ export interface LinkPreview {
   image: string | null
 }
 
+export interface EventChatMember {
+  id: string
+  role: 'host' | 'guest'
+  name: string | null
+  username: string | null
+  avatar: string | null
+  last_read_at: string
+}
+
+export interface EventChatSeen {
+  id: string
+  name: string | null
+  avatar: string | null
+  last_read_at: string
+}
+
+export interface EventChatRow {
+  event_id: string
+  title: string
+  date_time: string
+  cover: string | null
+  closed: boolean
+  muted: boolean
+  posting_locked: boolean
+  member_count: number
+  unread_count: number
+  last_message: string | null
+  last_message_type: string | null
+  last_sent_at: string | null
+  last_sender_name: string | null
+  last_sender_id: string | null
+}
+
 export interface Message {
   id: string
   conversation_id: string
   sender_id: string
   content: string | null
-  content_type: 'text' | 'event' | 'profile' | 'image' | 'voice' | 'video' | 'gif' | 'ticket' | 'unavailable'
+  content_type: 'text' | 'event' | 'profile' | 'image' | 'voice' | 'video' | 'gif' | 'ticket' | 'unavailable' | 'system' | 'update'
   metadata: Record<string, any> | null
   sent_at: string
   read_at: string | null
@@ -583,3 +623,24 @@ export interface TransferPreview {
 
 /** Why a guest cancelled (from the "Can't make it?" sheet). */
 export type CancelReason = 'plans_changed' | 'unwell' | 'date' | 'other'
+
+export interface EventChatMessage extends Message {
+  sender: { id: string; name: string | null; avatar: string | null; is_host: boolean }
+}
+
+export interface EventChat {
+  event_id: string
+  conversation_id: string
+  title: string
+  date_time: string
+  area: string | null
+  cover: string | null
+  host_id: string
+  is_host: boolean
+  posting_locked: boolean
+  closed: boolean
+  muted: boolean
+  member_count: number
+  pinned: EventChatMessage | null
+  blocked_ids: string[]
+}

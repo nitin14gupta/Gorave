@@ -415,6 +415,9 @@ async def event_chat_socket(event_id: str, websocket: WebSocket, ticket: Optiona
     await websocket.accept()
     await rt.join_conv(conv_id, websocket, uid)
     await rt.mark_present(uid, conv_id)
+    with get_db() as (cur, _):
+        cur.execute("SELECT name FROM users WHERE id = %s::uuid", (uid,))
+        my_name = (cur.fetchone() or {}).get("name")
 
     def still_in() -> bool:
         # Every frame: a removed guest must stop at their next move, not at
@@ -456,7 +459,7 @@ async def event_chat_socket(event_id: str, websocket: WebSocket, ticket: Optiona
             if kind == "typing":
                 if await rt.allow(f"typing:{uid}", rt.TYPING_LIMIT):
                     await rt.emit(conv_id, {
-                        "type": "typing", "user_id": uid, "name": data.get("name"),
+                        "type": "typing", "user_id": uid, "name": my_name,
                         "is_typing": data.get("is_typing", False), "mode": data.get("mode", "text"),
                     }, exclude=websocket, skip_user=uid)
 

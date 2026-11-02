@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef } from 'react'
 import { useFocusEffect } from 'expo-router'
-import ApiService, { Conversation, VibeRequest } from '@/api/apiService'
+import ApiService, { Conversation, EventChatRow, VibeRequest } from '@/api/apiService'
 import { useChatUnreadStore } from '@/store/chatUnreadStore'
 import { useInboxSocket } from '@/hooks/useInboxSocket'
 import { invalidate, peekCached, setCached } from '@/lib/queryCache'
@@ -26,6 +26,7 @@ export function useConversations() {
   const [activeConversations, setActiveConversations] = useState<Conversation[]>(initialCache?.active ?? [])
   const [lockedConversations, setLockedConversations] = useState<Conversation[]>(initialCache?.locked ?? [])
   const [pendingVibes, setPendingVibes] = useState<VibeRequest[]>(initialCache?.pending ?? [])
+  const [eventChats, setEventChats] = useState<EventChatRow[]>([])
   const [loading, setLoading] = useState(!initialCache)
   const [loadingMore, setLoadingMore] = useState(false)
   const [hasMore, setHasMore] = useState(false)
@@ -35,10 +36,16 @@ export function useConversations() {
   const refresh = useCallback(async () => {
     setError(false)
     try {
-      const [convData, vibeData] = await Promise.all([
+      const [convData, vibeData, groups] = await Promise.all([
         ApiService.getConversations(PAGE_SIZE, 0),
         ApiService.getReceivedVibes(),
+        // Never let a group chat problem take the whole inbox down.
+        ApiService.getEventChats().catch(() => null),
       ])
+      if (groups) {
+        setEventChats(groups)
+        useChatUnreadStore.getState().setUnreadEventChats(groups.filter(g => g.unread_count > 0).map(g => g.event_id))
+      }
       const active = [...convData.active].sort(byRecent)
       const locked = [...convData.locked].sort(byRecent)
       const pending = [...vibeData].sort((a, b) => b.created_at.localeCompare(a.created_at))
@@ -127,6 +134,7 @@ export function useConversations() {
 
   return {
     setPinned,
+    eventChats,
     deleteChat,
     activeConversations,
     lockedConversations,

@@ -74,6 +74,7 @@ Routes live in `client/src/app/` (Expo Router). `(group)` folders don't show in 
 | 25 | Rate the night | `(events)/[id]/review` | Event photo with parallax, five big stars with a word for each, an optional note | ✅ |
 | 26 | Reviews | `(events)/[id]/reviews` | Event photo with parallax and the score set huge over it, 5-to-1 bars, star filter chips, a clean list with hairline dividers. Opened from My Events, Past, Reviews | ✅ |
 | 26a | After-party album | `(events)/[id]/album` | 3-column 4:5 grid of photos from people who were there, Add photos button with progress, viewer with remove and report. Opens from Home ("Drop your pics"), the event page, Rate the night, Joined Events (Past) and notifications |
+| 26b | Event group chat | `(chat)/event/[id]` | One chat per event for confirmed guests and the host: names and faces on bubbles, seen-by faces under the newest message, host update cards pinned at the top, automatic lines through the night. Host can post updates, lock posting, delete messages and remove people. Closes 24h after the event. Opens from Chat (Your events), the event page and notifications |
 
 ### 5. Events (as a host)
 

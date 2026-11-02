@@ -169,6 +169,10 @@ export default function NotificationsScreen() {
       router.push(`/(events)/${item.entity_id}/review` as any)
       return
     }
+    if (item.type === 'chat_update' && item.entity_id) {
+      router.push(`/(chat)/event/${item.entity_id}` as any)
+      return
+    }
     if ((item.type === 'album_prompt' || item.type === 'album_photos') && item.entity_id) {
       router.push(`/(events)/${item.entity_id}/album` as any)
       return

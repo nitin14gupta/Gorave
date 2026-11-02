@@ -2,7 +2,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { Image } from 'expo-image'
 import { LinearGradient } from 'expo-linear-gradient'
 import { router } from 'expo-router'
-import { Camera, ChevronRight, Ghost, Star } from 'lucide-react-native'
+import { Camera, ChevronRight, Ghost, MessagesSquare, Star } from 'lucide-react-native'
 import type { EventAlbum, EventDetail, EventGuest } from '@/api/apiService'
 import { photosLabel } from '@/lib/album'
 import { hTap } from '@/lib/haptics'
@@ -120,6 +120,17 @@ export function EventSocialSections({ event, eventId, isHost, guests, guestTotal
         </Pressable>
       ) : null}
 
+      {event.chat ? (
+        <Pressable style={[s.block, s.chatRow]} onPress={() => { hTap(); router.push(`/(chat)/event/${eventId}` as any) }} accessibilityRole="button">
+          <MessagesSquare size={20} color={Colors.inkPrimary} strokeWidth={1.8} />
+          <View style={s.flex}>
+            <Text style={s.title}>Group chat</Text>
+            <Text style={s.label}>{event.chat.closed ? 'This chat has closed' : event.chat.unread > 0 ? `${event.chat.unread} new` : 'Everyone going is in here'}</Text>
+          </View>
+          <ChevronRight size={15} color={Colors.inkSecondary} strokeWidth={2} />
+        </Pressable>
+      ) : null}
+
       {album ? (
         <View style={s.block}>
           <Pressable style={s.banner} onPress={() => openAlbum(eventId, album.count === 0 && album.can_add)} accessibilityRole="button">
@@ -168,6 +179,7 @@ const s = StyleSheet.create({
   block: { gap: 14, paddingVertical: 18, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: Colors.divider },
   blockHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   title: { fontFamily: FontFamily.headingBold, fontSize: 17, color: Colors.inkPrimary },
+  chatRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   link: { flexDirection: 'row', alignItems: 'center', gap: 2 },
   linkText: { fontFamily: FontFamily.bodyMedium, fontSize: 13, color: Colors.inkSecondary },
   banner: { height: 164, borderRadius: 20, overflow: 'hidden', backgroundColor: Colors.surface },

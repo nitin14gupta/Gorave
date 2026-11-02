@@ -15,6 +15,7 @@ import { ConfirmSheet, VibeInboxSheet, VibeIcebreakerModal, LogoMark, ProfileMen
 import { ChatSearchModal } from '@/components/chat/ChatSearchModal'
 import { usePillStore } from '@/store/pillStore'
 import { byRecent, useConversations } from '@/hooks/useConversations'
+import { EventChatsSection } from '@/components/chat/EventChatsSection'
 import { useExpandTabBarOnFocus } from '@/hooks/useExpandTabBarOnFocus'
 import { useAuthStore } from '@/store/auth'
 import ApiService from '@/api/apiService'
@@ -194,6 +195,7 @@ export default function ChatScreen() {
     passVibe,
     setPinned,
     deleteChat,
+    eventChats,
   } = useConversations()
   const [deleteTarget, setDeleteTarget] = useState<Conversation | null>(null)
 
@@ -212,7 +214,7 @@ export default function ChatScreen() {
     ...lockedConversations.slice().sort(byRecent),
   ]
 
-  const isEmpty = !loading && !error && allConvs.length === 0 && pendingVibes.length === 0
+  const isEmpty = !loading && !error && allConvs.length === 0 && pendingVibes.length === 0 && eventChats.length === 0
 
   const openConversation = (item: Conversation) => {
     if (item.status === 'active') {
@@ -332,7 +334,10 @@ export default function ChatScreen() {
           refreshControl={<BrandedRefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
           contentContainerStyle={s.listContent}
           ListHeaderComponent={
-            <View style={{ paddingHorizontal: 20, paddingTop: 14, paddingBottom: 6 }}><ChatTop vibes={pendingVibes} onOpenVibes={() => setInboxOpen(true)} /></View>
+            <>
+              <EventChatsSection chats={eventChats} myId={currentUserId} />
+              <View style={{ paddingHorizontal: 20, paddingTop: 14, paddingBottom: 6 }}><ChatTop vibes={pendingVibes} onOpenVibes={() => setInboxOpen(true)} /></View>
+            </>
           }
           onEndReachedThreshold={0.4}
           onEndReached={() => {
