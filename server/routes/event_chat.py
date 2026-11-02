@@ -8,7 +8,7 @@ from pydantic import BaseModel
 from db.config import get_db
 from middleware.auth import get_current_user
 from routes.chat import (
-    CLIENT_CONTENT_TYPES, MAX_MESSAGE_CHARS, MSG_COLUMNS, WS_SESSION_EXPIRED, _insert_message,
+    CLIENT_CONTENT_TYPES, MAX_MESSAGE_CHARS, MAX_PINNED_CHATS, MSG_COLUMNS, WS_SESSION_EXPIRED, _insert_message,
     _parse_client_id, _receive, _serialize, _ws_user,
 )
 from utils import chat_realtime as rt, event_chat as ec
@@ -139,7 +139,7 @@ def list_chats(current_user: dict = Depends(get_current_user)):
         blocked = _blocked_ids(cur, uid)
         cur.execute(
             f"""
-            SELECT c.event_id::text, c.closed_at, c.last_message_at, c.posting_locked, m.muted,
+            SELECT c.event_id::text, c.closed_at, c.last_message_at, c.posting_locked, m.muted, pin.pinned_at,
                 e.title, e.date_time::text, e.cover_photos,
                 (SELECT COUNT(*)::int FROM conversation_members cm WHERE cm.conversation_id = c.id AND cm.left_at IS NULL AND cm.removed_at IS NULL) AS member_count,
                 (SELECT COUNT(*)::int FROM messages msg
@@ -156,14 +156,16 @@ def list_chats(current_user: dict = Depends(get_current_user)):
                 ORDER BY msg.sent_at DESC LIMIT 1
             ) last ON TRUE
             LEFT JOIN users last_u ON last_u.id = last.sender_id
+            LEFT JOIN conversation_pins pin ON pin.conversation_id = c.id AND pin.user_id = m.user_id
             WHERE m.user_id = %(me)s::uuid AND {ec.ACTIVE_MEMBER} AND {CLOSED_FOR_GOOD}
-            ORDER BY (c.closed_at IS NULL) DESC, COALESCE(c.last_message_at, c.created_at) DESC
+            ORDER BY (pin.pinned_at IS NOT NULL AND c.closed_at IS NULL) DESC, pin.pinned_at DESC NULLS LAST, (c.closed_at IS NULL) DESC, COALESCE(c.last_message_at, c.created_at) DESC
             """,
             {"me": uid, "blocked": blocked},
         )
         rows = cur.fetchall()
     return [{
-        **{k: v for k, v in r.items() if k not in ("cover_photos", "closed_at", "last_message_at", "last_sent_at")},
+        **{k: v for k, v in r.items() if k not in ("cover_photos", "closed_at", "last_message_at", "last_sent_at", "pinned_at")},
+        "pinned": r["pinned_at"] is not None,
         "cover": _cover(r["cover_photos"]),
         "closed": r["closed_at"] is not None,
         "last_sent_at": r["last_sent_at"].isoformat() if r["last_sent_at"] else None,
@@ -274,6 +276,34 @@ def set_mute(event_id: str, body: MuteBody, current_user: dict = Depends(get_cur
         cur.execute("UPDATE conversation_members SET muted = %s WHERE conversation_id = %s::uuid AND user_id = %s::uuid", (body.muted, chat["id"], uid))
         conn.commit()
     return {"muted": body.muted}
+
+
+class ListPinBody(BaseModel):
+    pinned: bool
+
+
+@router.post("/event-chats/{event_id}/list-pin")
+def set_list_pin(event_id: str, body: ListPinBody, current_user: dict = Depends(get_current_user)):
+    """Keeps this chat on top of Your events, for you only."""
+    uid = current_user["id"]
+    with get_db() as (cur, conn):
+        chat = _load(cur, event_id, uid)
+        if not body.pinned:
+            cur.execute("DELETE FROM conversation_pins WHERE user_id = %s::uuid AND conversation_id = %s::uuid", (uid, chat["id"]))
+        else:
+            cur.execute(
+                """
+                SELECT p.conversation_id::text FROM conversation_pins p JOIN conversations c ON c.id = p.conversation_id
+                WHERE p.user_id = %s::uuid AND c.kind = 'event' AND c.closed_at IS NULL
+                """,
+                (uid,),
+            )
+            pinned = {r["conversation_id"] for r in cur.fetchall()}
+            if chat["id"] not in pinned and len(pinned) >= MAX_PINNED_CHATS:
+                raise HTTPException(status_code=409, detail=f"You can pin up to {MAX_PINNED_CHATS} event chats")
+            cur.execute("INSERT INTO conversation_pins (user_id, conversation_id) VALUES (%s::uuid, %s::uuid) ON CONFLICT DO NOTHING", (uid, chat["id"]))
+        conn.commit()
+    return {"pinned": body.pinned}
 
 
 @router.get("/event-chats/{event_id}/members")

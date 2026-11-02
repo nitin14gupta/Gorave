@@ -16,6 +16,7 @@ once it ships.
   - `2026-11-03_chat_pins.sql`
   - `2026-11-03_chat_delete.sql`
   - `2026-11-03_event_chat.sql`
+  - `2026-11-03_chat_mutes.sql`
 
   All are in `server/scripts/sql/`.
 - [ ] Production server env: set `R2_CHAT_BUCKET=gorave-chat`.

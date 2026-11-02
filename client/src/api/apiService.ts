@@ -664,6 +664,12 @@ class ApiService {
     await this.post<{ ok: boolean }>(endpoint, { reason })
   }
 
+  static async muteConversation(convId: string, muted: boolean): Promise<void> {
+    await this.post<{ muted: boolean }>(`${ENDPOINTS.CONV_DELETE.replace(':id', convId)}/mute`, { muted })
+  }
+
+  static pinEventChat(eventId: string, pinned: boolean) { return this.post(`/event-chats/${eventId}/list-pin`, { pinned }) }
+
   static async pinConversation(convId: string, on: boolean): Promise<void> {
     const endpoint = `${ENDPOINTS.CONV_DELETE.replace(':id', convId)}/pin`
     if (on) await this.post<{ ok: boolean }>(endpoint, {})

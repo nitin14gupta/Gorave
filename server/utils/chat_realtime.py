@@ -423,13 +423,24 @@ async def _trailing_push(to_uid: str, conv_id: str, sender_name: str) -> None:
         warn_redis("trailing push", e)
 
 
+def _muted_sync(uid: str, conv_id: str) -> bool:
+    from db.config import get_db
+    with get_db() as (cur, _):
+        cur.execute("SELECT 1 FROM conversation_mutes WHERE user_id = %s::uuid AND conversation_id = %s::uuid", (uid, conv_id))
+        return cur.fetchone() is not None
+
+
+async def is_muted(uid: str, conv_id: str) -> bool:
+    return await asyncio.to_thread(_muted_sync, uid, conv_id)
+
+
 async def notify_new_message(to_uid: Optional[str], conv_id: str, sender_name: str) -> None:
     """At most one push per chat every 15s, and none while they have the chat
     open. Messages that arrive inside the gap are summed into one trailing
     push: "Sent you 4 messages"."""
     if not to_uid:
         return
-    if await has_chat_open(to_uid, conv_id):
+    if await has_chat_open(to_uid, conv_id) or await is_muted(to_uid, conv_id):
         return
     r = await get_redis()
     if not r:

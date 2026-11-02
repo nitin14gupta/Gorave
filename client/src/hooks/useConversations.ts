@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef } from 'react'
 import { useFocusEffect } from 'expo-router'
-import ApiService, { Conversation, EventChatRow, VibeRequest } from '@/api/apiService'
+import ApiService, { Conversation, VibeRequest } from '@/api/apiService'
 import { useChatUnreadStore } from '@/store/chatUnreadStore'
 import { useInboxSocket } from '@/hooks/useInboxSocket'
 import { invalidate, peekCached, setCached } from '@/lib/queryCache'
@@ -26,7 +26,6 @@ export function useConversations() {
   const [activeConversations, setActiveConversations] = useState<Conversation[]>(initialCache?.active ?? [])
   const [lockedConversations, setLockedConversations] = useState<Conversation[]>(initialCache?.locked ?? [])
   const [pendingVibes, setPendingVibes] = useState<VibeRequest[]>(initialCache?.pending ?? [])
-  const [eventChats, setEventChats] = useState<EventChatRow[]>([])
   const [loading, setLoading] = useState(!initialCache)
   const [loadingMore, setLoadingMore] = useState(false)
   const [hasMore, setHasMore] = useState(false)
@@ -36,16 +35,10 @@ export function useConversations() {
   const refresh = useCallback(async () => {
     setError(false)
     try {
-      const [convData, vibeData, groups] = await Promise.all([
+      const [convData, vibeData] = await Promise.all([
         ApiService.getConversations(PAGE_SIZE, 0),
         ApiService.getReceivedVibes(),
-        // Never let a group chat problem take the whole inbox down.
-        ApiService.getEventChats().catch(() => null),
       ])
-      if (groups) {
-        setEventChats(groups)
-        useChatUnreadStore.getState().setUnreadEventChats(groups.filter(g => g.unread_count > 0).map(g => g.event_id))
-      }
       const active = [...convData.active].sort(byRecent)
       const locked = [...convData.locked].sort(byRecent)
       const pending = [...vibeData].sort((a, b) => b.created_at.localeCompare(a.created_at))
@@ -103,6 +96,17 @@ export function useConversations() {
     }
   }, [])
 
+  const setMuted = useCallback(async (conv: Conversation, muted: boolean) => {
+    const apply = (value: boolean) => setActiveConversations(prev => prev.map(c => (c.id === conv.id ? { ...c, muted: value } : c)))
+    apply(muted)
+    try {
+      await ApiService.muteConversation(conv.id, muted)
+    } catch (e) {
+      apply(!muted)
+      throw e
+    }
+  }, [])
+
   /** Moves it straight away and quietly puts it back if the server says no. */
   const setPinned = useCallback(async (conv: Conversation, on: boolean) => {
     const apply = (pinnedAt: string | null) => setActiveConversations(prev =>
@@ -134,7 +138,7 @@ export function useConversations() {
 
   return {
     setPinned,
-    eventChats,
+    setMuted,
     deleteChat,
     activeConversations,
     lockedConversations,

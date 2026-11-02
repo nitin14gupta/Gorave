@@ -74,6 +74,13 @@ CREATE TABLE IF NOT EXISTS public.conversation_members (
   CONSTRAINT conversation_members_pkey PRIMARY KEY (conversation_id, user_id)
 );
 
+CREATE TABLE IF NOT EXISTS public.conversation_mutes (
+  user_id uuid NOT NULL,
+  conversation_id uuid NOT NULL,
+  muted_at timestamp with time zone DEFAULT now() NOT NULL,
+  CONSTRAINT conversation_mutes_pkey PRIMARY KEY (user_id, conversation_id)
+);
+
 CREATE TABLE IF NOT EXISTS public.conversation_pins (
   user_id uuid NOT NULL,
   conversation_id uuid NOT NULL,
@@ -530,6 +537,8 @@ ALTER TABLE public.conversation_clears ADD CONSTRAINT conversation_clears_conver
 ALTER TABLE public.conversation_clears ADD CONSTRAINT conversation_clears_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
 ALTER TABLE public.conversation_members ADD CONSTRAINT conversation_members_conversation_id_fkey FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE;
 ALTER TABLE public.conversation_members ADD CONSTRAINT conversation_members_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
+ALTER TABLE public.conversation_mutes ADD CONSTRAINT conversation_mutes_conversation_id_fkey FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE;
+ALTER TABLE public.conversation_mutes ADD CONSTRAINT conversation_mutes_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
 ALTER TABLE public.conversation_pins ADD CONSTRAINT conversation_pins_conversation_id_fkey FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE;
 ALTER TABLE public.conversation_pins ADD CONSTRAINT conversation_pins_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
 ALTER TABLE public.conversations ADD CONSTRAINT conversations_event_id_fkey FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE;

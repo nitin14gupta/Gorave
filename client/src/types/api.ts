@@ -425,6 +425,8 @@ export interface Conversation {
   block_status?: 'none' | 'i_blocked' | 'they_blocked'
   /** Set when you've pinned this chat. Only you can see it. */
   pinned_at?: string | null
+  /** No pushes from this chat for you. */
+  muted?: boolean
 }
 
 export interface EventAttendee {
@@ -474,6 +476,7 @@ export interface EventChatSeen {
 
 export interface EventChatRow {
   event_id: string
+  pinned: boolean
   title: string
   date_time: string
   cover: string | null

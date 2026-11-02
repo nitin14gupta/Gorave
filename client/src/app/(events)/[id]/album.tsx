@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { ActivityIndicator, Dimensions, FlatList, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { ActivityIndicator, Dimensions, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { Image } from 'expo-image'
+import Animated, { useAnimatedScrollHandler, useSharedValue } from 'react-native-reanimated'
 import { router, useLocalSearchParams } from 'expo-router'
 import { ArrowLeft, Camera, Flag, ImagePlus, PartyPopper, Trash2 } from 'lucide-react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -10,24 +11,17 @@ import { MediaViewerModal } from '@/components/chat/MediaViewerModal'
 import { AlbumPhotoSheet, type AlbumSheetMode } from '@/components/events/AlbumPhotoSheet'
 import { AlbumCollageRow, collageRows } from '@/components/events/AlbumCollageRow'
 import { VoteBurst } from '@/components/events/VoteBurst'
-import { LabSwitch } from '@/components/lab/LabSwitch'
 import { BrandedRefreshControl, EmptyState, HeaderIconBtn, PrimaryButton } from '@/components/ui'
 import { LargeTitleBar, useLargeTitle } from '@/components/ui/LargeTitle'
 import { useAlbum } from '@/hooks/useAlbum'
 import { photosLabel } from '@/lib/album'
 import { parseServerDate } from '@/lib/dates'
 import { hSuccess, hTap } from '@/lib/haptics'
-import { useLabVariant } from '@/store/labStore'
 import { usePillStore } from '@/store/pillStore'
 import { Colors, FontFamily, withOpacity } from '@/constants'
 
-const GAP = 2
-const COLUMNS = 3
-const CELL_W = (Dimensions.get('window').width - GAP * (COLUMNS - 1)) / COLUMNS
-const CELL_H = CELL_W * 1.25 // 4:5, like every event photo
 const BEST_W = Dimensions.get('window').width * 0.4
 const BURST_MS = 800
-const LAB_SCREEN = 'album-screen'
 
 function closingLine(closesAt: string | null) {
   const d = closesAt ? parseServerDate(closesAt) : null
@@ -40,10 +34,11 @@ export default function AlbumScreen() {
   const { id, add } = useLocalSearchParams<{ id: string; add?: string }>()
   const insets = useSafeAreaInsets()
   const showPill = usePillStore(s => s.show)
-  const { scrollY, onScroll, barHeight } = useLargeTitle()
+  const { scrollY, barHeight } = useLargeTitle()
+  const headerHeight = useSharedValue(0)
+  const onScroll = useAnimatedScrollHandler(e => { scrollY.value = e.contentOffset.y })
   const album = useAlbum(id!)
-  const collage = useLabVariant(LAB_SCREEN) === 'b'
-  const rows = useMemo(() => (collage ? collageRows(album.photos) : []), [collage, album.photos])
+  const rows = useMemo(() => collageRows(album.photos), [album.photos])
   const [viewIndex, setViewIndex] = useState<number | null>(null)
   const [sheet, setSheet] = useState<{ mode: AlbumSheetMode; photo: AlbumPhoto } | null>(null)
   const [burst, setBurst] = useState(0)
@@ -123,7 +118,7 @@ export default function AlbumScreen() {
 
   const meta = [photosLabel(album.count), album.canAdd ? closingLine(album.closesAt) : 'Closed for new photos'].filter(Boolean).join(' · ')
   const header = all.length > 0 ? (
-    <>
+    <View onLayout={e => { headerHeight.value = e.nativeEvent.layout.height + barHeight }}>
       <View style={s.intro}>
         <Text style={s.meta}>{meta}</Text>
         <Text style={s.private}>Only people who were there can see these. Double tap your favourite moments.</Text>
@@ -141,7 +136,7 @@ export default function AlbumScreen() {
           </ScrollView>
         </View>
       ) : null}
-    </>
+    </View>
   ) : null
 
   const uploading = album.upload && album.upload.done < album.upload.total
@@ -162,12 +157,9 @@ export default function AlbumScreen() {
           <EmptyState icon={<Camera size={52} color={Colors.inkDisabled} strokeWidth={1.2} />} title="Can't open this album" subtitle={album.error} />
         </View>
       ) : (
-        <FlatList<any>
-          key={collage ? 'collage' : 'grid'}
-          data={collage ? rows : album.photos}
-          keyExtractor={item => (collage ? item.key : item.id)}
-          numColumns={collage ? 1 : COLUMNS}
-          columnWrapperStyle={collage ? undefined : s.row}
+        <Animated.FlatList
+          data={rows}
+          keyExtractor={item => item.key}
           ListHeaderComponent={header}
           ListEmptyComponent={
             <View style={s.empty}>
@@ -187,13 +179,8 @@ export default function AlbumScreen() {
           maxToRenderPerBatch={12}
           windowSize={7}
           refreshControl={<BrandedRefreshControl refreshing={album.refreshing} onRefresh={album.refresh} />}
-          renderItem={({ item, index }) => collage ? (
-            <AlbumCollageRow row={item} onOpen={i => { hTap(); setViewIndex(album.best.length + i) }} />
-          ) : (
-            <Pressable onPress={() => { hTap(); setViewIndex(album.best.length + index) }} accessibilityLabel="Open photo">
-              <Image source={{ uri: item.url, cacheKey: item.key }} style={s.cell} contentFit="cover" cachePolicy="memory-disk" transition={120} />
-              {item.voted ? <View style={s.mark}><PartyPopper size={13} color={Colors.background} strokeWidth={2.2} /></View> : null}
-            </Pressable>
+          renderItem={({ item }) => (
+            <AlbumCollageRow row={item} scrollY={scrollY} headerHeight={headerHeight} onOpen={i => { hTap(); setViewIndex(album.best.length + i) }} />
           )}
         />
       )}
@@ -218,8 +205,6 @@ export default function AlbumScreen() {
           )}
         </View>
       ) : null}
-
-      <LabSwitch screen={LAB_SCREEN} top={54} />
 
       <MediaPreviewModal
         media={album.pending}
@@ -263,8 +248,6 @@ const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: Colors.background },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   empty: { paddingTop: 90 },
-  row: { gap: GAP, marginBottom: GAP },
-  cell: { width: CELL_W, height: CELL_H, backgroundColor: Colors.surface },
   intro: { paddingHorizontal: 16, paddingTop: 6, paddingBottom: 14, gap: 2 },
   meta: { fontFamily: FontFamily.bodySemiBold, fontSize: 14, color: Colors.inkPrimary },
   private: { fontFamily: FontFamily.bodyRegular, fontSize: 13, lineHeight: 18, color: Colors.inkSecondary },

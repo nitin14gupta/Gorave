@@ -7,7 +7,7 @@ import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-na
 import { useMinimizeOnScroll } from 'expo-glass-tabs'
 import { Image } from 'expo-image'
 import { router } from 'expo-router'
-import { Flame, RefreshCw, Ghost, Pin, Search } from 'lucide-react-native'
+import { BellOff, Flame, RefreshCw, Ghost, Pin, Search } from 'lucide-react-native'
 import { hTap } from '@/lib/haptics'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { AutoSkeletonView } from 'react-native-auto-skeleton'
@@ -15,7 +15,6 @@ import { ConfirmSheet, VibeInboxSheet, VibeIcebreakerModal, LogoMark, ProfileMen
 import { ChatSearchModal } from '@/components/chat/ChatSearchModal'
 import { usePillStore } from '@/store/pillStore'
 import { byRecent, useConversations } from '@/hooks/useConversations'
-import { EventChatsSection } from '@/components/chat/EventChatsSection'
 import { useExpandTabBarOnFocus } from '@/hooks/useExpandTabBarOnFocus'
 import { useAuthStore } from '@/store/auth'
 import ApiService from '@/api/apiService'
@@ -120,6 +119,7 @@ const ConvRow = memo(function ConvRow({ conv, onPress, onLongPress, onAvatarPres
             {displayName}
           </Text>
           <View style={s.convMeta}>
+            {conv.muted ? <BellOff size={12} color={Colors.inkSecondary} strokeWidth={2} /> : null}
             {conv.pinned_at ? <Pin size={12} color={Colors.inkSecondary} strokeWidth={2} /> : null}
             <Text style={[s.convTime, conv.unread_count > 0 && s.convTimeUnread]}>
               {formatTime(conv.last_sent_at ?? conv.last_message_at)}
@@ -194,8 +194,8 @@ export default function ChatScreen() {
     acceptVibe,
     passVibe,
     setPinned,
+    setMuted,
     deleteChat,
-    eventChats,
   } = useConversations()
   const [deleteTarget, setDeleteTarget] = useState<Conversation | null>(null)
 
@@ -214,7 +214,7 @@ export default function ChatScreen() {
     ...lockedConversations.slice().sort(byRecent),
   ]
 
-  const isEmpty = !loading && !error && allConvs.length === 0 && pendingVibes.length === 0 && eventChats.length === 0
+  const isEmpty = !loading && !error && allConvs.length === 0 && pendingVibes.length === 0
 
   const openConversation = (item: Conversation) => {
     if (item.status === 'active') {
@@ -252,6 +252,10 @@ export default function ChatScreen() {
 
   const togglePin = (conv: Conversation) => {
     setPinned(conv, !conv.pinned_at).catch((e: any) => showPill(e?.message || "Couldn't pin that chat", 'error'))
+  }
+
+  const toggleMute = (conv: Conversation) => {
+    setMuted(conv, !conv.muted).catch((e: any) => showPill(e?.message || "Couldn't change that", 'error'))
   }
 
   const confirmDelete = () => {
@@ -334,10 +338,7 @@ export default function ChatScreen() {
           refreshControl={<BrandedRefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
           contentContainerStyle={s.listContent}
           ListHeaderComponent={
-            <>
-              <EventChatsSection chats={eventChats} myId={currentUserId} />
-              <View style={{ paddingHorizontal: 20, paddingTop: 14, paddingBottom: 6 }}><ChatTop vibes={pendingVibes} onOpenVibes={() => setInboxOpen(true)} /></View>
-            </>
+            <View style={{ paddingHorizontal: 20, paddingTop: 14, paddingBottom: 6 }}><ChatTop vibes={pendingVibes} onOpenVibes={() => setInboxOpen(true)} /></View>
           }
           onEndReachedThreshold={0.4}
           onEndReached={() => {
@@ -421,6 +422,8 @@ export default function ChatScreen() {
           pinned={!!menuTarget.pinned_at}
           onTogglePin={menuTarget.status === 'active' ? () => togglePin(menuTarget) : undefined}
           onDeleteChat={menuTarget.status === 'active' ? () => setDeleteTarget(menuTarget) : undefined}
+          muted={!!menuTarget.muted}
+          onToggleMute={menuTarget.status === 'active' ? () => toggleMute(menuTarget) : undefined}
         />
       )}
 

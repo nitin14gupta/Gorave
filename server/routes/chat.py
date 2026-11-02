@@ -329,12 +329,15 @@ def list_conversations(
     with get_db() as (cur, _):
         cur.execute("SELECT conversation_id::text, pinned_at FROM conversation_pins WHERE user_id = %s::uuid", (uid,))
         pins = {r["conversation_id"]: r["pinned_at"] for r in cur.fetchall()}
+        cur.execute("SELECT conversation_id::text FROM conversation_mutes WHERE user_id = %s::uuid", (uid,))
+        mutes = {r["conversation_id"] for r in cur.fetchall()}
 
     all_convs = []
     for r in rows:
         d = dict(r)
         d["partner_id"] = str(d["partner_id"])
         d["pinned_at"] = pins.get(d["id"])
+        d["muted"] = d["id"] in mutes
         # Same rule as the thread: a deleted account's last message isn't shown.
         if d.get("partner_is_deleted") and str(d.get("last_sender_id")) == d["partner_id"]:
             d["last_message"] = None
@@ -526,7 +529,13 @@ def pin_conversation(conv_id: str, current_user: dict = Depends(get_current_user
         conv = _get_conversation(cur, conv_id, uid)
         if conv["status"] != "active":
             raise HTTPException(status_code=400, detail="You can only pin an active chat")
-        cur.execute("SELECT conversation_id::text FROM conversation_pins WHERE user_id = %s::uuid", (uid,))
+        cur.execute(
+            """
+            SELECT p.conversation_id::text FROM conversation_pins p JOIN conversations c ON c.id = p.conversation_id
+            WHERE p.user_id = %s::uuid AND c.kind = 'direct'
+            """,
+            (uid,),
+        )
         pinned = {r["conversation_id"] for r in cur.fetchall()}
         if conv_id not in pinned and len(pinned) >= MAX_PINNED_CHATS:
             raise HTTPException(status_code=409, detail=f"You can pin up to {MAX_PINNED_CHATS} chats")
@@ -547,6 +556,23 @@ def unpin_conversation(conv_id: str, current_user: dict = Depends(get_current_us
         )
         conn.commit()
     return {"ok": True}
+
+
+class MuteBody(BaseModel):
+    muted: bool
+
+
+@router.post("/chat/conversations/{conv_id}/mute", status_code=200)
+def mute_conversation(conv_id: str, body: MuteBody, current_user: dict = Depends(get_current_user)):
+    uid = current_user["id"]
+    with get_db() as (cur, conn):
+        _get_conversation(cur, conv_id, uid)
+        if body.muted:
+            cur.execute("INSERT INTO conversation_mutes (user_id, conversation_id) VALUES (%s::uuid, %s::uuid) ON CONFLICT DO NOTHING", (uid, conv_id))
+        else:
+            cur.execute("DELETE FROM conversation_mutes WHERE user_id = %s::uuid AND conversation_id = %s::uuid", (uid, conv_id))
+        conn.commit()
+    return {"muted": body.muted}
 
 
 @router.delete("/chat/conversations/{conv_id}", status_code=200)
@@ -1193,7 +1219,7 @@ async def chat_websocket(
                 await websocket.send_text(json.dumps(payload))
                 await _emit(conv_id, payload, exclude=websocket, skip_user=uid)
                 # Only worth a push if they aren't looking at the chat right now.
-                if emoji and msg_author_id != uid and not await rt.has_chat_open(msg_author_id, conv_id):
+                if emoji and msg_author_id != uid and not await rt.has_chat_open(msg_author_id, conv_id) and not await rt.is_muted(msg_author_id, conv_id):
                     asyncio.create_task(asyncio.to_thread(
                         send_push, msg_author_id, f"{sender_name} reacted",
                         f"{sender_name} reacted to your message",

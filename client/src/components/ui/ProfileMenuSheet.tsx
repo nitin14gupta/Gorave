@@ -5,7 +5,7 @@ import type { BottomSheetBackdropProps } from '@gorhom/bottom-sheet'
 import * as Clipboard from 'expo-clipboard'
 import { router } from 'expo-router'
 import { Image } from 'expo-image'
-import { Ban, Check, Flag, Link2, Pin, PinOff, Share2, QrCode, MessageCircle, Trash2 } from 'lucide-react-native'
+import { Ban, Bell, BellOff, Check, Flag, Link2, Pin, PinOff, Share2, QrCode, MessageCircle, Trash2 } from 'lucide-react-native'
 import { hError, hSuccess, hTap } from '@/lib/haptics'
 import { Colors, FontFamily, withOpacity } from '@/constants'
 import { APP_SCHEME } from '@/api/config'
@@ -30,6 +30,8 @@ interface Props {
   pinned?: boolean
   onTogglePin?: () => void
   onDeleteChat?: () => void
+  muted?: boolean
+  onToggleMute?: () => void
 }
 
 function renderBackdrop(props: BottomSheetBackdropProps) {
@@ -38,7 +40,7 @@ function renderBackdrop(props: BottomSheetBackdropProps) {
 
 function ProfileMenuSheetCore({
   userId, username, targetName, avatarUrl, city, interests,
-  isBlocked, onBlock, onUnblock, onReport, onClose, pinned, onTogglePin, onDeleteChat,
+  isBlocked, onBlock, onUnblock, onReport, onClose, pinned, onTogglePin, onDeleteChat, muted, onToggleMute,
 }: Omit<Props, 'visible'>) {
   const sheetRef = useRef<BottomSheetModal>(null)
   const [blockOpen, setBlockOpen] = useState(false)
@@ -145,6 +147,14 @@ function ProfileMenuSheetCore({
                 label={pinned ? 'Unpin chat' : 'Pin chat'}
                 onPress={() => { hTap(); onTogglePin(); onClose() }}
               />
+              {onToggleMute ? (
+                <MenuRow
+                  icon={muted ? <Bell size={18} color={Colors.inkPrimary} strokeWidth={1.8} /> : <BellOff size={18} color={Colors.inkPrimary} strokeWidth={1.8} />}
+                  label={muted ? 'Unmute' : 'Mute'}
+                  border
+                  onPress={() => { hTap(); onToggleMute(); onClose() }}
+                />
+              ) : null}
               {onDeleteChat ? (
                 <MenuRow
                   icon={<Trash2 size={18} color={Colors.destructive} strokeWidth={1.8} />}
@@ -157,12 +167,14 @@ function ProfileMenuSheetCore({
             </View>
           ) : null}
 
-          <View style={s.card}>
-            <MenuRow icon={<Share2 size={18} color={Colors.inkPrimary} strokeWidth={1.8} />} label="Share profile" onPress={handleShare} />
-            <MenuRow icon={<MessageCircle size={18} color={Colors.inkPrimary} strokeWidth={1.8} />} label="Send in chat" onPress={openChatShare} border />
-            <MenuRow icon={<QrCode size={18} color={Colors.inkPrimary} strokeWidth={1.8} />} label="QR code" onPress={handleQrCode} border />
-            <MenuRow icon={copied ? <Check size={18} color={Colors.inkPrimary} strokeWidth={2.2} /> : <Link2 size={18} color={Colors.inkPrimary} strokeWidth={1.8} />} label={copied ? 'Link copied' : 'Copy profile link'} onPress={handleCopyUrl} border />
-          </View>
+          {!onTogglePin ? (
+            <View style={s.card}>
+              <MenuRow icon={<Share2 size={18} color={Colors.inkPrimary} strokeWidth={1.8} />} label="Share profile" onPress={handleShare} />
+              <MenuRow icon={<MessageCircle size={18} color={Colors.inkPrimary} strokeWidth={1.8} />} label="Send in chat" onPress={openChatShare} border />
+              <MenuRow icon={<QrCode size={18} color={Colors.inkPrimary} strokeWidth={1.8} />} label="QR code" onPress={handleQrCode} border />
+              <MenuRow icon={copied ? <Check size={18} color={Colors.inkPrimary} strokeWidth={2.2} /> : <Link2 size={18} color={Colors.inkPrimary} strokeWidth={1.8} />} label={copied ? 'Link copied' : 'Copy profile link'} onPress={handleCopyUrl} border />
+            </View>
+          ) : null}
 
           <View style={s.card}>
             <MenuRow icon={<Flag size={18} color={Colors.destructive} strokeWidth={1.8} />} label="Report" onPress={openReport} danger />
