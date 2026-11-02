@@ -79,6 +79,8 @@ export interface PublicEventDetail extends PublicEvent {
   ratio: { women_pct: number; women_left: number; men_left: number; open_left: number } | null
   avg_rating: number | null
   review_count: number
+  host_hosted_count?: number
+  host_reviews?: { rating: number; body: string; name: string; event_title: string }[]
 }
 
 export interface PublicHostProfile {

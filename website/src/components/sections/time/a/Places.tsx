@@ -3,13 +3,11 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { useState } from 'react'
-import { AREA_SCENES } from '@/lib/area'
+import { PARTY_SCENES as SCENES } from '@/lib/time'
 import type { TimeContent } from '@/lib/time'
 import type { TimeViewProps } from '../types'
 import { cn } from '@/lib/cn'
 import { EASE_CSS, Head, lower } from './kit'
-
-const SCENES = [AREA_SCENES.rooftop, AREA_SCENES.livingroom, AREA_SCENES.chai, AREA_SCENES.doorway, AREA_SCENES.latebite, AREA_SCENES.building]
 
 /**
  * Chapter 04, where. Huge place names (cities on the hub, neighbourhoods on a

@@ -10,7 +10,7 @@ export function EventGallery({ photos, title }: { photos: string[]; title: strin
   const [i, setI] = useState(0)
   return (
     <div>
-      <div className="relative mx-auto aspect-[4/5] w-full max-w-[calc(78vh*0.8)] overflow-hidden rounded-[32px] bg-tile shadow-soft">
+      <div className="relative mx-auto aspect-[4/5] w-full max-w-[calc(70vh*0.8)] overflow-hidden rounded-[24px] bg-tile">
         <AnimatePresence initial={false}>
           <motion.div
             key={photos[i]}
@@ -25,7 +25,7 @@ export function EventGallery({ photos, title }: { photos: string[]; title: strin
         </AnimatePresence>
       </div>
       {photos.length > 1 && (
-        <div className="mx-auto mt-3 flex max-w-[calc(78vh*0.8)] gap-2.5">
+        <div className="mx-auto mt-3 flex max-w-[calc(70vh*0.8)] gap-2.5">
           {photos.slice(0, 6).map((p, k) => (
             <button
               key={p}

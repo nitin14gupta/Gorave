@@ -37,7 +37,7 @@ export const TIMES: TimeStory[] = [
     slug: 'tonight',
     label: 'Tonight',
     when: 'tonight',
-    image: '/img/time/tonight.webp',
+    image: '/img/nights/night-14.webp',
     heroLine: 'No plans yet? These house parties, rooftops and dinners start later today.',
     promise: 'Starting later today',
     steps: steps('today'),
@@ -56,7 +56,7 @@ export const TIMES: TimeStory[] = [
     slug: 'tomorrow',
     label: 'Tomorrow',
     when: 'tomorrow',
-    image: '/img/time/week.webp',
+    image: '/img/nights/night-07.webp',
     heroLine: 'Plan one day ahead. House parties, game nights and dinners happening tomorrow.',
     promise: 'Happening tomorrow',
     steps: steps('tomorrow'),
@@ -75,7 +75,7 @@ export const TIMES: TimeStory[] = [
     slug: 'this-weekend',
     label: 'This weekend',
     when: 'weekend',
-    image: '/img/time/weekend.webp',
+    image: '/img/nights/night-06.webp',
     heroLine: 'Friday to Sunday: house parties, rooftop sunsets, game nights and long lunches.',
     promise: 'Friday, Saturday and Sunday',
     steps: steps('this Friday, Saturday or Sunday'),
@@ -94,7 +94,7 @@ export const TIMES: TimeStory[] = [
     slug: 'this-week',
     label: 'This week',
     when: 'week',
-    image: '/img/time/week.webp',
+    image: '/img/nights/night-13.webp',
     heroLine: 'Seven days of house parties, rooftops, game nights and dinners. Plan the whole week.',
     promise: 'The next seven days',
     steps: steps('in the next seven days'),
@@ -112,5 +112,8 @@ export const TIMES: TimeStory[] = [
 ]
 
 export type TimeContent = Omit<TimeStory, 'faq'>
+
+/** Real party photos for the time pages' scenes. */
+export const PARTY_SCENES = ['01', '15', '18', '04', '09', '17'].map(n => `/img/nights/night-${n}.webp`)
 
 export const getTime = (slug: string) => TIMES.find(t => t.slug === slug)

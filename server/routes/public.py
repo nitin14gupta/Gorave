@@ -83,6 +83,8 @@ class PublicEventDetail(PublicEvent):
     ratio: Optional[dict] = None
     avg_rating: Optional[float] = None
     review_count: int = 0
+    host_hosted_count: int = 0
+    host_reviews: List[dict] = []
 
 
 class PublicEventsPage(BaseModel):
@@ -263,6 +265,43 @@ def public_events(
     return {"events": events, "total": total, "has_more": offset + len(events) < total}
 
 
+def _short_name(name) -> str:
+    """Public reviewers appear as first name + last initial only."""
+    parts = (name or "").split()
+    if not parts:
+        return "A guest"
+    return parts[0] + (f" {parts[-1][0]}." if len(parts) > 1 else "")
+
+
+def _host_reviews(cur, event_id: str, limit: int = 3) -> list:
+    """The host's best recent written reviews across their nights, no repeated lines."""
+    cur.execute(
+        """
+        SELECT er.rating, er.body, u.name AS reviewer, he.title AS event_title
+        FROM event_reviews er
+        JOIN events he ON he.id = er.event_id
+        JOIN users u ON u.id = er.reviewer_id
+        WHERE he.host_id = (SELECT host_id FROM events WHERE id = %s::uuid)
+          AND he.is_published = TRUE AND er.rating >= 4
+          AND er.body IS NOT NULL AND LENGTH(TRIM(er.body)) > 0
+          AND COALESCE(u.is_deleted, FALSE) = FALSE
+        ORDER BY er.created_at DESC
+        LIMIT 40
+        """,
+        (event_id,),
+    )
+    seen, picked = set(), []
+    for r in sorted(cur.fetchall(), key=lambda r: -r["rating"]):
+        body = r["body"].strip()
+        if body.lower() in seen:
+            continue
+        seen.add(body.lower())
+        picked.append({"rating": r["rating"], "body": body, "name": _short_name(r["reviewer"]), "event_title": r["event_title"]})
+        if len(picked) == limit:
+            break
+    return picked
+
+
 @router.get("/events/{event_id}", response_model=PublicEventDetail)
 def public_event(event_id: str, request: Request, response: Response):
     _guard(request, response)
@@ -284,8 +323,11 @@ def public_event(event_id: str, request: Request, response: Response):
         row = cur.fetchone()
         if not row:
             raise HTTPException(status_code=404, detail="Event not found")
+        hosted = row["host_hosted_count"] or 0
         d = _shape(row)
+        d["host_hosted_count"] = hosted
         d["ratio"] = seats.ratio_left(d["capacity"], d["women_pct"], seats.seat_counts(cur, event_id))
+        d["host_reviews"] = _host_reviews(cur, event_id)
     return d
 
 
@@ -378,17 +420,11 @@ def public_reviews(request: Request, response: Response, limit: int = Query(defa
         )
         rows = cur.fetchall()
 
-    def short(name):
-        parts = (name or "").split()
-        if not parts:
-            return "A guest"
-        return parts[0] + (f" {parts[-1][0]}." if len(parts) > 1 else "")
-
     return {
         "avg_rating": agg["avg_rating"],
         "review_count": agg["review_count"] or 0,
         "reviews": [
-            {"rating": r["rating"], "body": r["body"].strip(), "name": short(r["reviewer"]), "city": r["city"],
+            {"rating": r["rating"], "body": r["body"].strip(), "name": _short_name(r["reviewer"]), "city": r["city"],
              "event_type": r["event_type"], "event_title": r["event_title"],
              "event_image": next(iter(_photos(r["cover_photos"])), None)}
             for r in rows

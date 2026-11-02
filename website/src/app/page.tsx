@@ -1,4 +1,4 @@
-import { BROWSE_CITIES, CITIES, SAMPLE_EVENTS } from '@/constants'
+import { CITIES, SAMPLE_EVENTS } from '@/constants'
 import { buildCityKit } from '@/lib/cityKit'
 import { cardEvents, fetchReviews } from '@/lib/api'
 import { Hero } from '@/components/sections/home/Hero'
@@ -19,20 +19,16 @@ export const revalidate = 60
 
 export default async function HomePage() {
   const [perCity, reviews] = await Promise.all([
-    Promise.all(BROWSE_CITIES.map(c => cardEvents({ city: c, limit: 12 }, e => e.city === c))),
+    Promise.all(CITIES.map(c => cardEvents({ city: c.name, limit: 12 }, e => e.city === c.name))),
     // More than we show (20 is the API's cap): the section keeps the best, without repeats.
     fetchReviews(20),
   ])
-  const byCity = Object.fromEntries(BROWSE_CITIES.map((c, i) => [c, perCity[i].events]))
+  const byCity = Object.fromEntries(CITIES.map((c, i) => [c.name, perCity[i].events]))
   // Mock-up screens show real events with photos; samples only if the API is down.
   const featured = perCity.flatMap(r => r.events).filter(e => e.image)
   // Each city's own flyers, built from its real events (the app's invite
   // templates if a city has none yet).
-  const cityRows = BROWSE_CITIES.map(name => CITIES.find(c => c.name === name)).filter(c => !!c)
-  const cityPosters = cityRows.map(c => {
-    const r = perCity[BROWSE_CITIES.indexOf(c.name as (typeof BROWSE_CITIES)[number])]
-    return buildCityKit(r?.live ? r.events : []).posters
-  })
+  const cityPosters = perCity.map(r => buildCityKit(r.live ? r.events : []).posters)
   return (
     <LiveEventsProvider events={featured.length ? featured : SAMPLE_EVENTS}>
       <main>
@@ -46,7 +42,7 @@ export default async function HomePage() {
           kicker="The cities"
           title="Pick your city."
           subtitle="Hover a city to see what's on there this week."
-          items={cityRows.map(c => ({ label: c.name, href: `/${c.slug}` }))}
+          items={CITIES.map(c => ({ label: c.name, href: `/${c.slug}` }))}
           rowPosters={cityPosters}
         />
         <MoreThanInvite />

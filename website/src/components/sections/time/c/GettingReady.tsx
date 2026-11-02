@@ -4,7 +4,7 @@ import Image from 'next/image'
 import { useRef, useState } from 'react'
 import { AnimatePresence, motion, useMotionValueEvent, useReducedMotion, useScroll, useTransform } from 'motion/react'
 import { PHOTOS, type SampleEvent } from '@/constants'
-import { AREA_SCENES } from '@/lib/area'
+import { PARTY_SCENES } from '@/lib/time'
 import type { TimeContent } from '@/lib/time'
 import { Chapter } from '@/components/ui/atoms'
 import { EASE, clock12, lower, pad } from './kit'
@@ -32,7 +32,7 @@ export function GettingReady({ time, place, events, chapter }: Props) {
   useMotionValueEvent(p, 'change', v => setActive(Math.min(n - 1, Math.max(0, Math.floor(v * n * 0.999)))))
   const bar = useTransform(p, [0, 1], [0, 1])
   const push = useTransform(p, [0, 1], [1.12, 1])
-  const images = [time.image, AREA_SCENES.chai, AREA_SCENES.building, AREA_SCENES.doorway]
+  const images = [time.image, PARTY_SCENES[3], PARTY_SCENES[4], PARTY_SCENES[5]]
 
   const head = (
     <div>

@@ -1,16 +1,17 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { cache } from 'react'
-import { EVENT_TYPES } from '@/constants'
-import { fetchEvent, fetchEvents, longWhen, parseApiDate, toCardEvent } from '@/lib/api'
-import { getCity } from '@/lib/city'
-import { findArea } from '@/lib/area'
-import { absoluteUrl, slugify } from '@/lib/seo'
+import { fetchEvent, longWhen, parseApiDate } from '@/lib/api'
+import { eventPageData } from '@/lib/eventPage'
+import { absoluteUrl } from '@/lib/seo'
 import { JsonLd } from '@/components/ui/JsonLd'
 import { EventDetailView } from '@/components/sections/event/EventDetailView'
 
 // Event pages are what shared links open, rendered on demand for any id.
 export const revalidate = 60
+
+// Compare designs at /lab/event?id=<id>&v=a|b, then lock the pick here.
+const EVENT_VARIANT = 'a'
 
 const getEvent = cache((id: string) => fetchEvent(id))
 
@@ -38,20 +39,6 @@ export default async function EventPage({ params }: PageProps<'/e/[id]'>) {
   const e = await getEvent(id)
   if (!e) notFound()
 
-  const type = EVENT_TYPES.find(t => t.key === e.event_type)
-  const city = e.city ? getCity(slugify(e.city)) : undefined
-  const related = e.city ? await fetchEvents({ city: e.city, type: e.event_type, limit: 4 }) : null
-  const more = (related?.events ?? []).filter(m => m.id !== e.id).slice(0, 3).map(toCardEvent)
-
-  const area = findArea(e.city, e.area)
-  const crumbs = [
-    { label: 'Home', href: '/' },
-    ...(city ? [{ label: city.name, href: `/${city.slug}` }] : []),
-    ...(city && area ? [{ label: area.name, href: `/${city.slug}/${area.slug}` }] : []),
-    ...(city && type ? [{ label: type.label, href: `/${city.slug}/${type.slug}` }] : []),
-    { label: e.title, href: `/e/${e.id}` },
-  ]
-
   return (
     <>
       <JsonLd
@@ -71,7 +58,7 @@ export default async function EventPage({ params }: PageProps<'/e/[id]'>) {
           organizer: { '@type': 'Person', name: e.host.name ?? e.host.username, url: e.host.username ? absoluteUrl(`/h/${e.host.username}`) : undefined },
         }}
       />
-      <EventDetailView event={e} more={more} crumbs={crumbs} areaHref={city && area ? `/${city.slug}/${area.slug}` : undefined} />
+      <EventDetailView variant={EVENT_VARIANT} event={e} {...await eventPageData(e)} />
     </>
   )
 }
