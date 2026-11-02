@@ -21,7 +21,10 @@ router = APIRouter(prefix="/events", tags=["album"])
 MAX_PHOTOS_PER_PERSON = 30
 MAX_PHOTOS_PER_EVENT = 300
 HIDE_AFTER_REPORTS = 3
-REPORT_REASONS = {"nudity", "harassment", "violence", "not from this event", "other"}
+REPORT_REASONS = {
+    "not from this event", "nudity or sexual content", "posted without consent",
+    "harassment or bullying", "violence", "something else",
+}
 
 
 def _require_view(cur, event_id: str, uid: str) -> dict:
@@ -221,8 +224,7 @@ class PhotoReportBody(BaseModel):
 @router.post("/{event_id}/album/{photo_id}/report")
 def report_photo(event_id: str, photo_id: str, body: PhotoReportBody, current_user: dict = Depends(get_current_user)):
     uid = current_user["id"]
-    # The report sheet appends any details after the reason: "Other: ...".
-    if body.reason.split(":")[0].strip().lower() not in REPORT_REASONS:
+    if body.reason.strip().lower() not in REPORT_REASONS:
         raise HTTPException(status_code=400, detail="Invalid reason")
     enforce_rate_limit(f"album:report:{uid}", max_events=10, window_seconds=3600)
     with get_db() as (cur, conn):

@@ -28,6 +28,10 @@ interface Props {
   onClose: () => void
   /** Shown at the bottom for the photo on screen. */
   renderFooter?: (index: number) => ReactNode
+  /** Drawn over everything inside the viewer, e.g. a sheet. */
+  overlay?: ReactNode
+  /** Android back. Defaults to closing the viewer. */
+  onRequestClose?: () => void
 }
 
 function VideoViewer({ url, active }: { url: string; active: boolean }) {
@@ -50,7 +54,7 @@ function VideoViewer({ url, active }: { url: string; active: boolean }) {
  * Full-screen photo and video viewer: pure black, swipe sideways between
  * items, swipe down to close. A glass X and a count pill sit on top.
  */
-export function MediaViewerModal({ visible, items, initialIndex = 0, onClose, renderFooter }: Props) {
+export function MediaViewerModal({ visible, items, initialIndex = 0, onClose, renderFooter, overlay, onRequestClose }: Props) {
   const insets = useSafeAreaInsets()
   const translateY = useSharedValue(0)
   const bgOpacity = useSharedValue(1)
@@ -102,13 +106,14 @@ export function MediaViewerModal({ visible, items, initialIndex = 0, onClose, re
   }, [])
 
   if (!visible || items.length === 0) return null
+  const shownIndex = Math.min(activeIndex, items.length - 1)
 
   return (
     <Modal
       transparent
       animationType="fade"
       visible={visible}
-      onRequestClose={onClose}
+      onRequestClose={onRequestClose ?? onClose}
       statusBarTranslucent
     >
       <StatusBar hidden />
@@ -123,7 +128,7 @@ export function MediaViewerModal({ visible, items, initialIndex = 0, onClose, re
             initialScrollIndex={initialIndex}
             getItemLayout={(_, index) => ({ length: W, offset: W * index, index })}
             showsHorizontalScrollIndicator={false}
-            keyExtractor={(item, i) => `${item.url}_${i}`}
+            keyExtractor={(item, i) => item.cacheKey ?? `${item.url}_${i}`}
             onMomentumScrollEnd={handleMomentumEnd}
             renderItem={({ item, index }) => (
               <View style={{ width: W, height: H, alignItems: 'center', justifyContent: 'center' }}>
@@ -151,13 +156,14 @@ export function MediaViewerModal({ visible, items, initialIndex = 0, onClose, re
         </Pressable>
         {items.length > 1 ? (
           <View style={s.counter}>
-            <Animated.Text style={s.counterText}>{activeIndex + 1} of {items.length}</Animated.Text>
+            <Animated.Text style={s.counterText}>{shownIndex + 1} of {items.length}</Animated.Text>
           </View>
         ) : null}
         <View style={s.closeSpacer} />
       </View>
 
-      {renderFooter ? <View style={s.footer}>{renderFooter(activeIndex)}</View> : null}
+      {renderFooter ? <View style={s.footer}>{renderFooter(shownIndex)}</View> : null}
+      {overlay}
     </Modal>
   )
 }

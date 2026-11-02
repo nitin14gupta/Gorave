@@ -87,8 +87,6 @@ export default function EventDetailScreen() {
           <View style={styles.sheetContent}>
             <EventInfoHeader event={event} eventId={id ?? ''} onPressAddress={() => d.setAddressSheetOpen(true)} />
 
-            <EventAlbumSection album={event.album} eventId={id ?? ''} />
-
             <EventHostCard event={event} isHost={isHost} />
 
             <EventGuestListPreview
@@ -96,6 +94,8 @@ export default function EventDetailScreen() {
               guestTotal={d.guestTotal}
               onPress={() => d.setGuestSheetOpen(true)}
             />
+
+            <EventAlbumSection album={event.album} eventId={id ?? ''} />
 
             <EventDetailsSection event={event} eventId={id ?? ''} />
 

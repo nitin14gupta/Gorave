@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import * as ImagePicker from 'expo-image-picker'
 import ApiService, { type AlbumPage, type AlbumPhoto } from '@/api/apiService'
+import type { PendingMedia } from '@/hooks/useMediaPicker'
 import { getOrFetch, invalidate, peekCached } from '@/lib/queryCache'
 import { hSuccess, hTap } from '@/lib/haptics'
 import { usePillStore } from '@/store/pillStore'
@@ -42,6 +43,8 @@ export function useAlbum(eventId: string) {
   const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [upload, setUpload] = useState<AlbumUpload | null>(null)
+  // Picked, waiting in the preview: removed from or cropped before anything uploads.
+  const [pending, setPending] = useState<PendingMedia[]>([])
   const loadingMore = useRef(false)
   const mounted = useRef(true)
   useEffect(() => { mounted.current = true; return () => { mounted.current = false } }, [])
@@ -137,8 +140,20 @@ export function useAlbum(eventId: string) {
       mediaTypes: ['images'], quality: 0.85, allowsMultipleSelection: true, selectionLimit: MAX_PICK,
     })
     if (result.canceled || result.assets.length === 0) return
-    await runUploads(await Promise.all(result.assets.map(shrink)))
-  }, [runUploads, showPill])
+    setPending(result.assets.map(a => ({ uri: a.uri, type: 'image', width: a.width, height: a.height })))
+  }, [showPill])
+
+  const sendPending = useCallback(async () => {
+    const batch = pending
+    setPending([])
+    await runUploads(await Promise.all(batch.map(shrink)))
+  }, [pending, runUploads])
+
+  const clearPending = useCallback(() => setPending([]), [])
+  const removePending = useCallback((index: number) => setPending(prev => prev.filter((_, i) => i !== index)), [])
+  const updatePending = useCallback((index: number, updated: PendingMedia) => {
+    setPending(prev => prev.map((m, i) => (i === index ? updated : m)))
+  }, [])
 
   const retryFailed = useCallback(() => {
     if (upload?.failed.length) void runUploads(upload.failed)
@@ -157,9 +172,15 @@ export function useAlbum(eventId: string) {
 
   const report = useCallback(async (photo: AlbumPhoto, reason: string) => {
     await ApiService.reportAlbumPhoto(eventId, photo.id, reason)
-    setPhotos(prev => prev.filter(p => p.id !== photo.id))
     invalidate(CacheKeys.album(eventId))
+    invalidate(CacheKeys.eventDetail(eventId))
   }, [eventId])
 
-  return { photos, count, canAdd, closesAt, loading, refreshing, error, upload, refresh, loadMore, addPhotos, retryFailed, dismissFailed, remove, report }
+  /** Drops a reported photo once the sheet closes, so it doesn't vanish behind it. */
+  const forget = useCallback((photo: AlbumPhoto) => {
+    setPhotos(prev => prev.filter(p => p.id !== photo.id))
+    setCount(n => Math.max(0, n - 1))
+  }, [])
+
+  return { photos, count, canAdd, closesAt, loading, refreshing, error, upload, pending, refresh, loadMore, addPhotos, sendPending, clearPending, removePending, updatePending, retryFailed, dismissFailed, remove, report, forget }
 }

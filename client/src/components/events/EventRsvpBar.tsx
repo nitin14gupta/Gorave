@@ -166,11 +166,15 @@ export function EventRsvpBar({
               <Text style={styles.cancelledText}>Cancelled</Text>
             </View>
           ) : isPast && (isGoing || hasTicket) ? (
+            // Once you've rated, the album is what's left to do. No album, no button.
             event?.my_review_rating ? (
-              <View style={styles.reviewedPill}>
-                <Star size={13} color={Colors.accentGreen} fill={Colors.accentGreen} strokeWidth={1.5} />
-                <Text style={styles.reviewedPillText}>Reviewed ✓</Text>
-              </View>
+              event.album ? (
+                <PrimaryButton
+                  label={event.album.count > 0 ? 'View album' : 'Add photos'}
+                  onPress={() => router.push({ pathname: '/(events)/[id]/album', params: { id: eventId, ...(event.album?.count ? {} : { add: '1' }) } } as any)}
+                  style={{ minWidth: 140 }}
+                />
+              ) : null
             ) : (
               <PrimaryButton
                 label="Rate Event"
@@ -320,14 +324,6 @@ const styles = StyleSheet.create({
   bookGradient: { paddingHorizontal: 28, paddingVertical: 14, borderRadius: 14, alignItems: 'center', minWidth: 120 },
   bookBtnText: { color: Colors.inkPrimary, fontFamily: FontFamily.bodySemiBold, fontSize: 15 },
 
-  reviewedPill: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    paddingHorizontal: 18, height: 48,
-    borderRadius: 24, borderWidth: 1,
-    borderColor: withOpacity(Colors.accentGreen, 0.3),
-    backgroundColor: withOpacity(Colors.accentGreen, 0.08),
-  },
-  reviewedPillText: { fontFamily: FontFamily.bodySemiBold, fontSize: 14, color: Colors.accentGreen },
 
 
   waitlistActiveBtn: {

@@ -26,6 +26,7 @@ BLOCK_FILTER = """
         WHERE (b.blocker_id = %(me)s::uuid AND b.blocked_id = p.uploader_id)
            OR (b.blocker_id = p.uploader_id AND b.blocked_id = %(me)s::uuid)
     )
+    AND NOT EXISTS (SELECT 1 FROM event_photo_reports r WHERE r.photo_id = p.id AND r.reporter_id = %(me)s::uuid)
 """
 VISIBLE = "p.removed_at IS NULL AND p.hidden_at IS NULL"
 ATTENDED_SQL = "ea.status = 'going' AND ea.checked_in_at IS NOT NULL"

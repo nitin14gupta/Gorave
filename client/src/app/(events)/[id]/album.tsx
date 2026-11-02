@@ -1,15 +1,16 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { ActivityIndicator, Dimensions, FlatList, Pressable, StyleSheet, Text, View } from 'react-native'
 import { Image } from 'expo-image'
 import { router, useLocalSearchParams } from 'expo-router'
 import { ArrowLeft, Camera, Flag, ImagePlus, Trash2 } from 'lucide-react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import type { AlbumPhoto } from '@/api/apiService'
+import ApiService, { type AlbumPhoto } from '@/api/apiService'
+import { MediaPreviewModal } from '@/components/chat/MediaPreviewModal'
 import { MediaViewerModal } from '@/components/chat/MediaViewerModal'
-import { BrandedRefreshControl, ConfirmSheet, EmptyState, HeaderIconBtn, PrimaryButton, ReportSheet } from '@/components/ui'
+import { AlbumPhotoSheet, type AlbumSheetMode } from '@/components/events/AlbumPhotoSheet'
+import { BrandedRefreshControl, EmptyState, HeaderIconBtn, PrimaryButton } from '@/components/ui'
 import { LargeTitleBar, useLargeTitle } from '@/components/ui/LargeTitle'
 import { useAlbum } from '@/hooks/useAlbum'
-import { useImageViewer } from '@/hooks/useImageViewer'
 import { photosLabel } from '@/lib/album'
 import { parseServerDate } from '@/lib/dates'
 import { hTap } from '@/lib/haptics'
@@ -20,7 +21,6 @@ const GAP = 2
 const COLUMNS = 3
 const CELL_W = (Dimensions.get('window').width - GAP * (COLUMNS - 1)) / COLUMNS
 const CELL_H = CELL_W * 1.25 // 4:5, like every event photo
-const REPORT_REASONS = ['Nudity', 'Harassment', 'Violence', 'Not from this event', 'Other']
 
 function closingLine(closesAt: string | null) {
   const d = closesAt ? parseServerDate(closesAt) : null
@@ -35,10 +35,9 @@ export default function AlbumScreen() {
   const showPill = usePillStore(s => s.show)
   const { scrollY, onScroll, barHeight } = useLargeTitle()
   const album = useAlbum(id!)
-  const { viewingMedia, openMedia, closeMedia } = useImageViewer()
-  const [toDelete, setToDelete] = useState<AlbumPhoto | null>(null)
-  const [toReport, setToReport] = useState<AlbumPhoto | null>(null)
-  const [deleting, setDeleting] = useState(false)
+  const [viewIndex, setViewIndex] = useState<number | null>(null)
+  const [sheet, setSheet] = useState<{ mode: AlbumSheetMode; photo: AlbumPhoto } | null>(null)
+  const viewerItems = useMemo(() => album.photos.map(p => ({ url: p.url, type: 'image' as const, cacheKey: p.key })), [album.photos])
 
   // "Add photos" on Home goes straight to the picker.
   const autoOpened = useRef(false)
@@ -48,25 +47,6 @@ export default function AlbumScreen() {
     void album.addPhotos()
   }, [add, album])
 
-  const open = (index: number) => {
-    hTap()
-    openMedia(album.photos.map(p => ({ url: p.url, type: 'image' as const, cacheKey: p.key })), index)
-  }
-
-  const confirmDelete = async () => {
-    if (!toDelete || deleting) return
-    setDeleting(true)
-    try {
-      await album.remove(toDelete)
-      showPill('Photo removed', 'success')
-    } catch (e: any) {
-      showPill(e?.message || "Couldn't remove it, try again", 'error')
-    } finally {
-      setDeleting(false)
-      setToDelete(null)
-    }
-  }
-
   const footerFor = (index: number) => {
     const p = album.photos[index]
     if (!p) return null
@@ -75,17 +55,30 @@ export default function AlbumScreen() {
         <Image source={p.uploader.avatar ? { uri: p.uploader.avatar } : undefined} style={s.viewerAvatar} />
         <Text style={s.viewerName} numberOfLines={1}>{p.mine ? 'You' : p.uploader.name ?? 'A guest'}</Text>
         {p.can_delete ? (
-          <Pressable style={s.viewerBtn} hitSlop={8} accessibilityLabel="Remove photo" onPress={() => { closeMedia(); setToDelete(p) }}>
+          <Pressable style={s.viewerBtn} hitSlop={8} accessibilityLabel="Remove photo" onPress={() => { hTap(); setSheet({ mode: 'remove', photo: p }) }}>
             <Trash2 size={18} color={Colors.white} strokeWidth={2} />
           </Pressable>
         ) : null}
         {!p.mine ? (
-          <Pressable style={s.viewerBtn} hitSlop={8} accessibilityLabel="Report photo" onPress={() => { closeMedia(); setToReport(p) }}>
+          <Pressable style={s.viewerBtn} hitSlop={8} accessibilityLabel="Report photo" onPress={() => { hTap(); setSheet({ mode: 'report', photo: p }) }}>
             <Flag size={18} color={Colors.white} strokeWidth={2} />
           </Pressable>
         ) : null}
       </View>
     )
+  }
+
+  const removePhoto = async (photo: AlbumPhoto) => {
+    await album.remove(photo)
+    setSheet(null)
+    showPill('Photo removed', 'success')
+  }
+
+  const blockUploader = async (photo: AlbumPhoto) => {
+    await ApiService.blockUser(photo.uploader.id)
+    await album.refresh()
+    setSheet(null)
+    showPill(`Blocked ${photo.uploader.name?.split(' ')[0] ?? 'them'}`, 'success')
   }
 
   const meta = [photosLabel(album.count), album.canAdd ? closingLine(album.closesAt) : 'Closed for new photos'].filter(Boolean).join(' · ')
@@ -139,7 +132,7 @@ export default function AlbumScreen() {
           windowSize={7}
           refreshControl={<BrandedRefreshControl refreshing={album.refreshing} onRefresh={album.refresh} />}
           renderItem={({ item, index }) => (
-            <Pressable onPress={() => open(index)} accessibilityLabel="Open photo">
+            <Pressable onPress={() => { hTap(); setViewIndex(index) }} accessibilityLabel="Open photo">
               <Image source={{ uri: item.url, cacheKey: item.key }} style={s.cell} contentFit="cover" cachePolicy="memory-disk" transition={120} />
             </Pressable>
           )}
@@ -167,29 +160,34 @@ export default function AlbumScreen() {
         </View>
       ) : null}
 
+      <MediaPreviewModal
+        media={album.pending}
+        onSend={album.sendPending}
+        onCancel={album.clearPending}
+        onRemove={album.removePending}
+        onUpdate={album.updatePending}
+        actionLabel={album.pending.length > 1 ? `Add ${album.pending.length} photos` : 'Add photo'}
+        titleLabel="Add to the album?"
+        freeStyleCrop
+      />
       <MediaViewerModal
-        visible={!!viewingMedia}
-        items={viewingMedia?.items ?? []}
-        initialIndex={viewingMedia?.initialIndex ?? 0}
-        onClose={closeMedia}
+        visible={viewIndex != null && viewerItems.length > 0}
+        items={viewerItems}
+        initialIndex={viewIndex ?? 0}
+        onClose={() => setViewIndex(null)}
+        onRequestClose={sheet ? () => setSheet(null) : undefined}
         renderFooter={footerFor}
-      />
-      <ConfirmSheet
-        visible={!!toDelete}
-        title="Remove this photo?"
-        body="It's removed for everyone in the album."
-        confirmLabel="Remove"
-        destructive
-        onConfirm={confirmDelete}
-        onClose={() => setToDelete(null)}
-      />
-      <ReportSheet
-        visible={!!toReport}
-        targetName={null}
-        title="Report this photo"
-        reasons={REPORT_REASONS}
-        onSubmit={reason => album.report(toReport!, reason)}
-        onClose={() => setToReport(null)}
+        overlay={sheet ? (
+          <AlbumPhotoSheet
+            mode={sheet.mode}
+            photo={sheet.photo}
+            onReport={reason => album.report(sheet.photo, reason)}
+            onRemove={() => removePhoto(sheet.photo)}
+            onBlock={() => blockUploader(sheet.photo)}
+            onClose={() => setSheet(null)}
+            onReported={() => { album.forget(sheet.photo); setSheet(null) }}
+          />
+        ) : null}
       />
     </View>
   )
