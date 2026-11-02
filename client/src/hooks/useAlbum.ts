@@ -34,11 +34,12 @@ async function shrink(asset: { uri: string; width?: number; height?: number }): 
 export function useAlbum(eventId: string) {
   const showPill = usePillStore(s => s.show)
   const cached = peekCached<AlbumPage>(CacheKeys.album(eventId))
+  const [best, setBest] = useState<AlbumPhoto[]>(cached?.best ?? [])
   const [photos, setPhotos] = useState<AlbumPhoto[]>(cached?.photos ?? [])
   const [count, setCount] = useState(cached?.count ?? 0)
   const [canAdd, setCanAdd] = useState(cached?.can_add ?? false)
   const [closesAt, setClosesAt] = useState<string | null>(cached?.closes_at ?? null)
-  const [cursor, setCursor] = useState<string | null>(cached?.next_cursor ?? null)
+  const [nextOffset, setNextOffset] = useState<number | null>(cached?.next_offset ?? null)
   const [loading, setLoading] = useState(!cached)
   const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -50,11 +51,12 @@ export function useAlbum(eventId: string) {
   useEffect(() => { mounted.current = true; return () => { mounted.current = false } }, [])
 
   const apply = (page: AlbumPage) => {
+    setBest(page.best)
     setPhotos(page.photos)
     setCount(page.count)
     setCanAdd(page.can_add)
     setClosesAt(page.closes_at)
-    setCursor(page.next_cursor)
+    setNextOffset(page.next_offset)
   }
 
   const load = useCallback(async (force = false) => {
@@ -82,19 +84,23 @@ export function useAlbum(eventId: string) {
   }, [load])
 
   const loadMore = useCallback(async () => {
-    if (!cursor || loadingMore.current) return
+    if (nextOffset == null || loadingMore.current) return
     loadingMore.current = true
     try {
-      const page = await ApiService.getEventAlbum(eventId, cursor)
+      const page = await ApiService.getEventAlbum(eventId, nextOffset)
       if (!mounted.current) return
-      setPhotos(prev => [...prev, ...page.photos])
-      setCursor(page.next_cursor)
+      // Order can shift while people vote and upload, so drop any repeats.
+      setPhotos(prev => {
+        const seen = new Set(prev.map(p => p.id))
+        return [...prev, ...page.photos.filter(p => !seen.has(p.id))]
+      })
+      setNextOffset(page.next_offset)
     } catch {
       // The next scroll to the end tries again.
     } finally {
       loadingMore.current = false
     }
-  }, [cursor, eventId])
+  }, [nextOffset, eventId])
 
   const runUploads = useCallback(async (uris: string[]) => {
     setUpload({ done: 0, total: uris.length, failed: [] })
@@ -163,6 +169,7 @@ export function useAlbum(eventId: string) {
 
   const remove = useCallback(async (photo: AlbumPhoto) => {
     await ApiService.deleteAlbumPhoto(eventId, photo.id)
+    setBest(prev => prev.filter(p => p.id !== photo.id))
     setPhotos(prev => prev.filter(p => p.id !== photo.id))
     setCount(n => Math.max(0, n - 1))
     invalidate(CacheKeys.album(eventId))
@@ -178,9 +185,31 @@ export function useAlbum(eventId: string) {
 
   /** Drops a reported photo once the sheet closes, so it doesn't vanish behind it. */
   const forget = useCallback((photo: AlbumPhoto) => {
+    setBest(prev => prev.filter(p => p.id !== photo.id))
     setPhotos(prev => prev.filter(p => p.id !== photo.id))
     setCount(n => Math.max(0, n - 1))
   }, [])
 
-  return { photos, count, canAdd, closesAt, loading, refreshing, error, upload, pending, refresh, loadMore, addPhotos, sendPending, clearPending, removePending, updatePending, retryFailed, dismissFailed, remove, report, forget }
+  /** Marks it straight away and quietly puts it back if the call fails. */
+  const setVote = useCallback((photo: AlbumPhoto, on: boolean) => {
+    const mark = (list: AlbumPhoto[], voted: boolean) => list.map(p => (p.id === photo.id ? { ...p, voted } : p))
+    setBest(prev => mark(prev, on))
+    setPhotos(prev => mark(prev, on))
+    ApiService.voteAlbumPhoto(eventId, photo.id, on)
+      .then(() => { invalidate(CacheKeys.album(eventId)) })
+      .catch(() => {
+        if (!mounted.current) return
+        setBest(prev => mark(prev, !on))
+        setPhotos(prev => mark(prev, !on))
+      })
+  }, [eventId])
+
+  const removeUploader = useCallback(async (userId: string) => {
+    await ApiService.removeAlbumUploader(eventId, userId)
+    invalidate(CacheKeys.eventDetail(eventId))
+    invalidate(CacheKeys.homeJoinedEvents)
+    await load(true)
+  }, [eventId, load])
+
+  return { best, photos, count, canAdd, closesAt, loading, refreshing, error, upload, pending, refresh, loadMore, addPhotos, sendPending, clearPending, removePending, updatePending, retryFailed, dismissFailed, remove, report, forget, setVote, removeUploader }
 }

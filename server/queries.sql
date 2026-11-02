@@ -147,6 +147,13 @@ CREATE TABLE IF NOT EXISTS public.event_photo_reports (
   CONSTRAINT event_photo_reports_unique UNIQUE (photo_id, reporter_id)
 );
 
+CREATE TABLE IF NOT EXISTS public.event_photo_votes (
+  photo_id uuid NOT NULL,
+  user_id uuid NOT NULL,
+  created_at timestamp with time zone DEFAULT now() NOT NULL,
+  CONSTRAINT event_photo_votes_pkey PRIMARY KEY (photo_id, user_id)
+);
+
 CREATE TABLE IF NOT EXISTS public.event_photos (
   id uuid DEFAULT gen_random_uuid() NOT NULL,
   event_id uuid NOT NULL,
@@ -494,6 +501,8 @@ ALTER TABLE public.event_hotlist ADD CONSTRAINT event_hotlist_event_id_fkey FORE
 ALTER TABLE public.event_hotlist ADD CONSTRAINT event_hotlist_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
 ALTER TABLE public.event_photo_reports ADD CONSTRAINT event_photo_reports_photo_id_fkey FOREIGN KEY (photo_id) REFERENCES event_photos(id) ON DELETE CASCADE;
 ALTER TABLE public.event_photo_reports ADD CONSTRAINT event_photo_reports_reporter_id_fkey FOREIGN KEY (reporter_id) REFERENCES users(id) ON DELETE CASCADE;
+ALTER TABLE public.event_photo_votes ADD CONSTRAINT event_photo_votes_photo_id_fkey FOREIGN KEY (photo_id) REFERENCES event_photos(id) ON DELETE CASCADE;
+ALTER TABLE public.event_photo_votes ADD CONSTRAINT event_photo_votes_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
 ALTER TABLE public.event_photos ADD CONSTRAINT event_photos_event_id_fkey FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE;
 ALTER TABLE public.event_photos ADD CONSTRAINT event_photos_removed_by_fkey FOREIGN KEY (removed_by) REFERENCES users(id) ON DELETE SET NULL;
 ALTER TABLE public.event_photos ADD CONSTRAINT event_photos_uploader_id_fkey FOREIGN KEY (uploader_id) REFERENCES users(id) ON DELETE CASCADE;

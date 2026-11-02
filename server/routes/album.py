@@ -1,7 +1,5 @@
 import io
 import uuid
-from datetime import datetime
-from typing import Optional
 
 from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, Query, UploadFile, status
 from PIL import Image
@@ -18,12 +16,14 @@ from utils.r2_client import r2_client
 
 router = APIRouter(prefix="/events", tags=["album"])
 
-MAX_PHOTOS_PER_PERSON = 30
+MAX_PHOTOS_PER_PERSON = 15
 MAX_PHOTOS_PER_EVENT = 300
 HIDE_AFTER_REPORTS = 3
+BEST_COUNT = 6
+BEST_MIN_VOTES = 2
 REPORT_REASONS = {
     "not from this event", "nudity or sexual content", "posted without consent",
-    "harassment or bullying", "violence", "something else",
+    "harassment or bullying", "violence", "spam or junk", "something else",
 }
 
 
@@ -63,6 +63,7 @@ def _serialize(row: dict, uid: str, is_host: bool) -> dict:
         "uploader": {"id": row["uploader_id"], "name": row["uploader_name"], "avatar": row["uploader_avatar"]},
         "mine": mine,
         "can_delete": mine or is_host,
+        "voted": row["voted"],
     }
 
 
@@ -71,48 +72,54 @@ def _serialize(row: dict, uid: str, is_host: bool) -> dict:
 @router.get("/{event_id}/album")
 def list_album(
     event_id: str,
-    cursor: Optional[str] = Query(None),
+    offset: int = Query(0, ge=0),
     limit: int = Query(60, ge=1, le=100),
     current_user: dict = Depends(get_current_user),
 ):
     uid = current_user["id"]
+    columns = f"""
+        p.id::text, p.storage_key, p.width, p.height, p.created_at, p.uploader_id::text,
+        u.name AS uploader_name,
+        (SELECT ph.url FROM user_photos ph WHERE ph.user_id = u.id ORDER BY ph.position LIMIT 1) AS uploader_avatar,
+        EXISTS (SELECT 1 FROM event_photo_votes mv WHERE mv.photo_id = p.id AND mv.user_id = %(me)s::uuid) AS voted
+    """
+    shown = f"p.event_id = %(event_id)s::uuid AND {album.VISIBLE} AND {album.BLOCK_FILTER}"
     with get_db() as (cur, _):
         a = _require_view(cur, event_id, uid)
-        params = {"event_id": event_id, "me": uid, "limit": limit + 1, "at": None, "id": None}
-        keyset = ""
-        if cursor:
-            try:
-                at, pid = cursor.split("|")
-                params.update(at=datetime.fromisoformat(at), id=str(uuid.UUID(pid)))
-            except ValueError:
-                raise HTTPException(status_code=400, detail="Bad cursor")
-            keyset = "AND (p.created_at, p.id) < (%(at)s, %(id)s::uuid)"
+        params = {"event_id": event_id, "me": uid, "limit": limit + 1, "offset": offset, "best": BEST_COUNT, "min": BEST_MIN_VOTES}
         cur.execute(
             f"""
-            SELECT p.id::text, p.storage_key, p.width, p.height, p.created_at, p.uploader_id::text,
-                u.name AS uploader_name,
-                (SELECT ph.url FROM user_photos ph WHERE ph.user_id = u.id ORDER BY ph.position LIMIT 1) AS uploader_avatar
-            FROM event_photos p JOIN users u ON u.id = p.uploader_id
-            WHERE p.event_id = %(event_id)s::uuid AND {album.VISIBLE} AND {album.BLOCK_FILTER} {keyset}
-            ORDER BY p.created_at DESC, p.id DESC
-            LIMIT %(limit)s
+            SELECT {columns} FROM event_photos p JOIN users u ON u.id = p.uploader_id
+            WHERE {shown} AND {album.VOTES} >= %(min)s
+            ORDER BY {album.VOTES} DESC, p.created_at DESC
+            LIMIT %(best)s
+            """,
+            params,
+        )
+        best = cur.fetchall()
+        params["best_ids"] = [b["id"] for b in best]
+        # One photo from each person, then the next from each, and so on, so
+        # someone adding a lot can't fill the screen.
+        cur.execute(
+            f"""
+            SELECT {columns} FROM event_photos p JOIN users u ON u.id = p.uploader_id
+            WHERE {shown} AND NOT (p.id = ANY(%(best_ids)s::uuid[]))
+            ORDER BY ROW_NUMBER() OVER (PARTITION BY p.uploader_id ORDER BY p.created_at DESC), p.created_at DESC, p.id
+            LIMIT %(limit)s OFFSET %(offset)s
             """,
             params,
         )
         rows = cur.fetchall()
-        cur.execute(
-            f"SELECT COUNT(*)::int AS n FROM event_photos p WHERE p.event_id = %(event_id)s::uuid AND {album.VISIBLE} AND {album.BLOCK_FILTER}",
-            params,
-        )
+        cur.execute(f"SELECT COUNT(*)::int AS n FROM event_photos p WHERE {shown}", params)
         count = cur.fetchone()["n"]
 
     has_more = len(rows) > limit
     rows = rows[:limit]
-    last = rows[-1] if has_more else None
     return {
+        "best": [_serialize(r, uid, a["is_host"]) for r in best],
         "photos": [_serialize(r, uid, a["is_host"]) for r in rows],
         "count": count,
-        "next_cursor": f"{last['created_at'].isoformat()}|{last['id']}" if last else None,
+        "next_offset": offset + limit if has_more else None,
         "can_add": a["can_add"],
         "closes_at": a["closes_at"].isoformat(),
     }
@@ -213,6 +220,62 @@ def remove_photo(event_id: str, photo_id: str, current_user: dict = Depends(get_
         conn.commit()
     r2_client.delete_file(photo["storage_key"], bucket=rt.CHAT_BUCKET)
     return {"ok": True}
+
+
+# ── DELETE /events/{id}/album/uploader/{user_id} ── host clears one person ─
+
+@router.delete("/{event_id}/album/uploader/{user_id}")
+def remove_uploader_photos(event_id: str, user_id: str, current_user: dict = Depends(get_current_user)):
+    uid = current_user["id"]
+    with get_db() as (cur, conn):
+        a = _require_view(cur, event_id, uid)
+        if not a["is_host"]:
+            raise HTTPException(status_code=403, detail="Only the host can do this")
+        cur.execute(
+            """
+            UPDATE event_photos SET removed_at = NOW(), removed_by = %s::uuid
+            WHERE event_id = %s::uuid AND uploader_id = %s::uuid AND removed_at IS NULL
+            RETURNING storage_key
+            """,
+            (uid, event_id, user_id),
+        )
+        keys = [r["storage_key"] for r in cur.fetchall()]
+        conn.commit()
+    for key in keys:
+        r2_client.delete_file(key, bucket=rt.CHAT_BUCKET)
+    return {"removed": len(keys)}
+
+
+# ── POST / DELETE /events/{id}/album/{photo_id}/vote ── "Best of the night" ──
+# Private by design: no counts, no list of who voted, no notification. Votes
+# only decide what rises to the top, and you can't vote for your own photo.
+
+def _vote(event_id: str, photo_id: str, uid: str, on: bool) -> dict:
+    enforce_rate_limit(f"album:vote:{uid}", max_events=120, window_seconds=60)
+    with get_db() as (cur, conn):
+        _require_view(cur, event_id, uid)
+        photo = _get_photo(cur, event_id, photo_id)
+        if photo["uploader_id"] == uid:
+            raise HTTPException(status_code=400, detail="That one's yours")
+        if on:
+            cur.execute(
+                "INSERT INTO event_photo_votes (photo_id, user_id) VALUES (%s::uuid, %s::uuid) ON CONFLICT DO NOTHING",
+                (photo_id, uid),
+            )
+        else:
+            cur.execute("DELETE FROM event_photo_votes WHERE photo_id = %s::uuid AND user_id = %s::uuid", (photo_id, uid))
+        conn.commit()
+    return {"voted": on}
+
+
+@router.post("/{event_id}/album/{photo_id}/vote")
+def vote_photo(event_id: str, photo_id: str, current_user: dict = Depends(get_current_user)):
+    return _vote(event_id, photo_id, current_user["id"], True)
+
+
+@router.delete("/{event_id}/album/{photo_id}/vote")
+def unvote_photo(event_id: str, photo_id: str, current_user: dict = Depends(get_current_user)):
+    return _vote(event_id, photo_id, current_user["id"], False)
 
 
 # ── POST /events/{id}/album/{photo_id}/report ─────────────────────────────

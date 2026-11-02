@@ -1173,8 +1173,10 @@ def report_user(user_id: str, body: ReportRequest, current_user: dict = Depends(
 @router.delete("/me", status_code=status.HTTP_200_OK)
 def delete_account(current_user: dict = Depends(get_current_user)):
     """
-    Soft-delete: cancels upcoming hosted events (refunds attendees), cancels
-    own RSVPs, then marks is_deleted=TRUE. Auth middleware blocks on next call.
+    Soft-delete, only once nothing is ahead of you: no event you're hosting
+    or holding a ticket for has yet to end. That keeps guests' nights safe
+    and means a deletion never loses anyone a paid ticket. Clears waitlist
+    spots and requests, then marks is_deleted=TRUE.
     """
     uid = current_user["id"]
     with get_db() as (cur, conn):
@@ -1197,6 +1199,19 @@ def delete_account(current_user: dict = Depends(get_current_user)):
                 status_code=409,
                 detail=f"CANCEL_EVENTS_FIRST:{row['cnt']}",
             )
+
+        cur.execute(
+            """
+            SELECT COUNT(*) AS cnt FROM event_attendees ea
+            JOIN events e ON e.id = ea.event_id
+            WHERE ea.user_id = %s::uuid AND ea.status = 'going' AND e.is_cancelled = FALSE
+              AND COALESCE(e.end_time, e.date_time) > NOW()
+            """,
+            (uid,),
+        )
+        row = cur.fetchone()
+        if row and row["cnt"] > 0:
+            raise HTTPException(status_code=409, detail="You can delete your account once your upcoming events are over.")
 
         # ── Cancel this user's own RSVPs and free up spots ────────────────────
         # Only rows that actually held a seat give one back: 'going', or a

@@ -1144,9 +1144,17 @@ class ApiService {
     }
   }
 
-  static getEventAlbum(eventId: string, cursor?: string | null) {
-    const query = cursor ? `?cursor=${encodeURIComponent(cursor)}` : ''
-    return this.get<AlbumPage>(`/events/${eventId}/album${query}`)
+  static getEventAlbum(eventId: string, offset = 0) {
+    return this.get<AlbumPage>(`/events/${eventId}/album?offset=${offset}`)
+  }
+
+  static voteAlbumPhoto(eventId: string, photoId: string, on: boolean) {
+    const path = `/events/${eventId}/album/${photoId}/vote`
+    return on ? this.post<{ voted: boolean }>(path, {}) : this.delete<{ voted: boolean }>(path)
+  }
+
+  static removeAlbumUploader(eventId: string, userId: string) {
+    return this.delete<{ removed: number }>(`/events/${eventId}/album/uploader/${userId}`)
   }
 
   static async uploadAlbumPhoto(eventId: string, uri: string): Promise<void> {

@@ -22,7 +22,7 @@ const FAQS: { topic: Topic; q: string; a: string }[] = [
   { topic: 'Safety', q: 'What does SOS do?', a: 'At an event you have joined, SOS texts your emergency contacts once, with a map link to where you are. It is not a call or a live track. If you are in danger, call 112.' },
   { topic: 'Safety', q: 'Who sees my phone number?', a: 'No one. Your number is never shown on your profile.' },
   { topic: 'Account', q: 'How do I change my city or photos?', a: 'Settings, then Edit profile. Tap Change next to your city, or Change photos on the cover.' },
-  { topic: 'Account', q: 'How do I delete my account?', a: `Settings, then Account, then Delete account at the bottom. You confirm your number with a code and type DELETE. Changed your mind? Email ${SUPPORT_EMAIL} within 30 days.` },
+  { topic: 'Account', q: 'How do I delete my account?', a: `Settings, then Account, then Delete account at the bottom. You confirm your number with a code and type DELETE. Changed your mind? Email ${SUPPORT_EMAIL} within 30 days. You can't delete it while you're hosting an event or have a ticket to one that hasn't ended yet.` },
 ]
 
 const TOPICS: ('All' | Topic)[] = ['All', 'Events', 'Payments', 'People', 'Safety', 'Account']

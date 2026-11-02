@@ -22,13 +22,11 @@ once it ships.
 ## Money
 - [ ] Automate host payouts (for example RazorpayX), paid only after the event ends and check-ins look right. Today the admin panel only works out what each host is owed; transfers are done by hand.
 - [ ] Refund the card/UPI part of a payment back to the original method, instead of bank refunds by hand ("5 to 10 days" by email today).
-- [ ] Decide: credit the ₹50 fee to guests of events cancelled before Oct 29 (they got only the ticket price back under the old rule).
-- [ ] Deleting an account cancels its paid tickets with no refund. Decide the rule.
+
 
 ## Trust and safety
 - [ ] Government ID check for hosts of paid events (DigiLocker / Aadhaar-based), shown as a "Verified host" tick. Biggest gap in the safety story.
 - [ ] Badges promise "more visibility in Discover and Trending", but ranking ignores badge tier. Add it to ranking, or soften the message.
-- [ ] View once: tell the sender when someone screenshots (Instagram does this). Today screenshots are only blocked.
 
 ## Media
 - [ ] Compress chat videos on Android before upload (iOS already exports at 720p).

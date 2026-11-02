@@ -11,6 +11,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Colors, FontFamily, withOpacity } from '@/constants'
 
 const { width: W, height: H } = Dimensions.get('window')
+const DOUBLE_TAP_MS = 280
 
 export type MediaViewType = 'image' | 'gif' | 'video'
 
@@ -30,6 +31,7 @@ interface Props {
   renderFooter?: (index: number) => ReactNode
   /** Drawn over everything inside the viewer, e.g. a sheet. */
   overlay?: ReactNode
+  onDoubleTap?: (index: number) => void
   /** Android back. Defaults to closing the viewer. */
   onRequestClose?: () => void
 }
@@ -54,12 +56,23 @@ function VideoViewer({ url, active }: { url: string; active: boolean }) {
  * Full-screen photo and video viewer: pure black, swipe sideways between
  * items, swipe down to close. A glass X and a count pill sit on top.
  */
-export function MediaViewerModal({ visible, items, initialIndex = 0, onClose, renderFooter, overlay, onRequestClose }: Props) {
+export function MediaViewerModal({ visible, items, initialIndex = 0, onClose, renderFooter, overlay, onRequestClose, onDoubleTap }: Props) {
   const insets = useSafeAreaInsets()
   const translateY = useSharedValue(0)
   const bgOpacity = useSharedValue(1)
   const [activeIndex, setActiveIndex] = useState(initialIndex)
   const listRef = useRef<FlatList>(null)
+  const lastTap = useRef(0)
+  // A plain timer rather than a gesture, so it can't fight the sideways swipe.
+  const handleTap = useCallback((index: number) => {
+    const now = Date.now()
+    if (now - lastTap.current < DOUBLE_TAP_MS) {
+      lastTap.current = 0
+      onDoubleTap?.(index)
+    } else {
+      lastTap.current = now
+    }
+  }, [onDoubleTap])
 
   const openKey = visible ? initialIndex : -1
   const [seenKey, setSeenKey] = useState(openKey)
@@ -135,14 +148,16 @@ export function MediaViewerModal({ visible, items, initialIndex = 0, onClose, re
                 {item.type === 'video' ? (
                   <VideoViewer url={item.url} active={index === activeIndex} />
                 ) : (
-                  <Image
-                    source={{ uri: item.url, cacheKey: item.cacheKey }}
-                    style={{ width: W, height: H }}
-                    contentFit="contain"
-                    cachePolicy="memory-disk"
-                    priority={index === activeIndex ? 'high' : 'low'}
-                    transition={150}
-                  />
+                  <Pressable onPress={() => handleTap(index)} disabled={!onDoubleTap}>
+                    <Image
+                      source={{ uri: item.url, cacheKey: item.cacheKey }}
+                      style={{ width: W, height: H }}
+                      contentFit="contain"
+                      cachePolicy="memory-disk"
+                      priority={index === activeIndex ? 'high' : 'low'}
+                      transition={150}
+                    />
+                  </Pressable>
                 )}
               </View>
             )}

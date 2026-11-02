@@ -29,6 +29,7 @@ BLOCK_FILTER = """
     AND NOT EXISTS (SELECT 1 FROM event_photo_reports r WHERE r.photo_id = p.id AND r.reporter_id = %(me)s::uuid)
 """
 VISIBLE = "p.removed_at IS NULL AND p.hidden_at IS NULL"
+VOTES = "(SELECT COUNT(*) FROM event_photo_votes v WHERE v.photo_id = p.id)"
 ATTENDED_SQL = "ea.status = 'going' AND ea.checked_in_at IS NOT NULL"
 
 
@@ -72,7 +73,7 @@ def summary(cur, event_id: str, user_id: str) -> Optional[dict]:
         f"""
         SELECT p.storage_key FROM event_photos p
         WHERE p.event_id = %(event_id)s::uuid AND {VISIBLE} AND {BLOCK_FILTER}
-        ORDER BY p.created_at DESC LIMIT %(limit)s
+        ORDER BY {VOTES} DESC, p.created_at DESC LIMIT %(limit)s
         """,
         params,
     )

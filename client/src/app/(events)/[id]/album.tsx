@@ -1,19 +1,20 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { ActivityIndicator, Dimensions, FlatList, Pressable, StyleSheet, Text, View } from 'react-native'
+import { ActivityIndicator, Dimensions, FlatList, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { Image } from 'expo-image'
 import { router, useLocalSearchParams } from 'expo-router'
-import { ArrowLeft, Camera, Flag, ImagePlus, Trash2 } from 'lucide-react-native'
+import { ArrowLeft, Camera, Flag, ImagePlus, PartyPopper, Trash2 } from 'lucide-react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import ApiService, { type AlbumPhoto } from '@/api/apiService'
 import { MediaPreviewModal } from '@/components/chat/MediaPreviewModal'
 import { MediaViewerModal } from '@/components/chat/MediaViewerModal'
 import { AlbumPhotoSheet, type AlbumSheetMode } from '@/components/events/AlbumPhotoSheet'
+import { VoteBurst } from '@/components/events/VoteBurst'
 import { BrandedRefreshControl, EmptyState, HeaderIconBtn, PrimaryButton } from '@/components/ui'
 import { LargeTitleBar, useLargeTitle } from '@/components/ui/LargeTitle'
 import { useAlbum } from '@/hooks/useAlbum'
 import { photosLabel } from '@/lib/album'
 import { parseServerDate } from '@/lib/dates'
-import { hTap } from '@/lib/haptics'
+import { hSuccess, hTap } from '@/lib/haptics'
 import { usePillStore } from '@/store/pillStore'
 import { Colors, FontFamily, withOpacity } from '@/constants'
 
@@ -21,6 +22,8 @@ const GAP = 2
 const COLUMNS = 3
 const CELL_W = (Dimensions.get('window').width - GAP * (COLUMNS - 1)) / COLUMNS
 const CELL_H = CELL_W * 1.25 // 4:5, like every event photo
+const BEST_W = Dimensions.get('window').width * 0.4
+const BURST_MS = 800
 
 function closingLine(closesAt: string | null) {
   const d = closesAt ? parseServerDate(closesAt) : null
@@ -37,7 +40,22 @@ export default function AlbumScreen() {
   const album = useAlbum(id!)
   const [viewIndex, setViewIndex] = useState<number | null>(null)
   const [sheet, setSheet] = useState<{ mode: AlbumSheetMode; photo: AlbumPhoto } | null>(null)
-  const viewerItems = useMemo(() => album.photos.map(p => ({ url: p.url, type: 'image' as const, cacheKey: p.key })), [album.photos])
+  const [burst, setBurst] = useState(0)
+  // The viewer runs through Best of the night first, then the grid.
+  const all = useMemo(() => [...album.best, ...album.photos], [album.best, album.photos])
+  const viewerItems = useMemo(() => all.map(p => ({ url: p.url, type: 'image' as const, cacheKey: p.key })), [all])
+  useEffect(() => {
+    if (!burst) return
+    const t = setTimeout(() => setBurst(0), BURST_MS)
+    return () => clearTimeout(t)
+  }, [burst])
+
+  const voteFor = (photo: AlbumPhoto) => {
+    if (photo.mine) return
+    hSuccess()
+    setBurst(n => n + 1)
+    if (!photo.voted) album.setVote(photo, true)
+  }
 
   // "Add photos" on Home goes straight to the picker.
   const autoOpened = useRef(false)
@@ -48,12 +66,22 @@ export default function AlbumScreen() {
   }, [add, album])
 
   const footerFor = (index: number) => {
-    const p = album.photos[index]
+    const p = all[index]
     if (!p) return null
     return (
       <View style={[s.viewerFooter, { paddingBottom: insets.bottom + 16 }]}>
         <Image source={p.uploader.avatar ? { uri: p.uploader.avatar } : undefined} style={s.viewerAvatar} />
         <Text style={s.viewerName} numberOfLines={1}>{p.mine ? 'You' : p.uploader.name ?? 'A guest'}</Text>
+        {!p.mine ? (
+          <Pressable
+            style={[s.viewerBtn, p.voted && s.viewerBtnOn]}
+            hitSlop={8}
+            accessibilityLabel={p.voted ? 'Take back Best of the night' : 'Best of the night'}
+            onPress={() => { if (p.voted) { hTap(); album.setVote(p, false) } else voteFor(p) }}
+          >
+            <PartyPopper size={18} color={p.voted ? Colors.background : Colors.white} strokeWidth={2} />
+          </Pressable>
+        ) : null}
         {p.can_delete ? (
           <Pressable style={s.viewerBtn} hitSlop={8} accessibilityLabel="Remove photo" onPress={() => { hTap(); setSheet({ mode: 'remove', photo: p }) }}>
             <Trash2 size={18} color={Colors.white} strokeWidth={2} />
@@ -81,12 +109,33 @@ export default function AlbumScreen() {
     showPill(`Blocked ${photo.uploader.name?.split(' ')[0] ?? 'them'}`, 'success')
   }
 
+  const removeAllFrom = async (photo: AlbumPhoto) => {
+    await album.removeUploader(photo.uploader.id)
+    setSheet(null)
+    showPill(`Removed ${photo.uploader.name?.split(' ')[0] ?? 'their'} photos`, 'success')
+  }
+
   const meta = [photosLabel(album.count), album.canAdd ? closingLine(album.closesAt) : 'Closed for new photos'].filter(Boolean).join(' · ')
-  const header = album.photos.length > 0 ? (
-    <View style={s.intro}>
-      <Text style={s.meta}>{meta}</Text>
-      <Text style={s.private}>Only people who were there can see these.</Text>
-    </View>
+  const header = all.length > 0 ? (
+    <>
+      <View style={s.intro}>
+        <Text style={s.meta}>{meta}</Text>
+        <Text style={s.private}>Only people who were there can see these. Double tap your favourite moments.</Text>
+      </View>
+      {album.best.length > 0 ? (
+        <View style={s.best}>
+          <Text style={s.bestTitle}>Best of the night</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.bestRow}>
+            {album.best.map((p, i) => (
+              <Pressable key={p.id} onPress={() => { hTap(); setViewIndex(i) }} accessibilityLabel="Open photo">
+                <Image source={{ uri: p.url, cacheKey: p.key }} style={s.bestTile} contentFit="cover" cachePolicy="memory-disk" transition={200} />
+                {p.voted ? <View style={s.mark}><PartyPopper size={13} color={Colors.background} strokeWidth={2.2} /></View> : null}
+              </Pressable>
+            ))}
+          </ScrollView>
+        </View>
+      ) : null}
+    </>
   ) : null
 
   const uploading = album.upload && album.upload.done < album.upload.total
@@ -132,8 +181,9 @@ export default function AlbumScreen() {
           windowSize={7}
           refreshControl={<BrandedRefreshControl refreshing={album.refreshing} onRefresh={album.refresh} />}
           renderItem={({ item, index }) => (
-            <Pressable onPress={() => { hTap(); setViewIndex(index) }} accessibilityLabel="Open photo">
+            <Pressable onPress={() => { hTap(); setViewIndex(album.best.length + index) }} accessibilityLabel="Open photo">
               <Image source={{ uri: item.url, cacheKey: item.key }} style={s.cell} contentFit="cover" cachePolicy="memory-disk" transition={120} />
+              {item.voted ? <View style={s.mark}><PartyPopper size={13} color={Colors.background} strokeWidth={2.2} /></View> : null}
             </Pressable>
           )}
         />
@@ -177,17 +227,22 @@ export default function AlbumScreen() {
         onClose={() => setViewIndex(null)}
         onRequestClose={sheet ? () => setSheet(null) : undefined}
         renderFooter={footerFor}
-        overlay={sheet ? (
+        onDoubleTap={index => { if (all[index]) voteFor(all[index]) }}
+        overlay={<>
+          {burst ? <VoteBurst key={burst} /> : null}
+          {sheet ? (
           <AlbumPhotoSheet
             mode={sheet.mode}
             photo={sheet.photo}
             onReport={reason => album.report(sheet.photo, reason)}
             onRemove={() => removePhoto(sheet.photo)}
+            onRemoveAll={sheet.photo.can_delete && !sheet.photo.mine ? () => removeAllFrom(sheet.photo) : undefined}
             onBlock={() => blockUploader(sheet.photo)}
             onClose={() => setSheet(null)}
             onReported={() => { album.forget(sheet.photo); setSheet(null) }}
           />
-        ) : null}
+          ) : null}
+        </>}
       />
     </View>
   )
@@ -201,7 +256,12 @@ const s = StyleSheet.create({
   cell: { width: CELL_W, height: CELL_H, backgroundColor: Colors.surface },
   intro: { paddingHorizontal: 16, paddingTop: 6, paddingBottom: 14, gap: 2 },
   meta: { fontFamily: FontFamily.bodySemiBold, fontSize: 14, color: Colors.inkPrimary },
-  private: { fontFamily: FontFamily.bodyRegular, fontSize: 13, color: Colors.inkSecondary },
+  private: { fontFamily: FontFamily.bodyRegular, fontSize: 13, lineHeight: 18, color: Colors.inkSecondary },
+  best: { gap: 10, paddingBottom: 18 },
+  bestTitle: { paddingHorizontal: 16, fontFamily: FontFamily.headingBold, fontSize: 17, color: Colors.inkPrimary },
+  bestRow: { paddingHorizontal: 16, gap: 8 },
+  bestTile: { width: BEST_W, height: BEST_W * 1.25, borderRadius: 14, backgroundColor: Colors.surface },
+  mark: { position: 'absolute', right: 6, bottom: 6, width: 22, height: 22, borderRadius: 11, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.white },
   dock: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: 16, paddingTop: 12, backgroundColor: Colors.background },
   progress: { gap: 8, paddingVertical: 6 },
   progressText: { fontFamily: FontFamily.bodySemiBold, fontSize: 14, color: Colors.inkPrimary },
@@ -216,4 +276,5 @@ const s = StyleSheet.create({
   viewerAvatar: { width: 32, height: 32, borderRadius: 16, backgroundColor: withOpacity(Colors.white, 0.16) },
   viewerName: { flex: 1, fontFamily: FontFamily.bodySemiBold, fontSize: 14, color: Colors.white },
   viewerBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: withOpacity(Colors.white, 0.16) },
+  viewerBtnOn: { backgroundColor: Colors.white },
 })

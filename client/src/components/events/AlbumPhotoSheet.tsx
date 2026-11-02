@@ -13,6 +13,7 @@ const REASONS = [
   { label: 'Posted without consent', hint: "Someone in it didn't agree to this" },
   { label: 'Harassment or bullying', hint: null },
   { label: 'Violence', hint: null },
+  { label: 'Spam or junk', hint: 'Blurry, repeated or just filling the album' },
   { label: 'Something else', hint: null },
 ]
 
@@ -23,6 +24,8 @@ interface Props {
   photo: AlbumPhoto
   onReport: (reason: string) => Promise<void>
   onRemove: () => Promise<void>
+  /** Host only, on someone else's photo. */
+  onRemoveAll?: () => Promise<void>
   onBlock: () => Promise<void>
   /** Sheet dismissed with nothing done. */
   onClose: () => void
@@ -35,7 +38,7 @@ interface Props {
  * (The app's usual sheets sit under a native Modal, so they can't be used here.)
  * A reason is one tap, then a thank-you with the option to block the person.
  */
-export function AlbumPhotoSheet({ mode, photo, onReport, onRemove, onBlock, onClose, onReported }: Props) {
+export function AlbumPhotoSheet({ mode, photo, onReport, onRemove, onRemoveAll, onBlock, onClose, onReported }: Props) {
   const insets = useSafeAreaInsets()
   const [sending, setSending] = useState<string | null>(null)
   const [reported, setReported] = useState(false)
@@ -92,8 +95,13 @@ export function AlbumPhotoSheet({ mode, photo, onReport, onRemove, onBlock, onCl
             <Text style={s.sub}>It&apos;s removed for everyone in the album.</Text>
             {error ? <Text style={s.error}>{error}</Text> : null}
             <Pressable style={[s.button, s.danger]} onPress={() => run('remove', onRemove)}>
-              {sending ? <ActivityIndicator color={Colors.white} size="small" /> : <Text style={s.dangerText}>Remove</Text>}
+              {sending === 'remove' ? <ActivityIndicator color={Colors.white} size="small" /> : <Text style={s.dangerText}>Remove</Text>}
             </Pressable>
+            {onRemoveAll ? (
+              <Pressable style={s.button} onPress={() => run('all', onRemoveAll)}>
+                {sending === 'all' ? <ActivityIndicator color={Colors.inkPrimary} size="small" /> : <Text style={s.allText}>Remove all from {name}</Text>}
+              </Pressable>
+            ) : null}
             <Pressable style={s.button} onPress={dismiss}><Text style={s.buttonText}>Cancel</Text></Pressable>
           </>
         ) : reported ? (
@@ -160,6 +168,7 @@ const s = StyleSheet.create({
   doneIcon: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', marginBottom: 12, backgroundColor: withOpacity(Colors.inkPrimary, 0.1) },
   button: { height: 50, borderRadius: 25, alignItems: 'center', justifyContent: 'center', marginTop: 8, backgroundColor: withOpacity(Colors.inkPrimary, 0.1) },
   buttonText: { fontFamily: FontFamily.bodySemiBold, fontSize: 15, color: Colors.inkPrimary },
+  allText: { fontFamily: FontFamily.bodySemiBold, fontSize: 15, color: Colors.destructive },
   danger: { backgroundColor: Colors.destructive },
   dangerText: { fontFamily: FontFamily.bodySemiBold, fontSize: 15, color: Colors.white },
 })

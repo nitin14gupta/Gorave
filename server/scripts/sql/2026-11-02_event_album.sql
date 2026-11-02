@@ -40,6 +40,17 @@ CREATE TABLE IF NOT EXISTS public.event_photo_reports (
   CONSTRAINT event_photo_reports_reporter_id_fkey FOREIGN KEY (reporter_id) REFERENCES public.users(id) ON DELETE CASCADE
 );
 
+-- "Best of the night": a double tap on a photo. Who tapped and how many stay
+-- private; the votes only decide which photos rise to the top.
+CREATE TABLE IF NOT EXISTS public.event_photo_votes (
+  photo_id uuid NOT NULL,
+  user_id uuid NOT NULL,
+  created_at timestamp with time zone DEFAULT now() NOT NULL,
+  CONSTRAINT event_photo_votes_pkey PRIMARY KEY (photo_id, user_id),
+  CONSTRAINT event_photo_votes_photo_id_fkey FOREIGN KEY (photo_id) REFERENCES public.event_photos(id) ON DELETE CASCADE,
+  CONSTRAINT event_photo_votes_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE
+);
+
 -- The "add your pictures" prompt goes out once per person.
 ALTER TABLE public.event_attendees ADD COLUMN IF NOT EXISTS album_prompt_sent_at timestamp with time zone;
 ALTER TABLE public.events ADD COLUMN IF NOT EXISTS album_host_prompt_sent_at timestamp with time zone;

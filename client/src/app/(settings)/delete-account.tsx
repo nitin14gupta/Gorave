@@ -14,7 +14,7 @@ import { DeleteLossStep } from '@/components/settings/DeleteLossStep'
 import { PhoneView } from '@/components/auth/PhoneView'
 import { OtpView } from '@/components/auth/OtpView'
 import { DeleteConfirmStep } from '@/components/settings/DeleteConfirmStep'
-import ApiService from '@/api/apiService'
+import ApiService, { type EventSummary } from '@/api/apiService'
 import { useAuthStore } from '@/store/auth'
 import { usePillStore } from '@/store/pillStore'
 import { hTap, hSuccess } from '@/lib/haptics'
@@ -40,19 +40,21 @@ export default function DeleteAccountScreen() {
   const [otpVerified, setOtpVerified] = useState(false)
   const [deleting, setDeleting]       = useState(false)
   const [typed, setTyped]             = useState('')
-  const [upcomingEvents, setUpcomingEvents] = useState(0)
+  const [hosting, setHosting] = useState(0)
+  const [attending, setAttending] = useState(0)
   const [checkingEvents, setCheckingEvents] = useState(true)
   const { seconds: resendSeconds, isExpired: canResend, reset: resetResendTimer } = useCountdown(45)
 
   useFocusEffect(
     useCallback(() => {
       setCheckingEvents(true)
-      ApiService.getMyHostedEvents()
-        .then(events => {
-          // Only count events that haven't ended yet (upcoming or currently
-          // in progress) — cancelled and past/ended events don't block deletion.
-          const blocking = events.filter(e => !e.is_cancelled && !isEventPast(e))
-          setUpcomingEvents(blocking.length)
+      Promise.all([ApiService.getMyHostedEvents(), ApiService.getMyJoinedEvents()])
+        .then(([hosted, joined]) => {
+          // Cancelled and ended events don't block deletion; anything still
+          // ahead does, whether you're hosting it or have a ticket.
+          const ahead = (e: EventSummary) => !e.is_cancelled && !isEventPast(e)
+          setHosting(hosted.filter(ahead).length)
+          setAttending(joined.filter(ahead).length)
         })
         .catch(() => {})
         .finally(() => setCheckingEvents(false))
@@ -140,13 +142,14 @@ export default function DeleteAccountScreen() {
     )
   }
 
-  if (upcomingEvents > 0) {
+  if (hosting > 0 || attending > 0) {
     return (
       <View style={s.root}>
         <AppHeader title="Delete Account" leftAction={backAction} />
         <DeleteBlockedEvents
-          upcomingEvents={upcomingEvents}
-          onGoToEvents={() => router.push('/(settings)/my-events' as any)}
+          hosting={hosting}
+          attending={attending}
+          onGoToEvents={() => router.push((hosting > 0 ? '/(settings)/my-events' : '/(settings)/joined-events') as any)}
           onBack={() => router.back()}
         />
       </View>

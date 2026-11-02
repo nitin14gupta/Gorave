@@ -128,12 +128,16 @@ export interface AlbumPhoto {
   uploader: { id: string; name: string | null; avatar: string | null }
   mine: boolean
   can_delete: boolean
+  /** Your own Best of the night vote. Other people's votes are never shown. */
+  voted: boolean
 }
 
 export interface AlbumPage {
+  /** Most-voted photos. Not repeated in `photos`. */
+  best: AlbumPhoto[]
   photos: AlbumPhoto[]
   count: number
-  next_cursor: string | null
+  next_offset: number | null
   can_add: boolean
   closes_at: string
 }
