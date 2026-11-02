@@ -630,6 +630,12 @@ class ApiService {
     await this.post<{ ok: boolean }>(endpoint, { reason })
   }
 
+  static async pinConversation(convId: string, on: boolean): Promise<void> {
+    const endpoint = `${ENDPOINTS.CONV_DELETE.replace(':id', convId)}/pin`
+    if (on) await this.post<{ ok: boolean }>(endpoint, {})
+    else await this.delete<{ ok: boolean }>(endpoint)
+  }
+
   static async deleteConversation(convId: string): Promise<void> {
     const endpoint = ENDPOINTS.CONV_DELETE.replace(':id', convId)
     await this.delete<{ ok: boolean }>(endpoint)

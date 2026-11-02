@@ -6,6 +6,7 @@ import { useSharedValue, withTiming } from 'react-native-reanimated'
 import { router } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import ApiService, { type Message } from '@/api/apiService'
+import { compressVideoForUpload } from '@/lib/videoCompress'
 import { useAuthStore } from '@/store/auth'
 import { usePillStore } from '@/store/pillStore'
 import { useChat } from './useChat'
@@ -464,7 +465,8 @@ export function useChatScreen(convId: string) {
     duration?: number, viewLimit: 1 | 2 | null = null,
   ) => {
     try {
-      const { url, media_type, key } = await ApiService.uploadChatMedia(uri)
+      const file = type === 'video' ? await compressVideoForUpload(uri) : uri
+      const { url, media_type, key } = await ApiService.uploadChatMedia(file)
       const finalType = type === 'gif' ? 'gif' : media_type
       // With private chat files the server stores `key` and hands every
       // viewer a fresh signed link.

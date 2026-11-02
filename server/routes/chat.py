@@ -325,10 +325,15 @@ def list_conversations(
     if delivered_convs:
         background_tasks.add_task(_announce_delivered, delivered_convs, uid)
 
+    with get_db() as (cur, _):
+        cur.execute("SELECT conversation_id::text, pinned_at FROM conversation_pins WHERE user_id = %s::uuid", (uid,))
+        pins = {r["conversation_id"]: r["pinned_at"] for r in cur.fetchall()}
+
     all_convs = []
     for r in rows:
         d = dict(r)
         d["partner_id"] = str(d["partner_id"])
+        d["pinned_at"] = pins.get(d["id"])
         # Same rule as the thread: a deleted account's last message isn't shown.
         if d.get("partner_is_deleted") and str(d.get("last_sender_id")) == d["partner_id"]:
             d["last_message"] = None
@@ -337,6 +342,8 @@ def list_conversations(
 
     pending = [c for c in all_convs if c["status"] == "pending" and c["last_sender_id"] != uid]
     active_all = [c for c in all_convs if c["status"] == "active"]
+    # Pins first, newest pin on top; the rest keep their most-recent order.
+    active_all.sort(key=lambda c: c["pinned_at"].timestamp() if c["pinned_at"] else 0, reverse=True)
     locked = [c for c in all_convs if c["status"] == "pending" and c["last_sender_id"] == uid]
 
     active_page = active_all[active_offset:active_offset + active_limit]
@@ -501,6 +508,39 @@ async def mark_read(conv_id: str, current_user: dict = Depends(get_current_user)
     return {"ok": True}
 
 
+MAX_PINNED_CHATS = 3
+
+
+@router.post("/chat/conversations/{conv_id}/pin", status_code=200)
+def pin_conversation(conv_id: str, current_user: dict = Depends(get_current_user)):
+    uid = current_user["id"]
+    with get_db() as (cur, conn):
+        conv = _get_conversation(cur, conv_id, uid)
+        if conv["status"] != "active":
+            raise HTTPException(status_code=400, detail="You can only pin an active chat")
+        cur.execute("SELECT conversation_id::text FROM conversation_pins WHERE user_id = %s::uuid", (uid,))
+        pinned = {r["conversation_id"] for r in cur.fetchall()}
+        if conv_id not in pinned and len(pinned) >= MAX_PINNED_CHATS:
+            raise HTTPException(status_code=409, detail=f"You can pin up to {MAX_PINNED_CHATS} chats")
+        cur.execute(
+            "INSERT INTO conversation_pins (user_id, conversation_id) VALUES (%s::uuid, %s::uuid) ON CONFLICT DO NOTHING",
+            (uid, conv_id),
+        )
+        conn.commit()
+    return {"ok": True}
+
+
+@router.delete("/chat/conversations/{conv_id}/pin", status_code=200)
+def unpin_conversation(conv_id: str, current_user: dict = Depends(get_current_user)):
+    with get_db() as (cur, conn):
+        cur.execute(
+            "DELETE FROM conversation_pins WHERE user_id = %s::uuid AND conversation_id = %s::uuid",
+            (current_user["id"], conv_id),
+        )
+        conn.commit()
+    return {"ok": True}
+
+
 @router.delete("/chat/conversations/{conv_id}", status_code=200)
 def delete_conversation(conv_id: str, current_user: dict = Depends(get_current_user)):
     uid = current_user["id"]
@@ -518,6 +558,7 @@ def delete_conversation(conv_id: str, current_user: dict = Depends(get_current_u
             """,
             (uid, conv_id, uid),
         )
+        cur.execute("DELETE FROM conversation_pins WHERE user_id = %s::uuid AND conversation_id = %s::uuid", (uid, conv_id))
         conn.commit()
     return {"ok": True}
 

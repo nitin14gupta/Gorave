@@ -13,6 +13,7 @@ once it ships.
   - `2026-10-29_ticket_money.sql`
   - `2026-10-29_ticket_transfer.sql`
   - `2026-11-02_event_album.sql`
+  - `2026-11-03_chat_pins.sql`
 
   All are in `server/scripts/sql/`.
 - [ ] Production server env: set `R2_CHAT_BUCKET=gorave-chat`.
@@ -27,9 +28,6 @@ once it ships.
 ## Trust and safety
 - [ ] Government ID check for hosts of paid events (DigiLocker / Aadhaar-based), shown as a "Verified host" tick. Biggest gap in the safety story.
 - [ ] Badges promise "more visibility in Discover and Trending", but ranking ignores badge tier. Add it to ranking, or soften the message.
-
-## Media
-- [ ] Compress chat videos on Android before upload (iOS already exports at 720p).
 
 ## Features
 - [ ] **Event group chat:** confirmed guests only; opens once they're in and closes the day after. Keeps "who's bringing what / I'm here" inside Gorave instead of WhatsApp.

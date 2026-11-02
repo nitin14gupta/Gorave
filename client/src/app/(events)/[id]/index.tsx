@@ -13,9 +13,7 @@ import { ReportEventSheet } from '@/components/events/ReportEventSheet'
 import { EventOptionsSheet } from '@/components/events/EventOptionsSheet'
 import { EventHeroControls, EventHeroPhotos } from '@/components/events/EventPhotoHero'
 import { EventInfoHeader } from '@/components/events/EventInfoHeader'
-import { EventHostCard } from '@/components/events/EventHostCard'
-import { EventAlbumSection } from '@/components/events/EventAlbumSection'
-import { EventGuestListPreview } from '@/components/events/EventGuestListPreview'
+import { EventSocialSections } from '@/components/events/EventSocialSections'
 import { EventDetailsSection } from '@/components/events/EventDetailsSection'
 import { EventSafetySection } from '@/components/events/EventSafetySection'
 import { useSafetyAgreementGate } from '@/components/safety/useSafetyAgreementGate'
@@ -87,15 +85,14 @@ export default function EventDetailScreen() {
           <View style={styles.sheetContent}>
             <EventInfoHeader event={event} eventId={id ?? ''} onPressAddress={() => d.setAddressSheetOpen(true)} />
 
-            <EventHostCard event={event} isHost={isHost} />
-
-            <EventGuestListPreview
+            <EventSocialSections
+              event={event}
+              eventId={id ?? ''}
+              isHost={isHost}
               guests={d.guests}
               guestTotal={d.guestTotal}
-              onPress={() => d.setGuestSheetOpen(true)}
+              onOpenGuests={() => d.setGuestSheetOpen(true)}
             />
-
-            <EventAlbumSection album={event.album} eventId={id ?? ''} />
 
             <EventDetailsSection event={event} eventId={id ?? ''} />
 

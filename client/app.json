@@ -150,6 +150,7 @@
           }
         }
       ],
+      "react-native-compressor",
       "./plugins/withUcropColors",
       "./plugins/withUpiQueries",
       "expo-web-browser",

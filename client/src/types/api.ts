@@ -416,6 +416,8 @@ export interface Conversation {
   unread_count: number
   last_message_at: string | null
   block_status?: 'none' | 'i_blocked' | 'they_blocked'
+  /** Set when you've pinned this chat. Only you can see it. */
+  pinned_at?: string | null
 }
 
 export interface EventAttendee {

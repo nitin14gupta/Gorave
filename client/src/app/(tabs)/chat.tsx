@@ -7,7 +7,7 @@ import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-na
 import { useMinimizeOnScroll } from 'expo-glass-tabs'
 import { Image } from 'expo-image'
 import { router } from 'expo-router'
-import { Flame, RefreshCw, Ghost, Search } from 'lucide-react-native'
+import { Flame, RefreshCw, Ghost, Pin, Search } from 'lucide-react-native'
 import { hTap } from '@/lib/haptics'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { AutoSkeletonView } from 'react-native-auto-skeleton'
@@ -118,9 +118,12 @@ const ConvRow = memo(function ConvRow({ conv, onPress, onLongPress, onAvatarPres
           <Text style={[s.convName, isLocked && s.convNameLocked, isDeleted && s.convNameDeleted]} numberOfLines={1}>
             {displayName}
           </Text>
-          <Text style={[s.convTime, conv.unread_count > 0 && s.convTimeUnread]}>
-            {formatTime(conv.last_sent_at ?? conv.last_message_at)}
-          </Text>
+          <View style={s.convMeta}>
+            {conv.pinned_at ? <Pin size={12} color={Colors.inkSecondary} strokeWidth={2} /> : null}
+            <Text style={[s.convTime, conv.unread_count > 0 && s.convTimeUnread]}>
+              {formatTime(conv.last_sent_at ?? conv.last_message_at)}
+            </Text>
+          </View>
         </View>
         <View style={s.convBottomRow}>
           <Text
@@ -189,6 +192,7 @@ export default function ChatScreen() {
     loadMore,
     acceptVibe,
     passVibe,
+    setPinned,
   } = useConversations()
 
   // Refresh received vibes every time the inbox sheet is opened
@@ -201,15 +205,9 @@ export default function ChatScreen() {
   }
 
   // Active first (sorted by most recent message), locked at bottom
-  const sortByRecent = (a: Conversation, b: Conversation) => {
-    const ta = a.last_sent_at ?? a.last_message_at ?? a.id
-    const tb = b.last_sent_at ?? b.last_message_at ?? b.id
-    return tb.localeCompare(ta)
-  }
-
   const allConvs = [
-    ...activeConversations.slice().sort(sortByRecent),
-    ...lockedConversations.slice().sort(sortByRecent),
+    ...activeConversations.slice().sort(byRecent),
+    ...lockedConversations.slice().sort(byRecent),
   ]
 
   const isEmpty = !loading && !error && allConvs.length === 0 && pendingVibes.length === 0
@@ -246,6 +244,10 @@ export default function ChatScreen() {
     if (!menuTarget) return
     await ApiService.unblockUser(menuTarget.partner_id)
     setBlockedIds(prev => { const next = new Set(prev); next.delete(menuTarget.partner_id); return next })
+  }
+
+  const togglePin = (conv: Conversation) => {
+    setPinned(conv, !conv.pinned_at).catch((e: any) => showPill(e?.message || "Couldn't pin that chat", 'error'))
   }
 
   const handleReport = async (reason: string) => {
@@ -403,6 +405,8 @@ export default function ChatScreen() {
           onUnblock={handleUnblock}
           onReport={handleReport}
           onClose={() => setMenuTarget(null)}
+          pinned={!!menuTarget.pinned_at}
+          onTogglePin={menuTarget.status === 'active' ? () => togglePin(menuTarget) : undefined}
         />
       )}
     </View>
@@ -541,6 +545,7 @@ const s = StyleSheet.create({
   convAvatarInitial: { fontFamily: FontFamily.headingBold, fontSize: 22, color: Colors.inkPrimary },
   convBody: { flex: 1, minWidth: 0 },
   convTopRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
+  convMeta: { flexDirection: 'row', alignItems: 'center', gap: 2 },
   convName: { fontFamily: FontFamily.bodySemiBold, fontSize: 15, color: Colors.inkPrimary, flex: 1 },
   convNameLocked: { color: Colors.inkSecondary },
   convNameDeleted: { color: Colors.inkDisabled, fontStyle: 'italic' },

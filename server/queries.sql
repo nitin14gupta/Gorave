@@ -53,6 +53,13 @@ CREATE TABLE IF NOT EXISTS public.app_feedback (
   CONSTRAINT app_feedback_pkey PRIMARY KEY (id)
 );
 
+CREATE TABLE IF NOT EXISTS public.conversation_pins (
+  user_id uuid NOT NULL,
+  conversation_id uuid NOT NULL,
+  pinned_at timestamp with time zone DEFAULT now() NOT NULL,
+  CONSTRAINT conversation_pins_pkey PRIMARY KEY (user_id, conversation_id)
+);
+
 CREATE TABLE IF NOT EXISTS public.conversations (
   id uuid DEFAULT gen_random_uuid() NOT NULL,
   user1_id uuid NOT NULL,
@@ -491,6 +498,8 @@ CREATE TABLE IF NOT EXISTS public.wallet_transactions (
 ALTER TABLE public.admin_audit_log ADD CONSTRAINT admin_audit_log_admin_id_fkey FOREIGN KEY (admin_id) REFERENCES admin_users(id) ON DELETE CASCADE;
 ALTER TABLE public.admin_refresh_tokens ADD CONSTRAINT admin_refresh_tokens_admin_id_fkey FOREIGN KEY (admin_id) REFERENCES admin_users(id) ON DELETE CASCADE;
 ALTER TABLE public.app_feedback ADD CONSTRAINT app_feedback_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE RESTRICT;
+ALTER TABLE public.conversation_pins ADD CONSTRAINT conversation_pins_conversation_id_fkey FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE;
+ALTER TABLE public.conversation_pins ADD CONSTRAINT conversation_pins_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
 ALTER TABLE public.conversations ADD CONSTRAINT conversations_user1_id_fkey FOREIGN KEY (user1_id) REFERENCES users(id) ON DELETE CASCADE;
 ALTER TABLE public.conversations ADD CONSTRAINT conversations_user2_id_fkey FOREIGN KEY (user2_id) REFERENCES users(id) ON DELETE CASCADE;
 ALTER TABLE public.device_tokens ADD CONSTRAINT device_tokens_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;

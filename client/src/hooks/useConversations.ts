@@ -15,10 +15,11 @@ interface CachedConversations {
   pending: VibeRequest[]
 }
 
-const byRecent = (a: Conversation, b: Conversation) =>
-  (b.last_sent_at ?? b.last_message_at ?? '').localeCompare(
-    a.last_sent_at ?? a.last_message_at ?? '',
-  )
+/** Pins on top, newest pin first; everything else by latest message. */
+export const byRecent = (a: Conversation, b: Conversation) => {
+  if (a.pinned_at || b.pinned_at) return (b.pinned_at ?? '').localeCompare(a.pinned_at ?? '')
+  return (b.last_sent_at ?? b.last_message_at ?? '').localeCompare(a.last_sent_at ?? a.last_message_at ?? '')
+}
 
 export function useConversations() {
   const [initialCache] = useState(() => peekCached<CachedConversations>(CACHE_KEY))
@@ -83,6 +84,20 @@ export function useConversations() {
     }, [refresh]),
   )
 
+  /** Moves it straight away and quietly puts it back if the server says no. */
+  const setPinned = useCallback(async (conv: Conversation, on: boolean) => {
+    const apply = (pinnedAt: string | null) => setActiveConversations(prev =>
+      prev.map(c => (c.id === conv.id ? { ...c, pinned_at: pinnedAt } : c)).sort(byRecent),
+    )
+    apply(on ? new Date().toISOString() : null)
+    try {
+      await ApiService.pinConversation(conv.id, on)
+    } catch (e) {
+      apply(conv.pinned_at ?? null)
+      throw e
+    }
+  }, [])
+
   // Live reorder — a lightweight ping from the server (see server/routes/chat.py
   // _notify_inbox) whenever any of the user's conversations gets a new message,
   // so the list bumps to the top in realtime like WhatsApp without polling.
@@ -99,6 +114,7 @@ export function useConversations() {
   }, [])
 
   return {
+    setPinned,
     activeConversations,
     lockedConversations,
     pendingVibes,

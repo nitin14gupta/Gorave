@@ -5,7 +5,7 @@ import type { BottomSheetBackdropProps } from '@gorhom/bottom-sheet'
 import * as Clipboard from 'expo-clipboard'
 import { router } from 'expo-router'
 import { Image } from 'expo-image'
-import { Ban, Check, Flag, Link2, Share2, QrCode, MessageCircle } from 'lucide-react-native'
+import { Ban, Check, Flag, Link2, Pin, PinOff, Share2, QrCode, MessageCircle } from 'lucide-react-native'
 import { hError, hSuccess, hTap } from '@/lib/haptics'
 import { Colors, FontFamily, withOpacity } from '@/constants'
 import { APP_SCHEME } from '@/api/config'
@@ -26,6 +26,9 @@ interface Props {
   onUnblock: () => Promise<void>
   onReport: (reason: string) => Promise<void>
   onClose: () => void
+  /** Chat list only. */
+  pinned?: boolean
+  onTogglePin?: () => void
 }
 
 function renderBackdrop(props: BottomSheetBackdropProps) {
@@ -34,7 +37,7 @@ function renderBackdrop(props: BottomSheetBackdropProps) {
 
 function ProfileMenuSheetCore({
   userId, username, targetName, avatarUrl, city, interests,
-  isBlocked, onBlock, onUnblock, onReport, onClose,
+  isBlocked, onBlock, onUnblock, onReport, onClose, pinned, onTogglePin,
 }: Omit<Props, 'visible'>) {
   const sheetRef = useRef<BottomSheetModal>(null)
   const [blockOpen, setBlockOpen] = useState(false)
@@ -133,6 +136,16 @@ function ProfileMenuSheetCore({
               {username ? <Text style={s.handle} numberOfLines={1}>@{username}</Text> : null}
             </View>
           </View>
+
+          {onTogglePin ? (
+            <View style={s.card}>
+              <MenuRow
+                icon={pinned ? <PinOff size={18} color={Colors.inkPrimary} strokeWidth={1.8} /> : <Pin size={18} color={Colors.inkPrimary} strokeWidth={1.8} />}
+                label={pinned ? 'Unpin chat' : 'Pin chat'}
+                onPress={() => { hTap(); onTogglePin(); onClose() }}
+              />
+            </View>
+          ) : null}
 
           <View style={s.card}>
             <MenuRow icon={<Share2 size={18} color={Colors.inkPrimary} strokeWidth={1.8} />} label="Share profile" onPress={handleShare} />
