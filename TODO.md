@@ -14,6 +14,8 @@ once it ships.
   - `2026-10-29_ticket_transfer.sql`
   - `2026-11-02_event_album.sql`
   - `2026-11-03_chat_pins.sql`
+  - `2026-11-03_chat_delete.sql`
+  - `2026-11-03_event_chat.sql`
 
   All are in `server/scripts/sql/`.
 - [ ] Production server env: set `R2_CHAT_BUCKET=gorave-chat`.
@@ -30,7 +32,6 @@ once it ships.
 - [ ] Badges promise "more visibility in Discover and Trending", but ranking ignores badge tier. Add it to ranking, or soften the message.
 
 ## Features
-- [ ] **Event group chat:** confirmed guests only; opens once they're in and closes the day after. Keeps "who's bringing what / I'm here" inside Gorave instead of WhatsApp.
 - [ ] **Book for a +1:** buy 2 tickets and invite the friend into the app.
 - [ ] **"Home safe" check-in:** after the event ends, ask "Got home?" and alert emergency contacts if there's no answer.
 

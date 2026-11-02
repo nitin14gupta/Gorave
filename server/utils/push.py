@@ -59,6 +59,51 @@ def get_user_avatar_url(user_id: str):
         return None
 
 
+def send_push_many(items: list, category: str = None) -> None:
+    """Many people in one go, through Expo's batch API. Each item is
+    {user_id, title, body, data, image_url?}. One query for tokens and prefs,
+    and one HTTP call per 100 phones instead of one per person."""
+    if not items:
+        return
+    try:
+        ids = list({i["user_id"] for i in items})
+        with get_db() as (cur, _):
+            cur.execute(
+                """
+                SELECT d.user_id::text, d.expo_token, u.notification_prefs
+                FROM device_tokens d JOIN users u ON u.id = d.user_id
+                WHERE d.user_id = ANY(%s::uuid[])
+                """,
+                (ids,),
+            )
+            rows = cur.fetchall()
+        tokens = {
+            r["user_id"]: r["expo_token"] for r in rows
+            if category is None or ((r["notification_prefs"] or {}).get(category, True) is not False)
+        }
+        messages = []
+        for i in items:
+            token = tokens.get(i["user_id"])
+            if not token:
+                continue
+            message = {"to": token, "title": i["title"], "body": i["body"], "data": i.get("data") or {}, "sound": "default", "priority": "high"}
+            if i.get("image_url"):
+                message["richContent"] = {"image": i["image_url"]}
+                message["mutableContent"] = True
+            messages.append(message)
+        stale = []
+        for start in range(0, len(messages), 100):
+            chunk = messages[start:start + 100]
+            results = httpx.post(EXPO_PUSH_URL, json=chunk, timeout=10).json().get("data", [])
+            stale += [chunk[n]["to"] for n, r in enumerate(results) if isinstance(r, dict) and r.get("details", {}).get("error") == "DeviceNotRegistered"]
+        if stale:
+            with get_db() as (cur, conn):
+                cur.execute("DELETE FROM device_tokens WHERE expo_token = ANY(%s)", (stale,))
+                conn.commit()
+    except Exception as e:
+        logging.warning(f"bulk push failed: {e}")
+
+
 def send_push(user_id: str, title: str, body: str, data: dict = None, image_url: str = None, category: str = None):
     try:
         if category is not None and not _category_enabled(user_id, category):

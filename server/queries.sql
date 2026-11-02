@@ -53,6 +53,27 @@ CREATE TABLE IF NOT EXISTS public.app_feedback (
   CONSTRAINT app_feedback_pkey PRIMARY KEY (id)
 );
 
+CREATE TABLE IF NOT EXISTS public.conversation_clears (
+  user_id uuid NOT NULL,
+  conversation_id uuid NOT NULL,
+  cleared_at timestamp with time zone DEFAULT now() NOT NULL,
+  CONSTRAINT conversation_clears_pkey PRIMARY KEY (user_id, conversation_id)
+);
+
+CREATE TABLE IF NOT EXISTS public.conversation_members (
+  conversation_id uuid NOT NULL,
+  user_id uuid NOT NULL,
+  role text DEFAULT 'guest'::text NOT NULL,
+  joined_at timestamp with time zone DEFAULT now() NOT NULL,
+  left_at timestamp with time zone,
+  removed_at timestamp with time zone,
+  last_read_at timestamp with time zone DEFAULT now() NOT NULL,
+  last_pushed_at timestamp with time zone,
+  muted boolean DEFAULT false NOT NULL,
+  CONSTRAINT conversation_members_role_check CHECK (role = ANY (ARRAY['host'::text, 'guest'::text])),
+  CONSTRAINT conversation_members_pkey PRIMARY KEY (conversation_id, user_id)
+);
+
 CREATE TABLE IF NOT EXISTS public.conversation_pins (
   user_id uuid NOT NULL,
   conversation_id uuid NOT NULL,
@@ -62,14 +83,21 @@ CREATE TABLE IF NOT EXISTS public.conversation_pins (
 
 CREATE TABLE IF NOT EXISTS public.conversations (
   id uuid DEFAULT gen_random_uuid() NOT NULL,
-  user1_id uuid NOT NULL,
-  user2_id uuid NOT NULL,
+  user1_id uuid,
+  user2_id uuid,
   vibe_request_id uuid,
   status text DEFAULT 'pending'::text,
   created_at timestamp with time zone DEFAULT now(),
   last_message_at timestamp with time zone,
   hidden_by uuid[] DEFAULT '{}'::uuid[],
+  kind text DEFAULT 'direct'::text NOT NULL,
+  event_id uuid,
+  posting_locked boolean DEFAULT false NOT NULL,
+  closed_at timestamp with time zone,
+  pinned_message_id uuid,
+  moments text[] DEFAULT '{}'::text[] NOT NULL,
   CONSTRAINT conversations_check CHECK (user1_id < user2_id),
+  CONSTRAINT conversations_kind_check CHECK (kind = 'direct'::text AND user1_id IS NOT NULL AND user2_id IS NOT NULL OR kind = 'event'::text AND event_id IS NOT NULL AND user1_id IS NULL AND user2_id IS NULL),
   CONSTRAINT conversations_status_check CHECK (status = ANY (ARRAY['pending'::text, 'active'::text])),
   CONSTRAINT conversations_pkey PRIMARY KEY (id),
   CONSTRAINT conversations_user1_id_user2_id_key UNIQUE (user1_id, user2_id)
@@ -299,7 +327,7 @@ CREATE TABLE IF NOT EXISTS public.messages (
   first_viewed_at timestamp with time zone,
   last_viewed_at timestamp with time zone,
   media_purged_at timestamp with time zone,
-  CONSTRAINT messages_content_type_check CHECK (content_type = ANY (ARRAY['text'::text, 'event'::text, 'profile'::text, 'image'::text, 'voice'::text, 'video'::text, 'gif'::text, 'ticket'::text])),
+  CONSTRAINT messages_content_type_check CHECK (content_type = ANY (ARRAY['text'::text, 'event'::text, 'profile'::text, 'image'::text, 'voice'::text, 'video'::text, 'gif'::text, 'ticket'::text, 'system'::text, 'update'::text])),
   CONSTRAINT messages_forward_score_check CHECK (forward_score >= 0),
   CONSTRAINT messages_view_limit_check CHECK (view_limit IS NULL OR (view_limit = ANY (ARRAY[1, 2]))),
   CONSTRAINT messages_views_used_check CHECK (views_used >= 0 AND (view_limit IS NULL OR views_used <= view_limit)),
@@ -498,8 +526,13 @@ CREATE TABLE IF NOT EXISTS public.wallet_transactions (
 ALTER TABLE public.admin_audit_log ADD CONSTRAINT admin_audit_log_admin_id_fkey FOREIGN KEY (admin_id) REFERENCES admin_users(id) ON DELETE CASCADE;
 ALTER TABLE public.admin_refresh_tokens ADD CONSTRAINT admin_refresh_tokens_admin_id_fkey FOREIGN KEY (admin_id) REFERENCES admin_users(id) ON DELETE CASCADE;
 ALTER TABLE public.app_feedback ADD CONSTRAINT app_feedback_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE RESTRICT;
+ALTER TABLE public.conversation_clears ADD CONSTRAINT conversation_clears_conversation_id_fkey FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE;
+ALTER TABLE public.conversation_clears ADD CONSTRAINT conversation_clears_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
+ALTER TABLE public.conversation_members ADD CONSTRAINT conversation_members_conversation_id_fkey FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE;
+ALTER TABLE public.conversation_members ADD CONSTRAINT conversation_members_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
 ALTER TABLE public.conversation_pins ADD CONSTRAINT conversation_pins_conversation_id_fkey FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE;
 ALTER TABLE public.conversation_pins ADD CONSTRAINT conversation_pins_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
+ALTER TABLE public.conversations ADD CONSTRAINT conversations_event_id_fkey FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE;
 ALTER TABLE public.conversations ADD CONSTRAINT conversations_user1_id_fkey FOREIGN KEY (user1_id) REFERENCES users(id) ON DELETE CASCADE;
 ALTER TABLE public.conversations ADD CONSTRAINT conversations_user2_id_fkey FOREIGN KEY (user2_id) REFERENCES users(id) ON DELETE CASCADE;
 ALTER TABLE public.device_tokens ADD CONSTRAINT device_tokens_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
@@ -552,6 +585,8 @@ ALTER TABLE public.wallet_transactions ADD CONSTRAINT wallet_transactions_user_i
 -- ── Indexes ─────────────────────────────────────────────────────────────────
 CREATE INDEX idx_admin_audit_log_created_at ON public.admin_audit_log USING btree (created_at DESC);
 CREATE INDEX idx_admin_refresh_tokens_admin_id ON public.admin_refresh_tokens USING btree (admin_id);
+CREATE INDEX conversation_members_user_idx ON public.conversation_members USING btree (user_id);
+CREATE UNIQUE INDEX conversations_event_unique ON public.conversations USING btree (event_id) WHERE (event_id IS NOT NULL);
 CREATE INDEX idx_device_tokens_user ON public.device_tokens USING btree (user_id);
 CREATE INDEX idx_event_attendees_going_reminders ON public.event_attendees USING btree (event_id) WHERE (status = 'going'::text);
 CREATE INDEX idx_event_attendees_requested ON public.event_attendees USING btree (event_id, requested_at) WHERE (status = 'requested'::text);

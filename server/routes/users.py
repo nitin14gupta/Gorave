@@ -1213,6 +1213,9 @@ def delete_account(current_user: dict = Depends(get_current_user)):
         if row and row["cnt"] > 0:
             raise HTTPException(status_code=409, detail="You can delete your account once your upcoming events are over.")
 
+        from utils import event_chat
+        event_chat.leave_all(cur, uid)
+
         # ── Cancel this user's own RSVPs and free up spots ────────────────────
         # Only rows that actually held a seat give one back: 'going', or a
         # waitlist row with a live promotion offer. Plain waitlist rows and

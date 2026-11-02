@@ -13,7 +13,9 @@ def send_event_wrapup_notifications() -> dict:
     ticks and restarts, so this is safe to call on a plain interval."""
     from routes.events import expire_pending_requests
     from utils.album import send_album_prompts, send_photo_rollups
+    from utils.event_chat import run_lifecycle
     return {
+        **run_lifecycle(),
         "review_prompts": _send_review_prompts(),
         "missed_notices": _send_missed_notices(),
         "expired_requests": expire_pending_requests(),

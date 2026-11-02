@@ -286,6 +286,7 @@ class EventDetail(EventSummary):
     my_review_rating: Optional[int] = None
     # Can I cancel my spot, until when, and what comes back (see _cancel_quote).
     my_cancel: Optional[dict] = None
+    chat: Optional[dict] = None
     album: Optional[dict] = None
     # Can I pass my ticket to a friend, and is an offer waiting (see ticket_transfer.py).
     my_transfer: Optional[dict] = None
@@ -1461,8 +1462,11 @@ def get_event(event_id: str, current_user: dict = Depends(get_current_user)):
                 d.get("my_rsvp_status") not in ("declined",)
                 and used < _MAX_JOIN_REQUESTS
             )
-        from utils import album
+        from utils import album, event_chat
         d["album"] = album.summary(cur, event_id, uid)
+        if d["host_id"] == uid and not d.get("is_cancelled"):
+            event_chat.ensure_chat(cur, event_id)
+        d["chat"] = event_chat.summary_for_event(cur, event_id, uid)
         _apply_location_privacy(cur, [d], uid)
 
     # 0 position means not in regular queue (promoted or not on waitlist)
@@ -1775,6 +1779,9 @@ def update_event(event_id: str, body: CreateEventBody, background_tasks: Backgro
                 event_id,
             ),
         )
+        if moved_far:
+            from utils import event_chat
+            event_chat.note_moved(cur, event_id, ev["host_id"])
         spots_gained = body.capacity - old_capacity
         for _ in range(max(0, spots_gained)):
             promoted = _promote_next_waitlist(cur, event_id)
@@ -1995,6 +2002,8 @@ def rsvp_event(event_id: str, body: RsvpBody, background_tasks: BackgroundTasks,
 
             # Notify host if going
             if status == "going":
+                from utils import event_chat
+                event_chat.sync_member(cur, event_id, current_user["id"])
                 cur.execute("SELECT host_id::text, title FROM events WHERE id = %s", (event_id,))
                 ev_row = cur.fetchone()
                 if ev_row:
@@ -2150,6 +2159,8 @@ def rsvp_event(event_id: str, body: RsvpBody, background_tasks: BackgroundTasks,
             )
             from routes.ticket_transfer import cancel_pending_offers
             cancel_pending_offers(cur, event_id, current_user["id"])
+            from utils import event_chat
+            event_chat.sync_member(cur, event_id, current_user["id"])
             # A ticket you were given goes back to the friend who paid for it.
             refund_to = existing.get("paid_by_user_id") or current_user["id"]
             if refund_inr > 0:
@@ -2439,6 +2450,8 @@ def _accept_one(cur, ev: dict, event_id: str, user_id: str) -> Optional[str]:
     )
     cur.execute("UPDATE events SET spots_left = spots_left - 1 WHERE id = %s", (event_id,))
     ev["spots_left"] -= 1
+    from utils import event_chat
+    event_chat.sync_member(cur, event_id, user_id)
     from routes.notifications import notify_request_accepted
     notify_request_accepted(cur, user_id, ev["host_id"], event_id, ev["title"])
     return None
@@ -2596,6 +2609,8 @@ def _cancel_event_and_refund(event_id: str, background_tasks: BackgroundTasks, c
         host_id = ev_title_row["host_id"]
 
         cur.execute("UPDATE events SET is_cancelled = TRUE, updated_at = NOW() WHERE id = %s", (event_id,))
+        from utils import event_chat
+        event_chat.close_for_cancelled_event(cur, event_id, host_id)
 
         # Fetch waitlist users to notify
         cur.execute(

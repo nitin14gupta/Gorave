@@ -5,7 +5,7 @@ import type { BottomSheetBackdropProps } from '@gorhom/bottom-sheet'
 import * as Clipboard from 'expo-clipboard'
 import { router } from 'expo-router'
 import { Image } from 'expo-image'
-import { Ban, Check, Flag, Link2, Pin, PinOff, Share2, QrCode, MessageCircle } from 'lucide-react-native'
+import { Ban, Check, Flag, Link2, Pin, PinOff, Share2, QrCode, MessageCircle, Trash2 } from 'lucide-react-native'
 import { hError, hSuccess, hTap } from '@/lib/haptics'
 import { Colors, FontFamily, withOpacity } from '@/constants'
 import { APP_SCHEME } from '@/api/config'
@@ -29,6 +29,7 @@ interface Props {
   /** Chat list only. */
   pinned?: boolean
   onTogglePin?: () => void
+  onDeleteChat?: () => void
 }
 
 function renderBackdrop(props: BottomSheetBackdropProps) {
@@ -37,7 +38,7 @@ function renderBackdrop(props: BottomSheetBackdropProps) {
 
 function ProfileMenuSheetCore({
   userId, username, targetName, avatarUrl, city, interests,
-  isBlocked, onBlock, onUnblock, onReport, onClose, pinned, onTogglePin,
+  isBlocked, onBlock, onUnblock, onReport, onClose, pinned, onTogglePin, onDeleteChat,
 }: Omit<Props, 'visible'>) {
   const sheetRef = useRef<BottomSheetModal>(null)
   const [blockOpen, setBlockOpen] = useState(false)
@@ -144,6 +145,15 @@ function ProfileMenuSheetCore({
                 label={pinned ? 'Unpin chat' : 'Pin chat'}
                 onPress={() => { hTap(); onTogglePin(); onClose() }}
               />
+              {onDeleteChat ? (
+                <MenuRow
+                  icon={<Trash2 size={18} color={Colors.destructive} strokeWidth={1.8} />}
+                  label="Delete chat"
+                  danger
+                  border
+                  onPress={() => { hTap(); onClose(); onDeleteChat() }}
+                />
+              ) : null}
             </View>
           ) : null}
 

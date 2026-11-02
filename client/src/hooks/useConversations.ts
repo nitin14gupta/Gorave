@@ -3,7 +3,7 @@ import { useFocusEffect } from 'expo-router'
 import ApiService, { Conversation, VibeRequest } from '@/api/apiService'
 import { useChatUnreadStore } from '@/store/chatUnreadStore'
 import { useInboxSocket } from '@/hooks/useInboxSocket'
-import { peekCached, setCached } from '@/lib/queryCache'
+import { invalidate, peekCached, setCached } from '@/lib/queryCache'
 import { CacheKeys } from '@/constants'
 
 const PAGE_SIZE = 20
@@ -84,6 +84,18 @@ export function useConversations() {
     }, [refresh]),
   )
 
+  /** Your side only. Gone from the list straight away, back again if the call fails. */
+  const deleteChat = useCallback(async (conv: Conversation) => {
+    setActiveConversations(prev => prev.filter(c => c.id !== conv.id))
+    try {
+      await ApiService.deleteConversation(conv.id)
+      invalidate(CacheKeys.chatMessages(conv.id))
+    } catch (e) {
+      setActiveConversations(prev => [...prev, conv].sort(byRecent))
+      throw e
+    }
+  }, [])
+
   /** Moves it straight away and quietly puts it back if the server says no. */
   const setPinned = useCallback(async (conv: Conversation, on: boolean) => {
     const apply = (pinnedAt: string | null) => setActiveConversations(prev =>
@@ -115,6 +127,7 @@ export function useConversations() {
 
   return {
     setPinned,
+    deleteChat,
     activeConversations,
     lockedConversations,
     pendingVibes,

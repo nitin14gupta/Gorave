@@ -11,10 +11,10 @@ import { Flame, RefreshCw, Ghost, Pin, Search } from 'lucide-react-native'
 import { hTap } from '@/lib/haptics'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { AutoSkeletonView } from 'react-native-auto-skeleton'
-import { VibeInboxSheet, VibeIcebreakerModal, LogoMark, ProfileMenuSheet, PrimaryButton, BrandedRefreshControl } from '@/components/ui'
+import { ConfirmSheet, VibeInboxSheet, VibeIcebreakerModal, LogoMark, ProfileMenuSheet, PrimaryButton, BrandedRefreshControl } from '@/components/ui'
 import { ChatSearchModal } from '@/components/chat/ChatSearchModal'
 import { usePillStore } from '@/store/pillStore'
-import { useConversations } from '@/hooks/useConversations'
+import { byRecent, useConversations } from '@/hooks/useConversations'
 import { useExpandTabBarOnFocus } from '@/hooks/useExpandTabBarOnFocus'
 import { useAuthStore } from '@/store/auth'
 import ApiService from '@/api/apiService'
@@ -193,7 +193,9 @@ export default function ChatScreen() {
     acceptVibe,
     passVibe,
     setPinned,
+    deleteChat,
   } = useConversations()
+  const [deleteTarget, setDeleteTarget] = useState<Conversation | null>(null)
 
   // Refresh received vibes every time the inbox sheet is opened
   useEffect(() => { if (inboxOpen) refresh() }, [inboxOpen])
@@ -248,6 +250,12 @@ export default function ChatScreen() {
 
   const togglePin = (conv: Conversation) => {
     setPinned(conv, !conv.pinned_at).catch((e: any) => showPill(e?.message || "Couldn't pin that chat", 'error'))
+  }
+
+  const confirmDelete = () => {
+    if (!deleteTarget) return
+    deleteChat(deleteTarget).catch((e: any) => showPill(e?.message || "Couldn't delete that chat", 'error'))
+    setDeleteTarget(null)
   }
 
   const handleReport = async (reason: string) => {
@@ -407,8 +415,19 @@ export default function ChatScreen() {
           onClose={() => setMenuTarget(null)}
           pinned={!!menuTarget.pinned_at}
           onTogglePin={menuTarget.status === 'active' ? () => togglePin(menuTarget) : undefined}
+          onDeleteChat={menuTarget.status === 'active' ? () => setDeleteTarget(menuTarget) : undefined}
         />
       )}
+
+      <ConfirmSheet
+        visible={!!deleteTarget}
+        title="Delete this chat?"
+        body={`It's erased from your side only. ${deleteTarget?.partner_name?.split(' ')[0] ?? 'They'} can still see it, including anything you sent. If they message you again, the chat comes back with just the new messages.`}
+        confirmLabel="Delete"
+        destructive
+        onConfirm={confirmDelete}
+        onClose={() => setDeleteTarget(null)}
+      />
     </View>
   )
 }

@@ -238,6 +238,21 @@ def notify_album_photos(cur, user_id: str, event_id: str, line: str):
         _insert_notification(cur, user_id, "album_photos", title="New photos in the album", body=line, entity_id=event_id, entity_type="event")
 
 
+def notify_chat_update(cur, user_id: str, event_id: str, event_title: str, line: str):
+    """A host update in the group chat. One row per person per event: a newer
+    update replaces their unread one."""
+    cur.execute(
+        """
+        UPDATE notifications SET body = %s, created_at = NOW()
+        WHERE user_id = %s::uuid AND type = 'chat_update' AND entity_id = %s::uuid
+          AND read_at IS NULL AND dismissed_at IS NULL
+        """,
+        (line, user_id, event_id),
+    )
+    if cur.rowcount == 0:
+        _insert_notification(cur, user_id, "chat_update", title=event_title, body=line, entity_id=event_id, entity_type="event")
+
+
 def notify_event_missed(cur, user_id: str, event_id: str, event_title: str):
     """Counterpart to notify_event_review_prompt — for attendees who RSVP'd
     'going' but never checked in, once the event has ended."""

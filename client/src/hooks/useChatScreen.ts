@@ -7,6 +7,8 @@ import { router } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import ApiService, { type Message } from '@/api/apiService'
 import { compressVideoForUpload } from '@/lib/videoCompress'
+import { invalidate } from '@/lib/queryCache'
+import { CacheKeys } from '@/constants'
 import { useAuthStore } from '@/store/auth'
 import { usePillStore } from '@/store/pillStore'
 import { useChat } from './useChat'
@@ -295,7 +297,7 @@ export function useChatScreen(convId: string) {
   }, [partnerId, partnerName, showPill])
 
   const handleDeleteChat = useCallback(async () => {
-    try { await ApiService.deleteConversation(convId); router.back() }
+    try { await ApiService.deleteConversation(convId); invalidate(CacheKeys.chatMessages(convId)); router.back() }
     catch { showPill("Couldn't delete this chat", 'error') }
   }, [convId, showPill])
 

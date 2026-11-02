@@ -229,11 +229,9 @@ def list_conversations(
     include_hidden: bool = Query(False),
 ):
     uid = current_user["id"]
-    hidden_filter_sql = (
-        ""
-        if include_hidden
-        else "\n              AND NOT (%s::uuid = ANY(COALESCE(c.hidden_by, '{}'::uuid[])))"
-    )
+    # A chat you deleted stays out of the inbox until a new message arrives.
+    # include_hidden keeps it for people pickers (share, search).
+    hidden_filter_sql = "" if include_hidden else " AND (cl.cleared_at IS NULL OR m.sent_at IS NOT NULL)"
     with get_db() as (cur, _):
         cur.execute(
             """
@@ -262,6 +260,7 @@ def list_conversations(
                     WHERE msg.conversation_id = c.id
                       AND msg.sender_id != %s::uuid
                       AND msg.read_at IS NULL
+                      AND (cl.cleared_at IS NULL OR msg.sent_at > cl.cleared_at)
                 )::int AS unread_count,
                 -- Block status from current user's perspective
                 CASE
@@ -280,6 +279,7 @@ def list_conversations(
             FROM conversations c
             JOIN users u1 ON u1.id = c.user1_id
             JOIN users u2 ON u2.id = c.user2_id
+            LEFT JOIN conversation_clears cl ON cl.conversation_id = c.id AND cl.user_id = %s::uuid
             LEFT JOIN LATERAL (
                 SELECT url FROM user_photos
                 WHERE user_id = c.user1_id ORDER BY position LIMIT 1
@@ -296,12 +296,13 @@ def list_conversations(
                 WHERE conversation_id = c.id
                   AND NOT (%s::uuid = ANY(COALESCE(deleted_for, '{}'::uuid[])))
                   AND unsent_at IS NULL
+                  AND (cl.cleared_at IS NULL OR sent_at > cl.cleared_at)
                 ORDER BY sent_at DESC LIMIT 1
             ) m ON true
             WHERE (c.user1_id = %s::uuid OR c.user2_id = %s::uuid)""" + hidden_filter_sql + """
             ORDER BY COALESCE(c.last_message_at, c.created_at) DESC
             """,
-            (uid, uid, uid, uid, uid, uid, uid, uid, uid, uid, uid, uid, uid, uid) + (() if include_hidden else (uid,)),
+            (uid,) * 15,
         )
         rows = cur.fetchall()
 
@@ -452,6 +453,13 @@ async def list_messages(
     for m in result:
         m.pop("deleted_for", None)
 
+    # A chat you deleted only shows what came after.
+    with get_db() as (cur, _):
+        cur.execute("SELECT cleared_at FROM conversation_clears WHERE user_id = %s::uuid AND conversation_id = %s::uuid", (uid, conv_id))
+        cleared = cur.fetchone()
+    if cleared:
+        result = [m for m in result if datetime.fromisoformat(m["sent_at"]) > cleared["cleared_at"]]
+
     # A deleted account's messages are no longer shown (like Instagram): the
     # bubble stays so the conversation reads in order, the content doesn't.
     partner = conv["user2_id"] if conv["user1_id"] == uid else conv["user1_id"]
@@ -546,17 +554,14 @@ def delete_conversation(conv_id: str, current_user: dict = Depends(get_current_u
     uid = current_user["id"]
     with get_db() as (cur, conn):
         _get_conversation(cur, conv_id, uid)
+        # Your side only: the other person's copy and anything they haven't
+        # seen yet stay exactly as they are.
         cur.execute(
             """
-            UPDATE conversations
-            SET hidden_by = array_append(
-                COALESCE(hidden_by, '{}'::uuid[]),
-                %s::uuid
-            )
-            WHERE id = %s::uuid
-              AND NOT (%s::uuid = ANY(COALESCE(hidden_by, '{}'::uuid[])))
+            INSERT INTO conversation_clears (user_id, conversation_id) VALUES (%s::uuid, %s::uuid)
+            ON CONFLICT (user_id, conversation_id) DO UPDATE SET cleared_at = NOW()
             """,
-            (uid, conv_id, uid),
+            (uid, conv_id),
         )
         cur.execute("DELETE FROM conversation_pins WHERE user_id = %s::uuid AND conversation_id = %s::uuid", (uid, conv_id))
         conn.commit()
@@ -576,9 +581,9 @@ def report_message(
             SELECT m.id::text, m.conversation_id::text
             FROM messages m
             JOIN conversations c ON c.id = m.conversation_id
-            WHERE m.id = %s::uuid AND (c.user1_id = %s::uuid OR c.user2_id = %s::uuid)
+            WHERE m.id = %s::uuid AND (c.user1_id = %s::uuid OR c.user2_id = %s::uuid OR EXISTS (SELECT 1 FROM conversation_members cm WHERE cm.conversation_id = c.id AND cm.user_id = %s::uuid AND cm.left_at IS NULL AND cm.removed_at IS NULL))
             """,
-            (msg_id, uid, uid),
+            (msg_id, uid, uid, uid),
         )
         msg_row = cur.fetchone()
         if not msg_row:
@@ -718,9 +723,9 @@ def delete_message_for_me(msg_id: str, current_user: dict = Depends(get_current_
             SELECT m.id::text
             FROM messages m
             JOIN conversations c ON c.id = m.conversation_id
-            WHERE m.id = %s::uuid AND (c.user1_id = %s::uuid OR c.user2_id = %s::uuid)
+            WHERE m.id = %s::uuid AND (c.user1_id = %s::uuid OR c.user2_id = %s::uuid OR EXISTS (SELECT 1 FROM conversation_members cm WHERE cm.conversation_id = c.id AND cm.user_id = %s::uuid AND cm.left_at IS NULL AND cm.removed_at IS NULL))
             """,
-            (msg_id, uid, uid),
+            (msg_id, uid, uid, uid),
         )
         if not cur.fetchone():
             raise HTTPException(status_code=404, detail="Message not found")

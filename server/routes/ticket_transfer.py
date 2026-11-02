@@ -347,6 +347,9 @@ def accept_transfer(token: str, background_tasks: BackgroundTasks, current_user:
             "UPDATE ticket_transfers SET status = 'accepted', decided_at = NOW(), accepted_by = %s::uuid WHERE id = %s",
             (uid, offer["id"]),
         )
+        from utils import event_chat
+        event_chat.sync_member(cur, offer["event_id"], offer["from_user_id"])
+        event_chat.sync_member(cur, offer["event_id"], uid)
         conn.commit()
 
     friend = (me or {}).get("name") or "Your friend"

@@ -406,6 +406,8 @@ def wallet_pay(body: WalletPayBody, current_user: dict = Depends(get_current_use
             """,
             (body.event_id, uid, ticket_price, platform_fee, commission),
         )
+        from utils import event_chat
+        event_chat.sync_member(cur, body.event_id, uid)
         if not held_offer:
             cur.execute(
                 "UPDATE events SET spots_left = spots_left - 1 WHERE id = %s::uuid",
@@ -599,6 +601,8 @@ def _complete_paid_booking(*, event_id: str, uid: str, payment_id: str, wallet_a
             """,
             (event_id, uid, payment_id, price_paid, fee_paid, commission),
         )
+        from utils import event_chat
+        event_chat.sync_member(cur, event_id, uid)
         if not held_offer:
             cur.execute("UPDATE events SET spots_left = spots_left - 1 WHERE id = %s::uuid", (event_id,))
 
