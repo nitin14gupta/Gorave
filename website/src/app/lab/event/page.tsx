@@ -9,7 +9,7 @@ import { EventDetailView } from '@/components/sections/event/EventDetailView'
 export const metadata: Metadata = { title: 'Event page lab', robots: { index: false, follow: false } }
 
 const VARIANTS = [
-  { k: 'a', label: 'A · Sticky card' },
+  { k: 'a', label: 'A · Bento' },
   { k: 'b', label: 'B · Poster' },
 ] as const
 

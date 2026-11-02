@@ -41,11 +41,11 @@ export function eventFacts(e: PublicEventDetail) {
   }
 }
 
-/** "Monday, 2 November · 8 pm to 12 am", with the end time when the host set one. */
+/** "Monday, 2 November · 8 PM to 12 AM", with the end time when the host set one. */
 export function whenLine(e: PublicEventDetail) {
   if (!e.end_time) return longWhen(e.date_time)
   const end = parseApiDate(e.end_time).toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit', timeZone: 'Asia/Kolkata' })
-  return `${longWhen(e.date_time)} to ${end}`
+  return `${longWhen(e.date_time)} to ${end.replace(':00', '').toUpperCase()}`
 }
 
 export function FactChips({ event: e }: { event: PublicEventDetail }) {
@@ -147,11 +147,13 @@ export function Where({ event: e }: { event: PublicEventDetail }) {
             src={`https://www.openstreetmap.org/export/embed.html?bbox=${box}&layer=mapnik`}
             loading="lazy"
             tabIndex={-1}
-            className="pointer-events-none absolute inset-0 size-full border-0 [filter:grayscale(1)_sepia(0.18)_contrast(0.92)_brightness(1.03)]"
+            className="pointer-events-none absolute -inset-x-16 -inset-y-20 h-[calc(100%+10rem)] w-[calc(100%+8rem)] border-0 [filter:grayscale(1)_sepia(0.18)_contrast(0.92)_brightness(1.03)]"
           />
           <div className="absolute left-1/2 top-1/2 aspect-square w-[32%] -translate-x-1/2 -translate-y-1/2 rounded-full bg-orange/20" />
         </div>
       )}
+      {/* The licence needs this credit visible near the map. */}
+      {has && <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer" className="mt-2 block text-right font-sans text-[11px] text-ink-3">© OpenStreetMap contributors</a>}
     </>
   )
 }
