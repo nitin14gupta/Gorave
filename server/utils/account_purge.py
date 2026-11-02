@@ -1,4 +1,5 @@
 from db.config import get_db
+from utils import chat_realtime as rt
 from utils.r2_client import r2_client
 
 PURGE_AFTER_DAYS = 30
@@ -48,6 +49,14 @@ def purge_expired_deleted_accounts() -> int:
             cur.execute("SELECT voice_r2_path FROM users WHERE id = %s::uuid", (uid,))
             row = cur.fetchone()
             voice_path = row["voice_r2_path"] if row else None
+            cur.execute("SELECT storage_key FROM event_photos WHERE uploader_id = %s::uuid AND removed_at IS NULL", (uid,))
+            album_keys = [row["storage_key"] for row in cur.fetchall()]
+
+        for key in album_keys:
+            try:
+                r2_client.delete_file(key, bucket=rt.CHAT_BUCKET)
+            except Exception as e:
+                print(f"[PURGE] Album delete failed for user {uid}: {e}", flush=True)
 
         for path in photo_paths + ([voice_path] if voice_path else []):
             try:
@@ -59,6 +68,7 @@ def purge_expired_deleted_accounts() -> int:
             # Personal-only rows: nothing else depends on these.
             for sql in (
                 "DELETE FROM user_photos WHERE user_id = %(u)s::uuid",
+                "DELETE FROM event_photos WHERE uploader_id = %(u)s::uuid",
                 "DELETE FROM device_tokens WHERE user_id = %(u)s::uuid",
                 "DELETE FROM refresh_tokens WHERE user_id = %(u)s::uuid",
                 "DELETE FROM follows WHERE follower_id = %(u)s::uuid OR following_id = %(u)s::uuid",

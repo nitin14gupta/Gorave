@@ -5,7 +5,7 @@ import { ArrowLeft, Phone, UserX, FileText, Lock } from 'lucide-react-native'
 import { APP_HEADER_BAR_HEIGHT, HeaderIconBtn } from '@/components/ui'
 import { SettingsMenuSection } from '@/components/settings/SettingsMenuSection'
 import { useAuthStore } from '@/store/auth'
-import { LargeTitle, LargeTitleBar, useLargeTitle } from '@/components/ui/LargeTitle'
+import { LargeTitleBar, useLargeTitle } from '@/components/ui/LargeTitle'
 import { Colors, FontFamily, Spacing } from '@/constants'
 
 const iconColor = Colors.inkSecondary
@@ -35,7 +35,6 @@ export default function AccountScreen() {
         scrollEventThrottle={16}
         contentContainerStyle={[s.content, { paddingTop: headerHeight, paddingBottom: insets.bottom + 40 }]}
       >
-        <LargeTitle title="Account" scrollY={scrollY} style={s.bigTitle} />
         <SettingsMenuSection
           title="SIGN-IN"
           items={[
@@ -63,7 +62,6 @@ const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: Colors.background },
   content: { paddingHorizontal: Spacing.screenPadding, gap: 8 },
   // The list is already padded, so the big title doesn't need its own inset.
-  bigTitle: { paddingHorizontal: 0 },
   delete: { alignSelf: 'center', marginTop: 56, paddingVertical: 12, paddingHorizontal: 16 },
   deleteText: { fontFamily: FontFamily.bodyMedium, fontSize: 13, color: Colors.inkDisabled },
 })

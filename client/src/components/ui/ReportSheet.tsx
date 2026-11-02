@@ -13,6 +13,9 @@ const MAX_DETAILS = 300
 interface Props {
   visible: boolean
   targetName: string | null
+  /** For reporting something other than a person. */
+  title?: string
+  reasons?: string[]
   onSubmit: (reason: string) => Promise<void>
   onClose: () => void
 }
@@ -26,7 +29,7 @@ function renderBackdrop(props: BottomSheetBackdropProps) {
  * happened in the full-screen editor so the keyboard never covers it, then a
  * solid red Report. A short thank-you replaces it once it's sent.
  */
-function ReportSheetCore({ targetName, onSubmit, onClose }: Omit<Props, 'visible'>) {
+function ReportSheetCore({ targetName, title, reasons = REASONS, onSubmit, onClose }: Omit<Props, 'visible'>) {
   const sheetRef = useRef<BottomSheetModal>(null)
   const [selected, setSelected] = useState<string | null>(null)
   const [details, setDetails] = useState('')
@@ -64,16 +67,16 @@ function ReportSheetCore({ targetName, onSubmit, onClose }: Omit<Props, 'visible
           <View style={s.doneBox}>
             <View style={s.doneIcon}><ShieldCheck size={30} color={Colors.inkPrimary} strokeWidth={1.8} /></View>
             <Text style={s.title}>Thanks for telling us</Text>
-            <Text style={s.sub}>We review every report. {first} won&apos;t know it was you.</Text>
+            <Text style={s.sub}>We review every report.{title ? ' ' : ` ${first} `}{title ? 'Nobody will know it was you.' : 'won’t know it was you.'}</Text>
           </View>
         ) : (
           <>
             <View style={s.icon}><Flag size={24} color={Colors.inkPrimary} strokeWidth={1.8} /></View>
-            <Text style={s.title}>Report {first}</Text>
-            <Text style={s.sub}>What&apos;s going on? {first} won&apos;t know you reported them.</Text>
+            <Text style={s.title}>{title ?? `Report ${first}`}</Text>
+            <Text style={s.sub}>{title ? 'What’s wrong with it? Nobody will know you reported it.' : `What’s going on? ${first} won’t know you reported them.`}</Text>
 
             <View style={s.card}>
-              {REASONS.map((reason, i) => {
+              {reasons.map((reason, i) => {
                 const on = selected === reason
                 return (
                   <Pressable

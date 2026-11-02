@@ -3,7 +3,6 @@ import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { ArrowLeft, Lock } from 'lucide-react-native'
 import { Colors, FontFamily } from '@/constants'
-import { ConfettiRain, PrimaryButton } from '@/components/ui'
 
 export function NotCheckedInGate({ onBack }: { onBack: () => void }) {
   const insets = useSafeAreaInsets()
@@ -22,21 +21,6 @@ export function NotCheckedInGate({ onBack }: { onBack: () => void }) {
         </Text>
       </View>
     </View>
-  )
-}
-
-export function ReviewSuccessState({ countdown, onBack }: { countdown: number; onBack: () => void }) {
-  return (
-    <>
-      <ConfettiRain />
-      <View style={u.successWrap}>
-        <Text style={u.successStar}>⭐</Text>
-        <Text style={u.successTitle}>Review Submitted!</Text>
-        <Text style={u.successSub}>Thanks for rating the vibe.</Text>
-        <PrimaryButton label="Back to Event" onPress={onBack} />
-        <Text style={u.countdownText}>Redirecting in {countdown}s…</Text>
-      </View>
-    </>
   )
 }
 
@@ -86,27 +70,3 @@ const g = StyleSheet.create({
   },
 })
 
-const u = StyleSheet.create({
-  successWrap: { alignItems: 'center', gap: 12, paddingHorizontal: 40, width: '100%' },
-  successStar: { fontSize: 64, marginBottom: 4 },
-  successTitle: {
-    fontFamily: FontFamily.headingBold,
-    fontSize: 28,
-    color: Colors.inkPrimary,
-    textAlign: 'center',
-    letterSpacing: -0.5,
-  },
-  successSub: {
-    fontFamily: FontFamily.bodyRegular,
-    fontSize: 15,
-    color: Colors.inkSecondary,
-    textAlign: 'center',
-    marginBottom: 8,
-  },
-  countdownText: {
-    fontFamily: FontFamily.bodyRegular,
-    fontSize: 13,
-    color: Colors.inkDisabled,
-    marginTop: 4,
-  },
-})

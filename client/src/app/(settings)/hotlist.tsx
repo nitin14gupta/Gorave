@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { ArrowLeft, Bookmark } from 'lucide-react-native'
 import { APP_HEADER_BAR_HEIGHT, HeaderIconBtn, PrimaryButton, BrandedRefreshControl } from '@/components/ui'
 import { ScrollFade } from '@/components/ui/ScrollFade'
-import { LargeTitle, LargeTitleBar, useLargeTitle } from '@/components/ui/LargeTitle'
+import { LargeTitleBar, useLargeTitle } from '@/components/ui/LargeTitle'
 import ApiService, { type EventSummary } from '@/api/apiService'
 import { EventCard } from '@/components/events/EventCard'
 import { Colors, FontFamily, Spacing, EVENT_GRID_GAP, eventGridCellWidth } from '@/constants'
@@ -43,7 +43,6 @@ export default function HotlistScreen() {
       <LargeTitleBar
         title="Hotlist"
         scrollY={scrollY}
-        pinned={loading || events.length === 0}
         leftAction={<HeaderIconBtn onPress={() => router.back()}><ArrowLeft size={18} color={Colors.inkPrimary} strokeWidth={2} /></HeaderIconBtn>}
       />
 
@@ -66,7 +65,6 @@ export default function HotlistScreen() {
           columnWrapperStyle={cols > 1 ? { gap: EVENT_GRID_GAP } : undefined}
           keyExtractor={e => e.id}
           contentContainerStyle={[s.list, { paddingTop: headerHeight }]}
-          ListHeaderComponent={<LargeTitle title="Hotlist" scrollY={scrollY} style={s.bigTitle} />}
           onScroll={e => { onScroll(e); setScrolled(e.nativeEvent.contentOffset.y > 8) }}
           scrollEventThrottle={16}
           refreshControl={<BrandedRefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
@@ -92,5 +90,4 @@ const s = StyleSheet.create({
   },
   emptyCta: { marginTop: 4, minWidth: 180 },
   list: { paddingHorizontal: Spacing.screenPadding, paddingBottom: 40, gap: 16 },
-  bigTitle: { paddingHorizontal: 0, paddingBottom: 0 },
 })

@@ -10,7 +10,7 @@ import { hError } from '@/lib/haptics'
 import { useFocusEffect } from 'expo-router'
 import { ArrowLeft, ShieldOff } from 'lucide-react-native'
 import { APP_HEADER_BAR_HEIGHT, HeaderIconBtn, BrandedRefreshControl } from '@/components/ui'
-import { LargeTitle, LargeTitleBar, useLargeTitle } from '@/components/ui/LargeTitle'
+import { LargeTitleBar, useLargeTitle } from '@/components/ui/LargeTitle'
 import ApiService, { BlockedUser } from '@/api/apiService'
 import { Colors, FontFamily, withOpacity } from '@/constants'
 import { ConfirmSheet } from '@/components/ui'
@@ -89,7 +89,6 @@ export default function BlockedUsersScreen() {
       <LargeTitleBar
         title="Blocked people"
         scrollY={scrollY}
-        pinned={loading || blocked.length === 0}
         leftAction={<HeaderIconBtn onPress={() => router.back()}><ArrowLeft size={18} color={Colors.inkPrimary} strokeWidth={2} /></HeaderIconBtn>}
       />
 
@@ -108,7 +107,6 @@ export default function BlockedUsersScreen() {
           data={blocked}
           keyExtractor={u => u.id}
           contentContainerStyle={[s.list, { paddingTop: headerHeight }]}
-          ListHeaderComponent={<LargeTitle title="Blocked people" scrollY={scrollY} />}
           onScroll={onScroll}
           scrollEventThrottle={16}
           refreshControl={<BrandedRefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}

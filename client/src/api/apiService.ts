@@ -46,11 +46,15 @@ import type {
   JoinRequestsResponse,
   BulkAcceptResponse,
   GenderCounts,
+  AlbumPage,
 } from '@/types/api'
 
 // Response/request shapes live in '@/types/api' — re-exported here so
 // existing `import { X } from '@/api/apiService'` call sites keep working.
 export type {
+  AlbumPage,
+  AlbumPhoto,
+  EventAlbum,
   CancelReason,
   MyCancelQuote,
   MyTransferQuote,
@@ -1138,6 +1142,32 @@ class ApiService {
     } catch {
       throw new Error('Invalid server response')
     }
+  }
+
+  static getEventAlbum(eventId: string, cursor?: string | null) {
+    const query = cursor ? `?cursor=${encodeURIComponent(cursor)}` : ''
+    return this.get<AlbumPage>(`/events/${eventId}/album${query}`)
+  }
+
+  static async uploadAlbumPhoto(eventId: string, uri: string): Promise<void> {
+    const ext = uri.split('.').pop()?.toLowerCase() ?? 'jpg'
+    const mime = ({ png: 'image/png', webp: 'image/webp', heic: 'image/heic', heif: 'image/heif' } as Record<string, string>)[ext] ?? 'image/jpeg'
+    const url = `${API_BASE_URL}/events/${eventId}/album`
+    let token = useAuthStore.getState().accessToken
+    let result = await this.fsUpload(url, uri, mime, token)
+    if (result.status === 401) {
+      token = await this.refreshAccessToken()
+      result = await this.fsUpload(url, uri, mime, token)
+    }
+    if (result.status < 200 || result.status >= 300) throw this.parseUploadError(result.status, result.body)
+  }
+
+  static deleteAlbumPhoto(eventId: string, photoId: string) {
+    return this.delete<{ ok: boolean }>(`/events/${eventId}/album/${photoId}`)
+  }
+
+  static reportAlbumPhoto(eventId: string, photoId: string, reason: string) {
+    return this.post<{ ok: boolean }>(`/events/${eventId}/album/${photoId}/report`, { reason })
   }
 
   static async uploadChatMedia(uri: string): Promise<{ url: string; media_type: string; key?: string }> {

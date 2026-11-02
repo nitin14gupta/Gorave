@@ -4,7 +4,7 @@ import { router, useFocusEffect } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { ArrowLeft, UserPlus, ShieldAlert } from 'lucide-react-native'
 import { APP_HEADER_BAR_HEIGHT, HeaderIconBtn, EmptyState, ConfirmSheet } from '@/components/ui'
-import { LargeTitle, LargeTitleBar, useLargeTitle } from '@/components/ui/LargeTitle'
+import { LargeTitleBar, useLargeTitle } from '@/components/ui/LargeTitle'
 import { useEmergencyContacts, MAX_EMERGENCY_CONTACTS } from '@/hooks/useEmergencyContacts'
 import { EmergencyContactRow } from '@/components/safety/EmergencyContactRow'
 import { hTap } from '@/lib/haptics'
@@ -30,7 +30,6 @@ export default function EmergencyContactsScreen() {
       <LargeTitleBar
         title="Emergency Contacts"
         scrollY={scrollY}
-        pinned={loading || contacts.length === 0}
         leftAction={<HeaderIconBtn onPress={() => router.back()}><ArrowLeft size={18} color={Colors.inkPrimary} strokeWidth={2} /></HeaderIconBtn>}
       />
 
@@ -60,7 +59,6 @@ export default function EmergencyContactsScreen() {
           ItemSeparatorComponent={() => <View style={s.sep} />}
           ListHeaderComponent={
             <>
-              <LargeTitle title="Emergency Contacts" scrollY={scrollY} />
               <Text style={s.subtitle}>These people hear from us only if you send SOS. Here is the text they would get:</Text>
               <View style={s.preview}>
                 <Text style={s.previewText}>SOS from you via Gorave: I may need assistance at your event. My current location: maps.google.com/?q=...</Text>

@@ -17,4 +17,6 @@ export const CacheKeys = {
   /** The last full event you opened, memory only: shown instantly on reopen, never trusted for booking. */
   eventDetail: (eventId: string) => `event:${eventId}`,
   eventCover: (eventId: string) => `event-cover:${eventId}`,
+  /** Private photos with signed links: memory only, never written to disk. */
+  album: (eventId: string) => `album:${eventId}`,
 } as const

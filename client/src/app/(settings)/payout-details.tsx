@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, ActivityIndicator } from 'react-native'
 import { router, useFocusEffect } from 'expo-router'
 import { ArrowLeft, Landmark, Lock } from 'lucide-react-native'
 import { HeaderIconBtn, PrimaryButton } from '@/components/ui'
-import { LargeTitle, LargeTitleBar, useLargeTitle } from '@/components/ui/LargeTitle'
+import { LargeTitleBar, useLargeTitle } from '@/components/ui/LargeTitle'
 import { TicketPaper } from '@/components/events/TicketView'
 import ApiService, { type PayoutDetailsResponse } from '@/api/apiService'
 import { Colors, FontFamily, withOpacity } from '@/constants'
@@ -37,7 +37,6 @@ export default function PayoutDetailsScreen() {
       <LargeTitleBar
         title="Payout details"
         scrollY={scrollY}
-        pinned={loading || !!error || !details?.payout_method}
         leftAction={<HeaderIconBtn onPress={() => router.back()}><ArrowLeft size={18} color={Colors.inkPrimary} strokeWidth={2} /></HeaderIconBtn>}
       />
 
@@ -59,7 +58,6 @@ export default function PayoutDetailsScreen() {
         </View>
       ) : (
         <View style={[s.content, { paddingTop: barHeight }]}>
-          <LargeTitle title="Payout details" scrollY={scrollY} style={s.bigTitle} />
           <View style={s.card}>
             <TicketPaper />
             <View style={s.cardTop}>
@@ -100,7 +98,6 @@ const s = StyleSheet.create({
   emptySub: { fontFamily: FontFamily.bodyRegular, fontSize: 14, color: Colors.inkSecondary, textAlign: 'center', lineHeight: 20 },
   emptyCta: { marginTop: 4, minWidth: 180 },
   content: { paddingHorizontal: 20 },
-  bigTitle: { paddingHorizontal: 0 },
 
   card: { height: 210, borderRadius: 24, overflow: 'hidden', padding: 22, justifyContent: 'space-between' },
   cardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },

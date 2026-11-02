@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from 'react'
+import { useEffect, useState, useCallback, useRef, type ReactNode } from 'react'
 import { Modal, View, Pressable, StyleSheet, Dimensions, StatusBar, FlatList } from 'react-native'
 import { Image } from 'expo-image'
 import { VideoView, useVideoPlayer } from 'expo-video'
@@ -17,6 +17,8 @@ export type MediaViewType = 'image' | 'gif' | 'video'
 export interface MediaViewerItem {
   url: string
   type: MediaViewType
+  /** Signed links change on every load; this keeps the disk cache working. */
+  cacheKey?: string
 }
 
 interface Props {
@@ -24,6 +26,8 @@ interface Props {
   items: MediaViewerItem[]
   initialIndex?: number
   onClose: () => void
+  /** Shown at the bottom for the photo on screen. */
+  renderFooter?: (index: number) => ReactNode
 }
 
 function VideoViewer({ url, active }: { url: string; active: boolean }) {
@@ -46,7 +50,7 @@ function VideoViewer({ url, active }: { url: string; active: boolean }) {
  * Full-screen photo and video viewer: pure black, swipe sideways between
  * items, swipe down to close. A glass X and a count pill sit on top.
  */
-export function MediaViewerModal({ visible, items, initialIndex = 0, onClose }: Props) {
+export function MediaViewerModal({ visible, items, initialIndex = 0, onClose, renderFooter }: Props) {
   const insets = useSafeAreaInsets()
   const translateY = useSharedValue(0)
   const bgOpacity = useSharedValue(1)
@@ -127,7 +131,7 @@ export function MediaViewerModal({ visible, items, initialIndex = 0, onClose }: 
                   <VideoViewer url={item.url} active={index === activeIndex} />
                 ) : (
                   <Image
-                    source={{ uri: item.url }}
+                    source={{ uri: item.url, cacheKey: item.cacheKey }}
                     style={{ width: W, height: H }}
                     contentFit="contain"
                     cachePolicy="memory-disk"
@@ -152,6 +156,8 @@ export function MediaViewerModal({ visible, items, initialIndex = 0, onClose }: 
         ) : null}
         <View style={s.closeSpacer} />
       </View>
+
+      {renderFooter ? <View style={s.footer}>{renderFooter(activeIndex)}</View> : null}
     </Modal>
   )
 }
@@ -180,6 +186,7 @@ const s = StyleSheet.create({
     justifyContent: 'center',
   },
   closeSpacer: { width: 40 },
+  footer: { position: 'absolute', left: 0, right: 0, bottom: 0 },
   counter: {
     paddingHorizontal: 12,
     paddingVertical: 6,

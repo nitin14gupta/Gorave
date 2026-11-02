@@ -8,7 +8,8 @@ import { invalidate } from '@/lib/queryCache'
 import { CacheKeys } from '@/constants'
 import { usePillStore } from '@/store/pillStore'
 import { BrandedLoader } from '@/components/ui'
-import { NotCheckedInGate, ReviewSuccessState } from '@/components/reviews/ReviewSubmitParts'
+import { NotCheckedInGate } from '@/components/reviews/ReviewSubmitParts'
+import { ReviewDoneView } from '@/components/reviews/ReviewDoneView'
 import { RateNightView } from '@/components/reviews/RateNightView'
 
 const MAX_BODY = 300
@@ -26,7 +27,6 @@ export default function ReviewScreen() {
   const [event, setEvent] = useState<EventDetail | null>(null)
   const [checkedIn, setCheckedIn] = useState<boolean | null>(null)
   const [done, setDone] = useState(false)
-  const [countdown, setCountdown] = useState(5)
 
   useEffect(() => {
     if (!id) return
@@ -48,15 +48,6 @@ export default function ReviewScreen() {
       invalidate(CacheKeys.homeJoinedEvents)
       hSuccess()
       setDone(true)
-      let secs = 5
-      const tick = setInterval(() => {
-        secs -= 1
-        setCountdown(secs)
-        if (secs <= 0) {
-          clearInterval(tick)
-          router.replace(`/(events)/${id}` as any)
-        }
-      }, 1000)
     } catch (e: any) {
       const msg = e?.message || "Couldn't submit review, try again"
       showPill(msg, 'error')
@@ -78,9 +69,12 @@ export default function ReviewScreen() {
 
   if (done) {
     return (
-      <View style={[s.root, s.center]}>
-        <ReviewSuccessState countdown={countdown} onBack={() => router.replace(`/(events)/${id}` as any)} />
-      </View>
+      <ReviewDoneView
+        event={event}
+        rating={rating}
+        onAddPhotos={event?.album?.can_add ? () => router.replace({ pathname: '/(events)/[id]/album', params: { id: id!, add: '1' } } as any) : undefined}
+        onBack={() => router.replace(`/(events)/${id}` as any)}
+      />
     )
   }
 

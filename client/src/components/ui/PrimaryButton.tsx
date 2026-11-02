@@ -76,6 +76,7 @@ const styles = StyleSheet.create({
   },
   gradient: {
     height: ComponentSize.btnPrimary,
+    paddingHorizontal: 24,
     borderRadius: Radius.pill,
     alignItems: 'center',
     justifyContent: 'center',

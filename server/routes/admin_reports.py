@@ -42,6 +42,37 @@ def list_user_reports(
     return {"items": rows, "total": total, "page": page, "page_size": page_size}
 
 
+# ── GET /admin/reports/photos ── album photos, most reported first ──────────
+
+@router.get("/photos")
+def list_photo_reports(
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=25, ge=1, le=100),
+    current_admin: dict = Depends(get_current_admin),
+):
+    with get_db() as (cur, _):
+        rows, total = _paginated(
+            cur,
+            "SELECT COUNT(DISTINCT photo_id)::int AS count FROM event_photo_reports",
+            [],
+            """
+            SELECT p.id::text, p.event_id::text, e.title AS event_title, p.created_at, p.hidden_at, p.removed_at,
+                   uploader.id::text AS uploader_id, uploader.name AS uploader_name,
+                   COUNT(r.id)::int AS report_count, array_agg(DISTINCT r.reason) AS reasons, MAX(r.created_at) AS last_reported_at
+            FROM event_photo_reports r
+            JOIN event_photos p ON p.id = r.photo_id
+            JOIN events e ON e.id = p.event_id
+            JOIN users uploader ON uploader.id = p.uploader_id
+            GROUP BY p.id, e.title, uploader.id
+            ORDER BY report_count DESC, last_reported_at DESC
+            LIMIT %s OFFSET %s
+            """,
+            [],
+            page, page_size,
+        )
+    return {"items": rows, "total": total, "page": page, "page_size": page_size}
+
+
 # ── GET /admin/reports/events ──────────────────────────────────────────────────
 
 @router.get("/events")

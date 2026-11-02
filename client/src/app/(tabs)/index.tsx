@@ -15,6 +15,7 @@ import { MyEventsSection, type MyEventsSectionHandle } from '@/components/home/M
 import { WaitlistSection, type WaitlistSectionHandle } from '@/components/home/WaitlistSection'
 import { RequestedSection, type RequestedSectionHandle } from '@/components/home/RequestedSection'
 import { PendingReviewsSection, type PendingReviewsSectionHandle } from '@/components/home/PendingReviewsSection'
+import { AlbumPromptSection, type AlbumPromptSectionHandle } from '@/components/home/AlbumPromptSection'
 import { RecentlyViewedSection } from '@/components/home/RecentlyViewedSection'
 import { PromoCarousel } from '@/components/home/PromoCarousel'
 import { TrendingSection, type TrendingSectionHandle } from '@/components/home/TrendingSection'
@@ -42,9 +43,10 @@ export default function HomeScreen() {
   const [waitlistEmpty, setWaitlistEmpty] = useState<boolean | null>(null)
   const [requestedEmpty, setRequestedEmpty] = useState<boolean | null>(null)
   const [pendingReviewsEmpty, setPendingReviewsEmpty] = useState<boolean | null>(null)
+  const [albumPromptEmpty, setAlbumPromptEmpty] = useState<boolean | null>(null)
   const [recentEmpty, setRecentEmpty] = useState<boolean | null>(null)
   const [trendingEmpty, setTrendingEmpty] = useState<boolean | null>(null)
-  const allEmpty = myEventsEmpty === true && waitlistEmpty === true && requestedEmpty === true && pendingReviewsEmpty === true && recentEmpty === true && trendingEmpty === true
+  const allEmpty = myEventsEmpty === true && waitlistEmpty === true && requestedEmpty === true && albumPromptEmpty === true && pendingReviewsEmpty === true && recentEmpty === true && trendingEmpty === true
 
   const [refreshing, setRefreshing] = useState(false)
   const activeEventsRef = useRef<ActiveEventsSectionHandle>(null)
@@ -52,6 +54,7 @@ export default function HomeScreen() {
   const waitlistRef = useRef<WaitlistSectionHandle>(null)
   const requestedRef = useRef<RequestedSectionHandle>(null)
   const pendingReviewsRef = useRef<PendingReviewsSectionHandle>(null)
+  const albumPromptRef = useRef<AlbumPromptSectionHandle>(null)
   const trendingRef = useRef<TrendingSectionHandle>(null)
 
   const handleRefresh = useCallback(async () => {
@@ -63,6 +66,7 @@ export default function HomeScreen() {
         waitlistRef.current?.refresh(),
         requestedRef.current?.refresh(),
         pendingReviewsRef.current?.refresh(),
+        albumPromptRef.current?.refresh(),
         trendingRef.current?.refresh(),
       ])
     } finally {
@@ -116,6 +120,7 @@ export default function HomeScreen() {
       <RequestedSection ref={requestedRef} onEmptyChange={setRequestedEmpty} />
       <WaitlistSection ref={waitlistRef} onEmptyChange={setWaitlistEmpty} />
       <PendingReviewsSection ref={pendingReviewsRef} onEmptyChange={setPendingReviewsEmpty} />
+      <AlbumPromptSection ref={albumPromptRef} onEmptyChange={setAlbumPromptEmpty} />
       <RecentlyViewedSection onEmptyChange={setRecentEmpty} />
     </>
   )

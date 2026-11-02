@@ -211,6 +211,33 @@ def notify_event_review_prompt(cur, user_id: str, event_id: str, event_title: st
     )
 
 
+def notify_album_prompt(cur, user_id: str, event_id: str, event_title: str):
+    """Sent once to each person in the album, about 12 hours after the end
+    (see utils/album.py send_album_prompts)."""
+    _insert_notification(
+        cur, user_id, "album_prompt",
+        title=f"Got pics from {event_title}?",
+        body="Drop them in the album. Only people who were there can see them.",
+        entity_id=event_id,
+        entity_type="event",
+    )
+
+
+def notify_album_photos(cur, user_id: str, event_id: str, line: str):
+    """One row per person per event: new photos update their unread row and
+    bring it back to the top, so a busy album doesn't fill the list."""
+    cur.execute(
+        """
+        UPDATE notifications SET body = %s, created_at = NOW()
+        WHERE user_id = %s::uuid AND type = 'album_photos' AND entity_id = %s::uuid
+          AND read_at IS NULL AND dismissed_at IS NULL
+        """,
+        (line, user_id, event_id),
+    )
+    if cur.rowcount == 0:
+        _insert_notification(cur, user_id, "album_photos", title="New photos in the album", body=line, entity_id=event_id, entity_type="event")
+
+
 def notify_event_missed(cur, user_id: str, event_id: str, event_title: str):
     """Counterpart to notify_event_review_prompt — for attendees who RSVP'd
     'going' but never checked in, once the event has ended."""

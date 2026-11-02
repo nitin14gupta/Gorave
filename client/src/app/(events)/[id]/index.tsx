@@ -14,6 +14,7 @@ import { EventOptionsSheet } from '@/components/events/EventOptionsSheet'
 import { EventHeroControls, EventHeroPhotos } from '@/components/events/EventPhotoHero'
 import { EventInfoHeader } from '@/components/events/EventInfoHeader'
 import { EventHostCard } from '@/components/events/EventHostCard'
+import { EventAlbumSection } from '@/components/events/EventAlbumSection'
 import { EventGuestListPreview } from '@/components/events/EventGuestListPreview'
 import { EventDetailsSection } from '@/components/events/EventDetailsSection'
 import { EventSafetySection } from '@/components/events/EventSafetySection'
@@ -85,6 +86,8 @@ export default function EventDetailScreen() {
           <View style={styles.sheetHandle} />
           <View style={styles.sheetContent}>
             <EventInfoHeader event={event} eventId={id ?? ''} onPressAddress={() => d.setAddressSheetOpen(true)} />
+
+            <EventAlbumSection album={event.album} eventId={id ?? ''} />
 
             <EventHostCard event={event} isHost={isHost} />
 

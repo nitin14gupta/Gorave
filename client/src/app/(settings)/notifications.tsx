@@ -13,7 +13,7 @@ import ApiService, { AppNotification } from '@/api/apiService'
 import { Colors, FontFamily } from '@/constants'
 import { notifEntityToTarget, targetToHref } from '@/lib/deepLink'
 import { APP_HEADER_BAR_HEIGHT, HeaderIconBtn, BrandedRefreshControl } from '@/components/ui'
-import { LargeTitle, LargeTitleBar, useLargeTitle } from '@/components/ui/LargeTitle'
+import { LargeTitleBar, useLargeTitle } from '@/components/ui/LargeTitle'
 import { useAuthStore } from '@/store/auth'
 import { usePillStore } from '@/store/pillStore'
 import { NotificationRow, NotificationRowSkeleton } from '@/components/settings/NotificationRow'
@@ -169,6 +169,10 @@ export default function NotificationsScreen() {
       router.push(`/(events)/${item.entity_id}/review` as any)
       return
     }
+    if ((item.type === 'album_prompt' || item.type === 'album_photos') && item.entity_id) {
+      router.push(`/(events)/${item.entity_id}/album` as any)
+      return
+    }
     // The missed-event notice has nothing useful behind the event itself —
     // send them to Browse to find the next one instead.
     if (item.type === 'event_missed') {
@@ -236,7 +240,6 @@ export default function NotificationsScreen() {
       <LargeTitleBar
         title="Notifications"
         scrollY={scrollY}
-        pinned={loading || loadError || notifs.length === 0}
         leftAction={<HeaderIconBtn onPress={() => router.back()}><ArrowLeft size={18} color={Colors.inkPrimary} strokeWidth={2} /></HeaderIconBtn>}
         rightAction={<HeaderIconBtn onPress={() => router.push('/(settings)/notification-settings' as any)}><Settings2 size={18} color={Colors.inkPrimary} strokeWidth={2} /></HeaderIconBtn>}
       />
@@ -261,7 +264,6 @@ export default function NotificationsScreen() {
               <Text style={s.sectionHeaderText}>{section.title}</Text>
             </View>
           )}
-          ListHeaderComponent={<LargeTitle title="Notifications" scrollY={scrollY} style={s.bigTitle} />}
           contentContainerStyle={{ paddingTop: headerHeight, paddingBottom: insets.bottom + 20 }}
           onScroll={onScroll}
           scrollEventThrottle={16}
@@ -297,5 +299,4 @@ const s = StyleSheet.create({
   },
   footerLoader: { alignItems: 'center', paddingVertical: 16 },
   // The first day header already adds space below.
-  bigTitle: { paddingBottom: 0 },
 })

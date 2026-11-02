@@ -6,7 +6,7 @@ import {
   ArrowLeft, UserPlus, PartyPopper, CalendarClock, Wallet,
 } from 'lucide-react-native'
 import { Screen, HeaderIconBtn } from '@/components/ui'
-import { LargeTitle, LargeTitleBar, useLargeTitle } from '@/components/ui/LargeTitle'
+import { LargeTitleBar, useLargeTitle } from '@/components/ui/LargeTitle'
 import ApiService, { type NotificationPrefs } from '@/api/apiService'
 import { usePillStore } from '@/store/pillStore'
 import { Colors, FontFamily, Spacing } from '@/constants'
@@ -69,7 +69,6 @@ export default function NotificationSettingsScreen() {
       <LargeTitleBar
         title="Notification settings"
         scrollY={scrollY}
-        pinned={loading || !prefs}
         leftAction={<HeaderIconBtn onPress={() => router.back()}><ArrowLeft size={18} color={Colors.inkPrimary} strokeWidth={2} /></HeaderIconBtn>}
       />
 
@@ -84,7 +83,6 @@ export default function NotificationSettingsScreen() {
           scrollEventThrottle={16}
           contentContainerStyle={[s.content, { paddingTop: barHeight }]}
         >
-          <LargeTitle title={'What should we\ntell you about?'} scrollY={scrollY} style={s.bigTitle} />
           <Text style={s.sectionHint}>
             Choose what you get notified about. Turning these off only affects push
             notifications. You&apos;ll still see everything in your notifications list.
@@ -109,7 +107,6 @@ export default function NotificationSettingsScreen() {
 }
 
 const s = StyleSheet.create({
-  bigTitle: { paddingHorizontal: 0, paddingBottom: 10 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   content: {
     paddingHorizontal: Spacing.screenPadding,

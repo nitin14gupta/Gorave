@@ -120,6 +120,7 @@ CREATE TABLE IF NOT EXISTS public.event_attendees (
   transferred_from_user_id uuid,
   transfer_count smallint DEFAULT 0 NOT NULL,
   cancel_reason text,
+  album_prompt_sent_at timestamp with time zone,
   CONSTRAINT event_attendees_cancel_reason_check CHECK (cancel_reason IS NULL OR (cancel_reason = ANY (ARRAY['plans_changed'::text, 'unwell'::text, 'date'::text, 'other'::text]))),
   CONSTRAINT event_attendees_status_chk CHECK (status = ANY (ARRAY['going'::text, 'waitlist'::text, 'cancelled'::text, 'requested'::text, 'declined'::text, 'expired'::text, 'transferred'::text])),
   CONSTRAINT event_attendees_pkey PRIMARY KEY (id),
@@ -134,6 +135,30 @@ CREATE TABLE IF NOT EXISTS public.event_hotlist (
   created_at timestamp with time zone DEFAULT now(),
   CONSTRAINT event_hotlist_pkey PRIMARY KEY (id),
   CONSTRAINT event_hotlist_unique UNIQUE (event_id, user_id)
+);
+
+CREATE TABLE IF NOT EXISTS public.event_photo_reports (
+  id uuid DEFAULT gen_random_uuid() NOT NULL,
+  photo_id uuid NOT NULL,
+  reporter_id uuid NOT NULL,
+  reason text NOT NULL,
+  created_at timestamp with time zone DEFAULT now() NOT NULL,
+  CONSTRAINT event_photo_reports_pkey PRIMARY KEY (id),
+  CONSTRAINT event_photo_reports_unique UNIQUE (photo_id, reporter_id)
+);
+
+CREATE TABLE IF NOT EXISTS public.event_photos (
+  id uuid DEFAULT gen_random_uuid() NOT NULL,
+  event_id uuid NOT NULL,
+  uploader_id uuid NOT NULL,
+  storage_key text NOT NULL,
+  width integer NOT NULL,
+  height integer NOT NULL,
+  created_at timestamp with time zone DEFAULT now() NOT NULL,
+  removed_at timestamp with time zone,
+  removed_by uuid,
+  hidden_at timestamp with time zone,
+  CONSTRAINT event_photos_pkey PRIMARY KEY (id)
 );
 
 CREATE TABLE IF NOT EXISTS public.event_reports (
@@ -193,6 +218,8 @@ CREATE TABLE IF NOT EXISTS public.events (
   join_mode character varying(10) DEFAULT 'instant'::character varying NOT NULL,
   women_pct smallint,
   rescheduled_at timestamp with time zone,
+  album_host_prompt_sent_at timestamp with time zone,
+  album_last_push_at timestamp with time zone,
   CONSTRAINT events_join_mode_chk CHECK (join_mode::text = ANY (ARRAY['instant'::character varying, 'request'::character varying]::text[])),
   CONSTRAINT events_women_pct_chk CHECK (women_pct IS NULL OR women_pct >= 0 AND women_pct <= 100),
   CONSTRAINT events_pkey PRIMARY KEY (id)
@@ -465,6 +492,11 @@ ALTER TABLE public.event_attendees ADD CONSTRAINT event_attendees_paid_by_user_i
 ALTER TABLE public.event_attendees ADD CONSTRAINT event_attendees_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE RESTRICT;
 ALTER TABLE public.event_hotlist ADD CONSTRAINT event_hotlist_event_id_fkey FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE;
 ALTER TABLE public.event_hotlist ADD CONSTRAINT event_hotlist_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
+ALTER TABLE public.event_photo_reports ADD CONSTRAINT event_photo_reports_photo_id_fkey FOREIGN KEY (photo_id) REFERENCES event_photos(id) ON DELETE CASCADE;
+ALTER TABLE public.event_photo_reports ADD CONSTRAINT event_photo_reports_reporter_id_fkey FOREIGN KEY (reporter_id) REFERENCES users(id) ON DELETE CASCADE;
+ALTER TABLE public.event_photos ADD CONSTRAINT event_photos_event_id_fkey FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE;
+ALTER TABLE public.event_photos ADD CONSTRAINT event_photos_removed_by_fkey FOREIGN KEY (removed_by) REFERENCES users(id) ON DELETE SET NULL;
+ALTER TABLE public.event_photos ADD CONSTRAINT event_photos_uploader_id_fkey FOREIGN KEY (uploader_id) REFERENCES users(id) ON DELETE CASCADE;
 ALTER TABLE public.event_reports ADD CONSTRAINT event_reports_event_id_fkey FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE;
 ALTER TABLE public.event_reports ADD CONSTRAINT event_reports_reporter_id_fkey FOREIGN KEY (reporter_id) REFERENCES users(id) ON DELETE RESTRICT;
 ALTER TABLE public.event_reviews ADD CONSTRAINT event_reviews_event_id_fkey FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE;
@@ -507,6 +539,8 @@ CREATE INDEX idx_event_attendees_going_reminders ON public.event_attendees USING
 CREATE INDEX idx_event_attendees_requested ON public.event_attendees USING btree (event_id, requested_at) WHERE (status = 'requested'::text);
 CREATE INDEX idx_event_hotlist_event ON public.event_hotlist USING btree (event_id);
 CREATE INDEX idx_event_hotlist_user ON public.event_hotlist USING btree (user_id, created_at DESC);
+CREATE INDEX idx_event_photos_event ON public.event_photos USING btree (event_id, created_at DESC);
+CREATE INDEX idx_event_photos_uploader ON public.event_photos USING btree (uploader_id);
 CREATE INDEX events_city_time_idx ON public.events USING btree (city, date_time) WHERE (is_cancelled = false);
 CREATE INDEX events_location_idx ON public.events USING btree (location_lat, location_lng) WHERE (location_lat IS NOT NULL);
 CREATE INDEX idx_events_date_time_active ON public.events USING btree (date_time) WHERE (is_cancelled = false);

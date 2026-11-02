@@ -73,6 +73,7 @@ Routes live in `client/src/app/` (Expo Router). `(group)` folders don't show in 
 | 24b | Accept a ticket | `(events)/transfer/[token]` | A friend passing you their ticket (chat card or link): who it's from, the ticket, Accept | ✅ the ticket you're handed: maroon paper, poster framed on it, date block, notched tear line, QR sealed until you accept |
 | 25 | Rate the night | `(events)/[id]/review` | Event photo with parallax, five big stars with a word for each, an optional note | ✅ |
 | 26 | Reviews | `(events)/[id]/reviews` | Event photo with parallax and the score set huge over it, 5-to-1 bars, star filter chips, a clean list with hairline dividers. Opened from My Events, Past, Reviews | ✅ |
+| 26a | After-party album | `(events)/[id]/album` | 3-column 4:5 grid of photos from people who were there, Add photos button with progress, viewer with remove and report. Opens from Home ("Drop your pics"), the event page, Rate the night, Joined Events (Past) and notifications |
 
 ### 5. Events (as a host)
 

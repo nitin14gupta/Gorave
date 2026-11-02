@@ -14,6 +14,7 @@ from routes.places import router as places_router
 from routes.vibes import router as vibes_router
 from routes.events import router as events_router
 from routes.ticket_transfer import router as ticket_transfer_router
+from routes.album import router as album_router
 from routes.chat import router as chat_router
 from routes.notifications import router as notifications_router
 from routes.devices import router as devices_router
@@ -191,6 +192,7 @@ app.include_router(places_router)
 app.include_router(vibes_router)
 app.include_router(events_router)
 app.include_router(ticket_transfer_router)
+app.include_router(album_router)
 app.include_router(chat_router)
 app.include_router(notifications_router)
 app.include_router(devices_router)

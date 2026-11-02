@@ -241,6 +241,8 @@ class EventSummary(BaseModel):
     host_name: Optional[str] = None
     host_avatar: Optional[str] = None
     host_is_deleted: bool = False
+    album_count: int = 0
+    my_album_count: int = 0
     age_restriction: int
     attendee_count: int = 0
     attendee_avatars: List[str] = []
@@ -284,6 +286,7 @@ class EventDetail(EventSummary):
     my_review_rating: Optional[int] = None
     # Can I cancel my spot, until when, and what comes back (see _cancel_quote).
     my_cancel: Optional[dict] = None
+    album: Optional[dict] = None
     # Can I pass my ticket to a friend, and is an offer waiting (see ticket_transfer.py).
     my_transfer: Optional[dict] = None
     my_can_request_again: bool = True
@@ -837,6 +840,10 @@ def get_joined_events(current_user: dict = Depends(get_current_user)):
                 ) au WHERE au.avatar_url IS NOT NULL) AS attendee_avatars,
                 EXISTS(SELECT 1 FROM event_hotlist h WHERE h.user_id = %s::uuid AND h.event_id = e.id) AS is_hotlisted,
                 ea.checked_in_at::text AS my_checked_in_at,
+                CASE WHEN ea.checked_in_at IS NULL THEN 0 ELSE (
+                    SELECT COUNT(*) FROM event_photos ph WHERE ph.event_id = e.id AND ph.removed_at IS NULL AND ph.hidden_at IS NULL
+                ) END::int AS album_count,
+                (SELECT COUNT(*) FROM event_photos ph WHERE ph.event_id = e.id AND ph.uploader_id = ea.user_id AND ph.removed_at IS NULL)::int AS my_album_count,
                 (SELECT rating FROM event_reviews WHERE event_id = e.id AND reviewer_id = %s::uuid LIMIT 1) AS my_review_rating
             FROM events e
             JOIN users u ON u.id = e.host_id
@@ -896,6 +903,11 @@ def get_joined_events_paged(
                 e.cover_photos, e.is_cancelled,
                 e.host_id::text,
                 NULL::int AS distance_km,
+                ea.checked_in_at::text AS my_checked_in_at,
+                CASE WHEN ea.checked_in_at IS NULL THEN 0 ELSE (
+                    SELECT COUNT(*) FROM event_photos ph WHERE ph.event_id = e.id AND ph.removed_at IS NULL AND ph.hidden_at IS NULL
+                ) END::int AS album_count,
+                (SELECT COUNT(*) FROM event_photos ph WHERE ph.event_id = e.id AND ph.uploader_id = ea.user_id AND ph.removed_at IS NULL)::int AS my_album_count,
                 u.name AS host_name,
                 (SELECT p.url FROM user_photos p WHERE p.user_id = u.id ORDER BY p.position LIMIT 1) AS host_avatar,
                 COALESCE(u.is_deleted, FALSE) AS host_is_deleted,
@@ -1449,6 +1461,8 @@ def get_event(event_id: str, current_user: dict = Depends(get_current_user)):
                 d.get("my_rsvp_status") not in ("declined",)
                 and used < _MAX_JOIN_REQUESTS
             )
+        from utils import album
+        d["album"] = album.summary(cur, event_id, uid)
         _apply_location_privacy(cur, [d], uid)
 
     # 0 position means not in regular queue (promoted or not on waitlist)

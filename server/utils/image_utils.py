@@ -1,5 +1,5 @@
 import io
-from PIL import Image
+from PIL import Image, ImageOps
 from pillow_heif import register_heif_opener
 
 register_heif_opener()
@@ -39,6 +39,10 @@ def convert_to_webp(
         with Image.open(io.BytesIO(contents)) as img:
             img.load()  # forces full decode now (Image.open only reads the header
                         # lazily) — this is where a spoofed/corrupt/bomb file fails.
+            # Phones store photos sideways plus a rotation flag. WebP output
+            # drops the flag along with the rest of the metadata (GPS included),
+            # so the rotation has to be applied to the pixels first.
+            img = ImageOps.exif_transpose(img)
             # Convert to RGB if necessary (e.g., RGBA or P)
             if img.mode in ("RGBA", "P"):
                 img = img.convert("RGB")

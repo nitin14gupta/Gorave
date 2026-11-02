@@ -108,6 +108,36 @@ export interface EventPhoto {
   position: number
 }
 
+/** After-party album on the event page. Null when this viewer isn't allowed in. */
+export interface EventAlbum {
+  can_view: boolean
+  can_add: boolean
+  count: number
+  preview: { url: string; key: string }[]
+  closes_at: string
+}
+
+export interface AlbumPhoto {
+  id: string
+  url: string
+  /** Stable file key: the signed url changes on every load, this doesn't. */
+  key: string
+  width: number
+  height: number
+  created_at: string
+  uploader: { id: string; name: string | null; avatar: string | null }
+  mine: boolean
+  can_delete: boolean
+}
+
+export interface AlbumPage {
+  photos: AlbumPhoto[]
+  count: number
+  next_cursor: string | null
+  can_add: boolean
+  closes_at: string
+}
+
 export type JoinMode = 'instant' | 'request'
 
 export type RsvpStatus = 'going' | 'waitlist' | 'cancelled' | 'requested' | 'declined' | 'expired'
@@ -170,6 +200,8 @@ export interface EventSummary {
   // Only populated by getMyJoinedEvents() (/events/joined).
   my_checked_in_at?: string | null
   my_review_rating?: number | null
+  album_count?: number
+  my_album_count?: number
 }
 
 export interface MyEventsPage {
@@ -215,6 +247,7 @@ export interface EventDetail extends EventSummary {
   my_can_request_again?: boolean
   /** Can I cancel my own spot, until when, and what comes back. Only when going. */
   my_cancel?: MyCancelQuote | null
+  album?: EventAlbum | null
   /** Can I pass my ticket to a friend (paid only, once), and is an offer waiting. */
   my_transfer?: MyTransferQuote | null
   /** Join requests this viewer can still send for this event (server caps at max_join_requests) */

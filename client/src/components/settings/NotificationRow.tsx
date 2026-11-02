@@ -5,7 +5,7 @@ import { Swipeable } from 'react-native-gesture-handler'
 import { Image } from 'expo-image'
 import { AutoSkeletonView } from 'react-native-auto-skeleton'
 import { hTap, hMedium } from '@/lib/haptics'
-import { Bell, UserPlus, Flame, MessageCircle, PartyPopper, ShieldCheck, Trophy, Trash2, Star, Frown, Check, X, Inbox } from 'lucide-react-native'
+import { Bell, UserPlus, Flame, MessageCircle, PartyPopper, ShieldCheck, Trophy, Trash2, Star, Frown, Check, X, Inbox, Camera } from 'lucide-react-native'
 import type { AppNotification } from '@/api/apiService'
 import { Colors, FontFamily, withOpacity } from '@/constants'
 import { OutlineButton, PrimaryButton } from '@/components/ui'
@@ -43,6 +43,8 @@ const TYPE_FALLBACK: Record<string, { Icon: any; bg: string; color: string }> = 
   // already-given rating rather than a prompt to go leave one.
   event_review_prompt: { Icon: Star, bg: Colors.surface, color: Colors.inkDisabled },
   event_missed: { Icon: Frown, bg: Colors.surface, color: Colors.inkDisabled },
+  album_prompt: { Icon: Camera, bg: Colors.surface, color: Colors.inkPrimary },
+  album_photos: { Icon: Camera, bg: Colors.surface, color: Colors.inkPrimary },
   spot_opened: { Icon: Inbox, bg: withOpacity(Colors.inkPrimary, 0.07), color: Colors.inkPrimary },
   request_expired: { Icon: Frown, bg: Colors.surface, color: Colors.inkDisabled },
   request_declined: { Icon: Frown, bg: Colors.surface, color: Colors.inkDisabled },

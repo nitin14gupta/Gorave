@@ -1,10 +1,9 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useState } from 'react'
 import { View, Text, StyleSheet, Pressable } from 'react-native'
 import { router } from 'expo-router'
-import { useSharedValue } from 'react-native-reanimated'
-import { ArrowLeft, Ticket, QrCode, ChevronRight, Ban } from 'lucide-react-native'
+import { ArrowLeft, Ticket, QrCode, ChevronRight, Images } from 'lucide-react-native'
 import { Colors, FontFamily } from '@/constants'
-import { CollapsingLargeTitle, LargeTitleBar, LargeTitleSpacer, useLargeTitle } from '@/components/ui/LargeTitle'
+import { LargeTitleBar, useLargeTitle } from '@/components/ui/LargeTitle'
 import { HeaderIconBtn, ViewModeToggle, SwipeableTabs } from '@/components/ui'
 import ApiService, { type EventSummary } from '@/api/apiService'
 import { EventCard } from '@/components/events/EventCard'
@@ -12,20 +11,11 @@ import { EventsPane, type EventsTab } from '@/components/settings/EventsPane'
 import { useEventViewModeStore } from '@/store/eventViewModeStore'
 import { useMyEventsPage } from '@/hooks/useMyEventsPage'
 import { useFocusRefresh } from '@/hooks/useFocusRefresh'
+import { albumIsOpen, photosLabel } from '@/lib/album'
 
 export default function JoinedEventsScreen() {
   const [tab, setTab] = useState<EventsTab>('upcoming')
-  const { scrollY, foldHeight, barHeight } = useLargeTitle()
-  // Each pane keeps its own offset; the title follows whichever is showing.
-  const upcomingY = useSharedValue(0)
-  const pastY = useSharedValue(0)
-  useEffect(() => { scrollY.set((tab === 'upcoming' ? upcomingY : pastY).get()) }, [tab, scrollY, upcomingY, pastY])
-  const paneScroll = (key: EventsTab) => (e: { nativeEvent: { contentOffset: { y: number } } }) => {
-    const y = e.nativeEvent.contentOffset.y
-    ;(key === 'upcoming' ? upcomingY : pastY).set(y)
-    if (key === tab) scrollY.set(y)
-  }
-  const spacer = <LargeTitleSpacer scrollY={scrollY} foldHeight={foldHeight} />
+  const { scrollY, barHeight } = useLargeTitle()
   const viewMode = useEventViewModeStore(s => s.mode)
   const setViewMode = useEventViewModeStore(s => s.setMode)
 
@@ -57,12 +47,18 @@ export default function JoinedEventsScreen() {
             <Text style={s.ticketFooterText} numberOfLines={1}>View Ticket</Text>
             <ChevronRight size={15} color={Colors.inkPrimary} strokeWidth={2} />
           </Pressable>
-        ) : (
-          <View style={s.expiredFooter}>
-            <Ban size={14} color={Colors.inkDisabled} strokeWidth={1.8} />
-            <Text style={s.expiredFooterText} numberOfLines={1}>Ticket expired</Text>
-          </View>
-        )
+        ) : item.my_checked_in_at && !item.is_cancelled && albumIsOpen(item) ? (
+          <Pressable
+            style={s.ticketFooter}
+            onPress={() => router.push(`/(events)/${item.id}/album` as any)}
+          >
+            <Images size={15} color={Colors.inkPrimary} strokeWidth={2} />
+            <Text style={s.ticketFooterText} numberOfLines={1}>
+              {item.album_count ? `Album · ${photosLabel(item.album_count)}` : 'Open the album'}
+            </Text>
+            <ChevronRight size={15} color={Colors.inkPrimary} strokeWidth={2} />
+          </Pressable>
+        ) : undefined
       }
     />
   )
@@ -72,12 +68,9 @@ export default function JoinedEventsScreen() {
       <LargeTitleBar
         title="Joined Events"
         scrollY={scrollY}
-        foldHeight={foldHeight}
         line={false}
         leftAction={<HeaderIconBtn onPress={() => router.back()}><ArrowLeft size={18} color={Colors.inkPrimary} strokeWidth={2} /></HeaderIconBtn>}
       />
-
-      <CollapsingLargeTitle title="Joined Events" scrollY={scrollY} foldHeight={foldHeight} />
 
       <SwipeableTabs
         tabs={[
@@ -90,8 +83,6 @@ export default function JoinedEventsScreen() {
         {[
           <EventsPane
             key="upcoming"
-            onScroll={paneScroll('upcoming')}
-            listHeader={spacer}
             active={tab === 'upcoming'}
             page={upcomingPage}
             viewMode={viewMode}
@@ -103,8 +94,6 @@ export default function JoinedEventsScreen() {
           />,
           <EventsPane
             key="past"
-            onScroll={paneScroll('past')}
-            listHeader={spacer}
             active={tab === 'past'}
             page={pastPage}
             viewMode={viewMode}
@@ -137,14 +126,6 @@ const s = StyleSheet.create({
   },
   ticketFooterText: { fontFamily: FontFamily.bodySemiBold, fontSize: 13, color: Colors.inkPrimary },
 
-  expiredFooter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    paddingVertical: 12,
-  },
-  expiredFooterText: { fontFamily: FontFamily.bodyMedium, fontSize: 12, color: Colors.inkDisabled },
 
   viewToggle: { position: 'absolute', right: 16, bottom: 16 },
 })

@@ -8,6 +8,7 @@ export type DeepLinkTarget =
   | { screen: 'event'; id: string }
   | { screen: 'ticket'; id: string }
   | { screen: 'review'; id: string }
+  | { screen: 'eventAlbum'; id: string }
   | { screen: 'eventRequests'; id: string }
   | { screen: 'wallet' }
   | { screen: 'profile'; id: string }
@@ -23,6 +24,7 @@ export function targetToHref(t: DeepLinkTarget, currentUserId?: string | null): 
     case 'event': return `/(events)/${t.id}`
     case 'ticket': return `/(events)/${t.id}/ticket`
     case 'review': return `/(events)/${t.id}/review`
+    case 'eventAlbum': return `/(events)/${t.id}/album`
     case 'eventRequests': return `/(events)/${t.id}/requests`
     case 'wallet': return '/(settings)/wallet'
     case 'profile': return t.id === currentUserId ? '/(tabs)/profile' : `/(profile)/${t.id}`
@@ -53,6 +55,8 @@ export function pushDataToTarget(data: any): DeepLinkTarget | null {
       return data.event_id ? { screen: 'ticket', id: data.event_id } : null
     case 'event_review_prompt':
       return data.event_id ? { screen: 'review', id: data.event_id } : null
+    case 'event_album':
+      return data.event_id ? { screen: 'eventAlbum', id: data.event_id } : null
     case 'event_requests':
       return data.event_id ? { screen: 'eventRequests', id: data.event_id } : null
     case 'event_missed':
@@ -112,6 +116,7 @@ export function parseIncomingUrl(url: string): DeepLinkTarget | null {
   switch (segment) {
     case 'event':
       if (!id) return null
+      if (sub === 'album') return { screen: 'eventAlbum', id }
       return sub === 'ticket' ? { screen: 'ticket', id } : { screen: 'event', id }
     case 'profile':
       return id ? { screen: 'profile', id } : null
