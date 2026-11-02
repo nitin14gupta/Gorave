@@ -36,7 +36,7 @@ export default function AlbumScreen() {
   const showPill = usePillStore(s => s.show)
   const { scrollY, barHeight } = useLargeTitle()
   const headerHeight = useSharedValue(0)
-  const onScroll = useAnimatedScrollHandler(e => { scrollY.value = e.contentOffset.y })
+  const onScroll = useAnimatedScrollHandler(e => { scrollY.set(e.contentOffset.y) })
   const album = useAlbum(id!)
   const rows = useMemo(() => collageRows(album.photos), [album.photos])
   const [viewIndex, setViewIndex] = useState<number | null>(null)
@@ -118,7 +118,7 @@ export default function AlbumScreen() {
 
   const meta = [photosLabel(album.count), album.canAdd ? closingLine(album.closesAt) : 'Closed for new photos'].filter(Boolean).join(' · ')
   const header = all.length > 0 ? (
-    <View onLayout={e => { headerHeight.value = e.nativeEvent.layout.height + barHeight }}>
+    <View onLayout={e => { headerHeight.set(e.nativeEvent.layout.height + barHeight) }}>
       <View style={s.intro}>
         <Text style={s.meta}>{meta}</Text>
         <Text style={s.private}>Only people who were there can see these. Double tap your favourite moments.</Text>
