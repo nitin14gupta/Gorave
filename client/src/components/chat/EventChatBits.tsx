@@ -1,6 +1,7 @@
-import type { ReactNode } from 'react'
+import { useEffect, type ReactNode } from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { Image } from 'expo-image'
+import Animated, { cancelAnimation, useAnimatedStyle, useReducedMotion, useSharedValue, withDelay, withRepeat, withSequence, withTiming } from 'react-native-reanimated'
 import { router } from 'expo-router'
 import { ChevronRight, Lock, Megaphone, Pin } from 'lucide-react-native'
 import type { EventChatMessage, EventChatSeen } from '@/api/apiService'
@@ -10,6 +11,7 @@ import { Colors, FontFamily, withOpacity } from '@/constants'
 const AVATAR = 28
 const SEEN_FACES = 5
 const SEEN_FACE = 18
+const TYPING_FACES = 3
 
 export const firstName = (name?: string | null) => (name ?? 'Someone').split(' ')[0]
 
@@ -54,7 +56,7 @@ export function PinnedBar({ msg, canUnpin, onUnpin }: { msg: EventChatMessage; c
 export function GroupRow({ msg, isMine, firstInRun, lastInRun, children, onPressSender }: {
   msg: EventChatMessage; isMine: boolean; firstInRun: boolean; lastInRun: boolean; children: ReactNode; onPressSender: () => void
 }) {
-  if (isMine) return <>{children}</>
+  if (isMine) return <View style={s.mine}>{children}</View>
   return (
     <View style={s.row}>
       <Pressable style={s.avatarSlot} onPress={onPressSender} disabled={!lastInRun} accessibilityLabel={`Open ${firstName(msg.sender?.name)}'s profile`}>
@@ -89,10 +91,37 @@ export function SeenRow({ people, isMine, onPress }: { people: EventChatSeen[]; 
   )
 }
 
-export function TypingLine({ names }: { names: string[] }) {
-  if (names.length === 0) return null
-  const who = names.length === 1 ? firstName(names[0]) : names.length === 2 ? `${firstName(names[0])} and ${firstName(names[1])}` : `${names.length} people`
-  return <Text style={s.typing}>{who} {names.length === 1 ? 'is' : 'are'} typing...</Text>
+/** Dots that rise one after another, like a phone keyboard. Only shown while someone is actually typing. */
+function Dot({ delay }: { delay: number }) {
+  const reduced = useReducedMotion()
+  const y = useSharedValue(0)
+  useEffect(() => {
+    if (reduced) return
+    y.set(withDelay(delay, withRepeat(withSequence(withTiming(-3, { duration: 280 }), withTiming(0, { duration: 280 }), withTiming(0, { duration: 360 })), -1)))
+    return () => cancelAnimation(y)
+  }, [delay, reduced, y])
+  const st = useAnimatedStyle(() => ({ transform: [{ translateY: y.get() }] }))
+  return <Animated.View style={[s.dot, st]} />
+}
+
+/** Who's typing, as faces next to a dots bubble, sitting where their message will land. */
+export function TypingLine({ people }: { people: { id: string; name: string; avatar: string | null }[] }) {
+  if (people.length === 0) return null
+  const shown = people.slice(0, TYPING_FACES)
+  return (
+    <View style={s.typingRow} accessibilityLabel={`${people.map(p => firstName(p.name)).join(', ')} typing`}>
+      <View style={s.typingFaces}>
+        {shown.map((p, i) => (
+          <View key={p.id} style={[s.typingRing, { marginLeft: i ? -10 : 0, zIndex: TYPING_FACES - i }]}>
+            <Face uri={p.avatar} name={p.name} size={AVATAR} />
+          </View>
+        ))}
+      </View>
+      <View style={s.typingBubble}>
+        <Dot delay={0} /><Dot delay={140} /><Dot delay={280} />
+      </View>
+    </View>
+  )
 }
 
 /** Replaces the input when the chat can't be posted in. */
@@ -127,7 +156,9 @@ const s = StyleSheet.create({
   pinned: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 16, paddingVertical: 10, backgroundColor: Colors.surface },
   pinnedText: { flex: 1, fontFamily: FontFamily.bodyMedium, fontSize: 13, lineHeight: 18, color: Colors.inkPrimary },
   unpin: { fontFamily: FontFamily.bodySemiBold, fontSize: 13, color: Colors.inkSecondary },
-  row: { flexDirection: 'row', alignItems: 'flex-end', paddingLeft: 8 },
+  row: { flexDirection: 'row', alignItems: 'flex-end', paddingLeft: 8, paddingRight: 16 },
+  // Same side space as a 1:1 chat.
+  mine: { paddingHorizontal: 16 },
   avatarSlot: { width: AVATAR + 6, marginBottom: 6 },
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginLeft: 12, marginBottom: 2, marginTop: 6 },
   name: { fontFamily: FontFamily.bodySemiBold, fontSize: 12, color: Colors.inkSecondary },
@@ -136,7 +167,11 @@ const s = StyleSheet.create({
   seenMine: { justifyContent: 'flex-end' },
   seenRing: { borderRadius: 11, borderWidth: 1.5, borderColor: Colors.background },
   seenMore: { fontFamily: FontFamily.bodyMedium, fontSize: 11, color: Colors.inkSecondary, marginLeft: 4 },
-  typing: { fontFamily: FontFamily.bodyRegular, fontSize: 12, color: Colors.inkSecondary, paddingHorizontal: 16, paddingVertical: 4 },
+  typingRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingLeft: 8, paddingRight: 16, paddingVertical: 6 },
+  typingFaces: { flexDirection: 'row' },
+  typingRing: { borderRadius: AVATAR / 2 + 2, borderWidth: 2, borderColor: Colors.background },
+  typingBubble: { flexDirection: 'row', alignItems: 'center', gap: 4, height: 34, paddingHorizontal: 14, borderRadius: 17, backgroundColor: Colors.surface },
+  dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: Colors.inkSecondary },
   notice: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, margin: 12, paddingVertical: 14, borderRadius: 16, backgroundColor: Colors.surface },
   noticeText: { fontFamily: FontFamily.bodyMedium, fontSize: 14, color: Colors.inkSecondary },
   noticeTitle: { fontFamily: FontFamily.bodySemiBold, fontSize: 14, color: Colors.inkPrimary },

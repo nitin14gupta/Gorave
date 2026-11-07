@@ -522,6 +522,19 @@ async def mark_read(conv_id: str, current_user: dict = Depends(get_current_user)
 MAX_PINNED_CHATS = 3
 
 
+def pinned_chat_ids(cur, uid: str) -> set:
+    """Pins share one list, like Instagram: 1:1 chats and open event chats
+    together. A closed event chat stops taking a slot."""
+    cur.execute(
+        """
+        SELECT p.conversation_id::text FROM conversation_pins p JOIN conversations c ON c.id = p.conversation_id
+        WHERE p.user_id = %s::uuid AND (c.kind = 'direct' OR c.closed_at IS NULL)
+        """,
+        (uid,),
+    )
+    return {r["conversation_id"] for r in cur.fetchall()}
+
+
 @router.post("/chat/conversations/{conv_id}/pin", status_code=200)
 def pin_conversation(conv_id: str, current_user: dict = Depends(get_current_user)):
     uid = current_user["id"]
@@ -529,14 +542,7 @@ def pin_conversation(conv_id: str, current_user: dict = Depends(get_current_user
         conv = _get_conversation(cur, conv_id, uid)
         if conv["status"] != "active":
             raise HTTPException(status_code=400, detail="You can only pin an active chat")
-        cur.execute(
-            """
-            SELECT p.conversation_id::text FROM conversation_pins p JOIN conversations c ON c.id = p.conversation_id
-            WHERE p.user_id = %s::uuid AND c.kind = 'direct'
-            """,
-            (uid,),
-        )
-        pinned = {r["conversation_id"] for r in cur.fetchall()}
+        pinned = pinned_chat_ids(cur, uid)
         if conv_id not in pinned and len(pinned) >= MAX_PINNED_CHATS:
             raise HTTPException(status_code=409, detail=f"You can pin up to {MAX_PINNED_CHATS} chats")
         cur.execute(

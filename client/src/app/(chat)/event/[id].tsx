@@ -232,7 +232,7 @@ export default function EventChatScreen() {
             onEndReachedThreshold={0.3}
             initialNumToRender={20}
             windowSize={9}
-            ListHeaderComponent={<TypingLine names={Object.values(c.typing)} />}
+            ListHeaderComponent={<TypingLine people={Object.entries(c.typing).map(([id, p]) => ({ id, ...p }))} />}
           />
         )}
 

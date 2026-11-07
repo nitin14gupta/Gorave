@@ -8,7 +8,7 @@ from pydantic import BaseModel
 from db.config import get_db
 from middleware.auth import get_current_user
 from routes.chat import (
-    CLIENT_CONTENT_TYPES, MAX_MESSAGE_CHARS, MAX_PINNED_CHATS, MSG_COLUMNS, WS_SESSION_EXPIRED, _insert_message,
+    CLIENT_CONTENT_TYPES, MAX_MESSAGE_CHARS, MAX_PINNED_CHATS, MSG_COLUMNS, pinned_chat_ids, WS_SESSION_EXPIRED, _insert_message,
     _parse_client_id, _receive, _serialize, _ws_user,
 )
 from utils import chat_realtime as rt, event_chat as ec
@@ -80,15 +80,16 @@ def _member_count(cur, conv_id: str) -> int:
     return cur.fetchone()["n"]
 
 
-def _pinned(cur, conv_id: str, message_id: Optional[str], host_id: str) -> Optional[dict]:
+def _pinned(cur, conv_id: str, message_id: Optional[str], host_id: str, viewer: Optional[str] = None) -> Optional[dict]:
     if not message_id:
         return None
     cur.execute(
         f"""
         SELECT {MESSAGE_SELECT}, {SENDER_COLUMNS} FROM messages m JOIN users u ON u.id = m.sender_id
         WHERE m.id = %s::uuid AND m.conversation_id = %s::uuid AND m.unsent_at IS NULL
+          AND m.sent_at > COALESCE((SELECT cleared_at FROM conversation_clears WHERE user_id = %s::uuid AND conversation_id = %s::uuid), '-infinity')
         """,
-        (message_id, conv_id),
+        (message_id, conv_id, viewer, conv_id),
     )
     row = cur.fetchone()
     return _out(row, host_id) if row else None
@@ -157,7 +158,9 @@ def list_chats(current_user: dict = Depends(get_current_user)):
             ) last ON TRUE
             LEFT JOIN users last_u ON last_u.id = last.sender_id
             LEFT JOIN conversation_pins pin ON pin.conversation_id = c.id AND pin.user_id = m.user_id
+            LEFT JOIN conversation_clears cl ON cl.conversation_id = c.id AND cl.user_id = m.user_id
             WHERE m.user_id = %(me)s::uuid AND {ec.ACTIVE_MEMBER} AND {CLOSED_FOR_GOOD}
+              AND (cl.cleared_at IS NULL OR last.sent_at > cl.cleared_at)
             ORDER BY (pin.pinned_at IS NOT NULL AND c.closed_at IS NULL) DESC, pin.pinned_at DESC NULLS LAST, (c.closed_at IS NULL) DESC, COALESCE(c.last_message_at, c.created_at) DESC
             """,
             {"me": uid, "blocked": blocked},
@@ -166,6 +169,7 @@ def list_chats(current_user: dict = Depends(get_current_user)):
     return [{
         **{k: v for k, v in r.items() if k not in ("cover_photos", "closed_at", "last_message_at", "last_sent_at", "pinned_at")},
         "pinned": r["pinned_at"] is not None,
+        "pinned_at": r["pinned_at"].isoformat() if r["pinned_at"] and r["closed_at"] is None else None,
         "cover": _cover(r["cover_photos"]),
         "closed": r["closed_at"] is not None,
         "last_sent_at": r["last_sent_at"].isoformat() if r["last_sent_at"] else None,
@@ -182,7 +186,7 @@ def get_chat(event_id: str, current_user: dict = Depends(get_current_user)):
             "area": chat["area"], "cover": _cover(chat["cover_photos"]), "host_id": chat["host_id"],
             "is_host": chat["role"] == "host", "posting_locked": chat["posting_locked"], "closed": chat["closed_at"] is not None,
             "muted": chat["muted"], "member_count": _member_count(cur, chat["id"]),
-            "pinned": _pinned(cur, chat["id"], chat["pinned_message_id"], chat["host_id"]),
+            "pinned": _pinned(cur, chat["id"], chat["pinned_message_id"], chat["host_id"], uid),
             "blocked_ids": _blocked_ids(cur, uid),
         }
 
@@ -200,6 +204,7 @@ def get_messages(event_id: str, before: Optional[str] = Query(None), limit: int 
               AND NOT (%(me)s::uuid = ANY(COALESCE(m.deleted_for, '{{}}'::uuid[])))
               AND (m.content_type = 'system' OR NOT (m.sender_id = ANY(%(blocked)s::uuid[])))
               AND (%(before)s::timestamptz IS NULL OR m.sent_at < %(before)s::timestamptz)
+              AND m.sent_at > COALESCE((SELECT cleared_at FROM conversation_clears WHERE user_id = %(me)s::uuid AND conversation_id = %(conv)s::uuid), '-infinity')
             ORDER BY m.sent_at DESC LIMIT %(limit)s
             """,
             {"conv": chat["id"], "me": uid, "blocked": blocked, "before": before, "limit": limit},
@@ -264,6 +269,27 @@ async def mark_read(event_id: str, current_user: dict = Depends(get_current_user
     return {"ok": True}
 
 
+@router.delete("/event-chats/{event_id}")
+def delete_chat(event_id: str, current_user: dict = Depends(get_current_user)):
+    """Your side only, like a 1:1 chat: everything so far disappears for you and
+    the chat leaves your list. Everyone else keeps theirs, and you stay in the
+    group, so it comes back with just the new messages when someone posts."""
+    uid = current_user["id"]
+    with get_db() as (cur, conn):
+        chat = _load(cur, event_id, uid)
+        cur.execute(
+            """
+            INSERT INTO conversation_clears (user_id, conversation_id) VALUES (%s::uuid, %s::uuid)
+            ON CONFLICT (user_id, conversation_id) DO UPDATE SET cleared_at = NOW()
+            """,
+            (uid, chat["id"]),
+        )
+        cur.execute("DELETE FROM conversation_pins WHERE user_id = %s::uuid AND conversation_id = %s::uuid", (uid, chat["id"]))
+        cur.execute("UPDATE conversation_members SET last_read_at = NOW() WHERE conversation_id = %s::uuid AND user_id = %s::uuid", (chat["id"], uid))
+        conn.commit()
+    return {"ok": True}
+
+
 class MuteBody(BaseModel):
     muted: bool
 
@@ -284,23 +310,16 @@ class ListPinBody(BaseModel):
 
 @router.post("/event-chats/{event_id}/list-pin")
 def set_list_pin(event_id: str, body: ListPinBody, current_user: dict = Depends(get_current_user)):
-    """Keeps this chat on top of Your events, for you only."""
+    """Keeps this chat on top of Chat, for you only. Shares the 3 pin slots with 1:1 chats."""
     uid = current_user["id"]
     with get_db() as (cur, conn):
         chat = _load(cur, event_id, uid)
         if not body.pinned:
             cur.execute("DELETE FROM conversation_pins WHERE user_id = %s::uuid AND conversation_id = %s::uuid", (uid, chat["id"]))
         else:
-            cur.execute(
-                """
-                SELECT p.conversation_id::text FROM conversation_pins p JOIN conversations c ON c.id = p.conversation_id
-                WHERE p.user_id = %s::uuid AND c.kind = 'event' AND c.closed_at IS NULL
-                """,
-                (uid,),
-            )
-            pinned = {r["conversation_id"] for r in cur.fetchall()}
+            pinned = pinned_chat_ids(cur, uid)
             if chat["id"] not in pinned and len(pinned) >= MAX_PINNED_CHATS:
-                raise HTTPException(status_code=409, detail=f"You can pin up to {MAX_PINNED_CHATS} event chats")
+                raise HTTPException(status_code=409, detail=f"You can pin up to {MAX_PINNED_CHATS} chats")
             cur.execute("INSERT INTO conversation_pins (user_id, conversation_id) VALUES (%s::uuid, %s::uuid) ON CONFLICT DO NOTHING", (uid, chat["id"]))
         conn.commit()
     return {"pinned": body.pinned}
@@ -446,8 +465,9 @@ async def event_chat_socket(event_id: str, websocket: WebSocket, ticket: Optiona
     await rt.join_conv(conv_id, websocket, uid)
     await rt.mark_present(uid, conv_id)
     with get_db() as (cur, _):
-        cur.execute("SELECT name FROM users WHERE id = %s::uuid", (uid,))
-        my_name = (cur.fetchone() or {}).get("name")
+        cur.execute(f"SELECT u.name, {MEMBER_FACE} AS avatar FROM users u WHERE u.id = %s::uuid", (uid,))
+        me_row = cur.fetchone() or {}
+        my_name, my_avatar = me_row.get("name"), me_row.get("avatar")
 
     def still_in() -> bool:
         # Every frame: a removed guest must stop at their next move, not at
@@ -489,7 +509,7 @@ async def event_chat_socket(event_id: str, websocket: WebSocket, ticket: Optiona
             if kind == "typing":
                 if await rt.allow(f"typing:{uid}", rt.TYPING_LIMIT):
                     await rt.emit(conv_id, {
-                        "type": "typing", "user_id": uid, "name": my_name,
+                        "type": "typing", "user_id": uid, "name": my_name, "avatar": my_avatar,
                         "is_typing": data.get("is_typing", False), "mode": data.get("mode", "text"),
                     }, exclude=websocket, skip_user=uid)
 

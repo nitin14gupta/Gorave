@@ -7,21 +7,22 @@ import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-na
 import { useMinimizeOnScroll } from 'expo-glass-tabs'
 import { Image } from 'expo-image'
 import { router } from 'expo-router'
-import { BellOff, Flame, RefreshCw, Ghost, Pin, Search } from 'lucide-react-native'
+import { BellOff, Flame, RefreshCw, Ghost, Pin, Search, Users } from 'lucide-react-native'
 import { hTap } from '@/lib/haptics'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { AutoSkeletonView } from 'react-native-auto-skeleton'
 import { ConfirmSheet, VibeInboxSheet, VibeIcebreakerModal, LogoMark, ProfileMenuSheet, PrimaryButton, BrandedRefreshControl } from '@/components/ui'
 import { ChatSearchModal } from '@/components/chat/ChatSearchModal'
 import { usePillStore } from '@/store/pillStore'
-import { byRecent, useConversations } from '@/hooks/useConversations'
+import { byRecent, byRecentItem, useConversations, type ChatListItem } from '@/hooks/useConversations'
+import { EventChatMenuSheet, eventChatPreview } from '@/components/chat/EventChatMenu'
 import { useExpandTabBarOnFocus } from '@/hooks/useExpandTabBarOnFocus'
 import { useAuthStore } from '@/store/auth'
 import ApiService from '@/api/apiService'
 import { Colors, ComponentSize, FontFamily, Radius, withOpacity } from '@/constants'
 import { isRecentlyActive } from '@/lib/formatLastSeen'
 import { ChatTop } from '@/components/chat/ChatVibeBanner'
-import type { Conversation } from '@/api/apiService'
+import type { Conversation, EventChatRow } from '@/api/apiService'
 
 function formatTime(iso: string | null): string {
   if (!iso) return ''
@@ -144,6 +145,50 @@ const ConvRow = memo(function ConvRow({ conv, onPress, onLongPress, onAvatarPres
   )
 })
 
+/** An event group chat, in the same list as 1:1 chats. A rounded square so it never reads as one person. */
+const EventConvRow = memo(function EventConvRow({ chat, currentUserId, onLongPress }: {
+  chat: EventChatRow; currentUserId: string | null; onLongPress: () => void
+}) {
+  const unread = chat.unread_count > 0 && !chat.closed
+  const rowScale = useSharedValue(1)
+  const rowPressStyle = useAnimatedStyle(() => ({ transform: [{ scale: rowScale.value }] }))
+  return (
+    <AnimatedPressable
+      onPress={() => { hTap(); router.push(`/(chat)/event/${chat.event_id}` as any) }}
+      onLongPress={onLongPress}
+      style={[s.convRow, rowPressStyle]}
+      onPressIn={() => { rowScale.set(withSpring(0.985, { duration: 120 })) }}
+      onPressOut={() => { rowScale.set(withSpring(1, { duration: 120 })) }}
+      accessibilityRole="button"
+      accessibilityLabel={`${chat.title} group chat`}
+    >
+      <View style={s.convAvatarWrap}>
+        {chat.cover
+          ? <Image source={{ uri: chat.cover }} style={s.eventCover} contentFit="cover" cachePolicy="memory-disk" priority="low" transition={150} />
+          : <View style={[s.eventCover, s.convAvatarFallback]}><Users size={20} color={Colors.inkSecondary} strokeWidth={1.8} /></View>}
+      </View>
+      <View style={s.convBody}>
+        <View style={s.convTopRow}>
+          <Text style={[s.convName, chat.closed && s.convNameLocked]} numberOfLines={1}>{chat.title}</Text>
+          <View style={s.convMeta}>
+            {chat.muted ? <BellOff size={12} color={Colors.inkSecondary} strokeWidth={2} /> : null}
+            {chat.pinned_at ? <Pin size={12} color={Colors.inkSecondary} strokeWidth={2} /> : null}
+            <Text style={[s.convTime, unread && s.convTimeUnread]}>{formatTime(chat.last_sent_at)}</Text>
+          </View>
+        </View>
+        <View style={s.convBottomRow}>
+          <Text style={[s.convPreview, unread && s.convPreviewUnread]} numberOfLines={1}>{eventChatPreview(chat, currentUserId)}</Text>
+          {unread ? (
+            <View style={s.unreadBadge}>
+              <Text style={s.unreadText}>{chat.unread_count > 9 ? '9+' : chat.unread_count}</Text>
+            </View>
+          ) : null}
+        </View>
+      </View>
+    </AnimatedPressable>
+  )
+})
+
 // ── Loading skeleton ─────────────────────────────────────────────────────────
 
 function ConvListSkeleton() {
@@ -196,8 +241,14 @@ export default function ChatScreen() {
     setPinned,
     setMuted,
     deleteChat,
+    eventChats,
+    setEventPinned,
+    setEventMuted,
+    deleteEventChat,
   } = useConversations()
   const [deleteTarget, setDeleteTarget] = useState<Conversation | null>(null)
+  const [eventMenu, setEventMenu] = useState<EventChatRow | null>(null)
+  const [eventDelete, setEventDelete] = useState<EventChatRow | null>(null)
 
   // Refresh received vibes every time the inbox sheet is opened
   useEffect(() => { if (inboxOpen) refresh() }, [inboxOpen])
@@ -208,13 +259,17 @@ export default function ChatScreen() {
     setRefreshing(false)
   }
 
-  // Active first (sorted by most recent message), locked at bottom
-  const allConvs = [
-    ...activeConversations.slice().sort(byRecent),
-    ...lockedConversations.slice().sort(byRecent),
+  // 1:1 and event chats in one list, newest message on top like Instagram.
+  // Pending vibes stay at the bottom.
+  const items: ChatListItem[] = [
+    ...[
+      ...activeConversations.map(conv => ({ kind: 'direct' as const, conv })),
+      ...eventChats.map(chat => ({ kind: 'event' as const, chat })),
+    ].sort(byRecentItem),
+    ...lockedConversations.slice().sort(byRecent).map(conv => ({ kind: 'direct' as const, conv })),
   ]
 
-  const isEmpty = !loading && !error && allConvs.length === 0 && pendingVibes.length === 0
+  const isEmpty = !loading && !error && items.length === 0 && pendingVibes.length === 0
 
   const openConversation = (item: Conversation) => {
     if (item.status === 'active') {
@@ -256,6 +311,14 @@ export default function ChatScreen() {
 
   const toggleMute = (conv: Conversation) => {
     setMuted(conv, !conv.muted).catch((e: any) => showPill(e?.message || "Couldn't change that", 'error'))
+  }
+
+  const toggleEventPin = (chat: EventChatRow) => {
+    setEventPinned(chat, !chat.pinned_at).catch((e: any) => showPill(e?.message || "Couldn't pin that chat", 'error'))
+  }
+
+  const toggleEventMute = (chat: EventChatRow) => {
+    setEventMuted(chat, !chat.muted).catch((e: any) => showPill(e?.message || "Couldn't change that", 'error'))
   }
 
   const confirmDelete = () => {
@@ -330,8 +393,8 @@ export default function ChatScreen() {
         </View>
       ) : (
         <Animated.FlatList
-          data={allConvs}
-          keyExtractor={c => c.id}
+          data={items}
+          keyExtractor={i => (i.kind === 'direct' ? i.conv.id : `event-${i.chat.event_id}`)}
           showsVerticalScrollIndicator={false}
           onScroll={minimizeScroll}
           scrollEventThrottle={16}
@@ -351,13 +414,15 @@ export default function ChatScreen() {
               </View>
             ) : null
           }
-          renderItem={({ item }) => (
+          renderItem={({ item }) => item.kind === 'event' ? (
+            <EventConvRow chat={item.chat} currentUserId={currentUserId} onLongPress={() => { hTap(); setEventMenu(item.chat) }} />
+          ) : (
             <ConvRow
-              conv={item}
+              conv={item.conv}
               currentUserId={currentUserId}
-              onPress={() => openConversation(item)}
-              onLongPress={() => { hTap(); setMenuTarget(item) }}
-              onAvatarPress={() => openProfile(item)}
+              onPress={() => openConversation(item.conv)}
+              onLongPress={() => { hTap(); setMenuTarget(item.conv) }}
+              onAvatarPress={() => openProfile(item.conv)}
             />
           )}
         />
@@ -426,6 +491,29 @@ export default function ChatScreen() {
           onToggleMute={menuTarget.status === 'active' ? () => toggleMute(menuTarget) : undefined}
         />
       )}
+
+      {eventMenu ? (
+        <EventChatMenuSheet
+          chat={{ ...eventMenu, pinned: !!eventMenu.pinned_at }}
+          onTogglePin={() => toggleEventPin(eventMenu)}
+          onToggleMute={() => toggleEventMute(eventMenu)}
+          onDelete={() => setEventDelete(eventMenu)}
+          onClose={() => setEventMenu(null)}
+        />
+      ) : null}
+
+      <ConfirmSheet
+        visible={!!eventDelete}
+        title="Delete this chat?"
+        body="It's erased from your side only. Everyone else keeps it, and you stay in the group. If someone posts again, the chat comes back with just the new messages."
+        confirmLabel="Delete"
+        destructive
+        onConfirm={() => {
+          if (eventDelete) deleteEventChat(eventDelete).catch((e: any) => showPill(e?.message || "Couldn't delete that chat", 'error'))
+          setEventDelete(null)
+        }}
+        onClose={() => setEventDelete(null)}
+      />
 
       <ConfirmSheet
         visible={!!deleteTarget}
@@ -553,6 +641,7 @@ const s = StyleSheet.create({
   convRowLocked: { opacity: 0.75 },
   convAvatarWrap: { position: 'relative', marginRight: 14 },
   convAvatar: { width: 56, height: 56, borderRadius: 28 },
+  eventCover: { width: 56, height: 56, borderRadius: 16, backgroundColor: Colors.surface },
   convOnlineDot: {
     position: 'absolute',
     bottom: 1,

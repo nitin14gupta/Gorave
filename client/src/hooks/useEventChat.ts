@@ -33,7 +33,7 @@ export function useEventChat(eventId: string) {
   const [chat, setChat] = useState<EventChat | null>(initial?.chat ?? null)
   const [messages, setMessages] = useState<EventChatMessage[]>(initial?.messages ?? [])
   const [seen, setSeen] = useState<EventChatSeen[]>(initial?.seen ?? [])
-  const [typing, setTyping] = useState<Record<string, string>>({})
+  const [typing, setTyping] = useState<Record<string, { name: string; avatar: string | null }>>({})
   const [failedIds, setFailedIds] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(!initial)
   const [error, setError] = useState<string | null>(null)
@@ -92,7 +92,7 @@ export function useEventChat(eventId: string) {
         if (timers.has(data.user_id)) clearTimeout(timers.get(data.user_id)!)
         setTyping(prev => {
           const next = { ...prev }
-          if (data.is_typing) next[data.user_id] = data.name ?? 'Someone'
+          if (data.is_typing) next[data.user_id] = { name: data.name ?? 'Someone', avatar: data.avatar ?? null }
           else delete next[data.user_id]
           return next
         })

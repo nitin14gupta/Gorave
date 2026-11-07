@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
 import { ActivityIndicator, Pressable, StyleSheet, Switch, Text, View } from 'react-native'
-import { BottomSheetBackdrop, BottomSheetFlatList, BottomSheetModal, BottomSheetTextInput, BottomSheetView, type BottomSheetBackdropProps } from '@gorhom/bottom-sheet'
+import { BottomSheetBackdrop, BottomSheetFlatList, BottomSheetModal, type BottomSheetBackdropProps } from '@gorhom/bottom-sheet'
 import { Image } from 'expo-image'
 import { router } from 'expo-router'
 import { UserMinus } from 'lucide-react-native'
 import ApiService, { type EventChat, type EventChatMember } from '@/api/apiService'
-import { ConfirmSheet, PrimaryButton } from '@/components/ui'
+import { ConfirmSheet } from '@/components/ui'
 import { hTap } from '@/lib/haptics'
+import { TextEditorModal } from '@/components/ui/TextEditorModal'
 import { usePillStore } from '@/store/pillStore'
 import { Colors, FontFamily, withOpacity } from '@/constants'
 
@@ -122,19 +123,17 @@ export function EventChatInfoSheet({ chat, eventId, myId, onMute, onClose }: {
 }
 
 /** The host's megaphone: pinned at the top and pushed to everyone. */
+/** Host only. Full-screen, like writing your bio, so a longer update has room. */
 export function PostUpdateSheet({ eventId, onClose }: { eventId: string; onClose: () => void }) {
-  const ref = useRef<BottomSheetModal>(null)
   const showPill = usePillStore(s => s.show)
-  const [text, setText] = useState('')
   const [sending, setSending] = useState(false)
-  useEffect(() => { ref.current?.present() }, [])
 
-  const post = async () => {
-    if (!text.trim() || sending) return
+  const post = async (text: string) => {
+    if (!text || sending) return
     setSending(true)
     try {
-      await ApiService.postEventChatUpdate(eventId, text.trim())
-      ref.current?.dismiss()
+      await ApiService.postEventChatUpdate(eventId, text)
+      onClose()
     } catch (e: any) {
       showPill(e?.message || "That didn't go through", 'error')
       setSending(false)
@@ -142,34 +141,17 @@ export function PostUpdateSheet({ eventId, onClose }: { eventId: string; onClose
   }
 
   return (
-    <BottomSheetModal
-      ref={ref}
-      enableDynamicSizing
-      enablePanDownToClose
-      keyboardBehavior="interactive"
-      keyboardBlurBehavior="restore"
-      android_keyboardInputMode="adjustResize"
-      onDismiss={onClose}
-      backdropComponent={backdrop}
-      backgroundStyle={s.bg}
-      handleIndicatorStyle={s.handle}
-    >
-      <BottomSheetView style={s.update}>
-        <Text style={s.title}>Post an update</Text>
-        <Text style={s.switchHint}>Goes to every guest with a notification, and stays pinned at the top.</Text>
-        <BottomSheetTextInput
-          style={s.input}
-          value={text}
-          onChangeText={setText}
-          placeholder="Doors open at 9, come to the side gate"
-          placeholderTextColor={Colors.inkDisabled}
-          multiline
-          maxLength={MAX_UPDATE}
-          autoFocus
-        />
-        <PrimaryButton label="Post update" onPress={post} disabled={!text.trim()} loading={sending} />
-      </BottomSheetView>
-    </BottomSheetModal>
+    <TextEditorModal
+      visible
+      title="Update for guests"
+      placeholder="Doors open at 9, come to the side gate"
+      max={MAX_UPDATE}
+      actionLabel="Post"
+      busy={sending}
+      note="Every guest gets a notification, and it stays pinned at the top of the chat."
+      onClose={onClose}
+      onSubmit={post}
+    />
   )
 }
 
@@ -188,6 +170,4 @@ const s = StyleSheet.create({
   avatar: { width: 40, height: 40, borderRadius: 20, overflow: 'hidden', backgroundColor: Colors.surface },
   name: { fontFamily: FontFamily.bodyMedium, fontSize: 15, color: Colors.inkPrimary },
   role: { fontFamily: FontFamily.bodyRegular, fontSize: 12, color: Colors.inkSecondary },
-  update: { paddingHorizontal: 20, paddingBottom: 28, gap: 8 },
-  input: { minHeight: 96, marginTop: 6, marginBottom: 6, padding: 14, borderRadius: 16, backgroundColor: Colors.surface, color: Colors.inkPrimary, fontFamily: FontFamily.bodyRegular, fontSize: 15, lineHeight: 21, textAlignVertical: 'top' },
 })

@@ -477,6 +477,8 @@ export interface EventChatSeen {
 export interface EventChatRow {
   event_id: string
   pinned: boolean
+  /** Set only while the chat is open, so a closed chat drops out of the pins. */
+  pinned_at: string | null
   title: string
   date_time: string
   cover: string | null

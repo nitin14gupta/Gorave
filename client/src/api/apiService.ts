@@ -669,6 +669,8 @@ class ApiService {
   }
 
   static pinEventChat(eventId: string, pinned: boolean) { return this.post(`/event-chats/${eventId}/list-pin`, { pinned }) }
+  /** Your side only. Comes back with just the new messages when someone posts. */
+  static deleteEventChat(eventId: string) { return this.delete(`/event-chats/${eventId}`) }
 
   static async pinConversation(convId: string, on: boolean): Promise<void> {
     const endpoint = `${ENDPOINTS.CONV_DELETE.replace(':id', convId)}/pin`
