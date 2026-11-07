@@ -9,11 +9,23 @@ import * as Sentry from '@sentry/react-native'
 // is done by hand — must run as early as possible, before anything else.
 Sentry.init({
   dsn: 'https://89d091adfd12c2f4d1361b564877ffdc@o4511983185494016.ingest.de.sentry.io/4511983187853392',
-  sendDefaultPii: true,
+  // No IP address or device user details. Errors are enough to debug.
+  sendDefaultPii: false,
   enableLogs: true,
   replaysSessionSampleRate: 0.1,
   replaysOnErrorSampleRate: 1,
-  integrations: [Sentry.mobileReplayIntegration(), Sentry.feedbackIntegration()],
+  integrations: [
+    // Chats, bios and photos are private. Spelled out so an SDK update can't
+    // quietly switch masking off: replays show boxes, never words or faces.
+    Sentry.mobileReplayIntegration({ maskAllText: true, maskAllImages: true, maskAllVectors: true }),
+    Sentry.feedbackIntegration(),
+  ],
+  // Query strings carry search text and signed media links.
+  beforeBreadcrumb(crumb) {
+    const url = crumb.data?.url
+    if (typeof url === 'string' && url.includes('?')) crumb.data = { ...crumb.data, url: url.split('?')[0] }
+    return crumb
+  },
 })
 
 enableScreens(true)

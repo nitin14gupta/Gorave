@@ -4,6 +4,10 @@ export const ACTION_LABELS: Record<string, string> = {
   restore_user: 'Restored deleted account',
   force_cancel_event: 'Force-cancelled event',
   update_support_status: 'Updated ticket status',
+  remove_message: 'Removed reported message',
+  keep_message: 'Kept reported message',
+  remove_photo: 'Removed album photo',
+  keep_photo: 'Kept album photo',
 }
 
 export function targetHref(targetType: string, targetId: string | null): string | null {

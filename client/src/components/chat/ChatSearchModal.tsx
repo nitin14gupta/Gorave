@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { View, Text, StyleSheet, Modal, FlatList, Pressable } from 'react-native'
 import { Image } from 'expo-image'
+import { router } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { ArrowLeft, X } from 'lucide-react-native'
 import { AutoSkeletonView } from 'react-native-auto-skeleton'
@@ -9,7 +10,7 @@ import { Colors, FontFamily, withOpacity } from '@/constants'
 import { SearchBar, LogoMark } from '@/components/ui'
 import { useChatSearchHistoryStore, type ChatSearchHistoryEntry } from '@/store/chatSearchHistoryStore'
 import { useChatShareTargets } from '@/hooks/useChatShareTargets'
-import type { Conversation } from '@/api/apiService'
+import type { Conversation, EventChatRow } from '@/api/apiService'
 
 const RECENT_PREVIEW = 6
 const SUGGESTIONS_MAX = 10
@@ -20,7 +21,25 @@ interface Props {
   /** Mutually-connected people — the only pool this can search/suggest,
    * since chatting requires a mutual vibe (an active conversation). */
   conversations: Conversation[]
+  /** Event group chats, found by the event's name. */
+  eventChats?: EventChatRow[]
   onSelectConversation: (conv: Conversation) => void
+}
+
+type Result = { kind: 'person'; conv: Conversation } | { kind: 'group'; chat: EventChatRow }
+
+function GroupRow({ chat, onPress }: { chat: EventChatRow; onPress: () => void }) {
+  return (
+    <Pressable style={s.row} onPress={onPress}>
+      {chat.cover
+        ? <Image source={{ uri: chat.cover }} style={[s.avatar, s.groupCover]} cachePolicy="memory-disk" priority="low" transition={150} />
+        : <View style={[s.avatar, s.groupCover, s.avatarFallback]}><Text style={s.avatarInitial}>{chat.title.charAt(0)}</Text></View>}
+      <View style={s.info}>
+        <Text style={s.name} numberOfLines={1}>{chat.title}</Text>
+        <Text style={s.username} numberOfLines={1}>{chat.closed ? 'Group · closed' : `Group · ${chat.member_count} going`}</Text>
+      </View>
+    </Pressable>
+  )
 }
 
 function convToEntry(c: Conversation): ChatSearchHistoryEntry {
@@ -77,7 +96,7 @@ function PersonRowSkeleton() {
   )
 }
 
-export function ChatSearchModal({ visible, onClose, conversations, onSelectConversation }: Props) {
+export function ChatSearchModal({ visible, onClose, conversations, eventChats = [], onSelectConversation }: Props) {
   const insets = useSafeAreaInsets()
   const [query, setQuery] = useState('')
   const [expanded, setExpanded] = useState(false)
@@ -112,9 +131,22 @@ export function ChatSearchModal({ visible, onClose, conversations, onSelectConve
   const isSearching = query.trim().length > 0
   const suggestions = pool.slice(0, SUGGESTIONS_MAX)
   const recentToShow = expanded ? history : history.slice(0, RECENT_PREVIEW)
-  const results = isSearching
-    ? pool.filter(c => (c.partner_name ?? '').toLowerCase().includes(query.trim().toLowerCase()))
+  const needle = query.trim().toLowerCase()
+  const results: Result[] = isSearching
+    ? [
+        ...eventChats.filter(c => c.title.toLowerCase().includes(needle)).map(chat => ({ kind: 'group' as const, chat })),
+        ...pool.filter(c => (c.partner_name ?? '').toLowerCase().includes(needle) || (c.partner_username ?? '').toLowerCase().includes(needle))
+          .map(conv => ({ kind: 'person' as const, conv })),
+      ]
     : []
+
+  const openGroup = (chat: EventChatRow) => {
+    hTap()
+    setQuery('')
+    setExpanded(false)
+    onClose()
+    router.push(`/(chat)/event/${chat.event_id}` as any)
+  }
 
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={handleClose}>
@@ -131,7 +163,7 @@ export function ChatSearchModal({ visible, onClose, conversations, onSelectConve
             variant="glass"
             value={query}
             onChangeText={setQuery}
-            placeholder="Search by name"
+            placeholder="Search people or events"
             autoFocus
             style={s.searchBar}
           />
@@ -142,22 +174,24 @@ export function ChatSearchModal({ visible, onClose, conversations, onSelectConve
         ) : isSearching ? (
           <FlatList
             data={results}
-            keyExtractor={c => c.id}
+            keyExtractor={r => (r.kind === 'group' ? `group-${r.chat.event_id}` : r.conv.id)}
             keyboardShouldPersistTaps="handled"
             contentContainerStyle={s.listContent}
-            renderItem={({ item }) => (
+            renderItem={({ item }) => item.kind === 'group' ? (
+              <GroupRow chat={item.chat} onPress={() => openGroup(item.chat)} />
+            ) : (
               <PersonRow
-                avatar={item.partner_avatar}
-                name={item.partner_name}
-                username={item.partner_username}
-                onPress={() => handleSelect(item)}
+                avatar={item.conv.partner_avatar}
+                name={item.conv.partner_name}
+                username={item.conv.partner_username}
+                onPress={() => handleSelect(item.conv)}
               />
             )}
             ListEmptyComponent={
               <View style={s.emptyWrap}>
                 <LogoMark size={72} opacity={0.1} style={{ marginBottom: 4 }} />
-                <Text style={s.emptyTitle}>No one by that name</Text>
-                <Text style={s.emptyText}>Check the spelling, or try their username.</Text>
+                <Text style={s.emptyTitle}>No chats match that</Text>
+                <Text style={s.emptyText}>Try a name, a username or an event.</Text>
               </View>
             }
           />
@@ -229,6 +263,7 @@ export function ChatSearchModal({ visible, onClose, conversations, onSelectConve
 const AVATAR = 52
 
 const s = StyleSheet.create({
+  groupCover: { borderRadius: 14 },
   root: { flex: 1, backgroundColor: Colors.background },
   header: { paddingHorizontal: 20, paddingBottom: 10, gap: 10 },
   topBar: { height: 40, justifyContent: 'center' },

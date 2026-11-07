@@ -1,6 +1,6 @@
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiClient } from '@/lib/apiClient'
-import type { UserReportItem, EventReportItem, MessageReportItem, BlockItem } from '@/types/reports'
+import type { UserReportItem, EventReportItem, MessageReportItem, BlockItem, PhotoReportItem, ContextMessage, ReportStatus } from '@/types/reports'
 import type { AuditLogItem } from '@/types/audit'
 import type { PaginatedResponse } from '@/types/feedback'
 
@@ -33,8 +33,33 @@ export function useEventReportsQuery(page: number, pageSize: number) {
   return usePaginatedReports<EventReportItem>('admin-reports-events', '/admin/reports/events', page, pageSize)
 }
 
-export function useMessageReportsQuery(page: number, pageSize: number) {
-  return usePaginatedReports<MessageReportItem>('admin-reports-messages', '/admin/reports/messages', page, pageSize)
+export function useMessageReportsQuery(page: number, pageSize: number, status: ReportStatus) {
+  return usePaginatedReports<MessageReportItem>('admin-reports-messages', '/admin/reports/messages', page, pageSize, { status })
+}
+
+export function usePhotoReportsQuery(page: number, pageSize: number, status: ReportStatus) {
+  return usePaginatedReports<PhotoReportItem>('admin-reports-photos', '/admin/reports/photos', page, pageSize, { status })
+}
+
+export function useMessageContextQuery(messageId: string | null) {
+  return useQuery({
+    queryKey: ['admin-report-context', messageId],
+    queryFn: () => apiClient.get<{ messages: ContextMessage[] }>(`/admin/reports/messages/${messageId}/context`),
+    enabled: !!messageId,
+  })
+}
+
+/** Remove or keep a reported message or photo. Closes every report on it. */
+export function useModerationMutation() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ kind, id, decision, note }: { kind: 'messages' | 'photos'; id: string; decision: 'remove' | 'keep'; note?: string }) =>
+      apiClient.post(`/admin/reports/${kind}/${id}/${decision}`, { note: note || null }),
+    onSuccess: (_data, { kind }) => {
+      queryClient.invalidateQueries({ queryKey: [kind === 'messages' ? 'admin-reports-messages' : 'admin-reports-photos'] })
+      queryClient.invalidateQueries({ queryKey: ['admin-audit-log'] })
+    },
+  })
 }
 
 export function useBlocksQuery(page: number, pageSize: number) {

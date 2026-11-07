@@ -469,6 +469,7 @@ export default function ChatScreen() {
         visible={searchOpen}
         onClose={() => setSearchOpen(false)}
         conversations={activeConversations}
+        eventChats={eventChats}
         onSelectConversation={openConversation}
       />
 
