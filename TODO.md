@@ -17,11 +17,22 @@ once it ships.
   - `2026-11-03_chat_delete.sql`
   - `2026-11-03_event_chat.sql`
   - `2026-11-03_chat_mutes.sql`
+  - `2026-11-07_moderation.sql`
+  - `2026-11-07_host_verification.sql`
 
   All are in `server/scripts/sql/`.
 - [ ] Production server env: set `R2_CHAT_BUCKET=gorave-chat`.
 - [ ] EAS: add `SENTRY_AUTH_TOKEN` as a secret (production environment). Rotate the old token.
 - [ ] Turn off the test OTP bypass (`000000`).
+- [ ] Host ID check (DigiLocker through Cashfree Secure ID). Until this is done, nobody can create an event in production:
+  - Sign up for Cashfree Secure ID and turn on DigiLocker.
+  - Set `CASHFREE_KYC_CLIENT_ID`, `CASHFREE_KYC_CLIENT_SECRET`, `CASHFREE_KYC_ENV=production` and a long random `KYC_HASH_SALT` that never changes.
+  - Whitelist the server IP in Cashfree if they ask (their API answers 403 `ip_validation_failed` otherwise).
+  - Do one real check in sandbox first and confirm the Aadhaar field names (`name`, `dob`, `uid`, `year_of_birth`) match `server/utils/kyc.py`. Their guide and API reference disagree.
+  - Never set `KYC_MOCK=true` in production. It turns on the fake DigiLocker page used for local testing.
+- [ ] Host the `https://link.gorave.in/verified` return page (DigiLocker sends hosts back there). It opens the app if the app link is set up; otherwise it should say "Go back to Gorave".
+- [ ] Sentry: check a replay in the dashboard once the new build is out, to confirm text and photos show as blocks.
+- [ ] Load test an event group chat with 300 members.
 
 ## Money
 - [ ] Automate host payouts (for example RazorpayX), paid only after the event ends and check-ins look right. Today the admin panel only works out what each host is owed; transfers are done by hand.
@@ -29,7 +40,7 @@ once it ships.
 
 
 ## Trust and safety
-- [ ] Government ID check for hosts of paid events (DigiLocker / Aadhaar-based), shown as a "Verified host" tick. Biggest gap in the safety story.
+- [ ] Show a "Verified host" tick on event pages and host profiles. The ID check itself is built (every host verifies before hosting), the tick isn't shown anywhere yet.
 - [ ] Badges promise "more visibility in Discover and Trending", but ranking ignores badge tier. Add it to ranking, or soften the message.
 
 ## Features

@@ -97,7 +97,7 @@ def get_user_detail(user_id: str, current_admin: dict = Depends(get_current_admi
                 interests, badges, username, voice_url, wallet_balance,
                 profile_complete, is_active, COALESCE(is_deleted, FALSE) AS is_deleted,
                 deleted_at, COALESCE(is_locked, FALSE) AS is_locked, locked_reason,
-                locked_at, locked_by::text, is_host_onboarding_finished,
+                locked_at, locked_by::text, is_host_onboarding_finished, id_verified_at, id_verified_name,
                 safety_agreement_accepted_at, host_agreement_accepted_at,
                 (host_agreement_signature_url IS NOT NULL) AS has_signature,
                 (SELECT COUNT(*) FROM emergency_contacts ec WHERE ec.user_id = users.id)::int AS emergency_contacts_count,

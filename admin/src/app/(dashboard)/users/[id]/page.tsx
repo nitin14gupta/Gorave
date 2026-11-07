@@ -238,6 +238,7 @@ function ProfileTab({ data }: { data: UserDetail }) {
           <Field label="Host tier" value={user.host_badges[0] ?? 'None'} />
           <Field label="Profile complete" value={user.profile_complete ? 'Yes' : 'No'} />
           <Field label="Host onboarding" value={user.is_host_onboarding_finished ? 'Finished' : 'Not finished'} />
+          <Field label="ID check" value={user.id_verified_at ? `Verified as ${user.id_verified_name ?? 'unknown'} on ${formatDate(user.id_verified_at)}` : 'Not verified'} />
           <Field label="Host agreement" value={user.host_agreement_accepted_at ? `Signed ${formatDate(user.host_agreement_accepted_at)}${user.has_signature ? '' : ' (no signature on file)'}` : 'Not signed'} />
           <Field label="Safety agreement" value={user.safety_agreement_accepted_at ? `Accepted ${formatDate(user.safety_agreement_accepted_at)}` : 'Not accepted'} />
           <Field label="Emergency contacts" value={String(user.emergency_contacts_count)} />

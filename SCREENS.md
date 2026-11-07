@@ -91,6 +91,7 @@ Routes live in `client/src/app/` (Expo Router). `(group)` folders don't show in 
 
 | # | Screen | Route | What it does | UI pass |
 |---|---|---|---|---|
+| 21b | Verify your ID (host) | `(host-onboarding)/verify` | Every host verifies a government ID with DigiLocker before step 1 of host onboarding; existing hosts are sent here from Create. Shows the three steps, opens DigiLocker, checks when you come back, then Continue. The server refuses to create events until it's done | ✅ |
 | 33 | Become a host | `(host-onboarding)/index` | Story segments across the top; welcome, how it works and badges each open on one of the website's own party photos (`client/assets/images/host/`), then the agreement and payouts | ✅ |
 | 34 | Host agreement | `(host-onboarding)/agreement` | Clause cards you tick as you read, a progress bar, Sign unlocks at 5 of 5, then your signature with your name. Same view is step 4 of onboarding | ✅ |
 | 35 | Signature | `(host-onboarding)/signature-sheet` | White ink on the dark pad above a signature line with your name, Undo, Clear, Use this signature. Only the ink is saved | ✅ |

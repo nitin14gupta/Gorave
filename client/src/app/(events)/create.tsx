@@ -48,7 +48,10 @@ export default function CreateScreen() {
 
   useEffect(() => {
     if (profileLoading || !profile) return
-    if (!profile.is_host_onboarding_finished) {
+    // A checked government ID comes first, for new and existing hosts alike.
+    if (!profile.id_verified_at) {
+      router.replace('/(host-onboarding)/verify' as any)
+    } else if (!profile.is_host_onboarding_finished) {
       router.replace('/(host-onboarding)' as any)
     } else if (!profile.host_agreement_accepted_at) {
       router.replace('/(host-onboarding)/agreement' as any)

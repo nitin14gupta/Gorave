@@ -50,6 +50,10 @@ export interface UserProfile {
   locked_at: string | null
   locked_by: string | null
   is_host_onboarding_finished: boolean
+  /** Government ID checked through DigiLocker. */
+  id_verified_at: string | null
+  /** The name on their Aadhaar. */
+  id_verified_name: string | null
   safety_agreement_accepted_at: string | null
   host_agreement_accepted_at: string | null
   /** Whether a host agreement signature is on file (the image itself isn't sent) */

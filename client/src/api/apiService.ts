@@ -52,11 +52,13 @@ import type {
   EventChatMessage,
   EventChatRow,
   EventChatSeen,
+  HostVerification,
 } from '@/types/api'
 
 // Response/request shapes live in '@/types/api' — re-exported here so
 // existing `import { X } from '@/api/apiService'` call sites keep working.
 export type {
+  HostVerification,
   AlbumPage,
   EventChat,
   EventChatMember,
@@ -591,6 +593,14 @@ class ApiService {
       return `token=${useAuthStore.getState().accessToken ?? ''}`
     }
   }
+
+  static getHostVerification() { return this.get<HostVerification>('/host-verification') }
+  /** A DigiLocker link to open in the browser. */
+  static async startHostVerification() {
+    const r = await this.post<{ url: string; verification_id: string }>('/host-verification/start', {})
+    return r.url.startsWith('/') ? `${API_BASE_URL}${r.url}` : r.url
+  }
+  static checkHostVerification() { return this.post<HostVerification>('/host-verification/check', {}) }
 
   static getEventChats() { return this.get<EventChatRow[]>('/event-chats') }
   static getEventChat(eventId: string) { return this.get<EventChat>(`/event-chats/${eventId}`) }

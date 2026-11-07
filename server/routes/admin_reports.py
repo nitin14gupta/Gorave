@@ -130,7 +130,8 @@ def remove_reported_photo(photo_id: str, body: DecisionBody, current_admin: dict
             send_push(photo["uploader_id"], "Photo removed", f"A photo you added to {photo['title']} was removed because it broke our community guidelines.")
         except Exception:
             pass
-    log_action(current_admin["id"], "remove_photo", "photo", photo_id, body.note)
+    if not photo["removed_at"]:
+        log_action(current_admin["id"], "remove_photo", "photo", photo_id, body.note)
     return {"ok": True}
 
 
@@ -316,7 +317,8 @@ async def remove_reported_message(message_id: str, body: DecisionBody, current_a
             send_push(msg["sender_id"], "Message removed", "A message you sent was removed because it broke our community guidelines.")
         except Exception:
             pass
-    log_action(current_admin["id"], "remove_message", "message", message_id, body.note)
+    if not msg["unsent_at"]:
+        log_action(current_admin["id"], "remove_message", "message", message_id, body.note)
     return {"ok": True}
 
 

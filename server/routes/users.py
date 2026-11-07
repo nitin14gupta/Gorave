@@ -32,6 +32,7 @@ _USER_SELECT = """
         COALESCE(u.badges, ARRAY[]::text[]) AS badges,
         u.profile_complete,
         u.is_host_onboarding_finished,
+        u.id_verified_at::text,
         u.safety_agreement_accepted_at::text,
         u.host_agreement_accepted_at::text,
         u.host_agreement_signature_url,

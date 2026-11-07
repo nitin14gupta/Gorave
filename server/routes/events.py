@@ -1480,6 +1480,12 @@ def get_event(event_id: str, current_user: dict = Depends(get_current_user)):
 
 @router.post("", response_model=EventDetail, status_code=201)
 def create_event(body: CreateEventBody, background_tasks: BackgroundTasks, current_user: dict = Depends(get_current_user)):
+    # Every host has a government ID on file before they can host.
+    with get_db() as (cur, _):
+        cur.execute("SELECT id_verified_at FROM users WHERE id = %s::uuid", (current_user["id"],))
+        verified = (cur.fetchone() or {}).get("id_verified_at")
+    if not verified:
+        raise HTTPException(status_code=403, detail={"code": "ID_REQUIRED", "message": "Verify your ID before hosting an event."})
     # Parse and validate date_time
     try:
         dt = datetime.fromisoformat(body.date_time.replace("Z", "+00:00"))

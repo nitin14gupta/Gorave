@@ -17,6 +17,7 @@ from routes.ticket_transfer import router as ticket_transfer_router
 from routes.album import router as album_router
 from utils import chat_realtime as rt
 from routes.event_chat import router as event_chat_router
+from routes.host_verification import router as host_verification_router
 from routes.chat import router as chat_router
 from routes.notifications import router as notifications_router
 from routes.devices import router as devices_router
@@ -199,6 +200,7 @@ app.include_router(events_router)
 app.include_router(ticket_transfer_router)
 app.include_router(album_router)
 app.include_router(event_chat_router)
+app.include_router(host_verification_router)
 app.include_router(chat_router)
 app.include_router(notifications_router)
 app.include_router(devices_router)

@@ -195,6 +195,8 @@ class UserResponse(BaseModel):
     host_badges: List[str] = []
     profile_complete: bool = False
     is_host_onboarding_finished: bool = False
+    # Government ID checked through DigiLocker. Needed before hosting.
+    id_verified_at: Optional[str] = None
     safety_agreement_accepted_at: Optional[str] = None
     host_agreement_accepted_at: Optional[str] = None
     host_agreement_signature_url: Optional[str] = None

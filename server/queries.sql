@@ -185,6 +185,10 @@ CREATE TABLE IF NOT EXISTS public.event_photo_reports (
   reporter_id uuid NOT NULL,
   reason text NOT NULL,
   created_at timestamp with time zone DEFAULT now() NOT NULL,
+  resolved_at timestamp with time zone,
+  resolved_by uuid,
+  resolution text,
+  CONSTRAINT event_photo_reports_resolution_check CHECK (resolution IS NULL OR (resolution = ANY (ARRAY['removed'::text, 'kept'::text]))),
   CONSTRAINT event_photo_reports_pkey PRIMARY KEY (id),
   CONSTRAINT event_photo_reports_unique UNIQUE (photo_id, reporter_id)
 );
@@ -301,6 +305,27 @@ CREATE TABLE IF NOT EXISTS public.host_payout_details (
   CONSTRAINT host_payout_details_user_id_key UNIQUE (user_id)
 );
 
+CREATE TABLE IF NOT EXISTS public.host_verifications (
+  id uuid DEFAULT gen_random_uuid() NOT NULL,
+  user_id uuid NOT NULL,
+  provider text NOT NULL,
+  verification_id text NOT NULL,
+  reference_id bigint,
+  status text DEFAULT 'pending'::text NOT NULL,
+  mock_status text,
+  failure_reason text,
+  aadhaar_name text,
+  birth_year integer,
+  gender text,
+  aadhaar_last4 text,
+  identity_hash text,
+  created_at timestamp with time zone DEFAULT now() NOT NULL,
+  verified_at timestamp with time zone,
+  CONSTRAINT host_verifications_status_check CHECK (status = ANY (ARRAY['pending'::text, 'verified'::text, 'failed'::text, 'expired'::text, 'denied'::text])),
+  CONSTRAINT host_verifications_pkey PRIMARY KEY (id),
+  CONSTRAINT host_verifications_verification_id_key UNIQUE (verification_id)
+);
+
 CREATE TABLE IF NOT EXISTS public.message_reports (
   id uuid DEFAULT gen_random_uuid() NOT NULL,
   message_id uuid NOT NULL,
@@ -308,6 +333,10 @@ CREATE TABLE IF NOT EXISTS public.message_reports (
   reason text NOT NULL,
   description text,
   created_at timestamp with time zone DEFAULT now(),
+  resolved_at timestamp with time zone,
+  resolved_by uuid,
+  resolution text,
+  CONSTRAINT message_reports_resolution_check CHECK (resolution IS NULL OR (resolution = ANY (ARRAY['removed'::text, 'kept'::text]))),
   CONSTRAINT message_reports_pkey PRIMARY KEY (id),
   CONSTRAINT message_reports_unique UNIQUE (message_id, reporter_id)
 );
@@ -492,6 +521,8 @@ CREATE TABLE IF NOT EXISTS public.users (
   host_agreement_accepted_at timestamp with time zone,
   host_agreement_signature_url text,
   deleted_backup jsonb,
+  id_verified_at timestamp with time zone,
+  id_verified_name text,
   CONSTRAINT users_pkey PRIMARY KEY (id),
   CONSTRAINT users_phone_key UNIQUE (phone),
   CONSTRAINT users_username_key UNIQUE (username)
@@ -552,6 +583,7 @@ ALTER TABLE public.event_hotlist ADD CONSTRAINT event_hotlist_event_id_fkey FORE
 ALTER TABLE public.event_hotlist ADD CONSTRAINT event_hotlist_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
 ALTER TABLE public.event_photo_reports ADD CONSTRAINT event_photo_reports_photo_id_fkey FOREIGN KEY (photo_id) REFERENCES event_photos(id) ON DELETE CASCADE;
 ALTER TABLE public.event_photo_reports ADD CONSTRAINT event_photo_reports_reporter_id_fkey FOREIGN KEY (reporter_id) REFERENCES users(id) ON DELETE CASCADE;
+ALTER TABLE public.event_photo_reports ADD CONSTRAINT event_photo_reports_resolved_by_fkey FOREIGN KEY (resolved_by) REFERENCES admin_users(id) ON DELETE SET NULL;
 ALTER TABLE public.event_photo_votes ADD CONSTRAINT event_photo_votes_photo_id_fkey FOREIGN KEY (photo_id) REFERENCES event_photos(id) ON DELETE CASCADE;
 ALTER TABLE public.event_photo_votes ADD CONSTRAINT event_photo_votes_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
 ALTER TABLE public.event_photos ADD CONSTRAINT event_photos_event_id_fkey FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE;
@@ -565,8 +597,10 @@ ALTER TABLE public.events ADD CONSTRAINT events_host_id_fkey FOREIGN KEY (host_i
 ALTER TABLE public.follows ADD CONSTRAINT follows_follower_id_fkey FOREIGN KEY (follower_id) REFERENCES users(id) ON DELETE CASCADE;
 ALTER TABLE public.follows ADD CONSTRAINT follows_following_id_fkey FOREIGN KEY (following_id) REFERENCES users(id) ON DELETE CASCADE;
 ALTER TABLE public.host_payout_details ADD CONSTRAINT host_payout_details_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
+ALTER TABLE public.host_verifications ADD CONSTRAINT host_verifications_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
 ALTER TABLE public.message_reports ADD CONSTRAINT message_reports_message_id_fkey FOREIGN KEY (message_id) REFERENCES messages(id) ON DELETE CASCADE;
 ALTER TABLE public.message_reports ADD CONSTRAINT message_reports_reporter_id_fkey FOREIGN KEY (reporter_id) REFERENCES users(id) ON DELETE RESTRICT;
+ALTER TABLE public.message_reports ADD CONSTRAINT message_reports_resolved_by_fkey FOREIGN KEY (resolved_by) REFERENCES admin_users(id) ON DELETE SET NULL;
 ALTER TABLE public.messages ADD CONSTRAINT messages_conversation_id_fkey FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE;
 ALTER TABLE public.messages ADD CONSTRAINT messages_forwarded_from_id_fkey FOREIGN KEY (forwarded_from_id) REFERENCES messages(id) ON DELETE SET NULL;
 ALTER TABLE public.messages ADD CONSTRAINT messages_sender_id_fkey FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE RESTRICT;
@@ -601,6 +635,7 @@ CREATE INDEX idx_event_attendees_going_reminders ON public.event_attendees USING
 CREATE INDEX idx_event_attendees_requested ON public.event_attendees USING btree (event_id, requested_at) WHERE (status = 'requested'::text);
 CREATE INDEX idx_event_hotlist_event ON public.event_hotlist USING btree (event_id);
 CREATE INDEX idx_event_hotlist_user ON public.event_hotlist USING btree (user_id, created_at DESC);
+CREATE INDEX idx_event_photo_reports_open ON public.event_photo_reports USING btree (created_at DESC) WHERE (resolved_at IS NULL);
 CREATE INDEX idx_event_photos_event ON public.event_photos USING btree (event_id, created_at DESC);
 CREATE INDEX idx_event_photos_uploader ON public.event_photos USING btree (uploader_id);
 CREATE INDEX events_city_time_idx ON public.events USING btree (city, date_time) WHERE (is_cancelled = false);
@@ -610,6 +645,9 @@ CREATE INDEX idx_follows_follower ON public.follows USING btree (follower_id);
 CREATE INDEX idx_follows_following ON public.follows USING btree (following_id);
 CREATE UNIQUE INDEX host_payout_account_fingerprint_uidx ON public.host_payout_details USING btree (account_fingerprint) WHERE (account_fingerprint IS NOT NULL);
 CREATE UNIQUE INDEX host_payout_upi_fingerprint_uidx ON public.host_payout_details USING btree (upi_fingerprint) WHERE (upi_fingerprint IS NOT NULL);
+CREATE UNIQUE INDEX idx_host_verifications_identity ON public.host_verifications USING btree (identity_hash) WHERE (status = 'verified'::text);
+CREATE INDEX idx_host_verifications_user ON public.host_verifications USING btree (user_id, created_at DESC);
+CREATE INDEX idx_message_reports_open ON public.message_reports USING btree (created_at DESC) WHERE (resolved_at IS NULL);
 CREATE INDEX messages_conv_sent_idx ON public.messages USING btree (conversation_id, sent_at DESC);
 CREATE INDEX messages_forwarded_from_idx ON public.messages USING btree (forwarded_from_id) WHERE (forwarded_from_id IS NOT NULL);
 CREATE INDEX messages_limited_media_idx ON public.messages USING btree (sent_at) WHERE ((view_limit IS NOT NULL) AND (media_purged_at IS NULL));

@@ -16,6 +16,7 @@ import { setCached } from '@/lib/queryCache'
 import { useVpaValidation } from '@/hooks/useVpaValidation'
 import { useIfscLookup } from '@/hooks/useIfscLookup'
 import { HostWizardView } from '@/components/host-onboarding/HostWizardView'
+import { useProfile } from '@/hooks/useProfile'
 
 const TOTAL_STEPS = 5
 const AGREEMENT_STEP = 4
@@ -27,6 +28,14 @@ const STEP_CTA = ['Get started', 'Continue', 'Continue', 'Sign and continue', 'S
 export default function HostOnboardingScreen() {
   const showPill = usePillStore(s => s.show)
   const [step, setStep] = useState(1)
+  const { profile } = useProfile()
+
+  // The ID check comes before step 1.
+  useEffect(() => {
+    if (profile && !profile.id_verified_at) {
+      router.replace({ pathname: '/(host-onboarding)/verify', params: { next: '/(host-onboarding)' } } as any)
+    }
+  }, [profile])
 
   // Payout step state lives here — this is the last step, and its submit
   // action drives the whole flow's completion, so the orchestrator owns it

@@ -4,7 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { ShieldAlert, Search } from 'lucide-react'
 import {
-  useUserReportsQuery, useEventReportsQuery, useMessageReportsQuery, useBlocksQuery, useAdminActivityQuery,
+  useUserReportsQuery, useEventReportsQuery, useBlocksQuery, useAdminActivityQuery,
 } from '@/hooks/useReports'
 import { usePagination } from '@/hooks/usePagination'
 import { Table, THead, TBody, TR, TH, TD } from '@/components/ui/Table'
@@ -17,6 +17,7 @@ import { ListShell } from '@/components/ui/ListShell'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { formatDate } from '@/lib/formatters'
 import { ACTION_LABELS, targetHref } from '@/lib/auditLog'
+import { MessageReportsTab, PhotoReportsTab } from './ModerationTabs'
 
 export default function SafetyPage() {
   return (
@@ -24,14 +25,15 @@ export default function SafetyPage() {
       <PageHeader
         breadcrumb={[{ label: 'Dashboard', href: '/' }, { label: 'Safety' }]}
         title="Safety"
-        subtitle="Reports and blocks across the platform, for moderation review."
+        subtitle="Reported messages and album photos to review, plus reports and blocks across the platform."
       />
 
-      <Tabs defaultValue="users">
+      <Tabs defaultValue="messages">
         <TabsList>
+          <TabsTrigger value="messages">Messages</TabsTrigger>
+          <TabsTrigger value="photos">Album photos</TabsTrigger>
           <TabsTrigger value="users">User Reports</TabsTrigger>
           <TabsTrigger value="events">Event Reports</TabsTrigger>
-          <TabsTrigger value="messages">Message Reports</TabsTrigger>
           <TabsTrigger value="blocks">Blocks</TabsTrigger>
           <TabsTrigger value="activity">Admin Activity</TabsTrigger>
         </TabsList>
@@ -39,6 +41,7 @@ export default function SafetyPage() {
         <TabsContent value="users"><UserReportsTab /></TabsContent>
         <TabsContent value="events"><EventReportsTab /></TabsContent>
         <TabsContent value="messages"><MessageReportsTab /></TabsContent>
+        <TabsContent value="photos"><PhotoReportsTab /></TabsContent>
         <TabsContent value="blocks"><BlocksTab /></TabsContent>
         <TabsContent value="activity"><AdminActivityTab /></TabsContent>
       </Tabs>
@@ -121,50 +124,6 @@ function EventReportsTab() {
               </TD>
               <TD className="capitalize">{r.reason.replace(/_/g, ' ')}</TD>
               <TD>{r.description ?? '—'}</TD>
-              <TD>{formatDate(r.created_at)}</TD>
-            </TR>
-          ))}
-        </TBody>
-      </Table>
-    </ListShell>
-  )
-}
-
-function MessageReportsTab() {
-  const { page, pageSize, setPage, setPageSize } = usePagination(20)
-  const { data, isLoading } = useMessageReportsQuery(page, pageSize)
-
-  return (
-    <ListShell
-      emptyIcon={ShieldAlert}
-      isLoading={isLoading}
-      empty={!isLoading && data?.items.length === 0}
-      emptyLabel="No message reports"
-      total={data?.total ?? 0}
-      page={data?.page ?? 1}
-      pageSize={data?.page_size ?? pageSize}
-      onPageChange={setPage}
-      onPageSizeChange={setPageSize}
-    >
-      <Table>
-        <THead><TR><TH>Sender</TH><TH>Message</TH><TH>Reported by</TH><TH>Reason</TH><TH>Date</TH></TR></THead>
-        <TBody>
-          {data?.items.map((r) => (
-            <TR key={r.id}>
-              <TD>
-                <Link href={`/users/${r.sender_id}`} className="hover:underline">{r.sender_name ?? 'Unnamed'}</Link>
-              </TD>
-              <TD className="max-w-xs truncate">
-                {r.message_content_type === 'text' ? (r.message_content ?? '—') : (
-                  <Badge variant="neutral" className="capitalize">{r.message_content_type}</Badge>
-                )}
-              </TD>
-              <TD>
-                <Link href={`/users/${r.reporter_id}`} className="hover:underline">
-                  {r.reporter_name ?? 'Unnamed'}<span className="block text-xs text-ink-secondary">{r.reporter_phone}</span>
-                </Link>
-              </TD>
-              <TD className="capitalize">{r.reason.replace(/_/g, ' ')}</TD>
               <TD>{formatDate(r.created_at)}</TD>
             </TR>
           ))}
