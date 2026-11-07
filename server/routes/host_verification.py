@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 
 from db.config import get_db
 from middleware.auth import get_current_user
@@ -183,11 +183,6 @@ button{{display:block;width:100%;height:52px;border-radius:26px;border:0;font-si
 <form method="post" action="{base}/approve"><button class="ok">Share my Aadhaar</button></form>
 <form method="post" action="{base}/deny"><button class="no">Deny</button></form></body></html>"""
 
-_MOCK_DONE = """<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><title>Done</title>
-<style>body{{font-family:system-ui,sans-serif;background:#f5efe3;padding:32px 20px}}</style></head>
-<body><h1>{text}</h1><p>Go back to Gorave.</p></body></html>"""
-
-
 def _mock_row(verification_id: str) -> dict:
     if kyc.provider() != "mock":
         raise HTTPException(status_code=404, detail="Not found")
@@ -205,7 +200,7 @@ def mock_page(verification_id: str):
     return _MOCK_PAGE.format(base=f"/host-verification/mock/{html.escape(verification_id)}")
 
 
-@router.post("/mock/{verification_id}/{choice}", response_class=HTMLResponse, include_in_schema=False)
+@router.post("/mock/{verification_id}/{choice}", include_in_schema=False)
 def mock_choice(verification_id: str, choice: str):
     row = _mock_row(verification_id)
     status: Optional[str] = {"approve": "AUTHENTICATED", "deny": "CONSENT_DENIED"}.get(choice)
@@ -214,4 +209,5 @@ def mock_choice(verification_id: str, choice: str):
     with get_db() as (cur, conn):
         cur.execute("UPDATE host_verifications SET mock_status = %s WHERE id = %s", (status, row["id"]))
         conn.commit()
-    return _MOCK_DONE.format(text="Shared" if choice == "approve" else "Denied")
+    # Like DigiLocker: back to the return link, which closes the in-app browser.
+    return RedirectResponse(f"{kyc.REDIRECT_URL}?verification_id={verification_id}", status_code=303)

@@ -1,17 +1,18 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { ActivityIndicator, AppState, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { router, useLocalSearchParams } from 'expo-router'
-import * as WebBrowser from 'expo-web-browser'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { ArrowLeft, BadgeCheck, EyeOff, KeyRound, ShieldCheck } from 'lucide-react-native'
-import { AppHeader, HeaderIconBtn, PrimaryButton } from '@/components/ui'
+import { AppHeader, HeaderIconBtn, InAppBrowserModal, PrimaryButton } from '@/components/ui'
 import ApiService, { type HostVerification } from '@/api/apiService'
 import { hSuccess, hTap } from '@/lib/haptics'
 import { invalidate } from '@/lib/queryCache'
 import { usePillStore } from '@/store/pillStore'
 import { CacheKeys, Colors, FontFamily, Spacing, withOpacity } from '@/constants'
 
-// While someone is in DigiLocker, ask a few times once they're back.
+// DigiLocker sends people here when they're done. The browser closes on it.
+const RETURN_URL = 'https://link.gorave.in/verified'
+// Once they're back, ask a few times: the result can take a moment.
 const CHECK_TRIES = 6
 const CHECK_GAP_MS = 2000
 
@@ -32,6 +33,7 @@ export default function VerifyIdScreen() {
   const [state, setState] = useState<HostVerification | null>(null)
   const [opening, setOpening] = useState(false)
   const [checking, setChecking] = useState(false)
+  const [browserUrl, setBrowserUrl] = useState<string | null>(null)
   const waiting = useRef(false)
 
   const goOn = useCallback(() => {
@@ -69,11 +71,11 @@ export default function VerifyIdScreen() {
     }
   }, [showPill])
 
-  // Android returns from the browser without closing it, so watch for the app coming back.
-  useEffect(() => {
-    const sub = AppState.addEventListener('change', s => { if (s === 'active') check() })
-    return () => sub.remove()
-  }, [check])
+  /** Closed by DigiLocker's return link or by X: either way, see where it got to. */
+  const closeBrowser = () => {
+    setBrowserUrl(null)
+    check()
+  }
 
   const start = async () => {
     if (opening) return
@@ -83,8 +85,7 @@ export default function VerifyIdScreen() {
       const url = await ApiService.startHostVerification()
       waiting.current = true
       setState(prev => (prev ? { ...prev, status: 'pending', message: null } : prev))
-      await WebBrowser.openBrowserAsync(url, { presentationStyle: WebBrowser.WebBrowserPresentationStyle.PAGE_SHEET })
-      check()
+      setBrowserUrl(url)
     } catch (e: any) {
       showPill(e?.message || 'Couldn’t open DigiLocker. Try again.', 'error')
     } finally {
@@ -155,6 +156,8 @@ export default function VerifyIdScreen() {
           )}
         </View>
       ) : null}
+
+      <InAppBrowserModal visible={browserUrl !== null} url={browserUrl} onClose={closeBrowser} finishUrl={RETURN_URL} onFinish={closeBrowser} />
     </View>
   )
 }

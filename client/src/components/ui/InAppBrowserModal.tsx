@@ -10,9 +10,12 @@ interface Props {
   visible: boolean
   url: string | null
   onClose: () => void
+  /** When the page goes to a link starting with this, the browser closes and calls onFinish. */
+  finishUrl?: string
+  onFinish?: () => void
 }
 
-export function InAppBrowserModal({ visible, url, onClose }: Props) {
+export function InAppBrowserModal({ visible, url, onClose, finishUrl, onFinish }: Props) {
   const insets = useSafeAreaInsets()
   const webRef = useRef<WebView>(null)
   const [loading, setLoading] = useState(true)
@@ -52,10 +55,19 @@ export function InAppBrowserModal({ visible, url, onClose }: Props) {
             onLoadStart={() => setLoading(true)}
             onLoadEnd={() => setLoading(false)}
             onNavigationStateChange={nav => {
+              // Backup for redirects that skip onShouldStartLoadWithRequest (Android, after a form post).
+              if (finishUrl && nav.url?.startsWith(finishUrl)) { onFinish?.(); return }
               setCanGoBack(nav.canGoBack)
               if (nav.title) setTitle(nav.title)
             }}
             startInLoadingState
+            onShouldStartLoadWithRequest={req => {
+              if (finishUrl && req.url.startsWith(finishUrl)) {
+                onFinish?.()
+                return false
+              }
+              return true
+            }}
           />
           {loading && (
             <View style={[StyleSheet.absoluteFill, s.loadingOverlay]} pointerEvents="none">
