@@ -1,5 +1,6 @@
 import * as FileSystem from 'expo-file-system/legacy'
 import { API_BASE_URL, WS_BASE_URL, ENDPOINTS, DEFAULT_HEADERS, createAuthHeader } from './config'
+import { afterSmsOtpSent, prepareSmsOtp, type AutofillMode } from '@/lib/smsOtp'
 import { invalidateMyEvents } from '@/lib/myEventsCache'
 import { rememberConversations } from '@/lib/chatPartnerCache'
 import { useAuthStore } from '@/store/auth'
@@ -362,8 +363,12 @@ class ApiService {
 
   // ── Auth ───────────────────────────────────────────────────────────────────
 
-  static async sendOTP(phone: string): Promise<{ message: string }> {
-    return this.post<{ message: string }>(ENDPOINTS.SEND_OTP, { phone })
+  /** Also gets Android ready to read the code from the SMS by itself (lib/smsOtp). */
+  static async sendOTP(phone: string): Promise<{ message: string; autofill?: AutofillMode }> {
+    const appHash = await prepareSmsOtp()
+    const res = await this.post<{ message: string; autofill?: AutofillMode }>(ENDPOINTS.SEND_OTP, { phone, app_hash: appHash })
+    afterSmsOtpSent(res.autofill)
+    return res
   }
 
   static async verifyOTP(phone: string, code: string): Promise<TokenResponse> {

@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { ActivityIndicator, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller'
 import Animated, { useAnimatedStyle, useSharedValue, withSequence, withTiming } from 'react-native-reanimated'
@@ -7,6 +7,7 @@ import { ArrowLeft, Pencil } from 'lucide-react-native'
 import { Colors, FontFamily, withOpacity } from '@/constants'
 import { PrimaryButton } from '@/components/ui'
 import { hTap } from '@/lib/haptics'
+import { listenForSmsOtp } from '@/lib/smsOtp'
 import { groupPhone, type OtpViewProps } from './authTypes'
 
 const LEN = 6
@@ -23,6 +24,11 @@ export function OtpView(p: OtpViewProps) {
     if (p.error) shake.value = withSequence(withTiming(-8, { duration: 50 }), withTiming(8, { duration: 50 }), withTiming(-5, { duration: 50 }), withTiming(0, { duration: 50 }))
   }, [p.error, shake])
   const shakeStyle = useAnimatedStyle(() => ({ transform: [{ translateX: shake.value }] }))
+
+  // Android: the code arrives by SMS and fills itself in (see lib/smsOtp).
+  const onCode = useRef(p.onCode)
+  useEffect(() => { onCode.current = p.onCode })
+  useEffect(() => listenForSmsOtp(code => onCode.current(code), LEN), [])
 
   return (
     <View style={[s.root, { paddingTop: insets.top }]}>

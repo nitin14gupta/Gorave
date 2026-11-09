@@ -1,3 +1,5 @@
+from typing import Optional
+
 from pydantic import BaseModel, field_validator
 import re
 
@@ -5,6 +7,13 @@ import re
 class PhoneSendRequest(BaseModel):
     phone: str
     country_code: str = "+91"
+    # Android only: the app's 11-character SMS code, so the phone reads the OTP by itself.
+    app_hash: Optional[str] = None
+
+    @field_validator("app_hash")
+    @classmethod
+    def validate_app_hash(cls, v: Optional[str]) -> Optional[str]:
+        return v if v and re.fullmatch(r"[A-Za-z0-9+/]{11}", v) else None
 
     @field_validator("phone")
     @classmethod

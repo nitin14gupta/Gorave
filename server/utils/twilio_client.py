@@ -1,4 +1,6 @@
 import os
+from typing import Optional
+
 from twilio.rest import Client
 from dotenv import load_dotenv
 
@@ -9,34 +11,27 @@ _auth_token = os.getenv("TWILIO_AUTH_TOKEN")
 _verify_sid = os.getenv("TWILIO_VERIFY_SERVICE_SID")
 _sms_from = os.getenv("TWILIO_PHONE_NUMBER") or os.getenv("TWILIO_MESSAGING_SERVICE_SID")
 
+# Android reads the OTP SMS by itself when the SMS ends with the app's
+# 11-character code. If SMS in India turn out to arrive without it, set
+# OTP_APP_HASH=false: phones then fall back to a one-tap "Allow" prompt.
+OTP_APP_HASH = os.getenv("OTP_APP_HASH", "true").lower() != "false"
+
 _client = Client(_account_sid, _auth_token)
 
-# DEV bypass: real Twilio key not configured yet.
-# send_otp always succeeds; verify_otp accepts "000000" for any number.
-_DEV_OTP_BYPASS = True
-_DEV_MAGIC_CODE = "000000"
 
-# No TWILIO_PHONE_NUMBER/TWILIO_MESSAGING_SERVICE_SID configured yet (only
-# the Verify service, for OTP) — send_sms logs instead of calling Twilio
-# until one is added to .env. Set _DEV_SMS_BYPASS = False once it is.
-_DEV_SMS_BYPASS = True
-
-
-def send_otp(phone: str) -> bool:
+def send_otp(phone: str, app_hash: Optional[str] = None) -> bool:
     """Send OTP via Twilio Verify. Returns True on success."""
-    if _DEV_OTP_BYPASS:
-        return True
+    extra = {"app_hash": app_hash} if app_hash and OTP_APP_HASH else {}
     verification = _client.verify.v2.services(_verify_sid).verifications.create(
         to=phone,
         channel="sms",
+        **extra,
     )
     return verification.status == "pending"
 
 
 def verify_otp(phone: str, code: str) -> bool:
     """Check OTP code via Twilio Verify. Returns True if approved."""
-    if _DEV_OTP_BYPASS and code == _DEV_MAGIC_CODE:
-        return True
     check = _client.verify.v2.services(_verify_sid).verification_checks.create(
         to=phone,
         code=code,
@@ -46,11 +41,9 @@ def verify_otp(phone: str, code: str) -> bool:
 
 def send_sms(to: str, body: str) -> bool:
     """Send a plain SMS (SOS alerts, etc — anything outside the OTP Verify flow). Returns True on success."""
-    if _DEV_SMS_BYPASS or not _sms_from:
-        print(f"[DEV SMS BYPASS] to={to} body={body!r}")
+    # No sender number set up yet (only the Verify service, for OTP): log instead.
+    if not _sms_from:
+        print(f"[SMS NOT SENT, no sender configured] to={to} body={body!r}")
         return True
     message = _client.messages.create(body=body, from_=_sms_from, to=to)
     return message.sid is not None
-
-
-#remove lnie 32,33, 21,22,13,14,15,16

@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Request, status, Depends
 from datetime import datetime, timezone
 from schemas.auth import PhoneSendRequest, OTPVerifyRequest, TokenResponse, RefreshRequest
-from utils.twilio_client import send_otp, verify_otp
+from utils.twilio_client import OTP_APP_HASH, send_otp, verify_otp
 from utils.jwt import (
     create_access_token, create_refresh_token,
     decode_token, hash_token, refresh_token_expires_at,
@@ -23,13 +23,16 @@ def send_otp_route(body: PhoneSendRequest, request: Request):
     # Secondary net: catches one IP spraying across many phone numbers.
     enforce_rate_limit(f"otp:send:ip:{client_ip(request)}", max_events=20, window_seconds=3600)
     try:
-        ok = send_otp(full_phone)
+        ok = send_otp(full_phone, body.app_hash)
     except Exception as e:
         print(f"[AUTH] send_otp failed for {full_phone}: {e!r}", flush=True)
         raise HTTPException(status_code=503, detail="SMS service unavailable, please try again shortly")
     if not ok:
         raise HTTPException(status_code=500, detail="Failed to send OTP")
-    return {"message": "OTP sent"}
+    # How the app should pick the code out of the SMS (Android): silently when the
+    # SMS carries the app's code, otherwise with Android's one-tap "Allow" prompt.
+    autofill = "retriever" if body.app_hash and OTP_APP_HASH else "consent"
+    return {"message": "OTP sent", "autofill": autofill}
 
 
 @router.post("/verify-otp", response_model=TokenResponse)
