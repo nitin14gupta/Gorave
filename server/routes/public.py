@@ -18,7 +18,7 @@ from pydantic import BaseModel
 
 from db.config import get_db
 from middleware.rate_limit import client_ip, enforce_rate_limit
-from routes.places import CITIES, find_city
+from routes.places import CITIES, INTERESTS, find_city
 from routes.users import compute_host_badges
 from utils import seats
 
@@ -385,6 +385,86 @@ def public_host(username: str, request: Request, response: Response):
         "name": host["name"], "username": host["username"], "avatar": host["avatar"], "city": host["city"],
         "badges": compute_host_badges(host["hosted_count"]), "hosted_count": host["hosted_count"],
         "avg_rating": host["avg_rating"], "review_count": host["review_count"] or 0, "upcoming": upcoming,
+    }
+
+
+# ── Member profiles: gorave.in/u/{username} ─────────────────────────────────
+
+_INTEREST_EMOJI = {i["name"]: i["emoji"] for i in INTERESTS}
+
+
+class PublicInterest(BaseModel):
+    name: str
+    emoji: Optional[str] = None
+
+
+class PublicMember(BaseModel):
+    """What anyone on the web may see. Never their age, the nights they're
+    going to, who follows them, or their voice: the web has no login, so
+    blocks can't apply here."""
+    name: Optional[str] = None
+    username: str
+    city: Optional[str] = None
+    bio: Optional[str] = None
+    photos: List[str] = []
+    interests: List[PublicInterest] = []
+    badges: List[str] = []
+    host_badges: List[str] = []
+    followers: int = 0
+    following: int = 0
+    hosted_count: int = 0
+    avg_rating: Optional[float] = None
+    review_count: int = 0
+    id_verified: bool = False
+    member_since: Optional[str] = None
+    upcoming: List[PublicEvent] = []
+
+
+@router.get("/users/{username}", response_model=PublicMember)
+def public_member(username: str, request: Request, response: Response):
+    _guard(request, response)
+    with get_db() as (cur, _):
+        cur.execute(
+            """
+            SELECT u.id::text, u.name, u.username, u.city, u.bio, COALESCE(u.interests, '{}') AS interests,
+                COALESCE(u.badges, '{}') AS badges, u.created_at, (u.id_verified_at IS NOT NULL) AS id_verified,
+                ARRAY(SELECT p.url FROM user_photos p WHERE p.user_id = u.id ORDER BY p.position LIMIT 6) AS photos,
+                (SELECT COUNT(*) FROM follows f JOIN users fu ON fu.id = f.follower_id AND COALESCE(fu.is_deleted, FALSE) = FALSE
+                 WHERE f.following_id = u.id)::int AS followers,
+                (SELECT COUNT(*) FROM follows f JOIN users fu ON fu.id = f.following_id AND COALESCE(fu.is_deleted, FALSE) = FALSE
+                 WHERE f.follower_id = u.id)::int AS following,
+                (SELECT COUNT(*) FROM events he WHERE he.host_id = u.id AND he.is_cancelled = FALSE)::int AS hosted_count,
+                (SELECT ROUND(AVG(er.rating)::numeric, 1)::float FROM event_reviews er JOIN events he2 ON he2.id = er.event_id WHERE he2.host_id = u.id) AS avg_rating,
+                (SELECT COUNT(*) FROM event_reviews er2 JOIN events he3 ON he3.id = er2.event_id WHERE he3.host_id = u.id)::int AS review_count
+            FROM users u
+            WHERE LOWER(u.username) = LOWER(%s) AND COALESCE(u.is_deleted, FALSE) = FALSE AND COALESCE(u.is_locked, FALSE) = FALSE
+              AND u.profile_complete = TRUE
+            """,
+            (username,),
+        )
+        m = cur.fetchone()
+        if not m:
+            raise HTTPException(status_code=404, detail="Profile not found")
+        upcoming = []
+        if m["hosted_count"]:
+            # Nights they host are public anyway. Nights they're going to never are.
+            cur.execute(
+                f"""
+                SELECT {_EVENT_SELECT}
+                FROM events e JOIN users u ON u.id = e.host_id
+                WHERE e.host_id = %s::uuid AND e.is_published = TRUE AND e.is_cancelled = FALSE AND e.date_time > NOW()
+                ORDER BY e.date_time ASC LIMIT 6
+                """,
+                (m["id"],),
+            )
+            upcoming = [_shape(r) for r in cur.fetchall()]
+    return {
+        "name": m["name"], "username": m["username"], "city": m["city"], "bio": m["bio"], "photos": list(m["photos"] or []),
+        "interests": [{"name": i, "emoji": _INTEREST_EMOJI.get(i)} for i in m["interests"]],
+        "badges": list(m["badges"]), "host_badges": compute_host_badges(m["hosted_count"]) if m["hosted_count"] else [],
+        "followers": m["followers"], "following": m["following"], "hosted_count": m["hosted_count"],
+        "avg_rating": m["avg_rating"], "review_count": m["review_count"] or 0, "id_verified": m["id_verified"],
+        "member_since": m["created_at"].strftime("%B %Y") if m["created_at"] else None, "upcoming": upcoming,
     }
 
 

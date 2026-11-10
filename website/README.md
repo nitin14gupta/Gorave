@@ -12,6 +12,10 @@ npm run dev        # http://localhost:3001  (admin uses 3000, API 8000)
 npm run build      # production build — must pass before merging
 ```
 
+`API_URL` must be set (in `.env.local` locally, `API_URL=http://localhost:8000`;
+the live API's address in production). There's no fallback: without it the site
+stops at start instead of quietly calling localhost.
+
 Design canvas (static mockups, no build): `cd canvas && python -m http.server 8765`
 → http://localhost:8765/index.html
 
@@ -19,6 +23,7 @@ Design canvas (static mockups, no build): `cd canvas && python -m http.server 87
 
 ```
 src/
+  api/                    config.ts (API_URL from env), apiService.ts (every API call)
   app/                    routes (one folder per page template)
   components/
     layout/               SmartNavbar, MegaMenu, FloatingDock, SiteFooter
@@ -75,6 +80,7 @@ invented stats, ratings or reviews on public pages (placeholders are marked
 | **SEO + GEO** | `/sitemap.xml`, `/robots.txt`, `/llms.txt`, `/manifest.webmanifest`, `opengraph-image` per route | Sitemap lists only indexable pages, using each page's own robots rule (617 URLs locally incl. events + hosts; falls back to always-indexed pages if the API is down; revalidates hourly). robots allows search + AI crawlers (GPTBot, ClaudeBot, PerplexityBot, Google-Extended…), blocks /lab and /api. llms.txt is generated from site data (key facts + every guide/help link). Branded OG/Twitter cards generated per page in `lib/og.tsx` (Cabinet + Instrument Serif, title from the route). Manifest + icons (G on brand gradient, maskable) with the Play app as related_applications; `al:android` app links; Safari app banner turns on when `APP_IDS.appStoreId` is set in `constants/nav.ts` |
 | **Event-type hubs** | `/[city]` (shared root segment) → `/house-parties`, `/rooftop-parties`, `/game-nights`, `/dinner-parties`, `/music-nights`, `/events` | India-wide: spotlight hero, live events across cities, anatomy, postcard city picker with real per-city counts, hour-by-hour, invite builder, FAQ, other types. Names match the app's types (dinner → Dinner parties, music → Music nights) |
 | **All cities** | `/cities` | Postcard grid of the 8 cities (generated street photos, live upcoming counts from `/public/cities`) · full neighbourhood index (all 33 area links) · type hubs · FAQ |
+| **Member profile** | `/u/[username]` (anyone, on demand) | Square photos with thumbnails, name, ID verified tick, city, member since, bio, followers / following / nights hosted, interests, badges (host badge links to `/h/`), Open in Gorave + Get the app. Hosts also get their upcoming nights. Never shows age, nights they're going to, follower lists or voice. Always noindex. Data: `GET /public/users/{username}` |
 | **Host profile** | `/h/[username]` (any host, on demand) | Polaroid photo + badge stamp, counting stats (nights hosted, coming up, rating or "New") · upcoming nights · badge ladder (Rising→Legend progress) · how it works · host-your-own CTA. ProfilePage JSON-LD; thin profiles noindex; members who never hosted 404 |
 | **Hosts in a city / neighbourhood** | `/[city]/hosts` (8), `/[city]/[area]/hosts` (33) | Real hosts who've hosted there, most active first (`/public/hosts`), host cards → profiles, area chips, CTA. Thin pages (<2 hosts) noindex. City and neighbourhood pages get a "Hosts near you" strip linking here; host profiles link back to their areas/cities/types; event pages link to their neighbourhood |
 | **Crowd pages** | `/women-only`, `/balanced-crowd`, `/21-plus`, `/25-plus` (India hubs, root segment) + `/[city]/[crowd]` (32) | One cream-palette page built from the best of 3 lab variants (`components/sections/crowd/parts`): editorial cover whose photo opens to full bleed · the promise lit word by word · pinned rail of real events · "Pull up a chair" seat fill · sticky split-screen "why" · pinned "how the app makes it true" steps · huge place names with photos flying out on hover · host one-setting card · FAQ · other crowds · sign-off. Real filters on `/public/events` (`women_only`, `balanced` = 40–60% women, `min_age`), live per-city / per-area counts, generated photos in `public/img/crowd`. Copy in `lib/crowd.ts`. City pages with <3 events noindex. No `/singles` (no such data in the app) |
@@ -126,6 +132,7 @@ halloween, valentines-day, independence-day, eid, ganesh-chaturthi ·
 | Hosting guides | `/host/guides/[slug]` | `/host/guides/how-to-throw-a-house-party` | 6 now | ✅ built |
 | Event | `/e/[id]` | — | every event | ✅ built |
 | Host profile | `/h/[username]` | — | every host | ✅ built |
+| Member profile | `/u/[username]` | — | every member (noindex) | ✅ built |
 
 **≈ 1,300 pages with 8 cities.** At ~75 cities: 75 × 8 areas × 6 types × 6 time/price/crowd
 facets ≈ **2–3 lakh** URLs. Rules that keep this from becoming spam:
