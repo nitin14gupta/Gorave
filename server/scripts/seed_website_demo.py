@@ -1,5 +1,6 @@
-"""Seed ~100 realistic upcoming events across every city and neighbourhood the
-website covers, so the public pages show real API data in local dev.
+"""Seed ~200 realistic upcoming events over the next 30 days: every city and
+neighbourhood the website covers, plus 25 more cities across the states, so
+the website and the app show real API data in local dev.
 
 Creates hosts, guests, attendees, a few past events with reviews (so host
 ratings and badges are real numbers, not placeholders). Everything it creates
@@ -9,7 +10,11 @@ be removed cleanly.
     python scripts/seed_website_demo.py          # seed (idempotent: cleans first)
     python scripts/seed_website_demo.py --clean  # remove everything it created
 
-LOCAL DEV ONLY. Refuses to run unless DATABASE_URL points at localhost.
+Runs on the local database (DATABASE_URL must be localhost). To fill
+production on purpose, pass --production with PROD_DATABASE_URL set:
+
+    PROD_DATABASE_URL=postgresql://... python scripts/seed_website_demo.py --production
+    PROD_DATABASE_URL=postgresql://... python scripts/seed_website_demo.py --production --clean
 """
 import json
 import os
@@ -21,9 +26,14 @@ import psycopg2
 from dotenv import load_dotenv
 
 load_dotenv(os.path.join(os.path.dirname(__file__), "..", ".env"))
-DB = os.getenv("DATABASE_URL", "")
-if "localhost" not in DB and "127.0.0.1" not in DB:
-    sys.exit("Refusing to seed: DATABASE_URL is not a local database.")
+if "--production" in sys.argv:
+    DB = os.getenv("PROD_DATABASE_URL", "")
+    if not DB:
+        sys.exit("--production needs PROD_DATABASE_URL set.")
+else:
+    DB = os.getenv("DATABASE_URL", "")
+    if "localhost" not in DB and "127.0.0.1" not in DB:
+        sys.exit("Refusing to seed: DATABASE_URL is not a local database. Use --production to mean it.")
 
 TAG = "_gx"
 PHONE_PREFIX = "70000"
@@ -56,6 +66,28 @@ CITIES = {
     "Chennai": (13.0827, 80.2707, ["Adyar", "Besant Nagar"]),
     "Kolkata": (22.5726, 88.3639, ["Park Street", "Salt Lake"]),
 }
+# The website has pages for the cities above; these fill the rest of the map (app only).
+MORE_CITIES = {
+    "Ahmedabad": ["SG Highway", "Prahlad Nagar", "Bodakdev"], "Jaipur": ["C-Scheme", "Malviya Nagar", "Vaishali Nagar"],
+    "Lucknow": ["Gomti Nagar", "Hazratganj"], "Chandigarh": ["Sector 17", "Sector 35"],
+    "Kochi": ["Fort Kochi", "Kakkanad", "Panampilly Nagar"], "Indore": ["Vijay Nagar", "Palasia"],
+    "Bhopal": ["Arera Colony", "MP Nagar"], "Gurugram": ["Golf Course Road", "DLF Phase 4", "Sector 29"],
+    "Noida": ["Sector 18", "Sector 50"], "Guwahati": ["Zoo Road", "Ganeshguri"],
+    "Bhubaneswar": ["Saheed Nagar", "Patia"], "Patna": ["Boring Road", "Kankarbagh"],
+    "Ranchi": ["Lalpur", "Harmu"], "Dehradun": ["Rajpur Road", "Jakhan"], "Shimla": ["Mall Road", "Sanjauli"],
+    "Visakhapatnam": ["MVP Colony", "Rushikonda"], "Coimbatore": ["RS Puram", "Saibaba Colony"],
+    "Mysuru": ["Jayalakshmipuram", "Gokulam"], "Nagpur": ["Dharampeth", "Civil Lines"],
+    "Raipur": ["Shankar Nagar", "Telibandha"], "Srinagar": ["Rajbagh", "Lal Chowk"],
+    "Amritsar": ["Ranjit Avenue", "Lawrence Road"], "Udaipur": ["Fateh Sagar", "Ambamata"],
+    "Pondicherry": ["White Town", "Auroville Road"], "Surat": ["Vesu", "Adajan"],
+}
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+from routes.places import CITIES as ALL_CITIES  # noqa: E402
+_coords = {c["name"]: (c["lat"], c["lng"]) for c in ALL_CITIES}
+for _name, _areas in MORE_CITIES.items():
+    CITIES[_name] = (*_coords[_name], _areas)
+WEBSITE_CITIES = {"Mumbai", "Bangalore", "Delhi", "Pune", "Hyderabad", "Goa", "Chennai", "Kolkata"}
+DAYS_AHEAD = 30
 
 TITLES = {
     "house_party": ["Retro Bollywood Night", "Housewarming Jam", "Neon Glow House Party", "90s Throwback Party", "Sunday Sundowner at Home", "Balcony Disco", "Monsoon House Party", "Playlist Potluck Party"],
@@ -119,7 +151,7 @@ def seed(cur):
             n += 1
             hosts[city].append(make_user(cur, n, rng.choice(["Female", "Male"]), city)[0])
         guests[city] = []
-        for _ in range(14):
+        for _ in range(14 if city in WEBSITE_CITIES else 8):
             n += 1
             guests[city].append(make_user(cur, n, rng.choice(["Female", "Male"]), city))
 
@@ -155,11 +187,15 @@ def seed(cur):
     upcoming = 0
     types = list(TITLES)
     for city, (_, _, areas) in CITIES.items():
-        for area in areas:
-            for _ in range(3):  # three upcoming nights per neighbourhood
-                when = (now + timedelta(days=rng.randint(0, 20))).replace(hour=rng.choice([12, 13, 14, 15]), minute=rng.choice([0, 30]), second=0, microsecond=0)
-                add_event(rng.choice(hosts[city]), city, area, rng.choice(types), when)
-                upcoming += 1
+        # Website cities: four nights per neighbourhood. Other cities: three or four in all.
+        slots = [a for a in areas for _ in range(4)] if city in WEBSITE_CITIES else [rng.choice(areas) for _ in range(rng.choice([3, 3, 4]))]
+        for area in slots:
+            # An evening in India, 5 PM to 10:30 PM IST (11:30 to 17:00 UTC), any day in the next month.
+            when = (now + timedelta(days=rng.randint(0, DAYS_AHEAD))).replace(hour=rng.choice([11, 12, 13, 14, 15, 16]), minute=30, second=0, microsecond=0)
+            if when < now + timedelta(hours=2):
+                when += timedelta(days=1)
+            add_event(rng.choice(hosts[city]), city, area, rng.choice(types), when)
+            upcoming += 1
         # A little history per host so ratings and badges are real.
         for h in hosts[city]:
             for _ in range(rng.randint(1, 9)):
