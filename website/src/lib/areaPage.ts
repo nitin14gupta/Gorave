@@ -1,4 +1,4 @@
-import { cardEvents, fetchHosts } from './api'
+import { cardEvents, fetchHosts } from '@/api/apiService'
 import { areaFaq, type Area } from './area'
 
 /** Server-side data for a neighbourhood page: live events in the area (samples if the API is down). */

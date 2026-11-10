@@ -1,5 +1,5 @@
 import type { SampleEvent } from '@/constants'
-import type { PublicEventsQuery } from './api'
+import type { PublicEventsQuery } from '@/api/apiService'
 
 // Crowd pages (/women-only, /mumbai/women-only). Each crowd is a real filter on
 // the public API, backed by something the app enforces: a women-only quota, an

@@ -248,3 +248,9 @@ Each part is deployed separately:
 
 Before going to production, turn off the OTP dev bypass and set
 `MAINTENANCE_MODE` off.
+
+
+
+
+
+ok, now in webiste are we having any evnet hardcoded if so remvoe as nwo we are fetchnig btw, so yaa

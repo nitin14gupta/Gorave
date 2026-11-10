@@ -1,5 +1,5 @@
 import { CITIES, type City, type SampleEvent } from '@/constants'
-import { cardEvents, fetchCities, fetchHosts, fetchReviews, type PublicHostCard } from './api'
+import { cardEvents, fetchCities, fetchHosts, fetchReviews, type PublicHostCard } from '@/api/apiService'
 
 // Real numbers and people for the evergreen pages (payouts, badges, app, about).
 // Everything here comes from the public API; if it's down, counts are 0 and

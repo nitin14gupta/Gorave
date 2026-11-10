@@ -1,6 +1,6 @@
 import type { MetadataRoute } from 'next'
 import { CITIES, EVENT_TYPES } from '@/constants'
-import { fetchEvents, fetchHosts, type PublicEvent } from '@/lib/api'
+import { fetchEvents, fetchHosts, type PublicEvent } from '@/api/apiService'
 import { allAreaParams, getArea } from '@/lib/area'
 import { areaTypePageData } from '@/lib/areaType'
 import { CROWDS } from '@/lib/crowd'

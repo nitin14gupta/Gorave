@@ -1,5 +1,5 @@
 import { CITIES, type City, type SampleEvent } from '@/constants'
-import { cardEvents, fetchEvents } from './api'
+import { cardEvents, fetchEvents } from '@/api/apiService'
 import { cityStreet, findArea } from './area'
 import { areaSlug } from './city'
 import { TIMES, type TimeStory } from './time'

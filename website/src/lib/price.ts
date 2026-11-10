@@ -1,5 +1,5 @@
 import { CITIES, EVENT_TYPES, PHOTOS, type City, type SampleEvent } from '@/constants'
-import { cardEvents, type PublicEventsQuery } from './api'
+import { cardEvents, type PublicEventsQuery } from '@/api/apiService'
 import { cityStreet, getArea, type Area } from './area'
 import { areaSlug } from './city'
 import type { Crumb } from './seo'

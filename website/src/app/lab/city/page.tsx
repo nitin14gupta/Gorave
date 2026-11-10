@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { CITIES } from '@/constants'
 import { cn } from '@/lib/cn'
-import { cardEvents } from '@/lib/api'
+import { cardEvents } from '@/api/apiService'
 import { CityPageView } from '@/components/sections/city/CityPageView'
 import { HERO_KINDS, HERO_LABELS, type HeroKind } from '@/components/sections/city/heroes'
 

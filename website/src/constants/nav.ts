@@ -76,6 +76,8 @@ export const APP_LINKS = { ios: '#', android: '#' }
 
 /** The app's real identifiers (client/app.json). Fill APP_STORE_ID once the iOS app is live to turn on Safari's app banner. */
 export const APP_IDS = {
+  /** The app's link scheme (client/app.json): gorave://profile/{username} opens a profile. */
+  scheme: 'gorave',
   android: 'in.gorave.app',
   ios: 'in.gorave.app',
   /** Numeric App Store id, e.g. '6470000000'. null until published. */

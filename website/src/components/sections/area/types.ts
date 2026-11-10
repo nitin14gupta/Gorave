@@ -1,5 +1,5 @@
 import type { SampleEvent } from '@/constants'
-import type { PublicHostCard } from '@/lib/api'
+import type { PublicHostCard } from '@/api/apiService'
 import type { Area } from '@/lib/area'
 import type { Crumb } from '@/lib/seo'
 

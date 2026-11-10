@@ -1,6 +1,6 @@
 import { CITIES, SAMPLE_EVENTS } from '@/constants'
 import { buildCityKit } from '@/lib/cityKit'
-import { cardEvents, fetchReviews } from '@/lib/api'
+import { cardEvents, fetchReviews } from '@/api/apiService'
 import { Hero } from '@/components/sections/home/Hero'
 import { ThisWeek } from '@/components/sections/home/ThisWeek'
 import { OneLink } from '@/components/sections/home/OneLink'

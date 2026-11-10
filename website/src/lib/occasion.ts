@@ -1,6 +1,6 @@
 import { CITIES, PHOTOS, type City, type SampleEvent } from '@/constants'
 import { templateImage } from '@/constants'
-import { cardEvents } from './api'
+import { cardEvents } from '@/api/apiService'
 import { cityStreet, type Area } from './area'
 import { areaSlug } from './city'
 import type { Crumb } from './seo'

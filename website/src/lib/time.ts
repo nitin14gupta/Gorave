@@ -1,4 +1,4 @@
-import type { PublicEventsQuery } from './api'
+import type { PublicEventsQuery } from '@/api/apiService'
 
 // Time pages (/tonight, /mumbai/this-weekend). Each one is a real `when`
 // filter on the public API (IST calendar), so the listings are always live.

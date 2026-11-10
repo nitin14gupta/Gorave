@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import type { City } from '@/constants'
-import type { PublicHostCard } from '@/lib/api'
+import type { PublicHostCard } from '@/api/apiService'
 import { areaSlug } from '@/lib/city'
 import type { Crumb } from '@/lib/seo'
 import { Breadcrumbs } from '@/components/ui/Breadcrumbs'

@@ -1,5 +1,5 @@
 import { EVENT_TYPES } from '@/constants'
-import { fetchEvents, toCardEvent, type PublicEventDetail } from '@/lib/api'
+import { fetchEvents, toCardEvent, type PublicEventDetail } from '@/api/apiService'
 import { findArea } from '@/lib/area'
 import { getCity } from '@/lib/city'
 import { slugify } from '@/lib/seo'

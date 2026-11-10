@@ -1,16 +1,11 @@
 import { EVENT_TYPES, SAMPLE_EVENTS, type SampleEvent } from '@/constants'
+import { API_URL, REVALIDATE, SITE_KEY } from './config'
 
-// Server-side client for the public API (server/routes/public.py). Responses
-// are cached by Next for REVALIDATE seconds. If the API is unreachable (local
-// dev without the server, or a build with no network) callers get `null` and
-// fall back to sample content, so pages never fail to build.
+// Every call the website makes to the API (server/routes/public.py) lives here.
+// Responses are cached by Next for REVALIDATE seconds. If the API doesn't
+// answer, callers get `null` and pages show sample content instead of failing.
 
-const API_URL = process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000'
-const REVALIDATE = 60
-// Server-side only (no NEXT_PUBLIC_ prefix, so it never reaches the browser).
-// The API gives requests carrying this key their own rate-limit budget, since
-// every page render comes from the website server's one IP.
-const SITE_HEADERS: Record<string, string> = process.env.PUBLIC_SITE_KEY ? { 'x-gorave-site-key': process.env.PUBLIC_SITE_KEY } : {}
+const SITE_HEADERS: Record<string, string> = SITE_KEY ? { 'x-gorave-site-key': SITE_KEY } : {}
 
 export interface PublicHost {
   name: string | null
@@ -122,6 +117,29 @@ export const fetchEvent = (id: string) =>
 
 export const fetchHost = (username: string) =>
   /^[a-z0-9_.]{2,40}$/i.test(username) ? get<PublicHostProfile>(`/public/hosts/${encodeURIComponent(username)}`) : Promise.resolve(null)
+
+/** Anyone's public profile. Never their age or the nights they're going to (server/routes/public.py). */
+export interface PublicMember {
+  name: string | null
+  username: string
+  city: string | null
+  bio: string | null
+  photos: string[]
+  interests: { name: string; emoji: string | null }[]
+  badges: string[]
+  host_badges: string[]
+  followers: number
+  following: number
+  hosted_count: number
+  avg_rating: number | null
+  review_count: number
+  id_verified: boolean
+  member_since: string | null
+  upcoming: PublicEvent[]
+}
+
+export const fetchMember = (username: string) =>
+  /^[a-z0-9_.]{2,40}$/i.test(username) ? get<PublicMember>(`/public/users/${encodeURIComponent(username)}`) : Promise.resolve(null)
 
 export const fetchCities = () => get<PublicCity[]>('/public/cities')
 

@@ -1,5 +1,5 @@
 import { EVENT_TYPES, PHOTOS, type EventType, type SampleEvent } from '@/constants'
-import { cardEvents, fetchHosts, TYPE_LABEL, type PublicHostCard } from './api'
+import { cardEvents, fetchHosts, TYPE_LABEL, type PublicHostCard } from '@/api/apiService'
 import { allAreaParams, areaFaq, cityStreet, getArea, type Area } from './area'
 import { areaSlug } from './city'
 import { getTypeStory, type TypeContent } from './eventType'

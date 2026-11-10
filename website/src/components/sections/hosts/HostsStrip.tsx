@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import type { PublicHostCard } from '@/lib/api'
+import type { PublicHostCard } from '@/api/apiService'
 import { AvatarImage } from '@/components/ui/AvatarImage'
 
 /**

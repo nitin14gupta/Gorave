@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { cache } from 'react'
-import { fetchEvent, longWhen, parseApiDate } from '@/lib/api'
+import { fetchEvent, longWhen, parseApiDate } from '@/api/apiService'
 import { eventPageData } from '@/lib/eventPage'
 import { absoluteUrl } from '@/lib/seo'
 import { JsonLd } from '@/components/ui/JsonLd'

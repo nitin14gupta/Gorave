@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import { CITIES } from '@/constants'
-import { fetchCities } from '@/lib/api'
+import { fetchCities } from '@/api/apiService'
 import { absoluteUrl } from '@/lib/seo'
 import { CitiesView } from '@/components/sections/cities/CitiesView'
 

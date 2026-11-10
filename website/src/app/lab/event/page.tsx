@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { cn } from '@/lib/cn'
-import { fetchEvent, fetchEvents } from '@/lib/api'
+import { fetchEvent, fetchEvents } from '@/api/apiService'
 import { eventPageData } from '@/lib/eventPage'
 import { EventDetailView } from '@/components/sections/event/EventDetailView'
 

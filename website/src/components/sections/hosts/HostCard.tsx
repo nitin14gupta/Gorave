@@ -1,7 +1,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { BRAND } from '@/constants'
-import type { PublicHostCard } from '@/lib/api'
+import type { PublicHostCard } from '@/api/apiService'
 import { AvatarImage } from '@/components/ui/AvatarImage'
 
 type BadgeKey = keyof typeof BRAND.badges

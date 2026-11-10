@@ -1,6 +1,6 @@
 import Image from 'next/image'
 import { EVENT_TYPES, PHOTOS } from '@/constants'
-import type { PublicReviews } from '@/lib/api'
+import type { PublicReviews } from '@/api/apiService'
 import { H2 } from '@/components/ui/atoms'
 import { Reveal } from '@/components/motion/Reveal'
 

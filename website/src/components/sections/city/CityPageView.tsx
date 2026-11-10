@@ -1,7 +1,7 @@
 import type { City, SampleEvent } from '@/constants'
 import { buildCityKit } from '@/lib/cityKit'
 import { CityKitProvider } from './CityKit'
-import type { PublicHostCard } from '@/lib/api'
+import type { PublicHostCard } from '@/api/apiService'
 import { HostsStrip } from '@/components/sections/hosts/HostsStrip'
 import { cityFaq } from '@/lib/city'
 import { CityHero, type HeroKind } from './heroes'
