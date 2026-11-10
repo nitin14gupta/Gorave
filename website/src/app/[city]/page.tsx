@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation'
 import { CITIES, EVENT_TYPES } from '@/constants'
 import { cityMetaDescription, getCity } from '@/lib/city'
 import { getTypeStory } from '@/lib/eventType'
-import { cardEvents, fetchEvents, fetchHosts, TYPE_LABEL } from '@/api/apiService'
+import { cardEvents, fetchEvents, fetchHosts } from '@/api/apiService'
 import { absoluteUrl } from '@/lib/seo'
 import { CityPageView } from '@/components/sections/city/CityPageView'
 import { TypeHubView } from '@/components/sections/type/TypeHubView'
@@ -80,7 +80,7 @@ export default async function CityOrHubPage({ params }: PageProps<'/[city]'>) {
   const story = getTypeStory(slug)
   if (story) {
     const [{ events }, counts] = await Promise.all([
-      cardEvents({ type: story.apiType, limit: 24 }, e => e.type === TYPE_LABEL[story.apiType]),
+      cardEvents({ type: story.apiType, limit: 24 }),
       Promise.all(CITIES.map(c => fetchEvents({ city: c.name, type: story.apiType, limit: 1 }))),
     ])
     const cities = CITIES.map((city, i) => ({ city, count: counts[i]?.total ?? 0 }))
@@ -89,7 +89,7 @@ export default async function CityOrHubPage({ params }: PageProps<'/[city]'>) {
   const city = getCity(slug)
   if (!city) notFound()
   const [{ events }, hostList] = await Promise.all([
-    cardEvents({ city: city.name, limit: 24 }, e => e.city === city.name),
+    cardEvents({ city: city.name, limit: 24 }),
     fetchHosts(city.name, undefined, 6),
   ])
   return <CityPageView city={city} events={events} hosts={hostList?.hosts ?? []} hostTotal={hostList?.total ?? 0} />

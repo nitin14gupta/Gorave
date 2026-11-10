@@ -4,10 +4,7 @@ import { areaFaq, type Area } from './area'
 /** Server-side data for a neighbourhood page: live events in the area (samples if the API is down). */
 export async function areaPageData(area: Area) {
   const [{ events }, hostList] = await Promise.all([
-    cardEvents(
-      { city: area.city.name, area: area.name, limit: 12 },
-      e => e.city === area.city.name && e.area.toLowerCase().startsWith(area.name.toLowerCase()),
-    ),
+    cardEvents({ city: area.city.name, area: area.name, limit: 12 }),
     fetchHosts(area.city.name, area.name, 6),
   ])
   const crumbs = [

@@ -1,4 +1,4 @@
-import { CITIES, SAMPLE_EVENTS } from '@/constants'
+import { CITIES } from '@/constants'
 import { buildCityKit } from '@/lib/cityKit'
 import { cardEvents, fetchReviews } from '@/api/apiService'
 import { Hero } from '@/components/sections/home/Hero'
@@ -19,18 +19,18 @@ export const revalidate = 60
 
 export default async function HomePage() {
   const [perCity, reviews] = await Promise.all([
-    Promise.all(CITIES.map(c => cardEvents({ city: c.name, limit: 12 }, e => e.city === c.name))),
+    Promise.all(CITIES.map(c => cardEvents({ city: c.name, limit: 12 }))),
     // More than we show (20 is the API's cap): the section keeps the best, without repeats.
     fetchReviews(20),
   ])
   const byCity = Object.fromEntries(CITIES.map((c, i) => [c.name, perCity[i].events]))
-  // Mock-up screens show real events with photos; samples only if the API is down.
+  // The phone mock-ups show real events with photos when there are any.
   const featured = perCity.flatMap(r => r.events).filter(e => e.image)
   // Each city's own flyers, built from its real events (the app's invite
   // templates if a city has none yet).
   const cityPosters = perCity.map(r => buildCityKit(r.live ? r.events : []).posters)
   return (
-    <LiveEventsProvider events={featured.length ? featured : SAMPLE_EVENTS}>
+    <LiveEventsProvider events={featured}>
       <main>
         <Hero />
         <ThisWeek byCity={byCity} />

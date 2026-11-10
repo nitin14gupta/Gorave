@@ -13,7 +13,7 @@ export default async function CityLab({ searchParams }: PageProps<'/lab/city'>) 
   const sp = await searchParams
   const hero = (HERO_KINDS as readonly string[]).includes(String(sp.hero)) ? (sp.hero as HeroKind) : 'letters'
   const city = CITIES.find(c => c.slug === sp.city) ?? CITIES[0]
-  const { events } = await cardEvents({ city: city.name, limit: 24 }, e => e.city === city.name)
+  const { events } = await cardEvents({ city: city.name, limit: 24 })
 
   return (
     <>

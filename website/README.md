@@ -41,6 +41,8 @@ canvas/                   design board used to pick the landing direction
 ```
 
 Rules: define things once in `constants/` or `components/` and reuse them; no
+invented events on listings (if the API has none, or doesn't answer, pages show
+their "nothing listed yet" state, never sample events); no
 invented stats, ratings or reviews on public pages (placeholders are marked
 `⚠️ PLACEHOLDER` in code); every page respects `prefers-reduced-motion`.
 

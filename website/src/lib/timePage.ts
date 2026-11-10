@@ -13,7 +13,7 @@ export async function timePageData(time: TimeStory, city?: City): Promise<TimeVi
   const base = city ? `/${city.slug}` : ''
   const cityQ = city ? { city: city.name } : {}
   const [{ events, total }, otherCounts] = await Promise.all([
-    cardEvents({ when: time.when, ...cityQ, limit: 60 }, e => !city || e.city === city.name),
+    cardEvents({ when: time.when, ...cityQ, limit: 60 }),
     Promise.all(TIMES.map(t => (t.slug === time.slug ? null : fetchEvents({ when: t.when, ...cityQ, limit: 1 })))),
   ])
 

@@ -310,10 +310,7 @@ export async function occasionPageData(o: Occasion, city?: City, area?: Area): P
   const date = nextDate(o, today)
   const windowStart = date ? shift(date, -o.window[0]) : null
   const windowEnd = date ? shift(date, o.window[1]) : null
-  const { events: pool } = await cardEvents(
-    { ...(scopeCity ? { city: scopeCity.name } : {}), limit: 100 },
-    e => !scopeCity || e.city === scopeCity.name,
-  )
+  const { events: pool } = await cardEvents({ ...(scopeCity ? { city: scopeCity.name } : {}), limit: 100 })
   const matches = (e: SampleEvent) =>
     o.keywords.some(k => e.title.toLowerCase().includes(k)) || (!!e.date && !!windowStart && !!windowEnd && e.date >= windowStart && e.date <= windowEnd)
   const scoped = area ? pool.filter(e => inArea(e, area.name)) : pool

@@ -7,6 +7,7 @@ import { AnimatePresence, motion } from 'motion/react'
 import { BROWSE_CITIES, PHOTOS, type SampleEvent } from '@/constants'
 import { cn } from '@/lib/cn'
 import { Eyebrow, H2 } from '@/components/ui/atoms'
+import { Button } from '@/components/ui/Button'
 
 const EASE = [0.2, 0.8, 0.2, 1] as const
 
@@ -64,6 +65,17 @@ export function ThisWeek({ byCity }: { byCity: Record<string, SampleEvent[]> }) 
 
         <div className="mt-9"><CityTabs city={city} onChange={pick} /></div>
 
+        {events.length === 0 ? (
+          // No real nights here this week: say so, and point to what you can do.
+          <div className="mt-10 rounded-[32px] border-[1.5px] border-dashed border-ink/25 px-8 py-16 text-center md:py-20">
+            <div className="font-display text-[clamp(30px,3.6vw,52px)] font-extrabold leading-[0.95] tracking-[-0.045em]">Nothing on in {city} this week, yet.</div>
+            <p className="mx-auto mt-4 max-w-[480px] font-serif text-[clamp(20px,2vw,26px)] italic leading-snug text-ink-2">New nights go up every week, and the first ones fill fast.</p>
+            <div className="mt-8 flex flex-wrap justify-center gap-2.5">
+              <Button href="/host" size="lg">Host the first one</Button>
+              <Button href="/app" kind="ghost" size="lg">Get told when one drops</Button>
+            </div>
+          </div>
+        ) : (
         <div className="mt-10 grid gap-12 lg:grid-cols-[minmax(0,400px)_minmax(0,1fr)] lg:gap-16">
           <div className="relative hidden aspect-[4/5] overflow-hidden rounded-[24px] bg-tile lg:block">
             <AnimatePresence initial={false}>
@@ -104,6 +116,7 @@ export function ThisWeek({ byCity }: { byCity: Record<string, SampleEvent[]> }) 
             ))}
           </div>
         </div>
+        )}
       </div>
     </section>
   )

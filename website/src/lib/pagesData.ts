@@ -50,6 +50,6 @@ export async function badgeTiers(): Promise<BadgeTier[]> {
 
 /** Real upcoming events with photos, for phone mock-ups. */
 export async function featuredEvents(): Promise<SampleEvent[]> {
-  const { events } = await cardEvents({ limit: 24 }, () => true)
+  const { events } = await cardEvents({ limit: 24 })
   return events.filter(e => e.image).slice(0, 12)
 }

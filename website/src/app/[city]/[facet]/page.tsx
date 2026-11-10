@@ -5,7 +5,7 @@ import { getCity } from '@/lib/city'
 import { getTypeStory } from '@/lib/eventType'
 import { allAreaParams, cityStreet, getArea } from '@/lib/area'
 import { areaPageData } from '@/lib/areaPage'
-import { cardEvents, fetchEvents, fetchHosts, TYPE_LABEL } from '@/api/apiService'
+import { cardEvents, fetchEvents, fetchHosts } from '@/api/apiService'
 import { absoluteUrl } from '@/lib/seo'
 import { TypePageView } from '@/components/sections/type/TypePageView'
 import { AreaPageView } from '@/components/sections/area/AreaPageView'
@@ -128,9 +128,6 @@ export default async function CityFacetPage({ params }: PageProps<'/[city]/[face
   }
   if (r.kind === 'area') return <AreaPageView {...await areaPageData(r.area)} />
   const { city, story } = r
-  const { events } = await cardEvents(
-    { city: city.name, type: story.apiType, limit: 24 },
-    e => e.city === city.name && e.type === TYPE_LABEL[story.apiType],
-  )
+  const { events } = await cardEvents({ city: city.name, type: story.apiType, limit: 24 })
   return <TypePageView city={city} slug={facet} story={story} events={events} />
 }

@@ -109,17 +109,12 @@ export interface PriceProps {
 }
 
 const inArea = (e: SampleEvent, name: string) => e.area.toLowerCase().startsWith(name.toLowerCase())
-const matches = (tier: PriceTier) => (e: SampleEvent) =>
-  tier.slug === 'free-events' ? e.price === 'Free' : e.price !== 'Free' && Number(e.price.replace(/[^\d]/g, '')) <= 500
 const firstImage = (list: SampleEvent[]) => list.find(e => e.image)?.image
 
 /** Server data for any price page. One events call per scope (shared by both tiers' sibling links). */
 export async function pricePageData(tier: PriceTier, city?: City, area?: Area): Promise<PriceProps> {
   const scopeCity = area?.city ?? city
-  const { events: pool } = await cardEvents(
-    { ...tier.query, ...(scopeCity ? { city: scopeCity.name } : {}), limit: 100 },
-    e => matches(tier)(e) && (!scopeCity || e.city === scopeCity.name),
-  )
+  const { events: pool } = await cardEvents({ ...tier.query, ...(scopeCity ? { city: scopeCity.name } : {}), limit: 100 })
   const here = area ? pool.filter(e => inArea(e, area.name)) : pool
   let events = here
   let wider = false

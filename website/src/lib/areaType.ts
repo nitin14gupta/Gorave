@@ -81,8 +81,8 @@ export async function areaTypePageData(citySlug: string, areaSlugStr: string, ty
   const { area, type, story } = found
   const { city } = area
   const [{ events: areaAll }, { events: cityAll }, hostList] = await Promise.all([
-    cardEvents({ city: city.name, area: area.name, limit: 100 }, e => e.city === city.name && inArea(e, area.name)),
-    cardEvents({ city: city.name, limit: 100 }, e => e.city === city.name),
+    cardEvents({ city: city.name, area: area.name, limit: 100 }),
+    cardEvents({ city: city.name, limit: 100 }),
     fetchHosts(city.name, area.name, 8),
   ])
 

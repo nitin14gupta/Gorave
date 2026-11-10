@@ -1,4 +1,4 @@
-import { CITIES, EVENT_TYPES, SAMPLE_EVENTS, type City } from '@/constants'
+import { CITIES, EVENT_TYPES, type City } from '@/constants'
 import { slugify } from './seo'
 
 // City-page data in one place. Copy is templated from facts that are true
@@ -6,7 +6,6 @@ import { slugify } from './seo'
 
 export const getCity = (slug: string) => CITIES.find(c => c.slug === slug)
 
-export const cityEvents = (city: City) => SAMPLE_EVENTS.filter(e => e.city === city.name)
 
 export const areaSlug = (area: string) => slugify(area)
 

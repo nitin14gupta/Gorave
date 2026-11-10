@@ -1,9 +1,10 @@
-import { EVENT_TYPES, SAMPLE_EVENTS, type SampleEvent } from '@/constants'
+import { EVENT_TYPES, type SampleEvent } from '@/constants'
 import { API_URL, REVALIDATE, SITE_KEY } from './config'
 
 // Every call the website makes to the API (server/routes/public.py) lives here.
 // Responses are cached by Next for REVALIDATE seconds. If the API doesn't
-// answer, callers get `null` and pages show sample content instead of failing.
+// answer, callers get `null`. Pages then show an honest empty state, never
+// made-up events.
 
 const SITE_HEADERS: Record<string, string> = SITE_KEY ? { 'x-gorave-site-key': SITE_KEY } : {}
 
@@ -209,10 +210,12 @@ function istHour(iso: string) {
   return h < 6 ? h + 24 : h
 }
 
-/** Live events for a query, or sample events matching it if the API is down. */
-export async function cardEvents(q: PublicEventsQuery, sampleFilter: (e: SampleEvent) => boolean) {
+/**
+ * Real events for a query, shaped for the cards. If the API doesn't answer,
+ * an empty list (live: false), so the page shows its "nothing listed" state.
+ */
+export async function cardEvents(q: PublicEventsQuery) {
   const res = await fetchEvents(q)
   if (res) return { events: res.events.map(toCardEvent), total: res.total, live: true }
-  const events = SAMPLE_EVENTS.filter(sampleFilter)
-  return { events, total: events.length, live: false }
+  return { events: [] as SampleEvent[], total: 0, live: false }
 }

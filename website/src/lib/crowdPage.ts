@@ -8,7 +8,7 @@ import type { CrowdViewProps } from '@/components/sections/crowd/types'
 /** Server-side data for a crowd page: India-wide (city undefined) or one city. */
 export async function crowdPageData(crowd: CrowdStory, city?: City): Promise<CrowdViewProps> {
   const query = { ...crowd.query, ...(city ? { city: city.name } : {}) }
-  const { events, total } = await cardEvents({ ...query, limit: 48 }, e => crowd.sample(e) && (!city || e.city === city.name))
+  const { events, total } = await cardEvents({ ...query, limit: 48 })
 
   let places: CrowdViewProps['places']
   if (city) {
