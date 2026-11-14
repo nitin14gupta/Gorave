@@ -488,6 +488,8 @@ export interface HostVerification {
   submitted_at: string | null
   /** Why it failed or was rejected, in plain words. */
   message: string | null
+  /** How many more times our team can look at a new PAN. 0: contact support. */
+  tries_left: number
   /** False until the ID check is switched on for this server. */
   available: boolean
 }

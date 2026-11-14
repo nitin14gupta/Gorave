@@ -18,9 +18,16 @@ OTP_APP_HASH = os.getenv("OTP_APP_HASH", "true").lower() != "false"
 
 _client = Client(_account_sid, _auth_token)
 
+# Test OTP: when on, no SMS goes out and 000000 logs in any number.
+# Off by default. Switched on by the LAST line of this file.
+_DEV_OTP_BYPASS = False
+_DEV_MAGIC_CODE = "000000"
+
 
 def send_otp(phone: str, app_hash: Optional[str] = None) -> bool:
     """Send OTP via Twilio Verify. Returns True on success."""
+    if _DEV_OTP_BYPASS:
+        return True
     extra = {"app_hash": app_hash} if app_hash and OTP_APP_HASH else {}
     verification = _client.verify.v2.services(_verify_sid).verifications.create(
         to=phone,
@@ -32,6 +39,8 @@ def send_otp(phone: str, app_hash: Optional[str] = None) -> bool:
 
 def verify_otp(phone: str, code: str) -> bool:
     """Check OTP code via Twilio Verify. Returns True if approved."""
+    if _DEV_OTP_BYPASS:
+        return code == _DEV_MAGIC_CODE
     check = _client.verify.v2.services(_verify_sid).verification_checks.create(
         to=phone,
         code=code,
@@ -47,3 +56,7 @@ def send_sms(to: str, body: str) -> bool:
         return True
     message = _client.messages.create(body=body, from_=_sms_from, to=to)
     return message.sid is not None
+
+
+# Comment out the next line to send real OTPs by SMS (Twilio Verify).
+_DEV_OTP_BYPASS = True

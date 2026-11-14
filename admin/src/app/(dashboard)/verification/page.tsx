@@ -82,15 +82,34 @@ export default function HostVerificationPage() {
   )
 }
 
-function Row({ label, profile, pan, match }: { label: string; profile: string | null; pan: string | null; match?: Match }) {
+function Row({ label, profile, pan, match, note }: { label: string; profile: React.ReactNode; pan: React.ReactNode; match?: Match; note?: string | null }) {
   return (
-    <tr className="border-t border-divider">
+    <tr className="border-t border-divider align-top">
       <td className="py-2.5 pr-4 text-sm text-ink-secondary">{label}</td>
       <td className="py-2.5 pr-4 text-sm text-ink-primary">{profile ?? '—'}</td>
-      <td className="py-2.5 pr-4 text-sm font-semibold text-ink-primary">{pan ?? '—'}</td>
+      <td className="py-2.5 pr-4 text-sm font-semibold text-ink-primary">
+        {pan ?? '—'}
+        {note ? <span className="mt-0.5 block text-xs font-normal text-ink-secondary">{note}</span> : null}
+      </td>
       <td className="py-2.5">{match ? <Badge variant={MATCH[match].variant}>{MATCH[match].label}</Badge> : null}</td>
     </tr>
   )
+}
+
+/** "14 Feb 2006 · 20 yrs", red when under 18. */
+function Birthday({ d }: { d: string | null }) {
+  if (!d) return null
+  const years = age(d) ?? 0
+  return <span className={years < 18 ? 'font-semibold text-destructive' : undefined}>{dob(d)} · {years} yrs</span>
+}
+
+/** PANs often carry a middle name the profile skips. Say so, so a match doesn't look odd. */
+function nameNote(profile: string | null, pan: string | null, match?: Match) {
+  const words = (s: string | null) => (s ?? '').toLowerCase().replace(/[^a-z ]/g, ' ').split(' ').filter(w => w.length > 1)
+  const mine = words(profile), theirs = words(pan)
+  if (match === 'match' && theirs.length > mine.length) return 'PAN has a middle name'
+  if (match === 'partial' && mine.length === 1) return 'Profile has a first name only'
+  return null
 }
 
 function Request({ v }: { v: HostVerificationItem }) {
@@ -133,13 +152,8 @@ function Request({ v }: { v: HostVerificationItem }) {
             </tr>
           </thead>
           <tbody>
-            <Row label="Name" profile={v.profile_name} pan={v.full_name} match={m?.name} />
-            <Row
-              label="Date of birth"
-              profile={v.profile_dob ? `${dob(v.profile_dob)} (${age(v.profile_dob)})` : null}
-              pan={v.dob ? `${dob(v.dob)} (${age(v.dob)})` : null}
-              match={m?.dob}
-            />
+            <Row label="Name" profile={v.profile_name} pan={v.full_name} match={m?.name} note={nameNote(v.profile_name, v.full_name, m?.name)} />
+            <Row label="Date of birth" profile={v.profile_dob ? <Birthday d={v.profile_dob} /> : null} pan={v.dob ? <Birthday d={v.dob} /> : null} match={m?.dob} />
             <Row label="Gender" profile={gender(v.profile_gender)} pan={gender(v.gender)} match={m?.gender} />
           </tbody>
         </table>

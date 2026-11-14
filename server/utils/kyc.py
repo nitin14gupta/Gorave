@@ -72,13 +72,18 @@ def _tokens(name: Optional[str]) -> list[str]:
 
 def compare(profile: dict, pan: dict, pan_dob: Optional[date]) -> dict:
     """How the PAN record lines up with their Gorave profile, for the admin to see."""
+    # PANs often carry a middle name the profile doesn't ("Nitin Gupta" vs
+    # "NITIN AMARBAHADUR GUPTA"): that's still a match, as long as the first
+    # and last names both appear. A one-word profile name can only be partial.
     mine, theirs = _tokens(profile.get("name")), set(_tokens(pan.get("full_name")))
     if not mine or not theirs:
         name = "unknown"
-    elif all(t in theirs for t in mine):
+    elif len(mine) == 1:
+        name = "partial" if mine[0] in theirs else "mismatch"
+    elif mine[0] in theirs and mine[-1] in theirs:
         name = "match"
-    elif mine[0] in theirs:
-        name = "partial"  # first name agrees, the rest doesn't
+    elif mine[0] in theirs or mine[-1] in theirs:
+        name = "partial"
     else:
         name = "mismatch"
     p_dob = profile.get("dob")

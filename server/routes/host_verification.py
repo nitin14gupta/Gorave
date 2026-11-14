@@ -19,8 +19,12 @@ from utils import kyc
 
 router = APIRouter(prefix="/host-verification", tags=["host-verification"])
 
+# Everyone gets two tries. A PAN that doesn't exist, one that's already used,
+# or one our team rejects all count. After that, they talk to support.
+MAX_TRIES = 2
+
 FAILURE_TEXT = {
-    "invalid_pan": "We couldn't find that PAN. Check it and try again.",
+    "invalid_pan": "The PAN you entered doesn't exist. Check for a typing mistake and try again.",
     "not_person": "That PAN belongs to a business. Use your personal PAN.",
     "underage": "You need to be 18 or older to host on Gorave.",
     "already_used": "This PAN is already used by another Gorave account.",
@@ -39,6 +43,8 @@ def state(cur, uid: str) -> dict:
         (uid,),
     )
     last = cur.fetchone()
+    cur.execute("SELECT COUNT(*)::int AS n FROM host_verifications WHERE user_id = %s::uuid AND status IN ('failed', 'rejected')", (uid,))
+    misses = cur.fetchone()["n"]
     if user and user["id_verified_at"]:
         status = "verified"
     elif not last or last["status"] not in ("review", "rejected", "failed"):
@@ -57,6 +63,8 @@ def state(cur, uid: str) -> dict:
         "pan_masked": last["id_masked"] if last else None,
         "submitted_at": last["created_at"].isoformat() if last else None,
         "message": message,
+        # Tries left out of two. 0: talk to support.
+        "tries_left": max(0, MAX_TRIES - misses),
         "available": kyc.available(),
     }
 
@@ -89,6 +97,8 @@ def submit_pan(body: PanBody, current_user: dict = Depends(get_current_user)):
         raise HTTPException(status_code=409, detail="You're already verified")
     if now["status"] == "review":
         raise HTTPException(status_code=409, detail="We're already checking your PAN")
+    if now["tries_left"] == 0:
+        raise HTTPException(status_code=403, detail="You've used both tries. Contact support and we'll sort it out.")
     # Each lookup costs money.
     enforce_rate_limit(f"kyc:pan:{uid}", max_events=5, window_seconds=86400, message="Too many tries today. Try again tomorrow.")
 

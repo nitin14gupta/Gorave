@@ -24,6 +24,7 @@ once it ships.
   All are in `server/scripts/sql/`.
 - [ ] Production server env: set `R2_CHAT_BUCKET=gorave-chat`.
 - [ ] EAS: add `SENTRY_AUTH_TOKEN` as a secret (production environment). Rotate the old token.
+- [ ] Turn off the test OTP (`000000`): comment out the last line of `server/utils/twilio_client.py` (`_DEV_OTP_BYPASS = True`).
 - [ ] New EAS build (Android): needed for video compression and for the OTP filling itself in from the SMS.
 - [ ] OTP autofill on Android: log in once on a real Indian number. If the code fills in by itself, done. If Android shows an "Allow Gorave to read this message?" prompt instead, or nothing happens, set `OTP_APP_HASH=false` on the server and phones switch to the one-tap prompt.
 - [ ] Host ID check (PAN through Surepass, approved by an admin). Until this is done, nobody can create an event in production:
