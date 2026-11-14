@@ -19,6 +19,7 @@ export type DeepLinkTarget =
   | { screen: 'createEvent' }
   | { screen: 'browseEvents' }
   | { screen: 'transfer'; token: string }
+  | { screen: 'verifyId' }
 
 export function targetToHref(t: DeepLinkTarget, currentUserId?: string | null): string {
   switch (t.screen) {
@@ -36,6 +37,7 @@ export function targetToHref(t: DeepLinkTarget, currentUserId?: string | null): 
     case 'createEvent': return '/(events)/create'
     case 'browseEvents': return '/(tabs)/events'
     case 'transfer': return `/(events)/transfer/${t.token}`
+    case 'verifyId': return '/(host-onboarding)/verify'
   }
 }
 
@@ -69,6 +71,8 @@ export function pushDataToTarget(data: any): DeepLinkTarget | null {
       return { screen: 'wallet' }
     case 'ticket_transfer':
       return data.token ? { screen: 'transfer', token: data.token } : null
+    case 'host_verification':
+      return { screen: 'verifyId' }
     case 'host_onboarding_complete':
     case 'createEvent':
       return { screen: 'createEvent' }
@@ -80,6 +84,7 @@ export function pushDataToTarget(data: any): DeepLinkTarget | null {
 // Maps a notification row's entity_type/entity_id (server/routes/notifications.py)
 // to the same canonical target.
 export function notifEntityToTarget(entityType: string | null, entityId: string | null): DeepLinkTarget | null {
+  if (entityType === 'host_verification') return { screen: 'verifyId' }
   if (!entityId) return null
   if (entityType === 'event') return { screen: 'event', id: entityId }
   if (entityType === 'user') return { screen: 'profile', id: entityId }

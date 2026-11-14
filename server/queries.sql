@@ -311,7 +311,7 @@ CREATE TABLE IF NOT EXISTS public.host_verifications (
   provider text NOT NULL,
   verification_id text NOT NULL,
   reference_id bigint,
-  status text DEFAULT 'pending'::text NOT NULL,
+  status text DEFAULT 'review'::text NOT NULL,
   mock_status text,
   failure_reason text,
   aadhaar_name text,
@@ -321,7 +321,19 @@ CREATE TABLE IF NOT EXISTS public.host_verifications (
   identity_hash text,
   created_at timestamp with time zone DEFAULT now() NOT NULL,
   verified_at timestamp with time zone,
-  CONSTRAINT host_verifications_status_check CHECK (status = ANY (ARRAY['pending'::text, 'verified'::text, 'failed'::text, 'expired'::text, 'denied'::text])),
+  id_type text DEFAULT 'pan'::text NOT NULL,
+  id_masked text,
+  full_name text,
+  dob date,
+  state text,
+  masked_aadhaar text,
+  aadhaar_linked boolean,
+  category text,
+  matches jsonb,
+  reviewed_by uuid,
+  reviewed_at timestamp with time zone,
+  review_note text,
+  CONSTRAINT host_verifications_status_check CHECK (status = ANY (ARRAY['review'::text, 'verified'::text, 'rejected'::text, 'failed'::text, 'pending'::text, 'expired'::text, 'denied'::text])),
   CONSTRAINT host_verifications_pkey PRIMARY KEY (id),
   CONSTRAINT host_verifications_verification_id_key UNIQUE (verification_id)
 );
@@ -597,6 +609,7 @@ ALTER TABLE public.events ADD CONSTRAINT events_host_id_fkey FOREIGN KEY (host_i
 ALTER TABLE public.follows ADD CONSTRAINT follows_follower_id_fkey FOREIGN KEY (follower_id) REFERENCES users(id) ON DELETE CASCADE;
 ALTER TABLE public.follows ADD CONSTRAINT follows_following_id_fkey FOREIGN KEY (following_id) REFERENCES users(id) ON DELETE CASCADE;
 ALTER TABLE public.host_payout_details ADD CONSTRAINT host_payout_details_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
+ALTER TABLE public.host_verifications ADD CONSTRAINT host_verifications_reviewed_by_fkey FOREIGN KEY (reviewed_by) REFERENCES admin_users(id) ON DELETE SET NULL;
 ALTER TABLE public.host_verifications ADD CONSTRAINT host_verifications_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
 ALTER TABLE public.message_reports ADD CONSTRAINT message_reports_message_id_fkey FOREIGN KEY (message_id) REFERENCES messages(id) ON DELETE CASCADE;
 ALTER TABLE public.message_reports ADD CONSTRAINT message_reports_reporter_id_fkey FOREIGN KEY (reporter_id) REFERENCES users(id) ON DELETE RESTRICT;
@@ -645,7 +658,8 @@ CREATE INDEX idx_follows_follower ON public.follows USING btree (follower_id);
 CREATE INDEX idx_follows_following ON public.follows USING btree (following_id);
 CREATE UNIQUE INDEX host_payout_account_fingerprint_uidx ON public.host_payout_details USING btree (account_fingerprint) WHERE (account_fingerprint IS NOT NULL);
 CREATE UNIQUE INDEX host_payout_upi_fingerprint_uidx ON public.host_payout_details USING btree (upi_fingerprint) WHERE (upi_fingerprint IS NOT NULL);
-CREATE UNIQUE INDEX idx_host_verifications_identity ON public.host_verifications USING btree (identity_hash) WHERE (status = 'verified'::text);
+CREATE UNIQUE INDEX idx_host_verifications_identity ON public.host_verifications USING btree (identity_hash) WHERE (status = ANY (ARRAY['review'::text, 'verified'::text]));
+CREATE INDEX idx_host_verifications_status ON public.host_verifications USING btree (status, created_at DESC);
 CREATE INDEX idx_host_verifications_user ON public.host_verifications USING btree (user_id, created_at DESC);
 CREATE INDEX idx_message_reports_open ON public.message_reports USING btree (created_at DESC) WHERE (resolved_at IS NULL);
 CREATE INDEX messages_conv_sent_idx ON public.messages USING btree (conversation_id, sent_at DESC);

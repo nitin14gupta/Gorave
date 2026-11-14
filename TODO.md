@@ -19,18 +19,17 @@ once it ships.
   - `2026-11-03_chat_mutes.sql`
   - `2026-11-07_moderation.sql`
   - `2026-11-07_host_verification.sql`
+  - `2026-11-14_pan_verification.sql`
 
   All are in `server/scripts/sql/`.
 - [ ] Production server env: set `R2_CHAT_BUCKET=gorave-chat`.
 - [ ] EAS: add `SENTRY_AUTH_TOKEN` as a secret (production environment). Rotate the old token.
 - [ ] New EAS build (Android): needed for video compression and for the OTP filling itself in from the SMS.
 - [ ] OTP autofill on Android: log in once on a real Indian number. If the code fills in by itself, done. If Android shows an "Allow Gorave to read this message?" prompt instead, or nothing happens, set `OTP_APP_HASH=false` on the server and phones switch to the one-tap prompt.
-- [ ] Host ID check (DigiLocker through Cashfree Secure ID). Until this is done, nobody can create an event in production:
-  - Sign up for Cashfree Secure ID and turn on DigiLocker.
-  - Set `CASHFREE_KYC_CLIENT_ID`, `CASHFREE_KYC_CLIENT_SECRET`, `CASHFREE_KYC_ENV=production` and a long random `KYC_HASH_SALT` that never changes.
-  - Whitelist the server IP in Cashfree if they ask (their API answers 403 `ip_validation_failed` otherwise).
-  - Do one real check in sandbox first and confirm the Aadhaar field names (`name`, `dob`, `uid`, `year_of_birth`) match `server/utils/kyc.py`. Their guide and API reference disagree.
-  - Never set `KYC_MOCK=true` in production. It turns on the fake DigiLocker page used for local testing.
+- [ ] Host ID check (PAN through Surepass, approved by an admin). Until this is done, nobody can create an event in production:
+  - Run `2026-11-14_pan_verification.sql` on production.
+  - Ask Surepass for live access to PAN Comprehensive, then set `SUREPASS_BASE_URL` (the live URL) and `SUREPASS_TOKEN` on the API server, plus a long random `KYC_HASH_SALT` that never changes.
+  - Someone checks the Host ID queue in the admin panel (Host ID in the sidebar) at least daily. Hosts wait on it.
 - [ ] Sentry: check a replay in the dashboard once the new build is out, to confirm text and photos show as blocks.
 - [ ] Load test an event group chat with 300 members.
 

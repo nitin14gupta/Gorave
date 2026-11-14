@@ -1,108 +1,64 @@
-"""Government ID check for hosts, through DigiLocker.
+"""Host ID check: PAN, through Surepass.
 
-Cashfree Secure ID does the DigiLocker part: we ask for a link, the host signs
-in to DigiLocker with their Aadhaar OTP and agrees to share it, then we read
-back the verified name and date of birth. We keep only what we need: the name,
-birth year, gender and the last 4 digits. No address, no photo, no full number.
+The host types their PAN; Surepass returns what the Income Tax records say.
+We compare that with their profile and an admin makes the call. We keep the
+PAN masked (last 4 only) plus a one-way hash, never the full number, and
+nothing of the address beyond the state.
 
-Set CASHFREE_KYC_CLIENT_ID and CASHFREE_KYC_CLIENT_SECRET to switch it on.
-For local testing without keys, KYC_MOCK=true serves a fake DigiLocker page.
+Set SUREPASS_TOKEN and SUREPASS_BASE_URL (https://sandbox.surepass.app for
+testing, the live base URL from the Surepass dashboard for production).
 """
-import hashlib, hmac, os
-from datetime import date, datetime
+import hashlib, hmac, os, re
+from datetime import date
 from typing import Optional
 
 import httpx
 
-CLIENT_ID = os.getenv("CASHFREE_KYC_CLIENT_ID", "")
-CLIENT_SECRET = os.getenv("CASHFREE_KYC_CLIENT_SECRET", "")
-BASE_URL = (
-    "https://api.cashfree.com/verification"
-    if os.getenv("CASHFREE_KYC_ENV", "sandbox").lower() == "production"
-    else "https://sandbox.cashfree.com/verification"
-)
-# Only sent if set; Cashfree's DigiLocker reference doesn't list one.
-API_VERSION = os.getenv("CASHFREE_KYC_API_VERSION", "")
-# Where DigiLocker sends the host back. An app link, so it reopens Gorave.
-REDIRECT_URL = os.getenv("KYC_REDIRECT_URL", "https://link.gorave.in/verified")
-MOCK = os.getenv("KYC_MOCK", "false").lower() == "true"
+TOKEN = os.getenv("SUREPASS_TOKEN", "")
+BASE_URL = os.getenv("SUREPASS_BASE_URL", "").rstrip("/")
 MIN_AGE = 18
+PAN_RE = re.compile(r"^[A-Z]{5}[0-9]{4}[A-Z]$")
 
 _SALT = (os.getenv("KYC_HASH_SALT") or os.getenv("JWT_SECRET_KEY") or "").encode()
 
 
-def provider() -> Optional[str]:
-    if CLIENT_ID and CLIENT_SECRET:
-        return "cashfree"
-    return "mock" if MOCK else None
+def available() -> bool:
+    return bool(TOKEN and BASE_URL)
 
 
 class KycError(Exception):
-    pass
+    """Surepass didn't answer properly. Not the host's fault."""
 
 
-def _headers() -> dict:
-    h = {"x-client-id": CLIENT_ID, "x-client-secret": CLIENT_SECRET, "Content-Type": "application/json"}
-    if API_VERSION:
-        h["x-api-version"] = API_VERSION
-    return h
-
-
-def create_link(verification_id: str) -> dict:
-    """A DigiLocker link for this host. It works for 10 minutes."""
+def lookup_pan(pan: str) -> Optional[dict]:
+    """What the Income Tax records say about this PAN, or None if there's no such PAN."""
     try:
         r = httpx.post(
-            f"{BASE_URL}/digilocker",
-            json={
-                "verification_id": verification_id,
-                "document_requested": ["AADHAAR"],
-                "redirect_url": REDIRECT_URL,
-                "user_flow": "signup",
-                "purpose": "Host verification",
-                "company_name": "Gorave",
-            },
-            headers=_headers(),
-            timeout=20,
+            f"{BASE_URL}/api/v1/pan/pan-comprehensive",
+            json={"id_number": pan},
+            headers={"Authorization": f"Bearer {TOKEN}", "Content-Type": "application/json"},
+            timeout=30,
         )
     except httpx.HTTPError as e:
-        raise KycError(f"DigiLocker didn't answer: {e!r}")
-    if r.status_code >= 400:
-        raise KycError(f"DigiLocker link failed ({r.status_code}): {r.text[:300]}")
-    body = r.json()
-    return {"url": body.get("url"), "reference_id": body.get("reference_id")}
-
-
-def fetch_status(verification_id: str) -> str:
-    """PENDING, AUTHENTICATED, EXPIRED or CONSENT_DENIED."""
+        raise KycError(f"Surepass didn't answer: {e!r}")
     try:
-        r = httpx.get(f"{BASE_URL}/digilocker", params={"verification_id": verification_id}, headers=_headers(), timeout=20)
-    except httpx.HTTPError as e:
-        raise KycError(f"DigiLocker didn't answer: {e!r}")
-    if r.status_code >= 400:
-        raise KycError(f"DigiLocker status failed ({r.status_code}): {r.text[:300]}")
-    return (r.json().get("status") or "PENDING").upper()
-
-
-def fetch_aadhaar(verification_id: str) -> Optional[dict]:
-    """The shared Aadhaar, or None while Cashfree is still preparing it."""
-    try:
-        r = httpx.get(f"{BASE_URL}/digilocker/document/AADHAAR", params={"verification_id": verification_id}, headers=_headers(), timeout=30)
-    except httpx.HTTPError as e:
-        raise KycError(f"DigiLocker didn't answer: {e!r}")
-    if r.status_code == 202:
+        body = r.json()
+    except ValueError:
+        raise KycError(f"Surepass answered {r.status_code} without JSON: {r.text[:200]}")
+    data = body.get("data") or {}
+    if r.status_code == 422 or (data.get("status") or "").lower() == "invalid":
         return None
-    if r.status_code >= 400:
-        raise KycError(f"Aadhaar fetch failed ({r.status_code}): {r.text[:300]}")
-    return r.json()
+    if r.status_code >= 400 or not body.get("success"):
+        raise KycError(f"Surepass error {r.status_code}: {body.get('message')}")
+    return data
 
 
-def parse_dob(raw: Optional[str], year: Optional[int] = None) -> Optional[date]:
-    for fmt in ("%d-%m-%Y", "%Y-%m-%d", "%d/%m/%Y"):
-        try:
-            return datetime.strptime((raw or "").strip(), fmt).date()
-        except ValueError:
-            continue
-    return date(int(year), 7, 1) if year else None
+def mask_pan(pan: str) -> str:
+    return "XXXXXX" + pan[-4:]
+
+
+def pan_hash(pan: str) -> str:
+    return hmac.new(_SALT, pan.upper().encode(), hashlib.sha256).hexdigest()
 
 
 def age_on(dob: date, today: Optional[date] = None) -> int:
@@ -110,12 +66,23 @@ def age_on(dob: date, today: Optional[date] = None) -> int:
     return today.year - dob.year - ((today.month, today.day) < (dob.month, dob.day))
 
 
-def identity_hash(name: str, dob: date, last4: str) -> str:
-    """Lets us spot one ID being used for a second account, without keeping the ID."""
-    key = f"{' '.join(name.lower().split())}|{dob.isoformat()}|{last4}".encode()
-    return hmac.new(_SALT, key, hashlib.sha256).hexdigest()
+def _tokens(name: Optional[str]) -> list[str]:
+    return [t for t in re.sub(r"[^a-z ]", " ", (name or "").lower()).split() if len(t) > 1]
 
 
-def last4(uid: Optional[str]) -> str:
-    digits = "".join(ch for ch in (uid or "") if ch.isdigit())
-    return digits[-4:]
+def compare(profile: dict, pan: dict, pan_dob: Optional[date]) -> dict:
+    """How the PAN record lines up with their Gorave profile, for the admin to see."""
+    mine, theirs = _tokens(profile.get("name")), set(_tokens(pan.get("full_name")))
+    if not mine or not theirs:
+        name = "unknown"
+    elif all(t in theirs for t in mine):
+        name = "match"
+    elif mine[0] in theirs:
+        name = "partial"  # first name agrees, the rest doesn't
+    else:
+        name = "mismatch"
+    p_dob = profile.get("dob")
+    dob = "unknown" if not (p_dob and pan_dob) else "match" if p_dob == pan_dob else "mismatch"
+    p_g, t_g = (profile.get("gender") or "")[:1].upper(), (pan.get("gender") or "")[:1].upper()
+    gender = "unknown" if not (p_g and t_g) else "match" if p_g == t_g else "mismatch"
+    return {"name": name, "dob": dob, "gender": gender}

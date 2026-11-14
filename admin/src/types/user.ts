@@ -50,7 +50,7 @@ export interface UserProfile {
   locked_at: string | null
   locked_by: string | null
   is_host_onboarding_finished: boolean
-  /** Government ID checked through DigiLocker. */
+  /** Government ID (PAN) approved by an admin. */
   id_verified_at: string | null
   /** The name on their Aadhaar. */
   id_verified_name: string | null

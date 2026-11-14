@@ -600,12 +600,8 @@ class ApiService {
   }
 
   static getHostVerification() { return this.get<HostVerification>('/host-verification') }
-  /** A DigiLocker link to open in the browser. */
-  static async startHostVerification() {
-    const r = await this.post<{ url: string; verification_id: string }>('/host-verification/start', {})
-    return r.url.startsWith('/') ? `${API_BASE_URL}${r.url}` : r.url
-  }
-  static checkHostVerification() { return this.post<HostVerification>('/host-verification/check', {}) }
+  /** Checks the PAN with the Income Tax records, then an admin reviews it. */
+  static submitPan(pan: string) { return this.post<HostVerification>('/host-verification/pan', { pan, consent: true }) }
 
   static getEventChats() { return this.get<EventChatRow[]>('/event-chats') }
   static getEventChat(eventId: string) { return this.get<EventChat>(`/event-chats/${eventId}`) }

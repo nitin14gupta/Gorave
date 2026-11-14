@@ -25,7 +25,7 @@ export interface UserResponse {
   host_badges: string[]
   profile_complete: boolean
   is_host_onboarding_finished: boolean
-  /** Government ID checked through DigiLocker. Needed before hosting. */
+  /** Government ID (PAN) approved by an admin. Needed before hosting. */
   id_verified_at?: string | null
   safety_agreement_accepted_at: string | null
   host_agreement_accepted_at: string | null
@@ -476,13 +476,17 @@ export interface EventChatSeen {
   last_read_at: string
 }
 
-export type HostVerificationStatus = 'none' | 'pending' | 'verified' | 'failed' | 'expired' | 'denied'
+/** none: not started. review: an admin is checking. failed: the PAN check said no. rejected: an admin said no. */
+export type HostVerificationStatus = 'none' | 'review' | 'verified' | 'failed' | 'rejected'
 
 export interface HostVerification {
   status: HostVerificationStatus
   verified_name: string | null
   verified_at: string | null
-  /** Why it failed, in plain words. */
+  /** Last 4 only, like XXXXXX620E. */
+  pan_masked: string | null
+  submitted_at: string | null
+  /** Why it failed or was rejected, in plain words. */
   message: string | null
   /** False until the ID check is switched on for this server. */
   available: boolean
