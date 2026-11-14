@@ -40,7 +40,7 @@ export default function HostOnboardingScreen() {
   // Payout step state lives here — this is the last step, and its submit
   // action drives the whole flow's completion, so the orchestrator owns it
   // rather than the (presentational-only) PayoutStep component.
-  const [activeTab, setActiveTab] = useState<'UPI' | 'Bank Account'>('Bank Account')
+  const [activeTab, setActiveTab] = useState<'UPI' | 'Bank Account'>('UPI')
   const [upiId, setUpiId] = useState('')
   const [rzpKey, setRzpKey] = useState('')
   const [holderName, setHolderName] = useState('')

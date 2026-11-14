@@ -1,5 +1,5 @@
 export { HostWizardView } from './HostWizardView'
 export { HostAgreementStep } from './HostAgreementStep'
-export { AgreementView } from './AgreementView'
+export { AgreementViewA, AgreementViewB } from './AgreementView'
 export { PayoutStep } from './PayoutStep'
 export { DuplicatePayoutSheet } from './DuplicatePayoutSheet'
