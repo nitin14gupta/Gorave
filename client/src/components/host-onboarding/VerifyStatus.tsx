@@ -125,7 +125,7 @@ export function VerifyProblem({ kind, message, triesLeft, panMasked, onRetry, on
       ? 'Someone on our team looked at it. Here’s why it wasn’t approved:'
       : 'The Income Tax records didn’t accept it:'
   const footer = locked ? (
-    <PrimaryButton label="Contact support" onPress={() => { hTap(); router.push('/(settings)/support' as any) }} />
+    <PrimaryButton label="Contact support" onPress={() => { hTap(); router.push('/(settings)/support?topic=hosting' as any) }} />
   ) : (
     <PrimaryButton label="Try again" onPress={() => { hTap(); onRetry() }} />
   )
@@ -155,7 +155,7 @@ export function VerifyProblem({ kind, message, triesLeft, panMasked, onRetry, on
           <Text style={s.tries}>{triesLeft === 1 ? 'You have one more try. After that, our support team will help you directly.' : `${triesLeft} tries left.`}</Text>
         </>
       ) : (
-        <Pressable style={s.row} onPress={() => { hTap(); router.push('/(settings)/support' as any) }} accessibilityRole="button">
+        <Pressable style={s.row} onPress={() => { hTap(); router.push('/(settings)/support?topic=hosting' as any) }} accessibilityRole="button">
           <View style={s.rowIcon}><LifeBuoy size={18} color={Colors.inkPrimary} strokeWidth={1.8} /></View>
           <View style={s.rowText}>
             <Text style={s.rowTitle}>Support</Text>
