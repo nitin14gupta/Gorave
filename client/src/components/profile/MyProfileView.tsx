@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { VerifiedTick } from './VerifiedTick'
 import { Dimensions, FlatList, Pressable, StyleSheet, Text, View } from 'react-native'
 import { Image } from 'expo-image'
 import { LinearGradient } from 'expo-linear-gradient'
@@ -72,6 +73,7 @@ export function MyProfileView(p: MeViewProps) {
             {/* <View style={s.seen}><Eye size={12} color={Colors.white} strokeWidth={2} /><Text style={s.seenText}>How people see you</Text></View> */}
             <View style={s.nameRow}>
               <Text style={s.name} numberOfLines={1}>{pr.name ?? 'You'}{p.age ? `, ${p.age}` : ''}</Text>
+              {pr.id_verified_at ? <VerifiedTick /> : null}
               {p.hostBadgeImage ? <Image source={p.hostBadgeImage} style={s.badge} contentFit="contain" /> : null}
             </View>
             <Text style={s.meta} numberOfLines={1}>{[pr.username ? `@${pr.username}` : null, pr.city].filter(Boolean).join(' · ')}</Text>

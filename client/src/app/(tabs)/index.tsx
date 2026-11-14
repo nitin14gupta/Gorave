@@ -18,6 +18,7 @@ import { PendingReviewsSection, type PendingReviewsSectionHandle } from '@/compo
 import { AlbumPromptSection, type AlbumPromptSectionHandle } from '@/components/home/AlbumPromptSection'
 import { RecentlyViewedSection } from '@/components/home/RecentlyViewedSection'
 import { PromoCarousel } from '@/components/home/PromoCarousel'
+import { HostStatusCard } from '@/components/home/HostStatusCard'
 import { TrendingSection, type TrendingSectionHandle } from '@/components/home/TrendingSection'
 import { useEvents } from '@/hooks/useEvents'
 import { useProfile } from '@/hooks/useProfile'
@@ -104,6 +105,7 @@ export default function HomeScreen() {
 
   const create = (
     <View style={{ gap: 10 }}>
+      <HostStatusCard onboarded={!!profile?.is_host_onboarding_finished} />
       <TemplateFan onCreatePress={() => { hTap(); router.push('/(events)/create' as any) }} />
       <PrimaryButton
         label="Create event"
