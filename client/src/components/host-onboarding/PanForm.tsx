@@ -1,7 +1,8 @@
-import { useRef } from 'react'
-import { Pressable, StyleSheet, Text, View, type TextInput } from 'react-native'
+import { useRef, useState } from 'react'
+import { Keyboard, Pressable, StyleSheet, Text, View, type TextInput } from 'react-native'
 import { Check, Lock } from 'lucide-react-native'
 import { OnboardingNext, OnboardingShell } from '@/components/onboarding/OnboardingShell'
+import { ConfirmSheet } from '@/components/ui'
 import { POSTER } from '@/components/ui/ParallaxScreen'
 import { PAN_RE, PanKeyboard, PanText, panNext } from './PanInput'
 import { hTap } from '@/lib/haptics'
@@ -15,6 +16,8 @@ export interface PanFormProps {
   onSubmit: () => void
   sending: boolean
   available: boolean
+  /** Tries left out of two, for the confirm step. */
+  triesLeft: number
   /** Why the last try didn't work, when trying again. */
   lastTime: string | null
   onBack: () => void
@@ -28,6 +31,15 @@ export interface PanFormProps {
 export function PanForm(p: PanFormProps) {
   const input = useRef<TextInput>(null)
   const done = p.pan.length === 10
+  // Only two tries, and each check is a real lookup: one look before it goes.
+  const [confirming, setConfirming] = useState(false)
+  const confirmed = useRef(false)
+  const ask = () => {
+    Keyboard.dismiss()
+    hTap()
+    confirmed.current = false
+    setConfirming(true)
+  }
   const next = panNext(p.pan.length)
 
   return (
@@ -40,7 +52,7 @@ export function PanForm(p: PanFormProps) {
       footer={
         <OnboardingNext
           label="Check my PAN"
-          onPress={p.onSubmit}
+          onPress={ask}
           loading={p.sending}
           disabled={!PAN_RE.test(p.pan) || !p.agreed || !p.available}
           hint={p.available ? undefined : 'ID checks aren’t switched on yet'}
@@ -71,6 +83,22 @@ export function PanForm(p: PanFormProps) {
         <Lock size={12} color={Colors.inkDisabled} strokeWidth={2} />
         <Text style={s.privacyText}>We keep the last 4 characters only, never your full PAN or address. Guests never see it.</Text>
       </View>
+
+      <ConfirmSheet
+        visible={confirming}
+        title="Is this your PAN?"
+        body={`Check it against your card. You have ${p.triesLeft === 1 ? 'one try' : `${p.triesLeft} tries`} left.`}
+        confirmLabel="Yes, check it"
+        cancelLabel="Edit"
+        onConfirm={() => { confirmed.current = true; p.onSubmit() }}
+        onClose={() => {
+          setConfirming(false)
+          // Back to typing only if they chose Edit, not while the check runs.
+          if (!confirmed.current) input.current?.focus()
+        }}
+      >
+        <Text style={s.confirmPan}>{`${p.pan.slice(0, 5)} ${p.pan.slice(5, 9)} ${p.pan.slice(9)}`}</Text>
+      </ConfirmSheet>
     </OnboardingShell>
   )
 }
@@ -90,5 +118,6 @@ const s = StyleSheet.create({
   boxOn: { backgroundColor: Colors.inkPrimary, borderColor: Colors.inkPrimary },
   consentText: { flex: 1, fontFamily: FontFamily.bodyRegular, fontSize: 14, lineHeight: 20, color: Colors.inkPrimary },
   privacy: { flexDirection: 'row', gap: 8, alignItems: 'flex-start', marginTop: 12 },
+  confirmPan: { fontFamily: FontFamily.displayExtraBold, fontSize: 32, letterSpacing: 3, color: Colors.inkPrimary, textAlign: 'center', marginVertical: 8 },
   privacyText: { flex: 1, fontFamily: FontFamily.bodyRegular, fontSize: 12, lineHeight: 17, color: Colors.inkDisabled },
 })

@@ -115,6 +115,7 @@ export default function VerifyIdScreen() {
         onSubmit={submit}
         sending={sending}
         available={state.available}
+        triesLeft={state.tries_left}
         lastTime={retrying ? state.message : null}
         onBack={retrying ? () => setRetrying(false) : back}
       />
