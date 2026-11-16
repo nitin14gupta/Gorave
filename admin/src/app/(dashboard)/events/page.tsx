@@ -113,7 +113,7 @@ export default function EventsPage() {
       >
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {data?.items.map((e) => (
-            <Link key={e.id} href={`/events/${e.id}`} className="group">
+            <Link key={e.id} href={e.open_reports > 0 ? `/events/${e.id}?tab=reports` : `/events/${e.id}`} className="group">
               <Card className="overflow-hidden transition-transform duration-300 group-hover:-translate-y-1">
                 {/* Event posters are 4:5 in the app */}
                 <div className="relative aspect-[4/5] w-full bg-surface-muted">

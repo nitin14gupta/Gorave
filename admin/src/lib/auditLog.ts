@@ -3,6 +3,7 @@ export const ACTION_LABELS: Record<string, string> = {
   unlock_user: 'Unlocked user',
   restore_user: 'Restored deleted account',
   force_cancel_event: 'Force-cancelled event',
+  refund_event: 'Refunded guests, held payout',
   update_support_status: 'Updated ticket status',
   remove_message: 'Removed reported message',
   keep_message: 'Kept reported message',

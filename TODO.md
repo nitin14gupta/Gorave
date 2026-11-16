@@ -22,6 +22,7 @@ once it ships.
   - `2026-11-14_pan_verification.sql`
   - `2026-11-16_account_appeals.sql`
   - `2026-11-16_report_actions.sql`
+  - `2026-11-16_payout_hold.sql`
 
   All are in `server/scripts/sql/`.
 - [ ] Production server env: set `R2_CHAT_BUCKET=gorave-chat`.
@@ -38,7 +39,7 @@ once it ships.
 - [ ] Load test an event group chat with 300 members.
 
 ## Money
-- [ ] Automate host payouts (for example RazorpayX), paid only after the event ends and check-ins look right. Today the admin panel only works out what each host is owed; transfers are done by hand.
+- [ ] Automate host payouts (for example RazorpayX), paid only after the event ends and check-ins look right. When it's built, skip events with `payout_held_at` set (guests were refunded after reports). Today the admin panel only works out what each host is owed; transfers are done by hand.
 - [ ] Refund the card/UPI part of a payment back to the original method, instead of bank refunds by hand ("5 to 10 days" by email today).
 
 

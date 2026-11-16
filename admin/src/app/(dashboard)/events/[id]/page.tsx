@@ -17,6 +17,7 @@ import { Table, THead, TBody, TR, TH, TD } from '@/components/ui/Table'
 import { ImageSlider } from '@/components/ui/ImageSlider'
 import { ImageModal } from '@/components/ui/ImageModal'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
+import { Actions, EVENT_ACTIONS, Outcome } from '../../safety/ReportQueues'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { DetailStatsRow, DetailStat } from '@/components/ui/DetailStats'
 import { formatDate, formatInr } from '@/lib/formatters'
@@ -58,6 +59,9 @@ export default function EventDetailPage() {
 
   const { event } = data
   const attendeeTotal = event.price_inr + event.platform_fee_inr
+  const started = new Date(event.date_time) <= new Date()
+  const openReports = data.reports.filter(r => !r.resolved_at)
+  const lastClosed = data.reports.find(r => r.resolved_at)
 
   return (
     <div className="flex flex-col gap-4">
@@ -66,7 +70,7 @@ export default function EventDetailPage() {
         title={event.title}
         subtitle={`${formatDate(event.date_time)}${event.location_name ? ` · ${event.location_name}` : ''}`}
         actions={
-          !event.is_cancelled && isSuperAdmin ? (
+          !event.is_cancelled && !started && isSuperAdmin ? (
             <Button variant="destructive" onClick={() => setCancelOpen(true)}>
               <Ban className="h-4 w-4" /> Force-cancel event
             </Button>
@@ -130,6 +134,16 @@ export default function EventDetailPage() {
         </Card>
       </div>
 
+      {event.payout_held_at && (
+        <Card className="border-destructive/30">
+          <CardContent className="flex flex-wrap items-center gap-2 text-sm">
+            <Badge variant="danger">Payout held</Badge>
+            <span className="text-ink-primary">Guests were refunded on {formatDate(event.payout_held_at)}, so the host is not paid for this event.</span>
+            {event.payout_held_reason && <span className="text-ink-secondary">Reason: {event.payout_held_reason}</span>}
+          </CardContent>
+        </Card>
+      )}
+
       <DetailStatsRow>
         <DetailStat
           label="Attendees"
@@ -144,7 +158,7 @@ export default function EventDetailPage() {
         <DetailStat label="Waitlist" value={String(data.waitlist.length)} icon={Clock} />
         <DetailStat label="Requests waiting" value={String(event.pending_requests)} icon={Inbox} />
         <DetailStat label="Avg rating" value={event.avg_rating ? `${event.avg_rating} ★` : '—'} icon={Star} />
-        <DetailStat label="Reports" value={String(data.reports.length)} icon={ShieldAlert} />
+        <DetailStat label="Open reports" value={`${openReports.length} of ${data.reports.length}`} icon={ShieldAlert} />
       </DetailStatsRow>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
@@ -273,11 +287,32 @@ export default function EventDetailPage() {
           </div>
         </TabsContent>
 
-        <TabsContent value="reports">
+        <TabsContent value="reports" className="flex flex-col gap-3">
+          {openReports.length > 0 ? (
+            <Card>
+              <CardContent className="flex flex-wrap items-start justify-between gap-4">
+                <div className="flex flex-col gap-1">
+                  <span className="font-semibold text-ink-primary">
+                    {openReports.length} open {openReports.length === 1 ? 'report' : 'reports'}
+                  </span>
+                  <span className="max-w-md text-sm text-ink-secondary">
+                    {event.is_cancelled
+                      ? 'This event is cancelled and its guests were refunded.'
+                      : started
+                        ? 'This event has already started, so it cannot be cancelled. If it was rigged, refund the guests: the host is not paid for it.'
+                        : 'Not started yet. If it is fake, cancel it: every guest is refunded.'}
+                  </span>
+                </div>
+                <Actions kind="events" id={event.id} actions={EVENT_ACTIONS({ cancelled: event.is_cancelled, started })} />
+              </CardContent>
+            </Card>
+          ) : lastClosed ? (
+            <Card><CardContent><Outcome resolution={lastClosed.resolution} note={lastClosed.resolution_note} at={lastClosed.resolved_at} /></CardContent></Card>
+          ) : null}
           <Card>
             <CardContent className="p-0">
               <Table>
-                <THead><TR><TH>Reported by</TH><TH>Reason</TH><TH>Description</TH><TH>Date</TH></TR></THead>
+                <THead><TR><TH>Reported by</TH><TH>Reason</TH><TH>Description</TH><TH>Date</TH><TH>Status</TH></TR></THead>
                 <TBody>
                   {data.reports.map((r) => (
                     <TR key={r.id}>
@@ -285,6 +320,7 @@ export default function EventDetailPage() {
                       <TD className="capitalize">{r.reason.replace(/_/g, ' ')}</TD>
                       <TD>{r.description ?? '—'}</TD>
                       <TD>{formatDate(r.created_at)}</TD>
+                      <TD>{r.resolved_at ? <Badge className="capitalize">{(r.resolution ?? 'closed').replace(/_/g, ' ')}</Badge> : <Badge variant="warning">Open</Badge>}</TD>
                     </TR>
                   ))}
                 </TBody>
