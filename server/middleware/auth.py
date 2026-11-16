@@ -9,6 +9,18 @@ bearer_scheme = HTTPBearer()
 def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
 ) -> dict:
+    return _load_user(credentials, allow_locked=False)
+
+
+def get_user_even_if_locked(
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+) -> dict:
+    """Only for appealing a lock (routes/account_appeal.py): a locked account
+    can still reach these, and nothing else."""
+    return _load_user(credentials, allow_locked=True)
+
+
+def _load_user(credentials: HTTPAuthorizationCredentials, allow_locked: bool) -> dict:
     token = credentials.credentials
     payload = decode_token(token)
 
@@ -43,7 +55,7 @@ def get_current_user(
     if user["is_deleted"]:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Account has been deleted")
 
-    if user["is_locked"]:
+    if user["is_locked"] and not allow_locked:
         # Structured detail (not a plain string) so the mobile client can
         # distinguish "account locked" from a generic 403 without string-matching.
         raise HTTPException(

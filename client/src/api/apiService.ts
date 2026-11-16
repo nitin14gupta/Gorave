@@ -54,12 +54,16 @@ import type {
   EventChatRow,
   EventChatSeen,
   HostVerification,
+  AccountAppealState,
+  AppealReason,
 } from '@/types/api'
 
 // Response/request shapes live in '@/types/api' — re-exported here so
 // existing `import { X } from '@/api/apiService'` call sites keep working.
 export type {
   HostVerification,
+  AccountAppealState,
+  AppealReason,
   AlbumPage,
   EventChat,
   EventChatMember,
@@ -597,6 +601,26 @@ class ApiService {
       if (e?.status !== 404) throw e
       return `token=${useAuthStore.getState().accessToken ?? ''}`
     }
+  }
+
+  // ── Appealing a locked account (the only calls a locked account can make) ──
+  static getAppeal() { return this.get<AccountAppealState>('/account-appeal') }
+  static sendAppealCode() { return this.post<{ ok: boolean }>('/account-appeal/code', {}) }
+  /** A right code returns a short pass that the selfie and the appeal need. */
+  static verifyAppealCode(code: string) { return this.post<{ pass: string }>('/account-appeal/code/verify', { code }) }
+  static async uploadAppealSelfie(uri: string, codePass: string): Promise<string> {
+    const url = `${API_BASE_URL}/account-appeal/selfie`
+    let token = useAuthStore.getState().accessToken
+    let res = await this.fsUpload(url, uri, 'image/jpeg', token, { code_pass: codePass })
+    if (res.status === 401) {
+      token = await this.refreshAccessToken()
+      res = await this.fsUpload(url, uri, 'image/jpeg', token, { code_pass: codePass })
+    }
+    if (res.status < 200 || res.status >= 300) throw this.parseUploadError(res.status, res.body)
+    return JSON.parse(res.body).key
+  }
+  static submitAppeal(body: { code_pass: string; selfie_key: string; reason: AppealReason; message: string }) {
+    return this.post<AccountAppealState>('/account-appeal', body)
   }
 
   static getHostVerification() { return this.get<HostVerification>('/host-verification') }

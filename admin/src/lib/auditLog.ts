@@ -10,6 +10,8 @@ export const ACTION_LABELS: Record<string, string> = {
   keep_photo: 'Kept album photo',
   approve_host_id: 'Approved host ID',
   reject_host_id: 'Rejected host ID',
+  appeal_unlocked: 'Unlocked on appeal',
+  appeal_denied: 'Kept locked on appeal',
 }
 
 export function targetHref(targetType: string, targetId: string | null): string | null {

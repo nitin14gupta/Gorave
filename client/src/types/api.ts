@@ -476,6 +476,21 @@ export interface EventChatSeen {
   last_read_at: string
 }
 
+/** Appealing a locked account, from the locked screen. */
+export type AppealReason = 'not_me' | 'someone_else' | 'sorry'
+export interface AccountAppealState {
+  locked: boolean
+  reason: string | null
+  locked_at: string | null
+  /** Last 2 digits of the number on the account, for "we sent a code to •••••• 09". */
+  phone_hint: string
+  /** The appeal for this lock, if they've sent one. */
+  appeal: { status: 'review' | 'unlocked' | 'denied'; submitted_at: string; note: string | null } | null
+  can_appeal: boolean
+  /** An appeal was turned down: the lock is permanent. */
+  final: boolean
+}
+
 /** none: not started. review: an admin is checking. failed: the PAN check said no. rejected: an admin said no. */
 export type HostVerificationStatus = 'none' | 'review' | 'verified' | 'failed' | 'rejected'
 

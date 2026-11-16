@@ -1,5 +1,5 @@
 import {
-  LayoutDashboard, Users, CalendarDays, Wallet, TrendingUp, MessageSquare, ShieldAlert, BadgeCheck,
+  LayoutDashboard, Users, CalendarDays, Wallet, TrendingUp, MessageSquare, ShieldAlert, BadgeCheck, LockOpen,
 } from 'lucide-react'
 
 export const NAV_ITEMS = [
@@ -7,6 +7,7 @@ export const NAV_ITEMS = [
   { href: '/users', label: 'Users', icon: Users },
   { href: '/safety', label: 'Safety', icon: ShieldAlert },
   { href: '/verification', label: 'Host ID', icon: BadgeCheck },
+  { href: '/appeals', label: 'Appeals', icon: LockOpen },
   { href: '/events', label: 'Events', icon: CalendarDays },
   { href: '/wallet', label: 'Wallet', icon: Wallet },
   { href: '/revenue', label: 'Revenue', icon: TrendingUp },
