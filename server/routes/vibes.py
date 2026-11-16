@@ -33,7 +33,7 @@ def send_vibe(body: SendVibeRequest, background_tasks: BackgroundTasks, current_
                         message="You're sending vibes too quickly, try again later.")
 
     with get_db() as (cur, conn):
-        cur.execute("SELECT COALESCE(is_deleted, FALSE) AS is_deleted FROM users WHERE id = %s::uuid", (receiver_id,))
+        cur.execute("SELECT COALESCE(is_deleted, FALSE) OR COALESCE(is_locked, FALSE) AS is_deleted FROM users WHERE id = %s::uuid", (receiver_id,))
         target = cur.fetchone()
         if not target or target["is_deleted"]:
             raise HTTPException(status_code=404, detail="User not found")
@@ -157,7 +157,8 @@ def get_received_vibes(current_user: dict = Depends(get_current_user)):
                     '[]'::json
                 ) AS photos
             FROM vibe_requests vr
-            JOIN users u ON u.id = vr.sender_id AND COALESCE(u.is_deleted, FALSE) = FALSE
+            JOIN users u ON u.id = vr.sender_id AND COALESCE(u.is_deleted, FALSE) = FALSE AND COALESCE(u.is_locked, FALSE) = FALSE
+              AND NOT EXISTS (SELECT 1 FROM user_blocks ub WHERE (ub.blocker_id = vr.receiver_id AND ub.blocked_id = u.id) OR (ub.blocker_id = u.id AND ub.blocked_id = vr.receiver_id))
             LEFT JOIN user_photos p ON p.user_id = u.id
             WHERE vr.receiver_id = %s::uuid
               AND vr.status = 'pending'
@@ -186,7 +187,8 @@ def get_sent_vibes(current_user: dict = Depends(get_current_user)):
                 vr.expires_at,
                 vr.cooldown_until
             FROM vibe_requests vr
-            JOIN users u ON u.id = vr.receiver_id AND COALESCE(u.is_deleted, FALSE) = FALSE
+            JOIN users u ON u.id = vr.receiver_id AND COALESCE(u.is_deleted, FALSE) = FALSE AND COALESCE(u.is_locked, FALSE) = FALSE
+              AND NOT EXISTS (SELECT 1 FROM user_blocks ub WHERE (ub.blocker_id = vr.sender_id AND ub.blocked_id = u.id) OR (ub.blocker_id = u.id AND ub.blocked_id = vr.sender_id))
             WHERE vr.sender_id = %s::uuid
             ORDER BY vr.created_at DESC
             """,
@@ -217,7 +219,7 @@ def respond_to_vibe(
             """
             SELECT vr.id, vr.sender_id, vr.receiver_id, vr.rejection_count
             FROM vibe_requests vr
-            JOIN users u ON u.id = vr.sender_id AND COALESCE(u.is_deleted, FALSE) = FALSE
+            JOIN users u ON u.id = vr.sender_id AND COALESCE(u.is_deleted, FALSE) = FALSE AND COALESCE(u.is_locked, FALSE) = FALSE
             WHERE vr.id = %s::uuid AND vr.receiver_id = %s::uuid AND vr.status = 'pending'
             """,
             (vibe_id, current_user["id"]),

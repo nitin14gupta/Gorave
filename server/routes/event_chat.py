@@ -9,9 +9,9 @@ from db.config import get_db
 from middleware.auth import get_current_user
 from routes.chat import (
     CLIENT_CONTENT_TYPES, MAX_MESSAGE_CHARS, MAX_PINNED_CHATS, MSG_COLUMNS, pinned_chat_ids, WS_SESSION_EXPIRED, _insert_message,
-    _parse_client_id, _receive, _serialize, _ws_user,
+    _parse_client_id, _receive, _serialize, _ws_user, mark_unavailable_cards as rt_mark_cards,
 )
-from utils import chat_realtime as rt, event_chat as ec
+from utils import chat_realtime as rt, event_chat as ec, visibility
 
 router = APIRouter(tags=["event-chat"])
 
@@ -65,14 +65,35 @@ def _out(row: dict, host_id: str) -> dict:
 
 
 def _blocked_ids(cur, uid: str) -> list:
+    return visibility.blocked_ids(cur, uid)
+
+
+def _shape_for_viewer(cur, viewer: str, messages: list) -> list:
+    """What this viewer may see of each message:
+    - someone in a block with them: a quiet placeholder (content_type 'blocked',
+      metadata.by_me says who blocked whom), no content and no sender;
+    - someone locked or deleted: 'unavailable', sender hidden;
+    - profile cards about someone they can't see: 'profile_unavailable'.
+    Everything is decided on read, so an unblock or unlock brings it back."""
+    senders = {m["sender_id"] for m in messages if m.get("content_type") not in ("system",)}
+    blocked = set(visibility.blocked_ids(cur, viewer))
+    mine = visibility.blocked_by_me_ids(cur, viewer)
     cur.execute(
-        """
-        SELECT blocked_id::text AS other FROM user_blocks WHERE blocker_id = %s::uuid
-        UNION SELECT blocker_id::text FROM user_blocks WHERE blocked_id = %s::uuid
-        """,
-        (uid, uid),
+        f"SELECT u.id::text AS id FROM users u WHERE u.id = ANY(%s::uuid[]) AND NOT {visibility.live('u')}",
+        (list(senders),),
     )
-    return [r["other"] for r in cur.fetchall()]
+    gone = {r["id"] for r in cur.fetchall()}
+    hidden_sender = {"id": None, "name": None, "avatar": None, "is_host": False, "unavailable": True}
+    for m in messages:
+        sid = m.get("sender_id")
+        if m.get("content_type") == "system" or sid == viewer:
+            continue
+        if sid in blocked:
+            m.update(content=None, content_type="blocked", metadata={"by_me": sid in mine}, reactions=None, edited_at=None, sender_id=None, sender=hidden_sender)
+        elif sid in gone:
+            m.update(content=None, content_type="unavailable", metadata=None, reactions=None, edited_at=None, sender={**hidden_sender, "id": sid})
+    rt_mark_cards(cur, viewer, messages)
+    return messages
 
 
 def _member_count(cur, conv_id: str) -> int:
@@ -188,6 +209,8 @@ def get_chat(event_id: str, current_user: dict = Depends(get_current_user)):
             "muted": chat["muted"], "member_count": _member_count(cur, chat["id"]),
             "pinned": _pinned(cur, chat["id"], chat["pinned_message_id"], chat["host_id"], uid),
             "blocked_ids": _blocked_ids(cur, uid),
+            # The ones *you* blocked, so live messages show the right quiet line.
+            "blocked_by_me_ids": sorted(visibility.blocked_by_me_ids(cur, uid)),
         }
 
 
@@ -202,12 +225,11 @@ def get_messages(event_id: str, before: Optional[str] = Query(None), limit: int 
             SELECT {MESSAGE_SELECT}, {SENDER_COLUMNS} FROM messages m JOIN users u ON u.id = m.sender_id
             WHERE m.conversation_id = %(conv)s::uuid AND m.unsent_at IS NULL
               AND NOT (%(me)s::uuid = ANY(COALESCE(m.deleted_for, '{{}}'::uuid[])))
-              AND (m.content_type = 'system' OR NOT (m.sender_id = ANY(%(blocked)s::uuid[])))
               AND (%(before)s::timestamptz IS NULL OR m.sent_at < %(before)s::timestamptz)
               AND m.sent_at > COALESCE((SELECT cleared_at FROM conversation_clears WHERE user_id = %(me)s::uuid AND conversation_id = %(conv)s::uuid), '-infinity')
             ORDER BY m.sent_at DESC LIMIT %(limit)s
             """,
-            {"conv": chat["id"], "me": uid, "blocked": blocked, "before": before, "limit": limit},
+            {"conv": chat["id"], "me": uid, "before": before, "limit": limit},
         )
         rows = cur.fetchall()
         cur.execute(
@@ -215,12 +237,14 @@ def get_messages(event_id: str, before: Optional[str] = Query(None), limit: int 
             SELECT m.user_id::text AS id, m.last_read_at, u.name, {MEMBER_FACE} AS avatar
             FROM conversation_members m JOIN users u ON u.id = m.user_id
             WHERE m.conversation_id = %s::uuid AND {ec.ACTIVE_MEMBER} AND m.user_id <> %s::uuid AND NOT (m.user_id = ANY(%s::uuid[]))
+              AND {visibility.live('u')}
             ORDER BY m.last_read_at DESC LIMIT {SEEN_LIMIT}
             """,
             (chat["id"], uid, blocked),
         )
         seen = [{**r, "last_read_at": r["last_read_at"].isoformat()} for r in cur.fetchall()]
-    return {"messages": [_out(r, chat["host_id"]) for r in rows], "seen": seen}
+        messages = _shape_for_viewer(cur, uid, [_out(r, chat["host_id"]) for r in rows])
+    return {"messages": messages, "seen": seen}
 
 
 class MessageBody(BaseModel):
@@ -334,12 +358,20 @@ def get_members(event_id: str, current_user: dict = Depends(get_current_user)):
             f"""
             SELECT m.user_id::text AS id, m.role, m.last_read_at, u.name, u.username, {MEMBER_FACE} AS avatar
             FROM conversation_members m JOIN users u ON u.id = m.user_id
-            WHERE m.conversation_id = %s::uuid AND {ec.ACTIVE_MEMBER}
+            WHERE m.conversation_id = %s::uuid AND {ec.ACTIVE_MEMBER} AND {visibility.live('u')}
             ORDER BY (m.role = 'host') DESC, m.joined_at
             """,
             (chat["id"],),
         )
-        return [{**r, "last_read_at": r["last_read_at"].isoformat()} for r in cur.fetchall()]
+        rows = cur.fetchall()
+        blocked = set(visibility.blocked_ids(cur, uid))
+    out = []
+    for r in rows:
+        r = {**r, "last_read_at": r["last_read_at"].isoformat(), "unavailable": r["id"] in blocked}
+        if r["unavailable"]:
+            r.update(name=None, username=None, avatar=None)
+        out.append(r)
+    return out
 
 
 # ── Host controls ────────────────────────────────────────────────────────────

@@ -5,7 +5,7 @@ import Animated, { useAnimatedStyle, useSharedValue, withSequence, withTiming } 
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { ArrowLeft, Pencil } from 'lucide-react-native'
 import { Colors, FontFamily, withOpacity } from '@/constants'
-import { PrimaryButton } from '@/components/ui'
+import { PrimaryButton } from '@/components/ui/PrimaryButton'
 import { hTap } from '@/lib/haptics'
 import { listenForSmsOtp } from '@/lib/smsOtp'
 import { groupPhone, type OtpViewProps } from './authTypes'

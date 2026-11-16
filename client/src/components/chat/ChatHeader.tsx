@@ -6,6 +6,7 @@ import { router } from 'expo-router'
 import { ChevronLeft, MoreVertical, Ghost, X } from 'lucide-react-native'
 import { Colors, FontFamily } from '@/constants'
 import { formatLastSeen } from '@/lib/formatLastSeen'
+import { UNAVAILABLE_LABEL } from '@/components/ui'
 
 interface Props {
   partnerName: string | null
@@ -67,7 +68,8 @@ export function ChatHeader({
         <Animated.View style={[s.center, identityStyle]} pointerEvents={identityHidden ? 'none' : 'auto'}>
           <Pressable
             style={s.center}
-            onPress={() => partnerId && router.push(`/(profile)/${partnerId}` as any)}
+            disabled={partnerIsDeleted}
+            onPress={() => partnerId && !partnerIsDeleted && router.push(`/(profile)/${partnerId}` as any)}
           >
             <View style={s.avatarBox}>
               {partnerIsDeleted ? (
@@ -90,12 +92,12 @@ export function ChatHeader({
             </View>
             <View style={{ flexShrink: 1 }}>
               <View style={s.nameRow}>
-                <Text style={[s.name, partnerIsDeleted && s.nameDeleted]} numberOfLines={1}>{partnerName ?? 'Chat'}</Text>
+                <Text style={[s.name, partnerIsDeleted && s.nameDeleted]} numberOfLines={1}>{partnerIsDeleted ? UNAVAILABLE_LABEL : partnerName ?? 'Chat'}</Text>
                 {isPartnerOnline && !partnerIsDeleted && <View style={s.onlineDot} />}
               </View>
               <Text style={s.sub}>
                 {partnerIsDeleted
-                  ? 'This account no longer exists'
+                  ? 'Messages are off'
                   : partnerUsername
                   ? `@${partnerUsername}`
                   : isPartnerOnline

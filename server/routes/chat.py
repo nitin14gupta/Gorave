@@ -11,7 +11,7 @@ from db.config import get_db
 from utils.jwt import decode_token
 from utils.push import send_push
 from utils.link_preview import fetch_link_preview, UnsafeUrlError
-from utils import chat_realtime as rt
+from utils import chat_realtime as rt, visibility
 
 router = APIRouter(tags=["chat"])
 
@@ -246,7 +246,7 @@ def list_conversations(
                 CASE WHEN c.user1_id = %s::uuid THEN u2.name ELSE u1.name END AS partner_name,
                 CASE WHEN c.user1_id = %s::uuid THEN u2.username ELSE u1.username END AS partner_username,
                 CASE WHEN c.user1_id = %s::uuid THEN p2.url ELSE p1.url END AS partner_avatar,
-                CASE WHEN c.user1_id = %s::uuid THEN COALESCE(u2.is_deleted, FALSE) ELSE COALESCE(u1.is_deleted, FALSE) END AS partner_is_deleted,
+                CASE WHEN c.user1_id = %s::uuid THEN (COALESCE(u2.is_deleted, FALSE) OR COALESCE(u2.is_locked, FALSE)) ELSE (COALESCE(u1.is_deleted, FALSE) OR COALESCE(u1.is_locked, FALSE)) END AS partner_is_deleted,
                 CASE WHEN c.user1_id = %s::uuid THEN u2.last_seen_at ELSE u1.last_seen_at END AS partner_last_seen_at,
                 -- Last message
                 m.content AS last_message,
@@ -463,12 +463,14 @@ async def list_messages(
     if cleared:
         result = [m for m in result if datetime.fromisoformat(m["sent_at"]) > cleared["cleared_at"]]
 
-    # A deleted account's messages are no longer shown (like Instagram): the
+    # A deleted or locked account's messages aren't shown (like Instagram): the
     # bubble stays so the conversation reads in order, the content doesn't.
+    # Worked out on read, so an unlocked account's messages come back.
     partner = conv["user2_id"] if conv["user1_id"] == uid else conv["user1_id"]
     with get_db() as (cur, _):
-        cur.execute("SELECT COALESCE(is_deleted, FALSE) AS d FROM users WHERE id = %s::uuid", (partner,))
+        cur.execute("SELECT COALESCE(is_deleted, FALSE) OR COALESCE(is_locked, FALSE) AS d FROM users WHERE id = %s::uuid", (partner,))
         prow = cur.fetchone()
+        mark_unavailable_cards(cur, uid, result)
     if prow and prow["d"]:
         for m in result:
             if m.get("sender_id") == partner:
@@ -517,6 +519,21 @@ async def mark_read(conv_id: str, current_user: dict = Depends(get_current_user)
         await _invalidate_page_cache(conv_id)
         await _emit(conv_id, {"type": "read", "user_id": uid}, skip_user=uid)
     return {"ok": True}
+
+
+def mark_unavailable_cards(cur, viewer: str, messages: list) -> None:
+    """A shared profile card about someone this viewer can't see (deleted,
+    locked, or a block either way) becomes a plain "Profile not available"
+    card. Checked per viewer on every read, so it comes back on unlock."""
+    ids = [(m.get("metadata") or {}).get("user_id") for m in messages if m.get("content_type") == "profile"]
+    gone = visibility.unavailable_ids(cur, viewer, ids)
+    if not gone:
+        return
+    for m in messages:
+        md = m.get("metadata") or {}
+        if m.get("content_type") == "profile" and md.get("user_id") in gone:
+            m["content_type"] = "profile_unavailable"
+            m["metadata"] = {"user_id": md.get("user_id")}
 
 
 MAX_PINNED_CHATS = 3
@@ -815,6 +832,9 @@ async def send_message_rest(
         )
         if cur.fetchone():
             raise HTTPException(status_code=403, detail="You can't message this person")
+        cur.execute("SELECT COALESCE(is_locked, FALSE) OR COALESCE(is_deleted, FALSE) AS gone FROM users WHERE id = %s::uuid", (partner_id,))
+        if (cur.fetchone() or {}).get("gone"):
+            raise HTTPException(status_code=403, detail="This account isn't available")
 
         msg, created = _insert_message(
             cur, conv_id, uid, body.content, body.content_type, metadata,
@@ -858,7 +878,7 @@ async def view_limited_message(msg_id: str, current_user: dict = Depends(get_cur
             """
             SELECT m.sender_id::text, m.conversation_id::text, m.view_limit, m.views_used,
                    m.media_purged_at, m.unsent_at,
-                   COALESCE(u.is_deleted, FALSE) AS sender_deleted
+                   (COALESCE(u.is_deleted, FALSE) OR COALESCE(u.is_locked, FALSE)) AS sender_deleted
             FROM messages m
             JOIN conversations c ON c.id = m.conversation_id
             JOIN users u ON u.id = m.sender_id
@@ -955,7 +975,7 @@ async def forward_message(
         cur.execute(
             """
             SELECT m.content, m.content_type, m.metadata, m.forward_score, m.view_limit,
-                   COALESCE(u.is_deleted, FALSE) AS sender_deleted
+                   (COALESCE(u.is_deleted, FALSE) OR COALESCE(u.is_locked, FALSE)) AS sender_deleted
             FROM messages m
             JOIN conversations c ON c.id = m.conversation_id
             JOIN users u ON u.id = m.sender_id
@@ -994,7 +1014,7 @@ async def forward_message(
             cur.execute(
                 """
                 SELECT c.user1_id::text, c.user2_id::text, c.status,
-                       COALESCE(p.is_deleted, FALSE) AS partner_deleted,
+                       (COALESCE(p.is_deleted, FALSE) OR COALESCE(p.is_locked, FALSE)) AS partner_deleted,
                        EXISTS (
                          SELECT 1 FROM user_blocks b
                          WHERE (b.blocker_id = %s::uuid AND b.blocked_id = p.id)
@@ -1271,6 +1291,10 @@ async def chat_websocket(
                         )
                         if cur.fetchone():
                             await websocket.send_text(json.dumps({"type": "error", "code": "blocked", "client_id": client_id}))
+                            continue
+                        cur.execute("SELECT COALESCE(is_locked, FALSE) OR COALESCE(is_deleted, FALSE) AS gone FROM users WHERE id = %s::uuid", (partner_id,))
+                        if (cur.fetchone() or {}).get("gone"):
+                            await websocket.send_text(json.dumps({"type": "error", "code": "unavailable", "client_id": client_id}))
                             continue
                         msg, created = _insert_message(
                             cur, conv_id, uid, content, content_type, metadata,

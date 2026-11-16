@@ -204,7 +204,8 @@ def public_events(
     offset: int = Query(default=0, ge=0),
 ):
     _guard(request, response)
-    filters = ["e.is_published = TRUE", "e.is_cancelled = FALSE", "e.date_time > NOW()"]
+    # A locked host's nights are off the website until they're unlocked.
+    filters = ["e.is_published = TRUE", "e.is_cancelled = FALSE", "e.date_time > NOW()", "COALESCE(u.is_locked, FALSE) = FALSE"]
     params: list = []
 
     if city:
@@ -316,7 +317,7 @@ def public_event(event_id: str, request: Request, response: Response):
                 (SELECT ROUND(AVG(rating)::numeric, 1)::float FROM event_reviews WHERE event_id = e.id) AS avg_rating,
                 (SELECT COUNT(*) FROM event_reviews WHERE event_id = e.id)::int AS review_count
             FROM events e JOIN users u ON u.id = e.host_id
-            WHERE e.id = %s::uuid AND e.is_published = TRUE
+            WHERE e.id = %s::uuid AND e.is_published = TRUE AND COALESCE(u.is_locked, FALSE) = FALSE
             """,
             (event_id,),
         )

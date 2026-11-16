@@ -11,7 +11,7 @@ import { BellOff, Flame, RefreshCw, Ghost, Pin, Search, Users } from 'lucide-rea
 import { hTap } from '@/lib/haptics'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { AutoSkeletonView } from 'react-native-auto-skeleton'
-import { ConfirmSheet, VibeInboxSheet, VibeIcebreakerModal, LogoMark, ProfileMenuSheet, PrimaryButton, BrandedRefreshControl } from '@/components/ui'
+import { ConfirmSheet, VibeInboxSheet, VibeIcebreakerModal, LogoMark, ProfileMenuSheet, PrimaryButton, BrandedRefreshControl, UNAVAILABLE_LABEL } from '@/components/ui'
 import { ChatSearchModal } from '@/components/chat/ChatSearchModal'
 import { usePillStore } from '@/store/pillStore'
 import { byRecent, byRecentItem, useConversations, type ChatListItem } from '@/hooks/useConversations'
@@ -72,7 +72,7 @@ const ConvRow = memo(function ConvRow({ conv, onPress, onLongPress, onAvatarPres
 }) {
   const isLocked   = conv.status === 'pending'
   const isDeleted  = conv.partner_is_deleted
-  const displayName = conv.partner_name ?? 'User'
+  const displayName = isDeleted ? UNAVAILABLE_LABEL : conv.partner_name ?? 'User'
 
   const rowScale = useSharedValue(1)
   const rowPressStyle = useAnimatedStyle(() => ({ transform: [{ scale: rowScale.value }] }))

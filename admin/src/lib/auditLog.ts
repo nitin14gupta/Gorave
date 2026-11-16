@@ -12,6 +12,10 @@ export const ACTION_LABELS: Record<string, string> = {
   reject_host_id: 'Rejected host ID',
   appeal_unlocked: 'Unlocked on appeal',
   appeal_denied: 'Kept locked on appeal',
+  dismiss_user_reports: 'Dismissed reports on a person',
+  warn_user: 'Warned a person',
+  dismiss_event_reports: 'Dismissed reports on an event',
+  warn_host: 'Warned a host',
 }
 
 export function targetHref(targetType: string, targetId: string | null): string | null {

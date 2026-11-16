@@ -18,7 +18,7 @@ import { Colors, FontFamily, withOpacity, EVENT_IMAGE_ASPECT } from '@/constants
 import ApiService, { type Message, type TransferPreview } from '@/api/apiService'
 import type { MediaViewType } from '@/components/chat/MediaViewerModal'
 import { ReactionPills } from './ReactionPills'
-import { PlaybackWave, OutlineButton } from '@/components/ui'
+import { PlaybackWave, OutlineButton, UnavailableAvatar, UNAVAILABLE_LABEL } from '@/components/ui'
 import { LinkPreviewCard } from './LinkPreviewCard'
 import { ViewLimitIcon } from './ViewLimitIcon'
 import { isUrlOnly, normalizeUrl } from '@/lib/linkify'
@@ -605,7 +605,18 @@ export function MessageBubble({
     : new Date(msg.sent_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + (msg.edited_at ? ' · Edited' : '')
 
   const renderBubbleContent = () => {
-    // A deleted account's messages come back from the server with no content.
+    // Group chat: a message from someone in a block with me. One quiet line,
+    // no sender, no content.
+    if (msg.content_type === 'blocked') {
+      return (
+        <View style={s.blockedLine}>
+          <Text style={s.blockedLineText}>
+            {msg.metadata?.by_me ? 'Message from someone you blocked' : 'Message unavailable'}
+          </Text>
+        </View>
+      )
+    }
+    // A deleted or locked account's messages come back with no content.
     if (msg.content_type === 'unavailable') {
       return (
         <View style={[s.bubbleWrap, s.wrapTheirs]}>
@@ -763,6 +774,20 @@ export function MessageBubble({
         </View>
       )
     }
+    // A shared profile of someone I can't see (deleted, locked, blocked).
+    // Greyed card, not tappable.
+    if (msg.content_type === 'profile_unavailable') {
+      return (
+        <View style={[s.bubbleWrap, isMine ? s.wrapMine : s.wrapTheirs]}>
+          <ForwardedTag score={msg.forward_score} />
+          <View style={[s.richCard, s.profileRow]}>
+            <UnavailableAvatar size={44} />
+            <Text style={s.unavailableCardText}>{UNAVAILABLE_LABEL}</Text>
+          </View>
+          <Text style={[s.timeBelow, isMine ? s.timeBelowMine : s.timeBelowTheirs]}>{timeStr}</Text>
+        </View>
+      )
+    }
     if (msg.content_type === 'profile' && msg.metadata) {
       return (
         <View style={[s.bubbleWrap, isMine ? s.wrapMine : s.wrapTheirs]}>
@@ -875,6 +900,9 @@ const sel = StyleSheet.create({
 })
 
 const s = StyleSheet.create({
+  blockedLine: { alignSelf: 'center', paddingVertical: 6, paddingHorizontal: 16 },
+  blockedLineText: { fontFamily: FontFamily.bodyRegular, fontSize: 12, color: Colors.inkDisabled, textAlign: 'center' },
+  unavailableCardText: { flex: 1, fontFamily: FontFamily.bodyMedium, fontSize: 14, color: Colors.inkDisabled },
   bubbleWrap: { marginBottom: 4, maxWidth: '82%', overflow: 'visible' },
   forwarded: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 4, paddingHorizontal: 4 },
   limited: { flexDirection: 'row', alignItems: 'center', gap: 10, borderRadius: 18, paddingHorizontal: 14, paddingVertical: 11, minWidth: 150 },

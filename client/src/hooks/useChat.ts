@@ -210,6 +210,7 @@ export function useChat(conversationId: string) {
             })
           } else if (data.type === 'error') {
             if (data.code === 'blocked') setWsError('blocked')
+            if (data.code === 'unavailable') usePillStore.getState().show("This account isn't available", 'error')
             if (data.code === 'invalid' && data.detail) usePillStore.getState().show(data.detail, 'error')
             if (data.client_id) markFailed(tempIdFor(data.client_id))
           } else if (data.type === 'typing') {

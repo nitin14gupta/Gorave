@@ -48,12 +48,14 @@ export function useEventChat(eventId: string) {
   const typingTimers = useRef(new Map<string, ReturnType<typeof setTimeout>>())
   const loadingMore = useRef(false)
   const blocked = useRef<string[]>([])
+  const blockedByMe = useRef<Set<string>>(new Set())
   const connectRef = useRef<() => void>(() => {})
 
   const load = useCallback(async () => {
     try {
       const [info, page] = await Promise.all([ApiService.getEventChat(eventId), ApiService.getEventChatMessages(eventId)])
       blocked.current = info.blocked_ids
+      blockedByMe.current = new Set(info.blocked_by_me_ids ?? [])
       setChat(info)
       setMessages(prev => [...prev.filter(m => m.id.startsWith('_temp_')), ...page.messages])
       setSeen(page.seen)
@@ -80,14 +82,25 @@ export function useEventChat(eventId: string) {
   const handleFrame = useCallback((data: any) => {
     switch (data.type) {
       case 'message':
-        if (data.sender_id !== myId && data.content_type !== 'system' && blocked.current.includes(data.sender_id)) return
+        // Someone in a block with me: the same quiet line the server sends on
+        // reload, so the chat doesn't change shape when it refreshes.
+        if (data.sender_id !== myId && data.content_type !== 'system' && blocked.current.includes(data.sender_id)) {
+          swapIn({
+            ...data, content: null, content_type: 'blocked', sender_id: null, reactions: null,
+            metadata: { by_me: blockedByMe.current.has(data.sender_id) },
+            sender: { id: null, name: null, avatar: null, is_host: false, unavailable: true },
+          })
+          break
+        }
         swapIn(data)
         if (data.sender_id !== myId && ws.current?.readyState === WebSocket.OPEN) ws.current.send(JSON.stringify({ type: 'read' }))
         break
       case 'read':
+        if (blocked.current.includes(data.user_id)) break
         setSeen(prev => [{ id: data.user_id, name: data.name, avatar: data.avatar, last_read_at: data.at }, ...prev.filter(p => p.id !== data.user_id)])
         break
       case 'typing': {
+        if (blocked.current.includes(data.user_id)) break
         const timers = typingTimers.current
         if (timers.has(data.user_id)) clearTimeout(timers.get(data.user_id)!)
         setTyping(prev => {

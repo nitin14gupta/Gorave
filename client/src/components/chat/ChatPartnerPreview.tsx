@@ -4,6 +4,7 @@ import { router } from 'expo-router'
 import { Ghost } from 'lucide-react-native'
 import { hTap } from '@/lib/haptics'
 import { Colors, FontFamily } from '@/constants'
+import { UNAVAILABLE_LABEL } from '@/components/ui'
 
 interface Props {
   partnerId: string | null
@@ -29,8 +30,7 @@ export function ChatPartnerPreview({ partnerId, partnerName, partnerUsername, pa
         <View style={[s.avatar, s.avatarDeleted]}>
           <Ghost size={32} color={Colors.inkDisabled} strokeWidth={1.5} />
         </View>
-        <Text style={[s.name, s.nameDeleted]}>{partnerName ?? '[deleted]'}</Text>
-        <Text style={s.username}>This account no longer exists</Text>
+        <Text style={[s.name, s.nameDeleted]}>{UNAVAILABLE_LABEL}</Text>
       </View>
     )
   }

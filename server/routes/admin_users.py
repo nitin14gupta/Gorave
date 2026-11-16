@@ -283,8 +283,9 @@ def get_user_detail(user_id: str, current_admin: dict = Depends(get_current_admi
 
 # ── PATCH /admin/users/{user_id}/lock ─────────────────────────────────────────
 
-@router.patch("/{user_id}/lock")
-def lock_user(user_id: str, body: LockBody, current_admin: dict = Depends(require_admin_role("super_admin"))):
+def lock_account(user_id: str, reason: str, admin_id: str) -> None:
+    """Locks an account: signed out everywhere, every request refused from now
+    on, and a push saying why. Shared by the user page and the reports queue."""
     with get_db() as (cur, conn):
         cur.execute("SELECT id FROM users WHERE id = %s::uuid", (user_id,))
         if not cur.fetchone():
@@ -295,7 +296,7 @@ def lock_user(user_id: str, body: LockBody, current_admin: dict = Depends(requir
             UPDATE users SET is_locked = TRUE, locked_reason = %s, locked_at = NOW(), locked_by = %s::uuid
             WHERE id = %s::uuid
             """,
-            (body.reason, current_admin["id"], user_id),
+            (reason, admin_id, user_id),
         )
         # Refresh tokens are the actual session — killing these means the very
         # next token refresh fails. The is_locked check in get_current_user
@@ -305,13 +306,17 @@ def lock_user(user_id: str, body: LockBody, current_admin: dict = Depends(requir
         cur.execute("DELETE FROM refresh_tokens WHERE user_id = %s::uuid", (user_id,))
         conn.commit()
 
-    log_action(current_admin["id"], "lock_user", "user", user_id, body.reason)
+    log_action(admin_id, "lock_user", "user", user_id, reason)
 
     try:
-        send_push(user_id, "Account Locked", f"Your account has been locked by the Gorave team. Reason: {body.reason}")
+        send_push(user_id, "Account Locked", f"Your account has been locked by the Gorave team. Reason: {reason}")
     except Exception:
         pass
 
+
+@router.patch("/{user_id}/lock")
+def lock_user(user_id: str, body: LockBody, current_admin: dict = Depends(require_admin_role("super_admin"))):
+    lock_account(user_id, body.reason, current_admin["id"])
     return {"ok": True}
 
 
@@ -336,6 +341,9 @@ def unlock_user(user_id: str, current_admin: dict = Depends(require_admin_role("
         send_push(user_id, "Account Unlocked", "Your account has been unlocked — welcome back to Gorave!")
     except Exception:
         pass
+    # Same SMS as an approved appeal (routes/admin_appeals.py).
+    from routes.admin_appeals import text_unlocked
+    text_unlocked(user_id)
 
     return {"ok": True}
 

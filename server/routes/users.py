@@ -10,6 +10,7 @@ from schemas.user import (
 )
 from middleware.auth import get_current_user
 from db.config import get_db
+from utils import visibility
 from utils.push import send_push, get_user_avatar_url
 from utils.crypto import encrypt, decrypt, fingerprint
 from routes.notifications import notify_new_follower, notify_report_submitted, notify_host_onboarding_complete
@@ -43,10 +44,10 @@ _USER_SELECT = """
         u.last_seen_at::text,
         COALESCE(u.is_deleted, FALSE) AS is_deleted,
         (SELECT COUNT(*) FROM follows f
-         JOIN users fu ON fu.id = f.follower_id AND COALESCE(fu.is_deleted, FALSE) = FALSE
+         JOIN users fu ON fu.id = f.follower_id AND COALESCE(fu.is_deleted, FALSE) = FALSE AND COALESCE(fu.is_locked, FALSE) = FALSE
          WHERE f.following_id = u.id)::int AS vibers_count,
         (SELECT COUNT(*) FROM follows f
-         JOIN users fu ON fu.id = f.following_id AND COALESCE(fu.is_deleted, FALSE) = FALSE
+         JOIN users fu ON fu.id = f.following_id AND COALESCE(fu.is_deleted, FALSE) = FALSE AND COALESCE(fu.is_locked, FALSE) = FALSE
          WHERE f.follower_id = u.id)::int AS vibing_count,
         CASE
             WHEN %s::text = u.id::text THEN FALSE
@@ -145,6 +146,25 @@ def _fetch_user(cur, user_id: str, viewer_id: str) -> dict | None:
         for private in _PRIVATE_FIELDS:
             d[private] = None
     return d
+
+
+def _profile_gate(cur, user_id: str, viewer_id: str) -> None:
+    """Someone deleted, locked, or who blocked you doesn't exist to you:
+    404 PROFILE_UNAVAILABLE. If *you* blocked them, the profile still loads so
+    you can unblock. Your own profile always loads."""
+    if user_id == viewer_id:
+        return
+    cur.execute(
+        """
+        SELECT COALESCE(u.is_deleted, FALSE) OR COALESCE(u.is_locked, FALSE) AS gone,
+               EXISTS (SELECT 1 FROM user_blocks b WHERE b.blocker_id = u.id AND b.blocked_id = %s::uuid) AS blocked_me
+        FROM users u WHERE u.id = %s::uuid
+        """,
+        (viewer_id, user_id),
+    )
+    row = cur.fetchone()
+    if not row or row["gone"] or row["blocked_me"]:
+        raise HTTPException(status_code=404, detail={"code": "PROFILE_UNAVAILABLE", "message": "Profile not available"})
 
 
 def _resolve_user_id(cur, user_id_or_username: str) -> Optional[str]:
@@ -579,6 +599,7 @@ def suggested_users(
             WHERE u.id != %s::uuid
               AND u.profile_complete = true
               AND COALESCE(u.is_deleted, FALSE) = FALSE
+              AND COALESCE(u.is_locked, FALSE) = FALSE
               AND NOT EXISTS (
                   SELECT 1 FROM user_blocks
                   WHERE (blocker_id = %s::uuid AND blocked_id = u.id)
@@ -661,6 +682,7 @@ def search_users(
             WHERE u.id != %s::uuid
               AND u.profile_complete = true
               AND COALESCE(u.is_deleted, FALSE) = FALSE
+              AND COALESCE(u.is_locked, FALSE) = FALSE
               AND (
                   u.username ILIKE %s
                   OR u.name ILIKE %s
@@ -711,6 +733,7 @@ def search_users(
             SELECT COUNT(DISTINCT u.id) FROM users u
             WHERE u.id != %s::uuid AND u.profile_complete = true
               AND (u.username ILIKE %s OR u.name ILIKE %s OR u.city ILIKE %s OR u.bio ILIKE %s)
+              AND COALESCE(u.is_deleted, FALSE) = FALSE AND COALESCE(u.is_locked, FALSE) = FALSE
               AND NOT EXISTS (
                   SELECT 1 FROM user_blocks
                   WHERE (blocker_id = %s::uuid AND blocked_id = u.id)
@@ -736,6 +759,7 @@ def get_user_profile(user_id: str, current_user: dict = Depends(get_current_user
             raise HTTPException(status_code=404, detail="User not found")
         user_id = resolved_id
 
+        _profile_gate(cur, user_id, viewer_id)
         user = _fetch_user(cur, user_id, viewer_id)
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
@@ -952,6 +976,11 @@ def get_host_reviews(
             (user_id, event_id, event_id, rating, rating, limit, offset),
         )
         reviews = [dict(r) for r in cur.fetchall()]
+        # Authors you can't see (locked, deleted, a block) stay anonymous.
+        hide = visibility.unavailable_ids(cur, current_user["id"], [r["reviewer_id"] for r in reviews])
+        for r in reviews:
+            if r["reviewer_id"] in hide:
+                r.update(reviewer_id=None, reviewer_name="Gorave user", reviewer_avatar=None)
 
     return {
         "avg_rating": float(stats["avg_rating"]) if stats["avg_rating"] is not None else None,
@@ -983,6 +1012,7 @@ def get_blocked_users(current_user: dict = Depends(get_current_user)):
 @router.get("/{user_id}", response_model=ProfileResponse)
 def get_profile(user_id: str, current_user: dict = Depends(get_current_user)):
     with get_db() as (cur, _):
+        _profile_gate(cur, user_id, current_user["id"])
         user = _fetch_user(cur, user_id, current_user["id"])
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -1015,12 +1045,14 @@ def _follow_rows(cur, join_col: str, filter_col: str, viewer_id: str, target_id:
         {follows_back_col},
         COUNT(*) OVER() AS total_count
     FROM follows f
-    JOIN users u ON u.id = {join_col} AND COALESCE(u.is_deleted, FALSE) = FALSE
+    JOIN users u ON u.id = {join_col} AND COALESCE(u.is_deleted, FALSE) = FALSE AND COALESCE(u.is_locked, FALSE) = FALSE
     WHERE {filter_col} = %s::uuid
+      -- Nobody you blocked or who blocked you, in anyone's list (counts don't change).
+      AND NOT EXISTS (SELECT 1 FROM user_blocks ub WHERE (ub.blocker_id = %s::uuid AND ub.blocked_id = u.id) OR (ub.blocker_id = u.id AND ub.blocked_id = %s::uuid))
     ORDER BY f.created_at DESC
     LIMIT %s OFFSET %s
     """
-    cur.execute(sql, (viewer_id, target_id, limit, offset))
+    cur.execute(sql, (viewer_id, target_id, viewer_id, viewer_id, limit, offset))
     rows = cur.fetchall()
     total = int(rows[0]["total_count"]) if rows else 0
     users = [
@@ -1042,12 +1074,14 @@ def _follow_rows(cur, join_col: str, filter_col: str, viewer_id: str, target_id:
 @router.get("/{user_id}/followers")
 def get_followers(user_id: str, limit: int = 20, offset: int = 0, current_user: dict = Depends(get_current_user)):
     with get_db() as (cur, _):
+        _profile_gate(cur, user_id, current_user["id"])
         return _follow_rows(cur, "f.follower_id", "f.following_id", current_user["id"], user_id, limit, offset)
 
 
 @router.get("/{user_id}/following")
 def get_following(user_id: str, limit: int = 20, offset: int = 0, current_user: dict = Depends(get_current_user)):
     with get_db() as (cur, _):
+        _profile_gate(cur, user_id, current_user["id"])
         return _follow_rows(cur, "f.following_id", "f.follower_id", current_user["id"], user_id, limit, offset, include_follows_back=True)
 
 

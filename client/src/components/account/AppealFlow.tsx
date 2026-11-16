@@ -1,12 +1,13 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { Image } from 'expo-image'
 import { useCameraPermissions } from 'expo-camera'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { ArrowLeft, Camera, Check, RotateCcw } from 'lucide-react-native'
+import { ArrowLeft, Camera, Check, KeyRound, Lock, MessageSquareText, RotateCcw, ScanFace, ShieldCheck } from 'lucide-react-native'
 import { OtpView } from '@/components/auth/OtpView'
 import { BioField } from '@/components/ui/BioField'
 import { FaceCapture } from './FaceCapture'
+import { LockIllustration } from './LockIllustration'
 import { PrimaryButton } from '@/components/ui/PrimaryButton'
 import ApiService, { type AccountAppealState, type AppealReason } from '@/api/apiService'
 import { useCountdown } from '@/hooks/useCountdown'
@@ -20,8 +21,25 @@ const REASONS: { key: AppealReason; title: string; sub: string }[] = [
   { key: 'sorry', title: 'I understand, it won’t happen again', sub: 'I’d like another chance' },
 ]
 
-type Step = 'code' | 'selfie' | 'story'
+// 'intro' comes first and isn't counted in the 1/3, 2/3, 3/3.
+type Step = 'intro' | 'code' | 'selfie' | 'story'
 const ORDER: Step[] = ['code', 'selfie', 'story']
+
+const HOW: { Icon: typeof KeyRound; title: string; time: string }[] = [
+  { Icon: KeyRound, title: 'Confirm your number', time: '30 sec' },
+  { Icon: ScanFace, title: 'Take a quick selfie', time: '30 sec' },
+  { Icon: MessageSquareText, title: 'Tell us what happened', time: '1 min' },
+]
+
+/** The quiet reminder on the steps where people share something personal. */
+function Private({ text = 'Private. Only our safety team sees this.' }: { text?: string }) {
+  return (
+    <View style={s.private}>
+      <Lock size={13} color={Colors.inkSecondary} strokeWidth={2.2} />
+      <Text style={s.privateText}>{text}</Text>
+    </View>
+  )
+}
 
 function Top({ step, onBack }: { step: Step; onBack: () => void }) {
   const insets = useSafeAreaInsets()
@@ -44,7 +62,7 @@ function Top({ step, onBack }: { step: Step; onBack: () => void }) {
 export function AppealFlow({ phoneHint, onDone, onCancel }: { phoneHint: string; onDone: (s: AccountAppealState) => void; onCancel: () => void }) {
   const insets = useSafeAreaInsets()
   const showPill = usePillStore(st => st.show)
-  const [step, setStep] = useState<Step>('code')
+  const [step, setStep] = useState<Step>('intro')
   const [codePass, setCodePass] = useState<string | null>(null)
 
   // Step 1: the code.
@@ -60,8 +78,6 @@ export function AppealFlow({ phoneHint, onDone, onCancel }: { phoneHint: string;
       showPill(e?.message || 'Couldn’t send the code. Try again.', 'error')
     }
   }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { sendCode() }, [])
   const verify = async (c = code) => {
     if (c.length !== 6 || codeBusy) return
     setCodeBusy(true)
@@ -117,9 +133,43 @@ export function AppealFlow({ phoneHint, onDone, onCancel }: { phoneHint: string;
   }
 
   const back = () => {
-    if (step === 'code') onCancel()
-    else if (step === 'selfie') { setShot(null); onCancel() }
+    if (step === 'intro') onCancel()
+    else if (step === 'code') setStep('intro')
+    else if (step === 'selfie') { setShot(null); setStep('intro') }
     else setStep('selfie')
+  }
+
+  if (step === 'intro') {
+    return (
+      <View style={s.root}>
+        <View style={[s.top, { paddingTop: insets.top + 8 }]}>
+          <Pressable style={s.back} onPress={() => { hTap(); onCancel() }} hitSlop={8} accessibilityLabel="Back">
+            <ArrowLeft size={18} color={Colors.inkPrimary} strokeWidth={2.2} />
+          </Pressable>
+        </View>
+        <ScrollView contentContainerStyle={[s.body, s.introBody]}>
+          <LockIllustration kind="locked" size={112} />
+          <Text style={[s.title, s.center]}>Let&apos;s get you back in</Text>
+          <Text style={[s.lede, s.center]}>Three quick steps, about 2 minutes. A real person reviews every appeal.</Text>
+          <View style={s.how}>
+            {HOW.map(({ Icon, title, time }, i) => (
+              <View key={title} style={[s.howRow, i > 0 && s.howBorder]}>
+                <View style={s.howIcon}><Icon size={18} color={Colors.inkPrimary} strokeWidth={1.9} /></View>
+                <Text style={s.howTitle}>{title}</Text>
+                <Text style={s.howTime}>{time}</Text>
+              </View>
+            ))}
+          </View>
+          <View style={s.safe}>
+            <ShieldCheck size={18} color={Colors.accentGreen} strokeWidth={2} />
+            <Text style={s.safeText}>Only our safety team sees your selfie and answers. They never appear on your profile, and nobody else is told you appealed.</Text>
+          </View>
+        </ScrollView>
+        <View style={[s.footer, { paddingBottom: insets.bottom + 16 }]}>
+          <View style={s.stretch}><PrimaryButton label="Start" onPress={() => { hTap(); setStep('code'); sendCode() }} /></View>
+        </View>
+      </View>
+    )
   }
 
   if (step === 'code') {
@@ -137,7 +187,7 @@ export function AppealFlow({ phoneHint, onDone, onCancel }: { phoneHint: string;
         tooMany={false}
         onResend={sendCode}
         onEditNumber={() => {}}
-        onBack={onCancel}
+        onBack={() => setStep('intro')}
         onVerify={() => verify()}
       />
     )
@@ -149,7 +199,8 @@ export function AppealFlow({ phoneHint, onDone, onCancel }: { phoneHint: string;
         <Top step={step} onBack={back} />
         <View style={s.body}>
           <Text style={s.title}>Take a quick selfie</Text>
-          <Text style={s.lede}>A person on our team checks it against your profile photos. It&apos;s only used for this appeal.</Text>
+          <Text style={s.lede}>So we know it&apos;s really you. A person on our team checks it against your profile photos.</Text>
+          <Private text="Private. Only our safety team sees it, and only for this appeal." />
           <View style={s.frame}>
             {shot ? (
               <Image source={{ uri: shot }} style={StyleSheet.absoluteFill} contentFit="cover" />
@@ -185,7 +236,8 @@ export function AppealFlow({ phoneHint, onDone, onCancel }: { phoneHint: string;
       <Top step={step} onBack={back} />
       <ScrollView contentContainerStyle={s.body} keyboardShouldPersistTaps="handled">
         <Text style={s.title}>What happened?</Text>
-        <Text style={s.lede}>Tell us your side. A real person reads every appeal.</Text>
+        <Text style={s.lede}>Tell us your side. Be honest, we read every word.</Text>
+        <Private />
         <View style={s.reasons}>
           {REASONS.map(r => {
             const on = reason === r.key
@@ -220,6 +272,19 @@ const s = StyleSheet.create({
   seg: { flex: 1, height: 4, borderRadius: 2, backgroundColor: withOpacity(Colors.inkPrimary, 0.12) },
   segOn: { backgroundColor: Colors.inkPrimary },
   count: { fontFamily: FontFamily.bodySemiBold, fontSize: 12, color: Colors.inkSecondary },
+  center: { textAlign: 'center' },
+  stretch: { alignSelf: 'stretch' },
+  introBody: { alignItems: 'center', paddingTop: 8 },
+  how: { alignSelf: 'stretch', marginTop: 28, borderRadius: 20, backgroundColor: Colors.surface, paddingHorizontal: 16 },
+  howRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 14 },
+  howBorder: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: Colors.divider },
+  howIcon: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center', backgroundColor: withOpacity(Colors.inkPrimary, 0.06) },
+  howTitle: { flex: 1, fontFamily: FontFamily.bodySemiBold, fontSize: 15, color: Colors.inkPrimary },
+  howTime: { fontFamily: FontFamily.bodyMedium, fontSize: 13, color: Colors.inkSecondary },
+  safe: { alignSelf: 'stretch', flexDirection: 'row', gap: 10, alignItems: 'flex-start', marginTop: 14, padding: 14, borderRadius: 16, backgroundColor: withOpacity(Colors.accentGreen, 0.1) },
+  safeText: { flex: 1, fontFamily: FontFamily.bodyRegular, fontSize: 13, lineHeight: 19, color: Colors.inkPrimary },
+  private: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 10 },
+  privateText: { fontFamily: FontFamily.bodyMedium, fontSize: 12, color: Colors.inkSecondary },
   body: { paddingHorizontal: Spacing.screenPadding, paddingTop: 16, paddingBottom: 24 },
   title: { fontFamily: FontFamily.displayExtraBold, fontSize: 32, lineHeight: 36, letterSpacing: -0.8, color: Colors.inkPrimary },
   lede: { fontFamily: FontFamily.bodyRegular, fontSize: 15, lineHeight: 21, color: Colors.inkSecondary, marginTop: 8 },
@@ -227,7 +292,7 @@ const s = StyleSheet.create({
   permission: { alignItems: 'center', gap: 12, paddingHorizontal: 28 },
   permissionText: { fontFamily: FontFamily.bodyRegular, fontSize: 14, lineHeight: 20, color: Colors.inkSecondary, textAlign: 'center' },
   hint: { fontFamily: FontFamily.bodyMedium, fontSize: 13, color: Colors.inkSecondary, marginTop: 12, textAlign: 'center' },
-  footer: { paddingHorizontal: Spacing.screenPadding, paddingTop: 10, alignItems: 'center' },
+  footer: { paddingHorizontal: Spacing.screenPadding, paddingTop: 10 },
   row: { flexDirection: 'row', gap: 10, alignSelf: 'stretch' },
   ghost: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 54, paddingHorizontal: 18, borderRadius: 27, backgroundColor: withOpacity(Colors.inkPrimary, 0.08) },
   ghostText: { fontFamily: FontFamily.bodySemiBold, fontSize: 15, color: Colors.inkPrimary },

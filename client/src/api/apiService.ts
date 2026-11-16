@@ -178,6 +178,13 @@ function friendlyErrorMessage(status: number, err: any): string {
   return friendlyStatusMessage(status)
 }
 
+// The server's machine-readable code, e.g. PROFILE_UNAVAILABLE, so screens can
+// tell "this person isn't available" apart from a network error.
+function errorCode(err: any): string | undefined {
+  const c = err?.detail?.code
+  return typeof c === 'string' ? c : undefined
+}
+
 // A change to your events or a payment makes Home's cached lists stale.
 const touchMine = (endpoint: string) => <T,>(data: T): T => {
   if (endpoint.startsWith('/events') || endpoint.startsWith('/payments')) invalidateMyEvents()
@@ -276,7 +283,7 @@ class ApiService {
     try { err = JSON.parse(rawBody) } catch { }
     checkAccountLocked(status, err)
     checkMaintenanceMode(status, err)
-    return Object.assign(new Error(friendlyErrorMessage(status, err)), { status })
+    return Object.assign(new Error(friendlyErrorMessage(status, err)), { status, code: errorCode(err) })
   }
 
   private static async handleResponse<T>(
@@ -294,7 +301,7 @@ class ApiService {
       try { err = await response.json() } catch { }
       checkAccountLocked(response.status, err)
       checkMaintenanceMode(response.status, err)
-      throw Object.assign(new Error(friendlyErrorMessage(response.status, err)), { status: response.status })
+      throw Object.assign(new Error(friendlyErrorMessage(response.status, err)), { status: response.status, code: errorCode(err) })
     }
 
     return response.json() as Promise<T>

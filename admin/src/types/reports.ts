@@ -1,26 +1,49 @@
+/** One reported person, all reports about them grouped. */
 export interface UserReportItem {
-  id: string
-  reason: string
-  created_at: string
-  reporter_id: string
-  reporter_name: string | null
-  reporter_phone: string
-  reported_id: string
-  reported_name: string | null
-  reported_phone: string
+  user_id: string
+  name: string | null
+  username: string | null
+  phone: string
+  city: string | null
+  joined_at: string
+  is_locked: boolean
+  id_verified: boolean
+  avatar: string | null
+  hosted_count: number
+  report_count: number
+  reasons: string[]
+  reporter_names: string[]
+  last_reported_at: string
+  resolution: 'dismissed' | 'warned' | 'locked' | null
+  resolution_note: string | null
+  resolved_at: string | null
+  /** Earlier reports that ended in a warning or a lock. */
+  past_actions: number
 }
 
+/** One reported event, all reports about it grouped. */
 export interface EventReportItem {
-  id: string
-  reason: string
-  description: string | null
-  created_at: string
-  reporter_id: string
-  reporter_name: string | null
-  reporter_phone: string
   event_id: string
-  event_title: string
-  event_is_cancelled: boolean
+  title: string
+  date_time: string
+  city: string | null
+  area: string | null
+  price_inr: number
+  is_cancelled: boolean
+  cover: string | null
+  going: number
+  host_id: string
+  host_name: string | null
+  host_phone: string
+  host_locked: boolean
+  host_verified: boolean
+  report_count: number
+  reasons: string[]
+  descriptions: string[]
+  last_reported_at: string
+  resolution: 'dismissed' | 'warned' | 'cancelled' | 'host_locked' | null
+  resolution_note: string | null
+  resolved_at: string | null
 }
 
 export type ReportStatus = 'open' | 'done'

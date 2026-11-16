@@ -1,10 +1,13 @@
 from typing import Optional
 
-from fastapi import APIRouter, Query, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Query, Depends, HTTPException
 from pydantic import BaseModel
 
 from db.config import get_db
-from middleware.admin_auth import get_current_admin
+from middleware.admin_auth import get_current_admin, require_admin_role
+from routes.admin_users import lock_account
+from routes.events import _cancel_event_and_refund
+from routes.notifications import _insert_notification
 from routes.chat import _msg_cache_key
 from utils import album, chat_realtime as rt
 from utils.r2_client import r2_client
@@ -19,35 +22,6 @@ def _paginated(cur, count_sql, count_params, list_sql, list_params, page, page_s
     total = cur.fetchone()["count"]
     cur.execute(list_sql, [*list_params, page_size, (page - 1) * page_size])
     return cur.fetchall(), total
-
-
-# ── GET /admin/reports/users ───────────────────────────────────────────────────
-
-@router.get("/users")
-def list_user_reports(
-    page: int = Query(default=1, ge=1),
-    page_size: int = Query(default=25, ge=1, le=100),
-    current_admin: dict = Depends(get_current_admin),
-):
-    with get_db() as (cur, _):
-        rows, total = _paginated(
-            cur,
-            "SELECT COUNT(*)::int AS count FROM user_reports",
-            [],
-            """
-            SELECT ur.id::text, ur.reason, ur.created_at,
-                   reporter.id::text AS reporter_id, reporter.name AS reporter_name, reporter.phone AS reporter_phone,
-                   reported.id::text AS reported_id, reported.name AS reported_name, reported.phone AS reported_phone
-            FROM user_reports ur
-            JOIN users reporter ON reporter.id = ur.reporter_id
-            JOIN users reported ON reported.id = ur.reported_id
-            ORDER BY ur.created_at DESC
-            LIMIT %s OFFSET %s
-            """,
-            [],
-            page, page_size,
-        )
-    return {"items": rows, "total": total, "page": page, "page_size": page_size}
 
 
 # ── Album photos: the takedown queue ─────────────────────────────────────────
@@ -151,33 +125,221 @@ def keep_reported_photo(photo_id: str, body: DecisionBody, current_admin: dict =
     return {"ok": True}
 
 
-# ── GET /admin/reports/events ──────────────────────────────────────────────────
+# ── People: reports grouped by who was reported, then acted on ─────────────
 
-@router.get("/events")
-def list_event_reports(
+class ActionBody(BaseModel):
+    note: Optional[str] = None
+
+
+def _need_note(body: ActionBody, what: str) -> str:
+    note = (body.note or "").strip()
+    if not note:
+        raise HTTPException(status_code=400, detail=f"Add a {what}. They'll see it.")
+    return note
+
+
+def _warn(user_id: str, note: str) -> None:
+    """A note from the team: in their notifications and as a push."""
+    with get_db() as (cur, conn):
+        _insert_notification(cur, user_id, "safety_warning", title="A note from the Gorave team", body=note)
+        conn.commit()
+    try:
+        send_push(user_id, "A note from the Gorave team", note)
+    except Exception:
+        pass
+
+
+@router.get("/users")
+def list_user_reports(
+    status: str = Query(default="open", pattern="^(open|done)$"),
     page: int = Query(default=1, ge=1),
-    page_size: int = Query(default=25, ge=1, le=100),
+    page_size: int = Query(default=20, ge=1, le=100),
     current_admin: dict = Depends(get_current_admin),
 ):
+    """One row per reported person, most reported first."""
+    where = _status_sql("ur", status)
     with get_db() as (cur, _):
         rows, total = _paginated(
             cur,
-            "SELECT COUNT(*)::int AS count FROM event_reports",
+            f"SELECT COUNT(DISTINCT ur.reported_id)::int AS count FROM user_reports ur WHERE {where}",
             [],
-            """
-            SELECT er.id::text, er.reason, er.description, er.created_at,
-                   u.id::text AS reporter_id, u.name AS reporter_name, u.phone AS reporter_phone,
-                   e.id::text AS event_id, e.title AS event_title, e.is_cancelled AS event_is_cancelled
-            FROM event_reports er
-            JOIN users u ON u.id = er.reporter_id
-            JOIN events e ON e.id = er.event_id
-            ORDER BY er.created_at DESC
+            f"""
+            SELECT u.id::text AS user_id, u.name, u.username, u.phone, u.city, u.created_at AS joined_at,
+                   COALESCE(u.is_locked, FALSE) AS is_locked, (u.id_verified_at IS NOT NULL) AS id_verified,
+                   (SELECT p.url FROM user_photos p WHERE p.user_id = u.id ORDER BY p.position LIMIT 1) AS avatar,
+                   (SELECT COUNT(*) FROM events e WHERE e.host_id = u.id AND e.is_cancelled = FALSE)::int AS hosted_count,
+                   COUNT(ur.id)::int AS report_count, array_agg(DISTINCT ur.reason) AS reasons,
+                   array_agg(DISTINCT split_part(rp.name, ' ', 1)) AS reporter_names,
+                   MAX(ur.created_at) AS last_reported_at, MAX(ur.resolution) AS resolution,
+                   MAX(ur.resolution_note) AS resolution_note, MAX(ur.resolved_at) AS resolved_at,
+                   (SELECT COUNT(*) FROM user_reports x WHERE x.reported_id = u.id AND x.resolution IN ('warned', 'locked'))::int AS past_actions
+            FROM user_reports ur
+            JOIN users u ON u.id = ur.reported_id
+            JOIN users rp ON rp.id = ur.reporter_id
+            WHERE {where}
+            GROUP BY u.id
+            ORDER BY {"report_count DESC, last_reported_at DESC" if status == "open" else "resolved_at DESC"}
             LIMIT %s OFFSET %s
             """,
             [],
             page, page_size,
         )
     return {"items": rows, "total": total, "page": page, "page_size": page_size}
+
+
+def _close_user_reports(user_id: str, admin_id: str, resolution: str, note: Optional[str]) -> int:
+    with get_db() as (cur, conn):
+        cur.execute(
+            """
+            UPDATE user_reports SET resolved_at = NOW(), resolved_by = %s::uuid, resolution = %s, resolution_note = %s
+            WHERE reported_id = %s::uuid AND resolved_at IS NULL RETURNING id
+            """,
+            (admin_id, resolution, note, user_id),
+        )
+        n = len(cur.fetchall())
+        conn.commit()
+    return n
+
+
+@router.post("/users/{user_id}/dismiss")
+def dismiss_user_reports(user_id: str, body: ActionBody, current_admin: dict = Depends(get_current_admin)):
+    """Nothing to act on. Closes the reports; the person isn't told."""
+    if not _close_user_reports(user_id, current_admin["id"], "dismissed", body.note):
+        raise HTTPException(status_code=404, detail="No open reports on this person")
+    log_action(current_admin["id"], "dismiss_user_reports", "user", user_id, body.note)
+    return {"ok": True}
+
+
+@router.post("/users/{user_id}/warn")
+def warn_user(user_id: str, body: ActionBody, current_admin: dict = Depends(get_current_admin)):
+    """A first step: tell them what's not OK, in your words."""
+    note = _need_note(body, "message")
+    if not _close_user_reports(user_id, current_admin["id"], "warned", note):
+        raise HTTPException(status_code=404, detail="No open reports on this person")
+    _warn(user_id, note)
+    log_action(current_admin["id"], "warn_user", "user", user_id, note)
+    return {"ok": True}
+
+
+@router.post("/users/{user_id}/lock")
+def lock_reported_user(user_id: str, body: ActionBody, current_admin: dict = Depends(require_admin_role("super_admin"))):
+    """Locks the account (they can appeal once) and closes the reports."""
+    note = _need_note(body, "reason")
+    lock_account(user_id, note, current_admin["id"])
+    _close_user_reports(user_id, current_admin["id"], "locked", note)
+    return {"ok": True}
+
+
+# ── Events: reports grouped by event, then acted on ────────────────────────
+
+@router.get("/events")
+def list_event_reports(
+    status: str = Query(default="open", pattern="^(open|done)$"),
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=20, ge=1, le=100),
+    current_admin: dict = Depends(get_current_admin),
+):
+    """One row per reported event, most reported first, with what reporters said."""
+    where = _status_sql("er", status)
+    with get_db() as (cur, _):
+        rows, total = _paginated(
+            cur,
+            f"SELECT COUNT(DISTINCT er.event_id)::int AS count FROM event_reports er WHERE {where}",
+            [],
+            f"""
+            SELECT e.id::text AS event_id, e.title, e.date_time, e.city, e.area, e.price_inr, e.is_cancelled,
+                   (e.cover_photos->>0) AS cover,
+                   (SELECT COUNT(*) FROM event_attendees ea WHERE ea.event_id = e.id AND ea.status = 'going')::int AS going,
+                   h.id::text AS host_id, h.name AS host_name, h.phone AS host_phone, COALESCE(h.is_locked, FALSE) AS host_locked,
+                   (h.id_verified_at IS NOT NULL) AS host_verified,
+                   COUNT(er.id)::int AS report_count, array_agg(DISTINCT er.reason) AS reasons,
+                   array_remove(array_agg(DISTINCT er.description), NULL) AS descriptions,
+                   MAX(er.created_at) AS last_reported_at, MAX(er.resolution) AS resolution,
+                   MAX(er.resolution_note) AS resolution_note, MAX(er.resolved_at) AS resolved_at
+            FROM event_reports er
+            JOIN events e ON e.id = er.event_id
+            JOIN users h ON h.id = e.host_id
+            WHERE {where}
+            GROUP BY e.id, h.id
+            ORDER BY {"report_count DESC, last_reported_at DESC" if status == "open" else "resolved_at DESC"}
+            LIMIT %s OFFSET %s
+            """,
+            [],
+            page, page_size,
+        )
+    return {"items": rows, "total": total, "page": page, "page_size": page_size}
+
+
+def _close_event_reports(event_id: str, admin_id: str, resolution: str, note: Optional[str]) -> int:
+    with get_db() as (cur, conn):
+        cur.execute(
+            """
+            UPDATE event_reports SET resolved_at = NOW(), resolved_by = %s::uuid, resolution = %s, resolution_note = %s
+            WHERE event_id = %s::uuid AND resolved_at IS NULL RETURNING id
+            """,
+            (admin_id, resolution, note, event_id),
+        )
+        n = len(cur.fetchall())
+        conn.commit()
+    return n
+
+
+def _host_of(event_id: str) -> dict:
+    with get_db() as (cur, _):
+        cur.execute("SELECT host_id::text, is_cancelled, title FROM events WHERE id = %s::uuid", (event_id,))
+        ev = cur.fetchone()
+    if not ev:
+        raise HTTPException(status_code=404, detail="Event not found")
+    return ev
+
+
+@router.post("/events/{event_id}/dismiss")
+def dismiss_event_reports(event_id: str, body: ActionBody, current_admin: dict = Depends(get_current_admin)):
+    if not _close_event_reports(event_id, current_admin["id"], "dismissed", body.note):
+        raise HTTPException(status_code=404, detail="No open reports on this event")
+    log_action(current_admin["id"], "dismiss_event_reports", "event", event_id, body.note)
+    return {"ok": True}
+
+
+@router.post("/events/{event_id}/warn")
+def warn_host(event_id: str, body: ActionBody, current_admin: dict = Depends(get_current_admin)):
+    """Tell the host what needs fixing (wrong details, misleading photos, rules)."""
+    note = _need_note(body, "message")
+    ev = _host_of(event_id)
+    if not _close_event_reports(event_id, current_admin["id"], "warned", note):
+        raise HTTPException(status_code=404, detail="No open reports on this event")
+    _warn(ev["host_id"], f"About {ev['title']}: {note}")
+    log_action(current_admin["id"], "warn_host", "event", event_id, note)
+    return {"ok": True}
+
+
+@router.post("/events/{event_id}/cancel")
+def cancel_reported_event(event_id: str, body: ActionBody, background_tasks: BackgroundTasks, current_admin: dict = Depends(require_admin_role("super_admin"))):
+    """A fake or unsafe event: cancel it. Every guest is refunded and told,
+    the same as a force-cancel from the event page."""
+    note = _need_note(body, "reason")
+    ev = _host_of(event_id)
+    if ev["is_cancelled"]:
+        raise HTTPException(status_code=400, detail="This event is already cancelled")
+    _cancel_event_and_refund(event_id, background_tasks, cancelled_by_admin=True)
+    _close_event_reports(event_id, current_admin["id"], "cancelled", note)
+    _warn(ev["host_id"], f"We cancelled {ev['title']} after reports from guests. {note}")
+    log_action(current_admin["id"], "force_cancel_event", "event", event_id, note)
+    return {"ok": True}
+
+
+@router.post("/events/{event_id}/lock-host")
+def lock_reported_host(event_id: str, body: ActionBody, background_tasks: BackgroundTasks, current_admin: dict = Depends(require_admin_role("super_admin"))):
+    """The worst case (a scam or a dangerous host): cancel the event if it's
+    still on, refund everyone, and lock the host. They can appeal once."""
+    note = _need_note(body, "reason")
+    ev = _host_of(event_id)
+    if not ev["is_cancelled"]:
+        _cancel_event_and_refund(event_id, background_tasks, cancelled_by_admin=True)
+    lock_account(ev["host_id"], note, current_admin["id"])
+    _close_event_reports(event_id, current_admin["id"], "host_locked", note)
+    log_action(current_admin["id"], "force_cancel_event", "event", event_id, note)
+    return {"ok": True}
 
 
 # ── Messages: 1:1 and event group chats ─────────────────────────────────────

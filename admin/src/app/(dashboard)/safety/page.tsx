@@ -4,12 +4,11 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { ShieldAlert, Search } from 'lucide-react'
 import {
-  useUserReportsQuery, useEventReportsQuery, useBlocksQuery, useAdminActivityQuery,
+  useBlocksQuery, useAdminActivityQuery,
 } from '@/hooks/useReports'
 import { usePagination } from '@/hooks/usePagination'
 import { Table, THead, TBody, TR, TH, TD } from '@/components/ui/Table'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/Tabs'
-import { Badge } from '@/components/ui/Badge'
 import { Input } from '@/components/ui/Input'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/Select'
 import { Toolbar } from '@/components/ui/Toolbar'
@@ -18,6 +17,7 @@ import { PageHeader } from '@/components/ui/PageHeader'
 import { formatDate } from '@/lib/formatters'
 import { ACTION_LABELS, targetHref } from '@/lib/auditLog'
 import { MessageReportsTab, PhotoReportsTab } from './ModerationTabs'
+import { EventReportsTab, PeopleReportsTab } from './ReportQueues'
 
 export default function SafetyPage() {
   return (
@@ -32,13 +32,13 @@ export default function SafetyPage() {
         <TabsList>
           <TabsTrigger value="messages">Messages</TabsTrigger>
           <TabsTrigger value="photos">Album photos</TabsTrigger>
-          <TabsTrigger value="users">User Reports</TabsTrigger>
-          <TabsTrigger value="events">Event Reports</TabsTrigger>
+          <TabsTrigger value="users">People</TabsTrigger>
+          <TabsTrigger value="events">Events</TabsTrigger>
           <TabsTrigger value="blocks">Blocks</TabsTrigger>
           <TabsTrigger value="activity">Admin Activity</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="users"><UserReportsTab /></TabsContent>
+        <TabsContent value="users"><PeopleReportsTab /></TabsContent>
         <TabsContent value="events"><EventReportsTab /></TabsContent>
         <TabsContent value="messages"><MessageReportsTab /></TabsContent>
         <TabsContent value="photos"><PhotoReportsTab /></TabsContent>
@@ -46,90 +46,6 @@ export default function SafetyPage() {
         <TabsContent value="activity"><AdminActivityTab /></TabsContent>
       </Tabs>
     </div>
-  )
-}
-
-function UserReportsTab() {
-  const { page, pageSize, setPage, setPageSize } = usePagination(20)
-  const { data, isLoading } = useUserReportsQuery(page, pageSize)
-
-  return (
-    <ListShell
-      emptyIcon={ShieldAlert}
-      isLoading={isLoading}
-      empty={!isLoading && data?.items.length === 0}
-      emptyLabel="No user reports"
-      total={data?.total ?? 0}
-      page={data?.page ?? 1}
-      pageSize={data?.page_size ?? pageSize}
-      onPageChange={setPage}
-      onPageSizeChange={setPageSize}
-    >
-      <Table>
-        <THead><TR><TH>Reported user</TH><TH>Reported by</TH><TH>Reason</TH><TH>Date</TH></TR></THead>
-        <TBody>
-          {data?.items.map((r) => (
-            <TR key={r.id}>
-              <TD>
-                <Link href={`/users/${r.reported_id}`} className="hover:underline">
-                  {r.reported_name ?? 'Unnamed'}<span className="block text-xs text-ink-secondary">{r.reported_phone}</span>
-                </Link>
-              </TD>
-              <TD>
-                <Link href={`/users/${r.reporter_id}`} className="hover:underline">
-                  {r.reporter_name ?? 'Unnamed'}<span className="block text-xs text-ink-secondary">{r.reporter_phone}</span>
-                </Link>
-              </TD>
-              <TD className="capitalize">{r.reason.replace(/_/g, ' ')}</TD>
-              <TD>{formatDate(r.created_at)}</TD>
-            </TR>
-          ))}
-        </TBody>
-      </Table>
-    </ListShell>
-  )
-}
-
-function EventReportsTab() {
-  const { page, pageSize, setPage, setPageSize } = usePagination(20)
-  const { data, isLoading } = useEventReportsQuery(page, pageSize)
-
-  return (
-    <ListShell
-      emptyIcon={ShieldAlert}
-      isLoading={isLoading}
-      empty={!isLoading && data?.items.length === 0}
-      emptyLabel="No event reports"
-      total={data?.total ?? 0}
-      page={data?.page ?? 1}
-      pageSize={data?.page_size ?? pageSize}
-      onPageChange={setPage}
-      onPageSizeChange={setPageSize}
-    >
-      <Table>
-        <THead><TR><TH>Event</TH><TH>Reported by</TH><TH>Reason</TH><TH>Description</TH><TH>Date</TH></TR></THead>
-        <TBody>
-          {data?.items.map((r) => (
-            <TR key={r.id}>
-              <TD>
-                <Link href={`/events/${r.event_id}`} className="hover:underline">
-                  {r.event_title}
-                </Link>
-                {r.event_is_cancelled && <Badge variant="danger" className="ml-2">Cancelled</Badge>}
-              </TD>
-              <TD>
-                <Link href={`/users/${r.reporter_id}`} className="hover:underline">
-                  {r.reporter_name ?? 'Unnamed'}<span className="block text-xs text-ink-secondary">{r.reporter_phone}</span>
-                </Link>
-              </TD>
-              <TD className="capitalize">{r.reason.replace(/_/g, ' ')}</TD>
-              <TD>{r.description ?? '—'}</TD>
-              <TD>{formatDate(r.created_at)}</TD>
-            </TR>
-          ))}
-        </TBody>
-      </Table>
-    </ListShell>
   )
 }
 

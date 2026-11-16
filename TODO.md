@@ -21,9 +21,11 @@ once it ships.
   - `2026-11-07_host_verification.sql`
   - `2026-11-14_pan_verification.sql`
   - `2026-11-16_account_appeals.sql`
+  - `2026-11-16_report_actions.sql`
 
   All are in `server/scripts/sql/`.
 - [ ] Production server env: set `R2_CHAT_BUCKET=gorave-chat`.
+- [ ] Twilio: add `TWILIO_PHONE_NUMBER` (or a messaging service SID) so plain SMS go out: the "account unlocked" text and SOS alerts are only logged until then.
 - [ ] EAS: add `SENTRY_AUTH_TOKEN` as a secret (production environment). Rotate the old token.
 - [ ] Turn off the test OTP (`000000`): comment out the last line of `server/utils/twilio_client.py` (`_DEV_OTP_BYPASS = True`).
 - [ ] New EAS build (Android and iOS): needed for video compression, the OTP filling itself in from the SMS, and the live face check on the appeal selfie (VisionCamera 5 + ML Kit; needs iOS 15.5+, already covered by Expo SDK 56's 16.4 minimum).

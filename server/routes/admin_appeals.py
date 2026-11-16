@@ -11,8 +11,25 @@ from middleware.admin_auth import get_current_admin
 from utils import album
 from utils.admin_audit import log_action
 from utils.push import send_push
+from utils.twilio_client import send_sms
 
 router = APIRouter(prefix="/admin/appeals", tags=["admin-appeals"])
+
+
+UNLOCK_SMS = "Your Gorave account is unlocked. Welcome back! Open the app to carry on."
+
+
+def text_unlocked(user_id: str) -> None:
+    """An SMS to the number on the account, on top of the push: they may have
+    stopped opening the app while it was locked."""
+    try:
+        with get_db() as (cur, _):
+            cur.execute("SELECT phone, COALESCE(country_code, '+91') AS cc FROM users WHERE id = %s::uuid", (user_id,))
+            u = cur.fetchone()
+        if u and u["phone"]:
+            send_sms(f"{u['cc']}{u['phone']}", UNLOCK_SMS)
+    except Exception as e:
+        print(f"[unlock sms] {e!r}", flush=True)
 
 REASON_LABEL = {"not_me": "I didn't do this", "someone_else": "Someone else used my account", "sorry": "I understand, it won't happen again"}
 
@@ -82,6 +99,7 @@ def unlock(appeal_id: str, body: DecisionBody, current_admin: dict = Depends(get
         send_push(a["user_id"], "Your account is back", "We reviewed your appeal and unlocked your account. Welcome back.")
     except Exception:
         pass
+    text_unlocked(a["user_id"])
     return {"ok": True}
 
 

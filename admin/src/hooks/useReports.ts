@@ -25,12 +25,12 @@ function usePaginatedReports<T>(
   })
 }
 
-export function useUserReportsQuery(page: number, pageSize: number) {
-  return usePaginatedReports<UserReportItem>('admin-reports-users', '/admin/reports/users', page, pageSize)
+export function useUserReportsQuery(page: number, pageSize: number, status: ReportStatus) {
+  return usePaginatedReports<UserReportItem>('admin-reports-users', '/admin/reports/users', page, pageSize, { status })
 }
 
-export function useEventReportsQuery(page: number, pageSize: number) {
-  return usePaginatedReports<EventReportItem>('admin-reports-events', '/admin/reports/events', page, pageSize)
+export function useEventReportsQuery(page: number, pageSize: number, status: ReportStatus) {
+  return usePaginatedReports<EventReportItem>('admin-reports-events', '/admin/reports/events', page, pageSize, { status })
 }
 
 export function useMessageReportsQuery(page: number, pageSize: number, status: ReportStatus) {
@@ -49,14 +49,16 @@ export function useMessageContextQuery(messageId: string | null) {
   })
 }
 
-/** Remove or keep a reported message or photo. Closes every report on it. */
+export type ModerationKind = 'messages' | 'photos' | 'users' | 'events'
+
+/** Act on reported content, a person or an event. Closes every open report on it. */
 export function useModerationMutation() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: ({ kind, id, decision, note }: { kind: 'messages' | 'photos'; id: string; decision: 'remove' | 'keep'; note?: string }) =>
+    mutationFn: ({ kind, id, decision, note }: { kind: ModerationKind; id: string; decision: string; note?: string }) =>
       apiClient.post(`/admin/reports/${kind}/${id}/${decision}`, { note: note || null }),
     onSuccess: (_data, { kind }) => {
-      queryClient.invalidateQueries({ queryKey: [kind === 'messages' ? 'admin-reports-messages' : 'admin-reports-photos'] })
+      queryClient.invalidateQueries({ queryKey: [`admin-reports-${kind}`] })
       queryClient.invalidateQueries({ queryKey: ['admin-audit-log'] })
     },
   })

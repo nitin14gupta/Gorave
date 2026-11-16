@@ -26,7 +26,7 @@ import { useAuthStore } from '@/store/auth'
 import { usePillStore } from '@/store/pillStore'
 import { Colors, FontFamily } from '@/constants'
 
-const BUBBLE_TYPES_SKIPPED = new Set(['system', 'update'])
+const BUBBLE_TYPES_SKIPPED = new Set(['system', 'update', 'blocked'])
 const PARTY_REACTION = '🎉'
 
 type ListRow = { kind: 'date'; id: string; label: string } | { kind: 'msg'; id: string; msg: EventChatMessage; index: number }
@@ -156,6 +156,11 @@ export default function EventChatScreen() {
     const isMine = msg.sender_id === myId
     const newer = c.messages[index - 1]
     const older = c.messages[index + 1]
+    // A block either way: one quiet line, and a run of them shows once.
+    if (msg.content_type === 'blocked') {
+      if (newer?.content_type === 'blocked' && dayKey(newer.sent_at) === dayKey(msg.sent_at)) return null
+      return <MessageBubble msg={msg as Message} isMine={false} myId={myId ?? ''} isFailed={false} onDoubleTap={() => {}} onLongPress={() => {}} onSwipeReply={() => {}} onReactionPillPress={() => {}} onReplyTap={() => {}} onMediaTap={() => {}} onRetry={() => {}} />
+    }
     const sameRun = (other?: EventChatMessage) => !!other && other.sender_id === msg.sender_id && !BUBBLE_TYPES_SKIPPED.has(other.content_type) && dayKey(other.sent_at) === dayKey(msg.sent_at)
     return (
       <>
@@ -164,7 +169,7 @@ export default function EventChatScreen() {
           isMine={isMine}
           firstInRun={!sameRun(older)}
           lastInRun={!sameRun(newer)}
-          onPressSender={() => { hTap(); router.push(`/(profile)/${msg.sender_id}` as any) }}
+          onPressSender={() => { if (msg.sender?.unavailable || !msg.sender_id) return; hTap(); router.push(`/(profile)/${msg.sender_id}` as any) }}
         >
           <MessageBubble
             msg={msg as Message}

@@ -608,6 +608,11 @@ def list_notifications(
             FROM notifications n
             LEFT JOIN users u ON u.id = n.actor_id
             WHERE {where}
+              -- Nothing from someone who's locked, deleted, or in a block with you.
+              AND (n.actor_id IS NULL OR n.actor_id = n.user_id OR (
+                COALESCE(u.is_deleted, FALSE) = FALSE AND COALESCE(u.is_locked, FALSE) = FALSE
+                AND NOT EXISTS (SELECT 1 FROM user_blocks ub WHERE (ub.blocker_id = n.user_id AND ub.blocked_id = n.actor_id) OR (ub.blocker_id = n.actor_id AND ub.blocked_id = n.user_id))
+              ))
             ORDER BY n.created_at DESC
             LIMIT %s
             """,

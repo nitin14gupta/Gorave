@@ -3,9 +3,9 @@ import { View, Text, StyleSheet, Pressable } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { hMedium, hSuccess } from "@/lib/haptics";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { ArrowLeft, Ghost } from "lucide-react-native";
+import { ArrowLeft } from "lucide-react-native";
 import { useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
-import { VibeRequestModal, VibeIcebreakerModal, ProfileMenuSheet, BrandedLoader } from "@/components/ui";
+import { VibeRequestModal, VibeIcebreakerModal, ProfileMenuSheet, BrandedLoader, UnavailableProfile } from "@/components/ui";
 import ApiService, { ExtendedProfile } from "@/api/apiService";
 import { Colors, FontFamily, HOST_BADGE_IMAGES } from "@/constants";
 import { usePillStore } from "@/store/pillStore";
@@ -26,6 +26,8 @@ export default function UserProfileScreen() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [blockedByMe, setBlockedByMe] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  // 404 PROFILE_UNAVAILABLE: deleted, locked, or they blocked me.
+  const [unavailable, setUnavailable] = useState(false);
   const showPill = usePillStore((s) => s.show);
   const { markSent, markCleared, isSentTo } = useVibeStore();
 
@@ -45,7 +47,10 @@ export default function UserProfileScreen() {
         setBlockedByMe(!!p.is_blocked_by_me);
         if (p.voice_url) voicePlayer.replace({ uri: p.voice_url });
       })
-      .catch((e: any) => showPill(e?.message || "Couldn't load this profile", "error"))
+      .catch((e: any) => {
+        if (e?.status === 404) setUnavailable(true);
+        else showPill(e?.message || "Couldn't load this profile", "error");
+      })
       .finally(() => setLoading(false));
   }, [id]);
 
@@ -62,7 +67,8 @@ export default function UserProfileScreen() {
       setBlockedByMe(!!p.is_blocked_by_me);
       if (p.voice_url) voicePlayer.replace({ uri: p.voice_url });
     } catch (e: any) {
-      showPill(e?.message || "Couldn't refresh this profile", "error");
+      if (e?.status === 404) { setProfile(null); setUnavailable(true); }
+      else showPill(e?.message || "Couldn't refresh this profile", "error");
     } finally {
       setRefreshing(false);
     }
@@ -165,7 +171,8 @@ export default function UserProfileScreen() {
     );
   }
 
-  if (!profile) {
+  // Not found, deleted, locked or blocked me: one screen, never says which.
+  if (!profile || profile.is_deleted || unavailable) {
     return (
       <View style={[s.root, s.center]}>
         <Pressable
@@ -174,29 +181,7 @@ export default function UserProfileScreen() {
         >
           <ArrowLeft size={18} color={Colors.inkPrimary} strokeWidth={2} />
         </Pressable>
-        <View style={s.deletedIconWrap}>
-          <Ghost size={40} color={Colors.inkDisabled} strokeWidth={1.5} />
-        </View>
-        <Text style={s.deletedTitle}>Profile Not Found</Text>
-        <Text style={s.deletedBody}>This user may not exist or the link is invalid.</Text>
-      </View>
-    );
-  }
-
-  if (profile.is_deleted) {
-    return (
-      <View style={[s.root, s.center]}>
-        <Pressable
-          onPress={() => router.back()}
-          style={[s.backBtn, { position: "absolute", top: insets.top + 8, left: 0 }]}
-        >
-          <ArrowLeft size={18} color={Colors.inkPrimary} strokeWidth={2} />
-        </Pressable>
-        <View style={s.deletedIconWrap}>
-          <Ghost size={40} color={Colors.inkDisabled} strokeWidth={1.5} />
-        </View>
-        <Text style={s.deletedTitle}>Not Found</Text>
-        <Text style={s.deletedBody}>This profile is no longer available.</Text>
+        <UnavailableProfile />
       </View>
     );
   }
@@ -315,28 +300,6 @@ const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: Colors.background },
   center: { alignItems: "center", justifyContent: "center" },
   backBtn: { paddingHorizontal: 20, paddingVertical: 10 },
-  deletedIconWrap: {
-    width: 88,
-    height: 88,
-    borderRadius: 44,
-    backgroundColor: Colors.elevated,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 20,
-  },
-  deletedTitle: {
-    fontFamily: FontFamily.headingBold,
-    fontSize: 22,
-    color: Colors.inkSecondary,
-    marginBottom: 10,
-  },
-  deletedBody: {
-    fontFamily: FontFamily.bodyRegular,
-    fontSize: 14,
-    color: Colors.inkDisabled,
-    textAlign: "center",
-    lineHeight: 21,
-  },
   body: { padding: 20, gap: 16 },
   bio: {
     fontFamily: FontFamily.bodyRegular,

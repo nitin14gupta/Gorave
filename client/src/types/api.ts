@@ -467,6 +467,8 @@ export interface EventChatMember {
   username: string | null
   avatar: string | null
   last_read_at: string
+  /** A block either way: shown with no name or photo. */
+  unavailable?: boolean
 }
 
 export interface EventChatSeen {
@@ -535,6 +537,8 @@ export interface Message {
   sender_id: string
   content: string | null
   content_type: 'text' | 'event' | 'profile' | 'image' | 'voice' | 'video' | 'gif' | 'ticket' | 'unavailable' | 'system' | 'update'
+    // Read-time shapes for the viewer: someone they can't see.
+    | 'blocked' | 'profile_unavailable'
   metadata: Record<string, any> | null
   sent_at: string
   read_at: string | null
@@ -665,7 +669,8 @@ export interface TransferPreview {
 export type CancelReason = 'plans_changed' | 'unwell' | 'date' | 'other'
 
 export interface EventChatMessage extends Message {
-  sender: { id: string; name: string | null; avatar: string | null; is_host: boolean }
+  // `unavailable`: deleted, locked or a block. id is null for a block.
+  sender: { id: string | null; name: string | null; avatar: string | null; is_host: boolean; unavailable?: boolean }
 }
 
 export interface EventChat {
@@ -683,4 +688,6 @@ export interface EventChat {
   member_count: number
   pinned: EventChatMessage | null
   blocked_ids: string[]
+  /** The ones I blocked (the rest of blocked_ids blocked me). */
+  blocked_by_me_ids?: string[]
 }

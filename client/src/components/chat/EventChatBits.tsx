@@ -6,6 +6,7 @@ import { router } from 'expo-router'
 import { ChevronRight, Lock, Megaphone, Pin } from 'lucide-react-native'
 import type { EventChatMessage, EventChatSeen } from '@/api/apiService'
 import { hTap } from '@/lib/haptics'
+import { UnavailableAvatar, UNAVAILABLE_LABEL } from '@/components/ui'
 import { Colors, FontFamily, withOpacity } from '@/constants'
 
 const AVATAR = 28
@@ -57,15 +58,16 @@ export function GroupRow({ msg, isMine, firstInRun, lastInRun, children, onPress
   msg: EventChatMessage; isMine: boolean; firstInRun: boolean; lastInRun: boolean; children: ReactNode; onPressSender: () => void
 }) {
   if (isMine) return <View style={s.mine}>{children}</View>
+  const gone = !!msg.sender?.unavailable
   return (
     <View style={s.row}>
-      <Pressable style={s.avatarSlot} onPress={onPressSender} disabled={!lastInRun} accessibilityLabel={`Open ${firstName(msg.sender?.name)}'s profile`}>
-        {lastInRun ? <Face uri={msg.sender?.avatar} name={msg.sender?.name} size={AVATAR} /> : null}
+      <Pressable style={s.avatarSlot} onPress={onPressSender} disabled={!lastInRun || gone} accessibilityLabel={gone ? UNAVAILABLE_LABEL : `Open ${firstName(msg.sender?.name)}'s profile`}>
+        {lastInRun ? (gone ? <UnavailableAvatar size={AVATAR} /> : <Face uri={msg.sender?.avatar} name={msg.sender?.name} size={AVATAR} />) : null}
       </Pressable>
       <View style={s.flex}>
         {firstInRun ? (
           <View style={s.nameRow}>
-            <Text style={s.name} numberOfLines={1}>{firstName(msg.sender?.name)}</Text>
+            <Text style={[s.name, gone && s.nameGone]} numberOfLines={1}>{gone ? UNAVAILABLE_LABEL : firstName(msg.sender?.name)}</Text>
             {msg.sender?.is_host ? <Text style={s.hostTag}>Host</Text> : null}
           </View>
         ) : null}
@@ -144,6 +146,7 @@ export function ChatNotice({ closed, eventId }: { closed: boolean; eventId: stri
 }
 
 const s = StyleSheet.create({
+  nameGone: { color: Colors.inkDisabled },
   flex: { flex: 1 },
   face: { backgroundColor: Colors.elevated, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
   faceInitial: { fontFamily: FontFamily.headingBold, color: Colors.inkPrimary },
