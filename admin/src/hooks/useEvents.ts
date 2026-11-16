@@ -9,19 +9,22 @@ export interface EventFilters {
   city?: string
   joinMode?: string
   crowd?: string
+  /** Only events with open reports */
+  reported?: boolean
   page: number
   pageSize: number
 }
 
-export function useEventsQuery({ status, q, city, joinMode, crowd, page, pageSize }: EventFilters) {
+export function useEventsQuery({ status, q, city, joinMode, crowd, reported, page, pageSize }: EventFilters) {
   return useQuery({
-    queryKey: ['admin-events', status, q, city, joinMode, crowd, page, pageSize],
+    queryKey: ['admin-events', status, q, city, joinMode, crowd, reported, page, pageSize],
     queryFn: () => {
       const params = new URLSearchParams({ status, page: String(page), page_size: String(pageSize) })
       if (q) params.set('q', q)
       if (city) params.set('city', city)
       if (joinMode) params.set('join_mode', joinMode)
       if (crowd) params.set('crowd', crowd)
+      if (reported) params.set('reported', 'true')
       return apiClient.get<PaginatedResponse<EventListItem>>(`/admin/events?${params}`)
     },
   })

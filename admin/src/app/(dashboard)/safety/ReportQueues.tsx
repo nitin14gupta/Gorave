@@ -25,6 +25,7 @@ const OUTCOME: Record<string, { text: string; variant: 'danger' | 'warning' | 'n
   locked: { text: 'Locked', variant: 'danger' },
   cancelled: { text: 'Event cancelled', variant: 'danger' },
   host_locked: { text: 'Host locked', variant: 'danger' },
+  refunded: { text: 'Guests refunded, no payout', variant: 'danger' },
 }
 
 interface ActionDef {
@@ -37,7 +38,7 @@ interface ActionDef {
 }
 
 /** A row of actions; anything that changes someone's account asks first, with a reason they'll see. */
-function Actions({ kind, id, actions }: { kind: ModerationKind; id: string; actions: ActionDef[] }) {
+export function Actions({ kind, id, actions }: { kind: ModerationKind; id: string; actions: ActionDef[] }) {
   const [open, setOpen] = useState<ActionDef | null>(null)
   const act = useModerationMutation()
   const toast = useToastStore(s => s.show)
@@ -88,7 +89,7 @@ function StatusFilter({ status, onChange }: { status: ReportStatus; onChange: (s
   )
 }
 
-function Outcome({ resolution, note, at }: { resolution: string | null; note: string | null; at: string | null }) {
+export function Outcome({ resolution, note, at }: { resolution: string | null; note: string | null; at: string | null }) {
   if (!resolution) return null
   const o = OUTCOME[resolution] ?? { text: resolution, variant: 'neutral' as const }
   return (
@@ -174,22 +175,31 @@ export function PeopleReportsTab() {
 
 // ── Events ──────────────────────────────────────────────────────────────────
 
-const EVENT_ACTIONS = (cancelled: boolean): ActionDef[] => [
+/** What can be done depends on when the event is. Before it starts: cancel it
+ * (everyone refunded). Once it has started: it can't be cancelled, so refund
+ * the guests instead, and the host isn't paid for it. */
+export const EVENT_ACTIONS = ({ cancelled, started }: { cancelled: boolean; started: boolean }): ActionDef[] => [
   { key: 'dismiss', label: 'Dismiss', done: 'Reports closed, nothing done' },
   {
     key: 'warn', label: 'Warn host',
     ask: { title: 'Warn the host?', description: 'For fixable problems: wrong details, misleading photos, house rules.', reasonLabel: 'Message to the host', confirm: 'Send warning' },
     done: 'Host warned',
   },
-  ...(cancelled ? [] : [{
+  ...(cancelled ? [] : started ? [{
+    key: 'refund', label: 'Refund guests, hold payout', danger: true,
+    ask: { title: 'Refund every guest?', description: 'For an event that was rigged or fake. Everyone who paid gets the full amount back to their wallet, and the host is not paid for this event.', reasonLabel: 'Reason (the host sees this)', confirm: 'Refund guests' },
+    done: 'Guests refunded, payout held',
+  } as ActionDef] : [{
     key: 'cancel', label: 'Cancel event', danger: true,
     ask: { title: 'Cancel this event?', description: 'Every guest is refunded and told. The host is told why.', reasonLabel: 'Reason (the host sees this)', confirm: 'Cancel event' },
     done: 'Event cancelled, guests refunded',
   } as ActionDef]),
   {
-    key: 'lock-host', label: 'Cancel and lock host', danger: true,
-    ask: { title: 'Cancel and lock the host?', description: 'For scams and danger. The event is cancelled with full refunds, and the host is locked (they can appeal once).', reasonLabel: 'Reason (the host sees this)', confirm: 'Cancel and lock' },
-    done: 'Event cancelled and host locked',
+    key: 'lock-host', label: started ? 'Refund and lock host' : 'Cancel and lock host', danger: true,
+    ask: started
+      ? { title: 'Refund and lock the host?', description: 'For scams and danger. Every guest is refunded, the host is not paid, and the host is locked (they can appeal once).', reasonLabel: 'Reason (the host sees this)', confirm: 'Refund and lock' }
+      : { title: 'Cancel and lock the host?', description: 'For scams and danger. The event is cancelled with full refunds, and the host is locked (they can appeal once).', reasonLabel: 'Reason (the host sees this)', confirm: 'Cancel and lock' },
+    done: started ? 'Guests refunded and host locked' : 'Event cancelled and host locked',
   },
 ]
 
@@ -227,7 +237,9 @@ export function EventReportsTab() {
                   Host <Link href={`/users/${e.host_id}`} className="font-medium text-ink-primary hover:underline">{e.host_name ?? 'Unnamed'}</Link> · {e.host_phone}
                 </span>
                 <div className="flex flex-wrap gap-1">
-                  {e.is_cancelled ? <Badge variant="danger">Cancelled</Badge> : null}
+                  {e.is_cancelled ? <Badge variant="danger">Cancelled</Badge> : e.is_past ? <Badge>Past</Badge> : e.has_started ? <Badge variant="warning">On now</Badge> : <Badge>Upcoming</Badge>}
+                  {e.payout_held_at ? <Badge variant="danger">Payout held</Badge> : null}
+                  {!e.is_cancelled && e.has_started && e.paid_unrefunded_inr > 0 ? <Badge variant="warning">₹{e.paid_unrefunded_inr.toLocaleString('en-IN')} paid in</Badge> : null}
                   {e.host_locked ? <Badge variant="danger">Host locked</Badge> : null}
                   {e.host_verified ? <Badge variant="success">Host ID verified</Badge> : <Badge variant="warning">Host not verified</Badge>}
                 </div>
@@ -241,7 +253,7 @@ export function EventReportsTab() {
                 {e.descriptions.slice(0, 3).map(d => <p key={d} className="text-sm text-ink-primary">“{d}”</p>)}
               </div>
               {status === 'open'
-                ? <Actions kind="events" id={e.event_id} actions={EVENT_ACTIONS(e.is_cancelled)} />
+                ? <Actions kind="events" id={e.event_id} actions={EVENT_ACTIONS({ cancelled: e.is_cancelled, started: e.has_started })} />
                 : <Outcome resolution={e.resolution} note={e.resolution_note} at={e.resolved_at} />}
             </Card>
           ))}

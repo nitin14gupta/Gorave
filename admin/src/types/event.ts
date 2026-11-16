@@ -26,6 +26,10 @@ export interface EventListItem {
   join_mode: 'instant' | 'request'
   women_pct: number | null
   pending_requests: number
+  /** Reports nobody has acted on yet */
+  open_reports: number
+  /** Guests refunded after the event: the host isn't paid for it */
+  payout_held_at: string | null
 }
 
 export interface CityCount {
@@ -75,6 +79,9 @@ export interface EventDetailInfo {
   host_id: string
   host_name: string | null
   host_phone: string
+  host_locked: boolean
+  payout_held_at: string | null
+  payout_held_reason: string | null
   avg_rating: number | null
 }
 
@@ -120,6 +127,9 @@ export interface EventReportRow {
   reason: string
   description: string | null
   created_at: string
+  resolved_at: string | null
+  resolution: string | null
+  resolution_note: string | null
   user_id: string
   name: string | null
 }

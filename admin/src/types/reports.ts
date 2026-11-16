@@ -37,11 +37,16 @@ export interface EventReportItem {
   host_phone: string
   host_locked: boolean
   host_verified: boolean
+  is_past: boolean
+  has_started: boolean
+  payout_held_at: string | null
+  /** Paid tickets not refunded yet: what a refund would return */
+  paid_unrefunded_inr: number
   report_count: number
   reasons: string[]
   descriptions: string[]
   last_reported_at: string
-  resolution: 'dismissed' | 'warned' | 'cancelled' | 'host_locked' | null
+  resolution: 'dismissed' | 'warned' | 'cancelled' | 'host_locked' | 'refunded' | null
   resolution_note: string | null
   resolved_at: string | null
 }

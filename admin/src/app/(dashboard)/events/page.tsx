@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { Search, Users, MapPin, ImageOff, CalendarDays, Inbox } from 'lucide-react'
+import { Search, Users, MapPin, ImageOff, CalendarDays, Inbox, Flag } from 'lucide-react'
 import { useEventsQuery, useEventCitiesQuery } from '@/hooks/useEvents'
 import { usePagination } from '@/hooks/usePagination'
 import { Card } from '@/components/ui/Card'
@@ -43,6 +43,7 @@ export default function EventsPage() {
   const [city, setCity] = useState(ALL)
   const [joinMode, setJoinMode] = useState(ALL)
   const [crowd, setCrowd] = useState(ALL)
+  const [reported, setReported] = useState(false)
   const { page, pageSize, setPage, setPageSize } = usePagination(12)
   const cities = useEventCitiesQuery().data?.items ?? []
 
@@ -51,6 +52,7 @@ export default function EventsPage() {
     city: city === ALL ? undefined : city,
     joinMode: joinMode === ALL ? undefined : joinMode,
     crowd: crowd === ALL ? undefined : crowd,
+    reported,
   })
   const reset = () => setPage(1)
 
@@ -59,7 +61,7 @@ export default function EventsPage() {
       <PageHeader
         breadcrumb={[{ label: 'Dashboard', href: '/' }, { label: 'Events' }]}
         title="Events"
-        subtitle={data ? `${data.total.toLocaleString()} ${status} events` : 'Loading…'}
+        subtitle={data ? `${data.total.toLocaleString()} ${reported ? 'reported ' : ''}${status} events` : 'Loading…'}
       />
 
       <Toolbar>
@@ -67,6 +69,8 @@ export default function EventsPage() {
           {TABS.map((t) => (
             <FilterChip key={t.value} label={t.label} active={status === t.value} onClick={() => { setStatus(t.value); reset() }} />
           ))}
+          <span className="mx-1 w-px self-stretch bg-divider" />
+          <FilterChip label="Reported" active={reported} onClick={() => { setReported(r => !r); reset() }} />
         </div>
         <div className="relative">
           <Search className="pointer-events-none absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-ink-secondary" />
@@ -96,7 +100,7 @@ export default function EventsPage() {
         emptyIcon={CalendarDays}
         isLoading={isLoading}
         empty={!isLoading && data?.items.length === 0}
-        emptyLabel={`No ${status} events`}
+        emptyLabel={reported ? `No reported ${status} events` : `No ${status} events`}
         total={data?.total ?? 0}
         page={data?.page ?? 1}
         pageSize={data?.page_size ?? pageSize}
@@ -122,6 +126,12 @@ export default function EventsPage() {
                   <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/70 to-transparent" />
                   <div className="absolute left-3 top-3 flex flex-wrap gap-1.5">
                     {e.is_cancelled && <Badge variant="danger">Cancelled</Badge>}
+                    {e.open_reports > 0 && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-destructive px-2.5 py-0.5 font-sans text-xs font-bold text-white">
+                        <Flag className="h-3 w-3" /> {e.open_reports} {e.open_reports === 1 ? 'report' : 'reports'}
+                      </span>
+                    )}
+                    {e.payout_held_at && <Badge variant="danger">Payout held</Badge>}
                     {e.join_mode === 'request' && e.pending_requests > 0 && (
                       <span className="inline-flex items-center gap-1 rounded-full bg-black/55 px-2.5 py-0.5 font-sans text-xs font-bold text-white">
                         <Inbox className="h-3 w-3" /> {e.pending_requests} waiting

@@ -162,6 +162,10 @@ Routes live in `client/src/app/` (Expo Router). `(group)` folders don't show in 
 | Edit screen locked banner | Edit an event under 7h away | ✅ neutral card, accurate copy |
 | Scanner from guest list | Guest list → Scanner, too early or after | ✅ pill says the exact opening time |
 | Chat: blocked / they blocked / deleted account | Open that chat | ✅ card with title, reason, Unblock / Delete chat |
+| Profile not available | Open a deleted or locked person, or someone who blocked you | ✅ one ghost screen, never says which; comes back on unlock |
+| Shared profile of someone unavailable | A friend forwards that person's card | ✅ greyed card, not tappable |
+| Group chat: someone in a block with you | Event chat with a person you blocked / who blocked you | ✅ one quiet line ("Message from someone you blocked" / "Message unavailable") |
+| Group chat: locked sender | Event chat with a locked guest | ✅ ghost face, "Profile not available", not tappable |
 | Can't delete account while hosting | Settings → Account → Delete account | ✅ "Your guests come first" |
 
 ### Sheets and overlays (not routes, still worth a pass)

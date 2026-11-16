@@ -60,6 +60,10 @@ export function useModerationMutation() {
     onSuccess: (_data, { kind }) => {
       queryClient.invalidateQueries({ queryKey: [`admin-reports-${kind}`] })
       queryClient.invalidateQueries({ queryKey: ['admin-audit-log'] })
+      if (kind === 'events') {
+        queryClient.invalidateQueries({ queryKey: ['admin-events'] })
+        queryClient.invalidateQueries({ queryKey: ['admin-event'] })
+      }
     },
   })
 }

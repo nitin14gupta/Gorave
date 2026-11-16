@@ -6,7 +6,7 @@ from pydantic import BaseModel
 from db.config import get_db
 from middleware.admin_auth import get_current_admin, require_admin_role
 from routes.admin_users import lock_account
-from routes.events import _cancel_event_and_refund
+from routes.events import _cancel_event_and_refund, _refund_past_event
 from routes.notifications import _insert_notification
 from routes.chat import _msg_cache_key
 from utils import album, chat_realtime as rt
@@ -252,6 +252,9 @@ def list_event_reports(
                    (SELECT COUNT(*) FROM event_attendees ea WHERE ea.event_id = e.id AND ea.status = 'going')::int AS going,
                    h.id::text AS host_id, h.name AS host_name, h.phone AS host_phone, COALESCE(h.is_locked, FALSE) AS host_locked,
                    (h.id_verified_at IS NOT NULL) AS host_verified,
+                   (COALESCE(e.end_time, e.date_time) < NOW()) AS is_past, (e.date_time <= NOW()) AS has_started,
+                   e.payout_held_at,
+                   (SELECT COALESCE(SUM(ea.price_paid_inr + COALESCE(ea.fee_paid_inr, 0)), 0) FROM event_attendees ea WHERE ea.event_id = e.id AND ea.status = 'going' AND ea.payment_id IS NOT NULL AND ea.refunded_at IS NULL)::int AS paid_unrefunded_inr,
                    COUNT(er.id)::int AS report_count, array_agg(DISTINCT er.reason) AS reasons,
                    array_remove(array_agg(DISTINCT er.description), NULL) AS descriptions,
                    MAX(er.created_at) AS last_reported_at, MAX(er.resolution) AS resolution,
@@ -286,7 +289,7 @@ def _close_event_reports(event_id: str, admin_id: str, resolution: str, note: Op
 
 def _host_of(event_id: str) -> dict:
     with get_db() as (cur, _):
-        cur.execute("SELECT host_id::text, is_cancelled, title FROM events WHERE id = %s::uuid", (event_id,))
+        cur.execute("SELECT host_id::text, is_cancelled, title, (date_time <= NOW()) AS started FROM events WHERE id = %s::uuid", (event_id,))
         ev = cur.fetchone()
     if not ev:
         raise HTTPException(status_code=404, detail="Event not found")
@@ -321,6 +324,8 @@ def cancel_reported_event(event_id: str, body: ActionBody, background_tasks: Bac
     ev = _host_of(event_id)
     if ev["is_cancelled"]:
         raise HTTPException(status_code=400, detail="This event is already cancelled")
+    if ev["started"]:
+        raise HTTPException(status_code=400, detail="This event has already started. Refund the guests instead.")
     _cancel_event_and_refund(event_id, background_tasks, cancelled_by_admin=True)
     _close_event_reports(event_id, current_admin["id"], "cancelled", note)
     _warn(ev["host_id"], f"We cancelled {ev['title']} after reports from guests. {note}")
@@ -334,12 +339,31 @@ def lock_reported_host(event_id: str, body: ActionBody, background_tasks: Backgr
     still on, refund everyone, and lock the host. They can appeal once."""
     note = _need_note(body, "reason")
     ev = _host_of(event_id)
-    if not ev["is_cancelled"]:
+    if ev["started"] and not ev["is_cancelled"]:
+        _refund_past_event(event_id, note)
+    elif not ev["is_cancelled"]:
         _cancel_event_and_refund(event_id, background_tasks, cancelled_by_admin=True)
     lock_account(ev["host_id"], note, current_admin["id"])
     _close_event_reports(event_id, current_admin["id"], "host_locked", note)
     log_action(current_admin["id"], "force_cancel_event", "event", event_id, note)
     return {"ok": True}
+
+
+@router.post("/events/{event_id}/refund")
+def refund_reported_event(event_id: str, body: ActionBody, current_admin: dict = Depends(require_admin_role("super_admin"))):
+    """It already happened and was rigged: refund every guest who paid, and
+    the host isn't paid for it."""
+    note = _need_note(body, "reason")
+    ev = _host_of(event_id)
+    if ev["is_cancelled"]:
+        raise HTTPException(status_code=400, detail="This event is cancelled, guests were already refunded")
+    if not ev["started"]:
+        raise HTTPException(status_code=400, detail="This event hasn't started. Cancel it instead.")
+    res = _refund_past_event(event_id, note)
+    _close_event_reports(event_id, current_admin["id"], "refunded", note)
+    _warn(ev["host_id"], f"After reports from guests about {ev['title']}, we refunded them and you won't be paid for it. {note}")
+    log_action(current_admin["id"], "refund_event", "event", event_id, f"{note} ({res['refunded']} guests, ₹{res['amount']})")
+    return {"ok": True, **res}
 
 
 # ── Messages: 1:1 and event group chats ─────────────────────────────────────

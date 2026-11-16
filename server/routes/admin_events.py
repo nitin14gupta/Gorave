@@ -43,6 +43,7 @@ def list_events(
     city: str | None = Query(default=None),
     join_mode: str | None = Query(default=None),
     crowd: str | None = Query(default=None),
+    reported: bool = Query(default=False),
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=25, ge=1, le=100),
     current_admin: dict = Depends(get_current_admin),
@@ -87,6 +88,10 @@ def list_events(
     elif crowd == "mixed":
         filters.append("e.women_pct > 0 AND e.women_pct < 100")
 
+    # Only events with reports nobody has acted on yet.
+    if reported:
+        filters.append("EXISTS (SELECT 1 FROM event_reports er WHERE er.event_id = e.id AND er.resolved_at IS NULL)")
+
     where = f"WHERE {' AND '.join(filters)}" if filters else ""
     # Soonest-first for what's still ahead, most-recent-first for what's done.
     order = "e.date_time ASC" if status in ("active", "upcoming") else "e.date_time DESC"
@@ -105,7 +110,9 @@ def list_events(
                 e.city, e.area, e.join_mode, e.women_pct,
                 u.id::text AS host_id, u.name AS host_name,
                 (SELECT COUNT(*) FROM event_attendees ea WHERE ea.event_id = e.id AND ea.status = 'going')::int AS attendee_count,
-                (SELECT COUNT(*) FROM event_attendees ea WHERE ea.event_id = e.id AND ea.status = 'requested')::int AS pending_requests
+                (SELECT COUNT(*) FROM event_attendees ea WHERE ea.event_id = e.id AND ea.status = 'requested')::int AS pending_requests,
+                (SELECT COUNT(*) FROM event_reports er WHERE er.event_id = e.id AND er.resolved_at IS NULL)::int AS open_reports,
+                e.payout_held_at
             FROM events e
             JOIN users u ON u.id = e.host_id
             {where}
@@ -149,7 +156,8 @@ def get_event_detail(event_id: str, current_admin: dict = Depends(get_current_ad
                 e.platform_fee_inr, e.host_commission_inr, e.platform_profit_inr,
                 COALESCE(e.cover_photos, '[]'::jsonb) AS cover_photos,
                 e.is_published, e.is_cancelled, e.created_at, e.updated_at,
-                u.id::text AS host_id, u.name AS host_name, u.phone AS host_phone,
+                e.payout_held_at, e.payout_held_reason,
+                u.id::text AS host_id, u.name AS host_name, u.phone AS host_phone, COALESCE(u.is_locked, FALSE) AS host_locked,
                 (SELECT ROUND(AVG(rating)::numeric, 1) FROM event_reviews WHERE event_id = e.id) AS avg_rating
             FROM events e
             JOIN users u ON u.id = e.host_id
@@ -225,6 +233,7 @@ def get_event_detail(event_id: str, current_admin: dict = Depends(get_current_ad
         cur.execute(
             """
             SELECT er.id::text, er.reason, er.description, er.created_at,
+                   er.resolved_at, er.resolution, er.resolution_note,
                    u.id::text AS user_id, u.name
             FROM event_reports er
             JOIN users u ON u.id = er.reporter_id

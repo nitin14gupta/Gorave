@@ -2596,6 +2596,61 @@ def expire_pending_requests() -> int:
 
 # ── DELETE /events/{id} ───────────────────────────────────────────────────────
 
+def _refund_past_event(event_id: str, reason: str) -> Optional[dict]:
+    """An event that already happened and turned out to be rigged: every guest
+    who paid gets everything back to their wallet (ticket and fee), and the
+    host isn't paid for it. Refunded tickets leave the payout ledger on their
+    own; payout_held_at records why. Safe to run twice: each ticket refunds
+    once. None if the event doesn't exist."""
+    from routes.payments import _refund_to_wallet
+    from routes.notifications import _insert_notification
+    with get_db() as (cur, conn):
+        cur.execute(
+            "SELECT title, price_inr, platform_fee_inr, host_id::text FROM events WHERE id = %s::uuid FOR UPDATE",
+            (event_id,),
+        )
+        ev = cur.fetchone()
+        if not ev:
+            conn.commit()
+            return None
+        cur.execute(
+            """
+            SELECT user_id::text, COALESCE(paid_by_user_id, user_id)::text AS payer,
+                   COALESCE(price_paid_inr, %s) AS price_paid, COALESCE(fee_paid_inr, %s) AS fee_paid
+            FROM event_attendees
+            WHERE event_id = %s::uuid AND status = 'going' AND payment_id IS NOT NULL AND refunded_at IS NULL
+            FOR UPDATE
+            """,
+            (ev["price_inr"], ev["platform_fee_inr"], event_id),
+        )
+        rows = [r for r in cur.fetchall() if r["price_paid"] + r["fee_paid"] > 0]
+        total = 0
+        for r in rows:
+            amount = r["price_paid"] + r["fee_paid"]
+            total += amount
+            _refund_to_wallet(cur, r["payer"], event_id, amount, ev["title"], description=f"Refund: {ev['title']}")
+            cur.execute(
+                "UPDATE event_attendees SET refund_amount_inr = %s, refunded_at = NOW() WHERE event_id = %s::uuid AND user_id = %s::uuid",
+                (amount, event_id, r["user_id"]),
+            )
+            _insert_notification(
+                cur, r["payer"], "event_refunded", title="You've been refunded",
+                body=f"We looked into {ev['title']} and refunded ₹{amount} to your Gorave Wallet.",
+                entity_id=event_id, entity_type="event",
+            )
+        cur.execute(
+            "UPDATE events SET payout_held_at = COALESCE(payout_held_at, NOW()), payout_held_reason = %s, updated_at = NOW() WHERE id = %s::uuid",
+            (reason, event_id),
+        )
+        conn.commit()
+    for payer in {r["payer"] for r in rows}:
+        try:
+            send_push(payer, "You've been refunded", f"We looked into {ev['title']} and refunded you to your Gorave Wallet.")
+        except Exception:
+            pass
+    return {"host_id": ev["host_id"], "title": ev["title"], "refunded": len(rows), "amount": total}
+
+
 def _cancel_event_and_refund(event_id: str, background_tasks: BackgroundTasks, cancelled_by_admin: bool = False):
     """Marks an event cancelled, notifies waitlist/attendees, and refunds paid
     attendees to their Gorave Wallet. Shared by the host's own cancel route
