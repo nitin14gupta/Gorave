@@ -10,16 +10,15 @@ import {
 } from "react-native";
 import Animated from "react-native-reanimated";
 import { EventsMapView } from "@/components/maps";
-import { LabSwitch } from "@/components/lab/LabSwitch";
-import { useLabVariant } from "@/store/labStore";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors, ComponentSize, FontFamily, EVENT_GRID_GAP, eventGridCellWidth } from "@/constants";
 import { useEvents } from "@/hooks/useEvents";
+import { useProfile } from "@/hooks/useProfile";
 import type { EventSummary } from "@/api/apiService";
 import { EventCard, EventCardSkeletonList } from "@/components/events/EventCard";
 import { EventSearchModal } from "@/components/events/EventSearchModal";
-import { EventPreviewStrip, PreviewCard, COMPACT_CARD_W } from "@/components/events/EventPreviewStrip";
+import { EventPreviewStrip, COMPACT_CARD_W } from "@/components/events/EventPreviewStrip";
 import { MapFloatingHeader, ListModeHeader, ViewModeTogglePill, FilterChipsRow, LIST_HEADER_CONTENT_HEIGHT } from "@/components/events/EventsScreenHeader";
 import { MapErrorOverlay, MapEmptyOverlay, ListErrorState, ListEmptyState } from "@/components/events/EventsStateViews";
 import { LocationWarning, EventListCard, EventListCardSkeleton, ViewModeToggle, BrandedRefreshControl } from "@/components/ui";
@@ -36,6 +35,8 @@ const LIST_PAGE = 8;
 
 export default function EventsScreen() {
   const insets = useSafeAreaInsets();
+  // Women get a "Women only" chip for the nights just for them.
+  const isWoman = (useProfile().profile?.gender ?? '').toLowerCase() === 'female';
   const router = useRouter();
   const { events, loading, error, filters, setFilter, reload, loadInBounds, city, setCity, userLat, userLng, userHeading, locationStatus } = useEvents();
   const [cityPickerOpen, setCityPickerOpen] = useState(false);
@@ -102,7 +103,9 @@ export default function EventsScreen() {
   const hasError = !loading && !!error;
   const activeChip = filters.category
     ? filters.category
-    : filters.is_free
+    : filters.women_only
+      ? "women_only"
+      : filters.is_free
       ? "free"
       : filters.date_range === "tonight"
         ? "tonight"
@@ -111,17 +114,13 @@ export default function EventsScreen() {
           : "all";
 
   const handleChip = (key: string) => {
-    if (key === "all") {
-      setFilter({ category: undefined, is_free: undefined, date_range: undefined });
-    } else if (key === "free") {
-      setFilter({ is_free: true, category: undefined, date_range: undefined });
-    } else if (key === "tonight") {
-      setFilter({ date_range: "tonight", category: undefined, is_free: undefined });
-    } else if (key === "weekend") {
-      setFilter({ date_range: "weekend", category: undefined, is_free: undefined });
-    } else {
-      setFilter({ category: key, is_free: undefined, date_range: undefined });
-    }
+    const none = { category: undefined, is_free: undefined, date_range: undefined, women_only: undefined };
+    if (key === "all") setFilter(none);
+    else if (key === "free") setFilter({ ...none, is_free: true });
+    else if (key === "women_only") setFilter({ ...none, women_only: true });
+    else if (key === "tonight") setFilter({ ...none, date_range: "tonight" });
+    else if (key === "weekend") setFilter({ ...none, date_range: "weekend" });
+    else setFilter({ ...none, category: key });
   };
 
   const handleMarkerPress = useCallback(
@@ -138,25 +137,15 @@ export default function EventsScreen() {
   );
 
   const openEvent = useCallback((id: string) => router.push(`/(events)/${id}` as any), []);
-  // Lab "events-map": A = smaller pins and compact row cards (the calendar's
-  // card) so the map keeps most of the screen; B = the big 4:5 cards.
-  const mapLook = useLabVariant("events-map");
-  const compactMap = mapLook === "a";
+  // The map keeps most of the screen: compact row cards (the calendar's card)
+  // at the bottom, one per swipe, and smaller pins.
   const renderPreviewCard = useCallback(
     ({ item }: { item: EventSummary }) => (
-      compactMap ? (
-        <View style={{ width: COMPACT_CARD_W }}>
-          <EventListCard event={item} onPress={() => openEvent(item.id)} />
-        </View>
-      ) : (
-        <PreviewCard
-          event={item}
-          active={item.id === activeEventId}
-          onPress={() => openEvent(item.id)}
-        />
-      )
+      <View style={{ width: COMPACT_CARD_W }}>
+        <EventListCard event={item} onPress={() => openEvent(item.id)} />
+      </View>
     ),
-    [activeEventId, openEvent, compactMap],
+    [openEvent],
   );
   const renderListItem = useCallback(
     ({ item }: { item: EventSummary }) => (
@@ -205,7 +194,7 @@ export default function EventsScreen() {
           onEventSelect={handleMarkerPress}
           onBoundsChange={loadInBounds}
           focus={cityFocus}
-          pinFactor={compactMap ? 0.72 : 1}
+          pinFactor={0.72}
           style={{ flex: 1 }}
         />
 
@@ -243,10 +232,8 @@ export default function EventsScreen() {
             paddingBottom={Math.max(insets.bottom, 8) + 6 + (ComponentSize.navBar - 26)}
             renderPreviewCard={renderPreviewCard}
             onMorePress={() => setViewMode("list")}
-            compact={compactMap}
           />
         ) : null}
-        <LabSwitch screen="events-map" top={64} />
       </View>
     );
   }
@@ -289,7 +276,7 @@ export default function EventsScreen() {
         {/* List */}
         {loading && events.length === 0 ? (
           <View style={{ paddingTop: insets.top + LIST_HEADER_CONTENT_HEIGHT }}>
-            <FilterChipsRow activeChip={activeChip} onSelect={handleChip} />
+            <FilterChipsRow activeChip={activeChip} onSelect={handleChip} showWomenOnly={isWoman} />
             <View style={styles.listContent}>
               {cardViewMode === "list"
                 ? Array.from({ length: 4 }).map((_, i) => <EventListCardSkeleton key={i} />)
@@ -298,12 +285,12 @@ export default function EventsScreen() {
           </View>
         ) : hasError ? (
           <View style={{ flex: 1, paddingTop: insets.top + LIST_HEADER_CONTENT_HEIGHT }}>
-            <FilterChipsRow activeChip={activeChip} onSelect={handleChip} />
+            <FilterChipsRow activeChip={activeChip} onSelect={handleChip} showWomenOnly={isWoman} />
             <ListErrorState onRetry={reload} />
           </View>
         ) : isEmpty ? (
           <View style={{ flex: 1, paddingTop: insets.top + LIST_HEADER_CONTENT_HEIGHT }}>
-            <FilterChipsRow activeChip={activeChip} onSelect={handleChip} />
+            <FilterChipsRow activeChip={activeChip} onSelect={handleChip} showWomenOnly={isWoman} />
             <ListEmptyState onCreate={goToCreate} />
           </View>
         ) : (
@@ -328,7 +315,7 @@ export default function EventsScreen() {
               // — cancel it here so the chips keep their own 16px inset (from
               // chipsRow) instead of stacking to 32px.
               <View style={{ marginHorizontal: -16 }}>
-                <FilterChipsRow activeChip={activeChip} onSelect={handleChip} />
+                <FilterChipsRow activeChip={activeChip} onSelect={handleChip} showWomenOnly={isWoman} />
               </View>
             }
             ListFooterComponent={

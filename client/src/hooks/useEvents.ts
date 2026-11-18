@@ -7,6 +7,7 @@ import { useBrowseCity } from '@/hooks/useHomeCity'
 export interface EventFilters {
   category?: string
   is_free?: boolean
+  women_only?: boolean
   date_range?: 'tonight' | 'weekend' | 'all'
 }
 
@@ -14,6 +15,7 @@ function apiFilters(f: EventFilters) {
   return {
     category: f.category && f.category !== 'all' ? f.category : undefined,
     is_free: f.is_free,
+    women_only: f.women_only,
     date_range: f.date_range !== 'all' ? f.date_range : undefined,
   }
 }

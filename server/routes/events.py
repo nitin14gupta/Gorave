@@ -453,6 +453,7 @@ def list_events(
     city: Optional[str] = Query(default=None),
     category: Optional[str] = Query(default=None),
     is_free: Optional[bool] = Query(default=None),
+    women_only: Optional[bool] = Query(default=None),  # only nights for women (women_pct 100)
     date_range: Optional[str] = Query(default=None),  # tonight | weekend | all
     q: Optional[str] = Query(default=None),
     min_lat: Optional[float] = Query(default=None),
@@ -523,6 +524,9 @@ def list_events(
     if category:
         filters.append("e.event_type = %s")
         filter_params.append(category)
+
+    if women_only:
+        filters.append("e.women_pct >= 100")
 
     if is_free is True:
         filters.append("e.price_inr = 0")

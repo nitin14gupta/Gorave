@@ -149,13 +149,21 @@ export function ListModeHeader({
   );
 }
 
+// Shown only to women: the nights that are just for them.
+const WOMEN_ONLY_CHIP = { key: "women_only", label: "Women only" } as const;
+
 export function FilterChipsRow({
   activeChip,
   onSelect,
+  showWomenOnly = false,
 }: {
   activeChip: string;
   onSelect: (key: string) => void;
+  showWomenOnly?: boolean;
 }) {
+  const chips: readonly { key: string; label: string }[] = showWomenOnly
+    ? [FILTER_CHIPS[0], WOMEN_ONLY_CHIP, ...FILTER_CHIPS.slice(1)]
+    : FILTER_CHIPS;
   return (
     <ScrollView
       horizontal
@@ -163,7 +171,7 @@ export function FilterChipsRow({
       style={styles.chipsScroll}
       contentContainerStyle={styles.chipsRow}
     >
-      {FILTER_CHIPS.map((chip) => (
+      {chips.map((chip) => (
         <Pressable
           key={chip.key}
           onPress={() => { hSelection(); onSelect(chip.key) }}
