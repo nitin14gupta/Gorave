@@ -10,7 +10,7 @@ import { useAdminAuth } from '@/hooks/useAdminAuth'
 import { useToast } from '@/hooks/useToast'
 import { Button } from '@/components/ui/Button'
 import { ThemeToggle } from '@/components/layout/ThemeToggle'
-import { ThemeLogo } from '@/components/ui/ThemeLogo'
+import { ThemeLogo, ThemeWordmark } from '@/components/ui/ThemeLogo'
 import { cn } from '@/lib/utils'
 
 const loginSchema = z.object({
@@ -89,7 +89,7 @@ export default function LoginPage() {
         <div className="w-full max-w-[400px]">
           <div className="flex items-center gap-2.5">
             <ThemeLogo className="h-9 w-9" />
-            <span className="font-display text-xl font-extrabold tracking-[-0.02em] text-ink-primary">gorave</span>
+            <ThemeWordmark className="h-6" />
             <span className="rounded-full bg-surface-muted px-2.5 py-0.5 font-sans text-[11px] font-bold uppercase tracking-[0.14em] text-ink-secondary">Admin</span>
           </div>
 

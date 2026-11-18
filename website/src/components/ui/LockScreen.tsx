@@ -25,7 +25,7 @@ export function LockScreen({ wallpaper = 'roof1', notices = DEFAULT_NOTICES }: {
           {notices.map(n => (
             <div key={n.title} className="flex gap-2.5 rounded-[18px] bg-white/22 p-2.5 backdrop-blur-xl">
               <div className="flex size-8 shrink-0 items-center justify-center rounded-[9px] bg-ink">
-                <Image src={BRAND.logoLight} alt="" width={20} height={20} className="size-5" />
+                <Image src={BRAND.logoLight} alt="" unoptimized width={20} height={20} className="size-5" />
               </div>
               <div className="min-w-0 flex-1">
                 <div className="flex justify-between text-[10px] opacity-80"><span className="font-bold uppercase tracking-wide">Gorave</span><span>{n.time}</span></div>

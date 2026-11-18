@@ -57,6 +57,9 @@ invented stats, ratings or reviews on public pages (placeholders are marked
 **Palette rule:** pages sit on cream / paper. Black (`bg-noir`) is only for small elements (buttons, pills, phone screens, the app's ticket) and two deliberate night moments: the city page's after-dark sky and the footer. Live sections that were black (home safety + CTA, testimonials, city crowd + departure board, type hero / guest list / night, guides fine print + article, host profile, host address, safety SOS, 404) were converted to cream.
 
 ### ✅ Done
+
+- **New brand identity (18 Nov):** the seal "g" (orange-to-coral gradient) replaces the old mark everywhere: `Logo` is now seal + wordmark (`public/brand/*.svg`), favicon, `icon.png`, `apple-icon.png`, PWA icons, OG images and JSON-LD publisher logo. Masters live in `client/assets/svg` and `client/assets/png`.
+
 | Screen | Route | Notes |
 |---|---|---|
 | Home / landing | `/` | 11 sections: Hero · This week · One link · Group chat→guest list (pinned) · Event types (no pinned scroll) · Cities (all 8, cursor preview) · More than an invite · Safety · Hosts · Testimonials · Saturday CTA · Footer |

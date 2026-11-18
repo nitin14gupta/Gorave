@@ -8,7 +8,7 @@ import Svg, { Defs, LinearGradient as SvgLinear, RadialGradient, Rect, Stop } fr
 import QRCode from 'react-native-qrcode-svg'
 import ViewShot, { type ViewShotRef } from 'react-native-view-shot'
 import { ArrowLeft, ChevronRight, Download, Navigation, Share2, Ticket as TicketIcon, MoreHorizontal } from 'lucide-react-native'
-import { Colors, FontFamily, LogoBlack, withOpacity, eventImageHeight, EVENT_ICONS, EVENT_ICON_FALLBACK } from '@/constants'
+import { Colors, FontFamily, Logo, withOpacity, eventImageHeight, EVENT_ICONS, EVENT_ICON_FALLBACK } from '@/constants'
 import { LogoMark } from '@/components/ui'
 import { eventDateParts } from '@/components/events/EventCard'
 import { hTap } from '@/lib/haptics'
@@ -133,7 +133,7 @@ export function TicketView({ ticket, event, cardRef, onBack, onShare, onSave, on
                     color={TICKET.qrInk}
                     backgroundColor={TICKET.qrPaper}
                     ecl="H"
-                    logo={LogoBlack}
+                    logo={Logo}
                     logoSize={44}
                     logoBackgroundColor={TICKET.qrPaper}
                     logoMargin={6}

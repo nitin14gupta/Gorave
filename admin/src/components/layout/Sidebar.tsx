@@ -6,7 +6,7 @@ import { ChevronsLeft, ChevronsRight, X } from 'lucide-react'
 import { useSidebarStore } from '@/store/sidebarStore'
 import { cn } from '@/lib/utils'
 import { NAV_ITEMS } from './navItems'
-import { ThemeLogo } from '@/components/ui/ThemeLogo'
+import { ThemeLogo, ThemeWordmark } from '@/components/ui/ThemeLogo'
 
 function NavLinks({ collapsed, onNavigate }: { collapsed: boolean; onNavigate?: () => void }) {
   const pathname = usePathname()
@@ -56,7 +56,7 @@ export function Sidebar() {
         <div className={cn('flex h-16 shrink-0 items-center gap-2 px-4', collapsed && 'justify-center px-0')}>
           <ThemeLogo className="h-8 w-8" />
           {!collapsed && (
-            <span className="font-display text-xl font-bold text-ink-primary">Gorave Admin</span>
+            <span className="flex items-center gap-2"><ThemeWordmark className="h-5" /><span className="rounded-full bg-surface-muted px-2 py-0.5 font-sans text-[10px] font-bold uppercase tracking-[0.14em] text-ink-secondary">Admin</span></span>
           )}
         </div>
         <div className="flex flex-1 flex-col overflow-y-auto py-4">
@@ -80,7 +80,7 @@ export function Sidebar() {
             <div className="flex h-16 shrink-0 items-center justify-between px-4">
               <span className="flex items-center gap-2">
                 <ThemeLogo className="h-7 w-7" />
-                <span className="font-display text-xl font-bold text-ink-primary">Gorave Admin</span>
+                <span className="flex items-center gap-2"><ThemeWordmark className="h-5" /><span className="rounded-full bg-surface-muted px-2 py-0.5 font-sans text-[10px] font-bold uppercase tracking-[0.14em] text-ink-secondary">Admin</span></span>
               </span>
               <button onClick={() => setMobileOpen(false)} className="rounded-full p-1.5 text-ink-secondary hover:bg-surface">
                 <X className="h-5 w-5" />

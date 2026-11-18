@@ -5,7 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient'
 import QRCode from 'react-native-qrcode-svg'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Download, MessageCircle, Share2, X } from 'lucide-react-native'
-import { Colors, FontFamily, LogoBlack, withOpacity } from '@/constants'
+import { Colors, FontFamily, Logo, withOpacity } from '@/constants'
 import { LogoMark, StyledQr } from '@/components/ui'
 import { TICKET, TicketPaper } from '@/components/events/TicketView'
 import { hSelection, hTap } from '@/lib/haptics'
@@ -95,7 +95,7 @@ export function MyQrView({ cardRef, shareUrl, name, handle, city, photos, onShar
             </View>
             <View style={s.qrWrap}>
               <View style={s.qrPaper}>
-                <QRCode value={shareUrl} size={210} color={TICKET.qrInk} backgroundColor={TICKET.qrPaper} ecl="H" logo={LogoBlack} logoSize={44} logoBackgroundColor={TICKET.qrPaper} logoMargin={6} logoBorderRadius={10} />
+                <QRCode value={shareUrl} size={210} color={TICKET.qrInk} backgroundColor={TICKET.qrPaper} ecl="H" logo={Logo} logoSize={44} logoBackgroundColor={TICKET.qrPaper} logoMargin={6} logoBorderRadius={10} />
               </View>
               <Text style={s.scan}>Scan to find me on Gorave</Text>
             </View>

@@ -7,7 +7,7 @@ import Animated, {
 } from 'react-native-reanimated'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Colors, FontFamily, withOpacity } from '@/constants'
-import { LogoMark, PrimaryButton } from '@/components/ui'
+import { Wordmark, PrimaryButton } from '@/components/ui'
 
 // Party posters, cropped to 4:5 like every event poster. Eighteen of them
 // fill the wall exactly: rows of 4, 5, 4 and 5 (see ROWS below). To add
@@ -72,8 +72,7 @@ export function WelcomeView({ onStart, onSignIn }: WelcomeViewProps) {
       <PosterWall height={stageH} />
 
       <View style={[s.brand, { top: insets.top + 10 }]} pointerEvents="none">
-        <LogoMark size={18} />
-        <Text style={s.brandText}>GORAVE</Text>
+        <Wordmark kind="sticker" height={46} />
       </View>
 
       <View style={[s.bottom, { paddingBottom: insets.bottom + 16 }]}>
@@ -168,9 +167,8 @@ const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: Colors.background, overflow: 'hidden' },
   stage: { overflow: 'hidden', backgroundColor: Colors.background },
   row: { position: 'absolute', top: 0 },
-  brand: { position: 'absolute', alignSelf: 'center', zIndex: 50, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999, backgroundColor: 'rgba(0,0,0,0.6)' },
+  brand: { position: 'absolute', alignSelf: 'center', zIndex: 50 },
   fade: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 230, zIndex: 100 },
-  brandText: { fontFamily: FontFamily.displayExtraBold, fontSize: 13, letterSpacing: 3, color: Colors.white },
 
   poster: { position: 'absolute', width: CARD_W, height: CARD_H, borderRadius: 14, overflow: 'hidden', backgroundColor: Colors.surface },
 

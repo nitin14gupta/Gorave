@@ -43,7 +43,7 @@ export async function ogImage({ kicker, title, accent, chips = ['Verified 18+', 
     font('CabinetGrotesk-Bold.otf'),
     font('Satoshi-Bold.otf'),
     instrumentItalic(),
-    readFile(join(process.cwd(), 'public/img/black-icon.png')),
+    readFile(join(process.cwd(), 'public/brand/seal.png')),
   ])
   const logo = `data:image/png;base64,${mark.toString('base64')}`
   const long = title.length > 26

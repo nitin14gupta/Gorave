@@ -1,8 +1,9 @@
 import { forwardRef } from 'react'
-import { View, Text, Image, StyleSheet } from 'react-native'
-import { Colors, FontFamily, LogoBlack } from '@/constants'
+import { View, Text, StyleSheet } from 'react-native'
+import { Colors, FontFamily } from '@/constants'
 import { StyledQr } from '@/components/ui/QrCard'
 import { SHARE_CARD_WIDTH, SHARE_CARD_HEIGHT } from './EventShareCard'
+import { Wordmark } from '@/components/ui/Wordmark'
 
 interface Props {
   data: string
@@ -18,8 +19,7 @@ export const EventQrShareCard = forwardRef<View, Props>(({ data, title, dateTime
     <Text style={s.title} numberOfLines={2}>{title}</Text>
     <Text style={s.meta}>{dateTimeLabel}</Text>
     <View style={s.brandRow}>
-      <Image source={LogoBlack} style={s.logo} />
-      <Text style={s.brand}>GORAVE</Text>
+      <Wordmark kind="wordmark-black" height={18} />
     </View>
   </View>
 ))

@@ -3,7 +3,7 @@ import { Image } from 'expo-image'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { CheckCircle, RefreshCw, Share2, X } from 'lucide-react-native'
 import { Colors, FontFamily, withOpacity } from '@/constants'
-import { LogoMark } from '@/components/ui'
+import { LogoMark, Wordmark } from '@/components/ui'
 import QRCode from 'react-native-qrcode-svg'
 import { TICKET, TicketPaper } from '@/components/events/TicketView'
 import { hTap } from '@/lib/haptics'
@@ -58,8 +58,8 @@ export function QrPayView({ cardRef, eventTitle, amountInr, paymentUrl, imageUrl
         <View ref={cardRef} collapsable={false} style={s.standee}>
           <TicketPaper />
           <View style={s.brand}>
-            <LogoMark size={18} />
-            <Text style={s.brandText}>GORAVE</Text>
+            <LogoMark size={20} />
+            <Wordmark height={16} />
           </View>
           <Text style={s.payLine}>Scan and pay</Text>
           <Text style={s.amount}>{inr(amountInr)}</Text>
@@ -125,7 +125,6 @@ const s = StyleSheet.create({
 
   standee: { marginTop: 8, borderRadius: 26, overflow: 'hidden', alignItems: 'center', paddingTop: 22, paddingBottom: 18, paddingHorizontal: 20 },
   brand: { flexDirection: 'row', alignItems: 'center', gap: 7 },
-  brandText: { fontFamily: FontFamily.displayExtraBold, fontSize: 14, letterSpacing: 2.4, color: INK },
   payLine: { fontFamily: FontFamily.bodySemiBold, fontSize: 13, color: withOpacity(INK, 0.6), marginTop: 18 },
   amount: { fontFamily: FontFamily.displayExtraBold, fontSize: 46, letterSpacing: -1.4, color: INK },
   event: { fontFamily: FontFamily.bodyMedium, fontSize: 13, color: withOpacity(INK, 0.6), marginBottom: 16 },

@@ -36,7 +36,7 @@
       "softwareKeyboardLayoutMode": "pan",
       "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
-        "backgroundColor": "#010100",
+        "backgroundColor": "#111111",
         "foregroundImage": "./assets/adaptive-icon.png"
       },
       "predictiveBackGestureEnabled": false,
@@ -85,14 +85,14 @@
         {
           "backgroundColor": "#111111",
           "image": "./assets/splash-icon.png",
-          "imageWidth": 76,
+          "imageWidth": 120,
           "android": {
             "image": "./assets/splash-icon.png",
-            "imageWidth": 76
+            "imageWidth": 120
           },
           "ios": {
             "image": "./assets/splash-icon.png",
-            "imageWidth": 76
+            "imageWidth": 120
           }
         }
       ],
@@ -108,7 +108,7 @@
         "expo-notifications",
         {
           "icon": "./assets/notification-icon.png",
-          "color": "#000000",
+          "color": "#FF6B35",
           "defaultChannel": "default",
           "enableBackgroundRemoteNotifications": true,
           "mode": "production"

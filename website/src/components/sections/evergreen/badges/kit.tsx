@@ -136,7 +136,7 @@ export function Push({ className }: { className?: string }) {
   return (
     <div className={cn('flex items-start gap-3 rounded-[22px] bg-white/90 p-3.5 pr-5 shadow-pop backdrop-blur', className)}>
       <div className="relative size-10 shrink-0 overflow-hidden rounded-[11px] bg-ink">
-        <Image src={BRAND.logoLight} alt="" fill sizes="40px" className="object-contain p-1.5" />
+        <Image src={BRAND.logoLight} alt="" unoptimized fill sizes="40px" className="object-contain p-1.5" />
       </div>
       <div className="min-w-0">
         <div className="flex items-center justify-between gap-3 font-sans text-[12px] font-bold text-ink-3">

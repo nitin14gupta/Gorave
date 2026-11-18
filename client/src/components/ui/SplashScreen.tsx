@@ -1,10 +1,11 @@
 import { useEffect } from 'react'
-import { View, Image, StyleSheet } from 'react-native'
+import { View, Image, StyleSheet, Text } from 'react-native'
 import Animated, {
   useSharedValue, useAnimatedStyle,
   withRepeat, withSequence, withTiming, Easing,
 } from 'react-native-reanimated'
-import { Logo, Colors, withOpacity } from '@/constants'
+import { Logo, Colors, FontFamily, withOpacity } from '@/constants'
+import { Wordmark } from './Wordmark'
 
 export function SplashScreen() {
   const scale = useSharedValue(1)
@@ -40,7 +41,9 @@ export function SplashScreen() {
         <Animated.View style={[s.logoGlow, logoStyle]}>
           <Image source={Logo} style={s.logo} resizeMode="contain" />
         </Animated.View>
+        <Wordmark height={40} style={{ marginTop: 6 }} />
       </View>
+      <Text style={s.tagline}>EVERY GOOD NIGHT STARTS WITH AN INVITE</Text>
 
       <View style={s.loaderTrack}>
         <Animated.View style={[s.loaderBar, barStyle]} />
@@ -82,14 +85,18 @@ const s = StyleSheet.create({
     borderRadius: 28,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: Colors.inkPrimary,
-    shadowOpacity: 0.14,
-    shadowRadius: 34,
-    shadowOffset: { width: 0, height: 0 },
   },
   logo: {
-    width: 76,
-    height: 76,
+    width: 116,
+    height: 116,
+  },
+  tagline: {
+    position: 'absolute',
+    bottom: 48,
+    fontFamily: FontFamily.bodyMedium,
+    fontSize: 10,
+    letterSpacing: 2.6,
+    color: withOpacity(Colors.inkPrimary, 0.45),
   },
   loaderTrack: {
     position: 'absolute',

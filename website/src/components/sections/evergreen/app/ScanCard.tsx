@@ -15,7 +15,7 @@ export function ScanCard({ className, tilt = 0 }: { className?: string; tilt?: n
       <div className="relative size-[92px] shrink-0 rounded-[14px] bg-[#F7F3EC] p-2">
         <Image src="/img/ticket-qr.svg" alt="" width={228} height={228} unoptimized className="block size-full" />
         <span className="absolute left-1/2 top-1/2 flex size-[26px] -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-[7px] bg-[#F7F3EC]">
-          <Image src={BRAND.logoDark} alt="" width={20} height={20} className="size-[18px]" />
+          <Image src={BRAND.logoDark} alt="" unoptimized width={20} height={20} className="size-[18px]" />
         </span>
       </div>
       <div className="font-sans">

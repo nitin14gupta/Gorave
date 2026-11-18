@@ -51,7 +51,7 @@ export function TicketCard({
           className="absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-[10px] bg-[#F7F3EC]"
           style={{ width: 54 * s, height: 54 * s, borderRadius: 12 * s }}
         >
-          <Image src={BRAND.logoDark} alt="" width={36} height={36} style={{ width: 34 * s, height: 34 * s }} />
+          <Image src={BRAND.logoDark} alt="" unoptimized width={36} height={36} style={{ width: 34 * s, height: 34 * s }} />
         </div>
       </div>
 
@@ -72,7 +72,7 @@ export function TicketCard({
             <div className="text-white/50" style={{ fontSize: 11 * s }}>TIME</div>
             <div className="font-bold">{time}</div>
           </div>
-          <Image src={BRAND.logoLight} alt="" width={22} height={22} className="opacity-70" style={{ width: 20 * s, height: 20 * s }} />
+          <Image src={BRAND.logoLight} alt="" unoptimized width={22} height={22} className="opacity-70" style={{ width: 20 * s, height: 20 * s }} />
         </div>
       </div>
     </div>

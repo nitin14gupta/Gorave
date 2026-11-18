@@ -61,8 +61,13 @@ export const FACES = [
 ]
 
 export const BRAND = {
-  logoDark: '/img/black-icon.png',
-  logoLight: '/img/splash-icon.png',
+  // The seal's orange-to-coral gradient reads on cream and on noir, so one file serves both.
+  logoDark: '/brand/seal-gradient.svg',
+  logoLight: '/brand/seal-gradient.svg',
+  wordmark: '/brand/wordmark-black.svg',
+  wordmarkCream: '/brand/wordmark-cream.svg',
+  sticker: '/brand/sticker-wordmark.svg',
+  lockup: '/brand/lockup-horizontal.svg',
   promoHost: '/img/hostXgorave.png',
   badges: {
     rising: '/img/rising.png',

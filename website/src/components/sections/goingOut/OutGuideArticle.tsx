@@ -33,7 +33,7 @@ export function OutGuideArticle({ guide }: { guide: OutGuide }) {
     mainEntityOfPage: { '@type': 'WebPage', '@id': url },
     url,
     author: { '@type': 'Organization', name: 'Gorave', url: SITE_URL },
-    publisher: { '@type': 'Organization', name: 'Gorave', url: SITE_URL, logo: { '@type': 'ImageObject', url: absoluteUrl('/img/splash-icon.png') } },
+    publisher: { '@type': 'Organization', name: 'Gorave', url: SITE_URL, logo: { '@type': 'ImageObject', url: absoluteUrl('/brand/seal.png') } },
   }
 
   return (

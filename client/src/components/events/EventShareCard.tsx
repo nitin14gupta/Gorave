@@ -4,6 +4,7 @@ import { Image } from 'expo-image'
 import { LinearGradient } from 'expo-linear-gradient'
 import { Calendar } from 'lucide-react-native'
 import { Colors, FontFamily, Logo, withOpacity } from '@/constants'
+import { Wordmark } from '@/components/ui/Wordmark'
 
 export const SHARE_CARD_WIDTH = 320
 export const SHARE_CARD_HEIGHT = 400
@@ -42,7 +43,7 @@ export const EventShareCard = forwardRef<View, Props>(
           </View>
           <View style={s.brandRow}>
             <Image source={Logo} style={s.logo} />
-            <Text style={s.brand}>GORAVE</Text>
+            <Wordmark height={15} />
           </View>
         </View>
       </View>
@@ -56,7 +57,7 @@ const s = StyleSheet.create({
   title: { fontFamily: FontFamily.headingBold, fontSize: 24, color: Colors.inkPrimary },
   metaRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   meta: { fontFamily: FontFamily.bodyMedium, fontSize: 14, color: Colors.inkPrimary },
-  logo: { width: 16, height: 16, borderRadius: 4 },
+  logo: { width: 18, height: 18 },
   brandRow: {
     flexDirection: 'row',
     alignItems: 'center',

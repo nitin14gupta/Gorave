@@ -7,7 +7,7 @@ import Animated, { Extrapolation, interpolate, useAnimatedScrollHandler, useAnim
 import { Search, Heart } from 'lucide-react-native'
 import ApiService, { type EventSummary } from '@/api/apiService'
 import { Colors, FontFamily, withOpacity } from '@/constants'
-import { LogoMark } from '@/components/ui'
+import { Wordmark } from '@/components/ui'
 import { NotificationPopBadge } from '@/components/home/NotificationPopBadge'
 import { eventDateParts } from '@/components/events/EventCard'
 import { isWomenOnly, womenGlassPanel, WomenTag } from '@/components/events/womenLook'
@@ -19,13 +19,11 @@ const CARD_W = W - 64
 const CARD_H = Math.round(CARD_W * 1.25) // event posters are 4:5
 const STEP = CARD_W + 12
 
-/** Logo on the left, the wordmark centred on the screen, search and activity on the right. */
+/** The wordmark on the left, search and activity on the right. */
 export function HomeTopBar() {
   return (
     <View style={s.topBar}>
-      {/* Laid across the whole bar so it centres on the screen, not between the logo and the icons. */}
-      <View style={s.brandCenter} pointerEvents="none"><Text style={s.brandText}>GORAVE</Text></View>
-      <LogoMark size={26} />
+      <Wordmark height={24} />
       <View style={{ flexDirection: 'row', gap: 6 }}>
         <Pressable style={s.iconBtn} onPress={() => { hTap(); router.push('/(profile)/search' as any) }} hitSlop={6}>
           <Search size={19} color={Colors.inkPrimary} strokeWidth={1.9} />
@@ -126,8 +124,6 @@ export function TonightCarousel({ events, city }: { events: EventSummary[]; city
 
 const s = StyleSheet.create({
   topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', height: 48 },
-  brandCenter: { position: 'absolute', left: 0, right: 0, alignItems: 'center' },
-  brandText: { fontFamily: FontFamily.displayExtraBold, fontSize: 17, letterSpacing: 3.4, color: Colors.inkPrimary },
   iconBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: withOpacity(Colors.inkPrimary, 0.06) },
 
   headRow: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between' },

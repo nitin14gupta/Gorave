@@ -8,6 +8,7 @@ import { FLYER_THEMES, type FlyerTheme } from '@/constants/flyerThemes'
 import { useFlyerThemeStore } from '@/store/flyerThemeStore'
 import { StyledQr } from '@/components/ui/QrCard'
 import { SHARE_CARD_WIDTH, SHARE_CARD_HEIGHT } from './EventShareCard'
+import { Wordmark } from '@/components/ui/Wordmark'
 
 const RSVP_STRIP = Array(12).fill('RSVP ON GORAVE').join('   ')
 
@@ -171,7 +172,7 @@ export const EventFlyerShareCard = forwardRef<View, Props>(
 
           <View style={s.brandRow}>
             <Image source={Logo} style={s.logo} />
-            <Text style={[s.brand, { color: theme.inkMuted }]}>Gorave</Text>
+            <Wordmark kind={theme.key === 'noir' ? 'wordmark' : 'wordmark-black'} height={13} opacity={0.85} />
           </View>
         </View>
         <SideStrip theme={theme} reverse />
@@ -315,7 +316,7 @@ const s = StyleSheet.create({
     alignItems: 'center',
     gap: 5,
   },
-  logo: { width: 14, height: 14, borderRadius: 3 },
+  logo: { width: 18, height: 18 },
   brand: {
     fontFamily: FontFamily.bodySemiBold,
     fontSize: 11,
