@@ -11,8 +11,7 @@ import { HotlistButton } from '@/components/events/HotlistButton'
 import { SosButton } from '@/components/events/SosButton'
 import { isEventPast } from '@/lib/dates'
 import type { EventSummary } from '@/api/apiService'
-import { LinearGradient } from 'expo-linear-gradient'
-import { isWomenOnly, useWomenLook, womenRowStyle, WomenFrame, WomenTag } from '@/components/events/womenLook'
+import { isWomenOnly, womenRowStyle, WomenTag } from '@/components/events/womenLook'
 
 function formatPrice(price: number, isFree: boolean) {
   if (isFree) return 'Free'
@@ -43,7 +42,6 @@ function EventListCardBase({
 }) {
   const cover = event.cover_photos?.[0]?.url
   const TypeIcon = EVENT_ICONS[event.event_type] ?? EVENT_ICON_FALLBACK
-  const look = useWomenLook()
   const women = isWomenOnly(event.women_pct)
 
   // Tiny tactile press feedback — same spring EventCard's grid cards use.
@@ -54,7 +52,7 @@ function EventListCardBase({
     <View style={s.rowWrap}>
     <View style={s.cardOuter}>
     <AnimatedPressable
-      style={[s.row, women && womenRowStyle(look), pressStyle]}
+      style={[s.row, women && womenRowStyle, pressStyle]}
       onPress={onPress ?? (() => router.push(`/(events)/${event.id}` as any))}
       onPressIn={() => { pressScale.set(withSpring(0.985, { duration: 120 })) }}
       onPressOut={() => { pressScale.set(withSpring(1, { duration: 120 })) }}
@@ -89,10 +87,6 @@ function EventListCardBase({
             </View>
           )
         ) : null}
-        {women && look === 'c' ? (
-          <LinearGradient pointerEvents="none" colors={['transparent', 'rgba(58,15,42,0.85)']} style={s.thumbHer} />
-        ) : null}
-        {women ? <WomenFrame look={look} radius={14} thin /> : null}
         <View style={[s.priceBadge, event.is_free && s.priceBadgeFree]}>
           <Text style={s.priceText}>{formatPrice(event.price_inr, event.is_free)}</Text>
         </View>
@@ -100,7 +94,7 @@ function EventListCardBase({
 
       <View style={s.info}>
         <Text style={s.title} numberOfLines={1}>{event.title}</Text>
-        {women ? <WomenTag look={look} onPhoto={false} /> : null}
+        {women ? <WomenTag onPhoto={false} /> : null}
         <View style={s.timeRow}>
           <Calendar size={12} color={Colors.inkSecondary} strokeWidth={2.2} />
           <Text style={s.time} numberOfLines={1}>{formatEventDate(event.date_time)}</Text>
@@ -201,7 +195,6 @@ const s = StyleSheet.create({
   },
   thumb: { width: 72, height: 90, borderRadius: 14, overflow: 'hidden', position: 'relative' }, // 4:5
   thumbImg: { width: '100%', height: '100%' },
-  thumbHer: { position: 'absolute', left: 0, right: 0, bottom: 0, height: '60%' },
   thumbFallback: { backgroundColor: Colors.surfaceMuted, alignItems: 'center', justifyContent: 'center' },
   hostBadge: {
     position: 'absolute', top: 5, left: 5,

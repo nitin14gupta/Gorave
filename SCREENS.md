@@ -115,7 +115,7 @@ captions about nights out and making friends, not dating.
 | # | Screen | Route | What it does | UI pass |
 |---|---|---|---|---|
 | 12 | Home | `(tabs)/index` | Create event, Happening now, You're hosting, You're going, Waitlist, Rate your nights, Recently viewed, Trending in your city | ✅ no greeting (straight to your nights), template deck only when you're not hosting anything upcoming; You're Hosting / You're Going rails end with a "Host another night" / "Find your next night" card |
-| 13 | Events | `(tabs)/events` | Browse by city: map view with photo pins and a preview strip, or a list of poster cards. Filter chips, search, city picker | ✅ poster grid (agenda tried, not kept). Map glows removed | Map: smaller pins, compact row cards at the bottom (picked A). Women see a "Women only" filter chip. 🧪 Women-only nights on every card type: four looks in Settings → Design lab: women-only cards (dev builds), A Rose frame / B Rose glass / C Her night / D Invitation
+| 13 | Events | `(tabs)/events` | Browse by city: map view with photo pins and a preview strip, or a list of poster cards. Filter chips, search, city picker | ✅ poster grid (agenda tried, not kept). Map glows removed | Map: smaller pins, compact row cards at the bottom (picked A). Women see a "Women only" filter chip. Women-only nights on every card type use "Rose glass": a frosted rose panel under the title with a "Women only" tag (posters), a soft rose surface (row cards), a rose ring (map pins)
 | 14 | Chat | `(tabs)/chat` | Conversations, search, unread counts | ✅ vibe banner on top |
 | 15 | Profile | `(tabs)/profile` | Your profile as others see it, plus shortcuts | ✅ your photos on top with parallax, up-next ticket, going and hosting rails |
 

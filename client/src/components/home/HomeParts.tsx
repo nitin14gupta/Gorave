@@ -10,7 +10,7 @@ import { Colors, FontFamily, withOpacity } from '@/constants'
 import { LogoMark } from '@/components/ui'
 import { NotificationPopBadge } from '@/components/home/NotificationPopBadge'
 import { eventDateParts } from '@/components/events/EventCard'
-import { isWomenOnly, useWomenLook, womenGlassPanel, WomenFrame, WomenTag } from '@/components/events/womenLook'
+import { isWomenOnly, womenGlassPanel, WomenTag } from '@/components/events/womenLook'
 import { parseServerDate } from '@/lib/dates'
 import { hTap } from '@/lib/haptics'
 
@@ -62,7 +62,6 @@ export function useTonight(city: string | null | undefined) {
 }
 
 function HeroCard({ event, index, x }: { event: EventSummary; index: number; x: SharedValue<number> }) {
-  const look = useWomenLook()
   const women = isWomenOnly(event.women_pct)
   const d = eventDateParts(event.date_time)
   const cover = event.cover_photos?.[0]?.url
@@ -79,13 +78,13 @@ function HeroCard({ event, index, x }: { event: EventSummary; index: number; x: 
         <Animated.View style={[StyleSheet.absoluteFill, photo]}>
           {cover ? <Image source={{ uri: cover }} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="memory-disk" priority={index < 2 ? 'high' : 'normal'} /> : null}
         </Animated.View>
-        <LinearGradient pointerEvents="none" colors={(women && look === 'c' ? ['rgba(0,0,0,0.35)', 'transparent', 'rgba(58,15,42,0.94)'] : ['rgba(0,0,0,0.35)', 'transparent', 'rgba(0,0,0,0.85)']) as [string, string, string]} locations={[0, 0.35, 1]} style={StyleSheet.absoluteFill} />
+        <LinearGradient pointerEvents="none" colors={['rgba(0,0,0,0.35)', 'transparent', 'rgba(0,0,0,0.85)']} locations={[0, 0.35, 1]} style={StyleSheet.absoluteFill} />
         <View style={s.heroDate}>
           <Text style={s.heroDay}>{d?.day}</Text>
           <Text style={s.heroMon}>{d?.mon}</Text>
         </View>
-        <View style={[s.heroInfo, women && look === 'b' && [womenGlassPanel, s.heroGlass]]}>
-          {women ? <WomenTag look={look} /> : null}
+        <View style={[s.heroInfo, women && [womenGlassPanel, s.heroGlass]]}>
+          {women ? <WomenTag /> : null}
           <Text style={s.heroWhen}>{[d?.dow, d?.time, event.area].filter(Boolean).join(' · ')}</Text>
           <Text style={s.heroTitle} numberOfLines={2}>{event.title}</Text>
           <View style={s.heroFoot}>
@@ -93,7 +92,6 @@ function HeroCard({ event, index, x }: { event: EventSummary; index: number; x: 
             <View style={s.heroPrice}><Text style={s.heroPriceText}>{event.is_free ? 'Free' : `₹${event.price_inr}`}</Text></View>
           </View>
         </View>
-        {women ? <WomenFrame look={look} radius={26} /> : null}
       </Pressable>
     </Animated.View>
   )

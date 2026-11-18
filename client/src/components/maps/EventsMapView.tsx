@@ -19,7 +19,7 @@ import { useGoogleMaps } from '@/hooks/useGoogleMaps'
 import { useMapLibre, eventsToGeoJSON } from '@/hooks/useMapLibre'
 import type { EventSummary } from '@/api/apiService'
 import type { ViewStyle } from 'react-native'
-import { useWomenLook, womenPinStyle } from '@/components/events/womenLook'
+import { womenPinStyle } from '@/components/events/womenLook'
 
 const DARK_MAP_STYLE = [
   { elementType: 'geometry', stylers: [{ color: Colors.surface }] },
@@ -438,7 +438,6 @@ const EventMapPin = React.memo(function EventMapPin({
 }) {
   const cover = event.cover_photos?.[0]?.url
   const TypeIcon = EVENT_ICONS[event.event_type] ?? EVENT_ICON_FALLBACK
-  const womenLook = useWomenLook()
   const scaleSV = useSharedValue(scale)
 
   useEffect(() => {
@@ -451,7 +450,7 @@ const EventMapPin = React.memo(function EventMapPin({
 
   return (
     <View style={p.wrap}>
-      <Animated.View style={[p.bubble, (event.women_pct ?? 0) >= 100 && womenPinStyle(womenLook), active && p.bubbleActive, animatedStyle]}>
+      <Animated.View style={[p.bubble, (event.women_pct ?? 0) >= 100 && womenPinStyle, active && p.bubbleActive, animatedStyle]}>
         {cover ? (
           <Image
             source={{ uri: cover }}

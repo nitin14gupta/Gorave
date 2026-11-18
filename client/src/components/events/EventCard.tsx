@@ -11,7 +11,7 @@ import { hSelection } from '@/lib/haptics'
 import { HotlistButton } from './HotlistButton'
 import { EventQuickPeekSheet } from './EventQuickPeekSheet'
 import type { EventSummary } from '@/api/apiService'
-import { isWomenOnly, useWomenLook, womenScrim, WomenFrame, WomenTag, womenGlassPanel } from '@/components/events/womenLook'
+import { isWomenOnly, WomenTag, womenGlassPanel } from '@/components/events/womenLook'
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable)
 
@@ -276,7 +276,6 @@ export const EventCard = memo(function EventCard({ event, onPress, showHost, isP
     </LinearGradient>
   )
   const price = formatPrice(event.price_inr, event.is_free)
-  const look = useWomenLook()
   const women = isWomenOnly(event.women_pct)
   const scrim = ['transparent', 'rgba(0,0,0,0.55)', 'rgba(0,0,0,0.88)']
 
@@ -295,7 +294,7 @@ export const EventCard = memo(function EventCard({ event, onPress, showHost, isP
       <View style={pa.poster}>
         {photo}
         <LinearGradient
-          colors={(women ? womenScrim(look, scrim) : scrim) as [string, string, string]}
+          colors={scrim as [string, string, string]}
           locations={[0, 0.45, 1]}
           style={pa.scrim}
           pointerEvents="none"
@@ -312,10 +311,10 @@ export const EventCard = memo(function EventCard({ event, onPress, showHost, isP
               <note.Icon size={11} color={Colors.white} strokeWidth={2.4} />
               <Text style={pa.chipText} numberOfLines={1}>{note.text}</Text>
             </View>
-          ) : women && look !== 'b' ? <WomenTag look={look} /> : null}
+          ) : null}
         </View>
-        <View style={[pa.bottom, women && look === 'b' && [womenGlassPanel, pa.bottomGlass]]}>
-          {women && look === 'b' ? <WomenTag look={look} style={{ marginBottom: 2 }} /> : null}
+        <View style={[pa.bottom, women && [womenGlassPanel, pa.bottomGlass]]}>
+          {women ? <WomenTag style={{ marginBottom: 2 }} /> : null}
           {showHost && host ? (
             <View style={pa.hostRow}>
               <HostAvatar name={host} avatar={event.host_avatar} size={16} />
@@ -339,7 +338,6 @@ export const EventCard = memo(function EventCard({ event, onPress, showHost, isP
       </View>
 
       {footer ? <View style={s.footerWrap}>{footer}</View> : null}
-      {women ? <WomenFrame look={look} radius={20} /> : null}
     </AnimatedPressable>
 
     {/* A true sibling of the card's Pressable, not a descendant: a nested
