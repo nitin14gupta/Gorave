@@ -12,7 +12,7 @@ import { Colors, FontFamily, SUPPORT_EMAIL, Spacing, withOpacity } from '@/const
 export const SUPPORT_TOPICS: { id: string; label: string; desc: string; subject: string; Icon: ComponentType<{ size: number; color: string; strokeWidth: number }> }[] = [
   { id: 'hosting', label: 'Hosting and ID check', desc: 'Verifying your PAN, getting set up to host', subject: 'Hosting and ID Check', Icon: BadgeCheck },
   { id: 'payment', label: 'Payment issue', desc: 'Charged but no ticket, a payment that failed', subject: 'Payment Issue', Icon: CreditCard },
-  { id: 'refund', label: 'Refund to my bank', desc: 'Moving your wallet balance to your account', subject: 'Wallet Refund Request', Icon: Wallet },
+  { id: 'refund', label: 'A refund', desc: 'Missing, late, or too late to send back', subject: 'Refund Help', Icon: Wallet },
   { id: 'event', label: 'An event', desc: 'A night you went to, or one you host', subject: 'Event Issue', Icon: PartyPopper },
   { id: 'account', label: 'My account', desc: 'Logging in, your profile, safety', subject: 'Account Issue', Icon: UserCog },
   { id: 'other', label: 'Something else', desc: 'Anything we haven’t covered', subject: 'Support Request', Icon: MessageCircleQuestion },
@@ -21,7 +21,7 @@ export const SUPPORT_TOPICS: { id: string; label: string; desc: string; subject:
 const PLACEHOLDER: Record<string, string> = {
   hosting: 'Tell us what happened with your PAN check. We’ll get you sorted.',
   payment: 'What did you pay for, how much, and when?',
-  refund: 'How much should come back, and to which bank account?',
+  refund: 'Which event, how much, and what went wrong?',
   event: 'Which event, and what happened?',
   account: 'What’s going wrong with your account?',
   other: 'What can we help with?',
@@ -40,7 +40,7 @@ export interface SupportViewProps {
 
 /** The note under the message for topics that need more than words. */
 function TopicNote({ topic }: { topic: string | null }) {
-  if (topic === 'refund') return <Text style={s.note}>Add your phone number and the events you were refunded for. Bank transfers are done by hand and take 5 to 10 business days.</Text>
+  if (topic === 'refund') return <Text style={s.note}>Most refunds can go back to your card or UPI by yourself: open Wallet and tap the refund. Write here if one is missing, late, or it is too late to send it back.</Text>
   if (topic === 'hosting') return <Text style={s.note}>You don&apos;t need to send your PAN again. We can see your check from our side.</Text>
   return null
 }

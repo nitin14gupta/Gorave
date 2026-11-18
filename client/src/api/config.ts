@@ -116,6 +116,7 @@ export const ENDPOINTS = {
 
   // Wallet
   WALLET: '/wallet',
+  WALLET_REFUNDS: '/wallet/refunds',
 
   // Misc
   FEEDBACK: '/feedback',

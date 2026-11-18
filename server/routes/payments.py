@@ -2,7 +2,7 @@ import hashlib
 import hmac
 import os
 import time
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from io import BytesIO
 
 import cv2
@@ -153,19 +153,70 @@ def ticket_commission(price_paid: int, ev_price: int, ev_commission: int) -> int
     return round(price_paid * ev_commission / ev_price)
 
 
+# How long after a payment Razorpay still accepts a refund to the card/UPI.
+# After this, a refund can only stay in the wallet (or go out by hand via Support).
+SOURCE_REFUND_WINDOW_DAYS = 180
+
+
 def _refund_to_wallet(cur, uid: str, event_id: str, amount: int, ev_title: str,
-                      description: Optional[str] = None) -> None:
+                      description: Optional[str] = None, payment_id: Optional[str] = None) -> Optional[str]:
+    """Money back to a guest. It lands in their Gorave Wallet straight away and
+    never expires. The part they paid by card/UPI can still be sent back to
+    that payment method (routes/wallet.py, /refunds), so we note which
+    Razorpay payment it came from and how much of it can go back.
+    Returns the wallet transaction id."""
     if amount <= 0:
-        return
+        return None
+    if payment_id is None:
+        cur.execute(
+            """
+            SELECT payment_id FROM event_attendees
+            WHERE event_id = %s::uuid AND COALESCE(paid_by_user_id, user_id) = %s::uuid AND payment_id IS NOT NULL
+            ORDER BY joined_at DESC NULLS LAST LIMIT 1
+            """,
+            (event_id, uid),
+        )
+        row = cur.fetchone()
+        payment_id = row["payment_id"] if row else None
+
+    to_source, until = 0, None
+    if payment_id and payment_id != "wallet":
+        cur.execute(
+            "SELECT razorpay_amount_inr, created_at FROM payment_orders WHERE razorpay_payment_id = %s AND user_id = %s::uuid",
+            (payment_id, uid),
+        )
+        order = cur.fetchone()
+        if order and order["razorpay_amount_inr"]:
+            # Whatever of this payment earlier refunds already claimed.
+            cur.execute(
+                "SELECT COALESCE(SUM(to_source_inr), 0)::int AS used FROM wallet_transactions WHERE payment_id = %s AND type = 'credit'",
+                (payment_id,),
+            )
+            used = cur.fetchone()["used"]
+            to_source = max(0, min(amount, order["razorpay_amount_inr"] - used))
+            until = order["created_at"] + timedelta(days=SOURCE_REFUND_WINDOW_DAYS)
+
     cur.execute("UPDATE users SET wallet_balance = wallet_balance + %s WHERE id = %s::uuid", (amount, uid))
     cur.execute(
         """
         INSERT INTO wallet_transactions
-            (user_id, amount_inr, type, source, reference_id, description, expires_at)
-        VALUES (%s::uuid, %s, 'credit', 'event_refund', %s::uuid, %s, NOW() + INTERVAL '6 months')
+            (user_id, amount_inr, type, source, reference_id, description, expires_at,
+             payment_id, to_source_inr, to_source_until)
+        VALUES (%s::uuid, %s, 'credit', 'event_refund', %s::uuid, %s, NULL, %s, %s, %s)
+        RETURNING id::text
         """,
-        (uid, amount, event_id, description or f"Refund — spot no longer available at {ev_title}"),
+        (uid, amount, event_id, description or f"Refund: {ev_title}",
+         payment_id if to_source else None, to_source or None, until if to_source else None),
     )
+    txn_id = cur.fetchone()["id"]
+    from routes.notifications import _insert_notification
+    _insert_notification(
+        cur, uid, "event_refunded", title=f"₹{amount} refunded",
+        body=(f"{ev_title}: it's in your Gorave Wallet. Tap to keep it there or send it back to your payment method."
+              if to_source else f"{ev_title}: it's in your Gorave Wallet."),
+        entity_id=event_id, entity_type="refund",
+    )
+    return txn_id
 
 
 _rz_client: Optional[razorpay.Client] = None
@@ -541,12 +592,12 @@ def _complete_paid_booking(*, event_id: str, uid: str, payment_id: str, wallet_a
 
         if not got_seat:
             # The wallet portion was never debited; refund the UPI/card part.
-            _refund_to_wallet(cur, uid, event_id, paid_externally, ev_title)
+            _refund_to_wallet(cur, uid, event_id, paid_externally, ev_title, payment_id=payment_id)
             conn.commit()
             try:
                 send_push(uid, "Refund in your Gorave Wallet 💰",
                           f"The last spot at {ev_title} went just before your payment. ₹{paid_externally} is in your wallet.",
-                          {"type": "wallet", "event_id": event_id}, category="payments")
+                          {"type": "refund", "event_id": event_id}, category="payments")
             except Exception:
                 pass
             return "refunded"

@@ -24,12 +24,12 @@ export default function WalletScreen() {
           : <Text style={s.balance}>₹{balance}</Text>
       }
     >
-      <Text style={s.note}>Credits work on any Gorave event and expire 6 months after you get them.</Text>
+      <Text style={s.note}>Use it on any Gorave event. Refunds never expire, and you can send one back to how you paid from its row below.</Text>
 
       <Pressable style={s.info} onPress={() => router.push('/(settings)/support' as any)}>
         <View style={s.infoIcon}><HeadphonesIcon size={16} color={Colors.inkPrimary} strokeWidth={1.8} /></View>
         <View style={{ flex: 1 }}>
-          <Text style={s.infoTitle}>Need a bank refund?</Text>
+          <Text style={s.infoTitle}>Question about a refund?</Text>
           <Text style={s.infoSub}>Write to support and we will sort it out.</Text>
         </View>
         <ChevronRight size={18} color={Colors.inkDisabled} />
@@ -42,7 +42,10 @@ export default function WalletScreen() {
             {transactions.map((t, i) => (
               <View key={t.id}>
                 {i > 0 ? <WalletTxDivider /> : null}
-                <WalletTransactionRow item={t} />
+                <WalletTransactionRow
+                  item={t}
+                  onPress={t.source === 'event_refund' && t.event_id ? () => router.push(`/(settings)/refund/${t.event_id}` as any) : undefined}
+                />
               </View>
             ))}
           </View>

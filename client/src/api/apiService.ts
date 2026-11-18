@@ -38,6 +38,7 @@ import type {
   LinkPreview,
   Message,
   WalletTransaction,
+  RefundItem,
   PaymentOrderResponse,
   BlockedUser,
   EmergencyContact,
@@ -114,6 +115,7 @@ export type {
   LinkPreview,
   Message,
   WalletTransaction,
+  RefundItem,
   PaymentOrderResponse,
   BlockedUser,
   EmergencyContact,
@@ -977,6 +979,20 @@ class ApiService {
 
   static async getWallet(): Promise<{ balance: number; transactions: WalletTransaction[] }> {
     return this.get(ENDPOINTS.WALLET)
+  }
+
+  /** Refunds, newest first. With an event id: that event's refund, with the payment method's name. */
+  static async getRefunds(eventId?: string): Promise<{ balance: number; items: RefundItem[] }> {
+    return this.get(eventId ? `${ENDPOINTS.WALLET_REFUNDS}?event_id=${encodeURIComponent(eventId)}` : ENDPOINTS.WALLET_REFUNDS)
+  }
+
+  static async keepRefund(id: string): Promise<{ ok: boolean }> {
+    return this.post(`${ENDPOINTS.WALLET_REFUNDS}/${id}/keep`, {})
+  }
+
+  /** Card/UPI part back to where it came from, 5 to 7 business days. */
+  static async sendRefundBack(id: string): Promise<{ ok: boolean; amount_inr: number }> {
+    return this.post(`${ENDPOINTS.WALLET_REFUNDS}/${id}/send-back`, {})
   }
 
   static async submitFeedback(text: string): Promise<{ ok: boolean }> {

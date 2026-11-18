@@ -166,6 +166,7 @@ Routes live in `client/src/app/` (Expo Router). `(group)` folders don't show in 
 | Shared profile of someone unavailable | A friend forwards that person's card | ✅ greyed card, not tappable |
 | Group chat: someone in a block with you | Event chat with a person you blocked / who blocked you | ✅ one quiet line ("Message from someone you blocked" / "Message unavailable") |
 | Group chat: locked sender | Event chat with a locked guest | ✅ ghost face, "Profile not available", not tappable |
+| Your refund | Cancel a paid ticket, or tap a refund notification / a refund row in Wallet | ✅ keep in wallet (instant, never expires) or send the card/UPI part back; on its way / sent / wallet-only / too late states |
 | Can't delete account while hosting | Settings → Account → Delete account | ✅ "Your guests come first" |
 
 ### Sheets and overlays (not routes, still worth a pass)

@@ -1,6 +1,6 @@
-import { View, Text, StyleSheet } from 'react-native'
+import { View, Text, StyleSheet, Pressable } from 'react-native'
 import { Image } from 'expo-image'
-import { ArrowDownLeft, ArrowUpRight } from 'lucide-react-native'
+import { ArrowDownLeft, ArrowUpRight, ChevronRight } from 'lucide-react-native'
 import { Colors, FontFamily, withOpacity } from '@/constants'
 import type { WalletTransaction } from '@/api/apiService'
 
@@ -17,11 +17,20 @@ function fmtDate(str: string | null | undefined) {
   return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
-export function WalletTransactionRow({ item }: { item: WalletTransaction }) {
+function refundLine(item: WalletTransaction): string | null {
+  if (item.source !== 'event_refund') return null
+  if (item.refund_status === 'processing') return 'Going back to how you paid'
+  if (item.refund_status === 'done') return 'Sent back to how you paid'
+  if (item.refund_sendable_inr) return `Refund · ₹${item.refund_sendable_inr} can go back to how you paid`
+  return 'Refund · never expires'
+}
+
+export function WalletTransactionRow({ item, onPress }: { item: WalletTransaction; onPress?: () => void }) {
   const isCredit = item.type === 'credit'
+  const line = refundLine(item)
 
   return (
-    <View style={s.txRow}>
+    <Pressable style={s.txRow} onPress={onPress} disabled={!onPress}>
       {item.event_cover ? (
         <Image source={{ uri: item.event_cover }} style={s.txCover} cachePolicy="memory-disk" priority="low" transition={150} />
       ) : (
@@ -37,14 +46,15 @@ export function WalletTransactionRow({ item }: { item: WalletTransaction }) {
           {item.event_title ?? item.description ?? (isCredit ? 'Wallet credit' : 'Wallet debit')}
         </Text>
         <Text style={s.txDate}>{fmtDate(item.created_at)}</Text>
-        {isCredit && item.expires_at && (
+        {line ? <Text style={s.txExpiry}>{line}</Text> : isCredit && item.expires_at ? (
           <Text style={s.txExpiry}>Expires {fmtDate(item.expires_at)}</Text>
-        )}
+        ) : null}
       </View>
       <Text style={[s.txAmount, isCredit ? s.txAmountCredit : s.txAmountDebit]}>
         {isCredit ? '+' : '-'}₹{item.amount_inr}
       </Text>
-    </View>
+      {onPress ? <ChevronRight size={16} color={Colors.inkDisabled} /> : null}
+    </Pressable>
   )
 }
 

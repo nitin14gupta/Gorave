@@ -562,12 +562,37 @@ export interface WalletTransaction {
   id: string
   amount_inr: number
   type: 'credit' | 'debit'
-  source: 'event_refund' | 'ticket_purchase'
+  source: 'event_refund' | 'ticket_purchase' | 'refund_to_source'
   description: string | null
+  /** Always null for refunds: refund money never expires. */
   expires_at: string | null
   created_at: string
+  event_id: string | null
   event_title: string | null
   event_cover: string | null
+  /** Refunds only: where it is now. */
+  refund_status?: 'in_wallet' | 'processing' | 'done' | 'failed' | null
+  /** Refunds only: the card/UPI part that can still go back. */
+  refund_sendable_inr?: number | null
+}
+
+/** One refund: in the wallet first, the card/UPI part can go back to where it came from. */
+export interface RefundItem {
+  id: string
+  amount_inr: number
+  description: string | null
+  created_at: string | null
+  event: { id: string; title: string; cover: string | null; date_time: string | null; cancelled: boolean } | null
+  /** The part paid by card/UPI. The rest was paid from the wallet and stays there. */
+  to_source_inr: number
+  /** What can go back right now (0 once it's sent, too late, or already spent). */
+  sendable_inr: number
+  send_back_until: string | null
+  window_closed: boolean
+  status: 'in_wallet' | 'processing' | 'done' | 'failed'
+  sent_at: string | null
+  choice_made: boolean
+  method: { kind: 'upi' | 'card' | 'bank' | 'other'; label: string } | null
 }
 
 export interface PaymentOrderResponse {

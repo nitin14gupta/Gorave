@@ -59,9 +59,13 @@ export function useCantMakeIt(eventId: string | undefined, eventTitle: string) {
       const res = await ApiService.rsvpEvent(eventId, 'cancel', reason)
       hSuccess()
       const refund = res?.refund_inr ?? 0
-      showPill(refund > 0 ? `₹${refund} added to your Gorave Wallet` : 'Your spot is cancelled', 'default')
       forgetBooking()
-      router.replace(`/(events)/${eventId}` as any)
+      // Money back: straight to where they choose wallet or card/UPI.
+      if (refund > 0) router.replace(`/(settings)/refund/${eventId}` as any)
+      else {
+        showPill('Your spot is cancelled', 'default')
+        router.replace(`/(events)/${eventId}` as any)
+      }
     } catch (e: any) {
       showPill(e?.message || "Couldn't cancel, try again", 'error')
     } finally {

@@ -2175,7 +2175,8 @@ def rsvp_event(event_id: str, body: RsvpBody, background_tasks: BackgroundTasks,
             if refund_inr > 0:
                 from routes.payments import _refund_to_wallet
                 _refund_to_wallet(cur, refund_to, event_id, refund_inr, ev["title"],
-                                  description=f"Refund — ticket to {ev['title']} was cancelled")
+                                  description=f"Refund: ticket to {ev['title']} was cancelled",
+                                  payment_id=existing.get("payment_id"))
 
             # Only promote if event starts > 2h from now — under 2h the freed spot becomes an empty seat
             ev_dt_cancel = ev["date_time"]
@@ -2224,7 +2225,7 @@ def rsvp_event(event_id: str, body: RsvpBody, background_tasks: BackgroundTasks,
                 background_tasks.add_task(
                     send_push, refund_to, "Refund in your Gorave Wallet 💰",
                     f"₹{refund_inr} from {event_title_cancel} is in your wallet.",
-                    {"type": "wallet", "event_id": event_id}, category="payments",
+                    {"type": "refund", "event_id": event_id}, category="payments",
                 )
             if prev_status == "going" and ev["join_mode"] != "request" and ev_cancel:
                 from utils.push import get_event_image_url
@@ -2603,7 +2604,6 @@ def _refund_past_event(event_id: str, reason: str) -> Optional[dict]:
     own; payout_held_at records why. Safe to run twice: each ticket refunds
     once. None if the event doesn't exist."""
     from routes.payments import _refund_to_wallet
-    from routes.notifications import _insert_notification
     with get_db() as (cur, conn):
         cur.execute(
             "SELECT title, price_inr, platform_fee_inr, host_id::text FROM events WHERE id = %s::uuid FOR UPDATE",
@@ -2633,11 +2633,6 @@ def _refund_past_event(event_id: str, reason: str) -> Optional[dict]:
                 "UPDATE event_attendees SET refund_amount_inr = %s, refunded_at = NOW() WHERE event_id = %s::uuid AND user_id = %s::uuid",
                 (amount, event_id, r["user_id"]),
             )
-            _insert_notification(
-                cur, r["payer"], "event_refunded", title="You've been refunded",
-                body=f"We looked into {ev['title']} and refunded ₹{amount} to your Gorave Wallet.",
-                entity_id=event_id, entity_type="event",
-            )
         cur.execute(
             "UPDATE events SET payout_held_at = COALESCE(payout_held_at, NOW()), payout_held_reason = %s, updated_at = NOW() WHERE id = %s::uuid",
             (reason, event_id),
@@ -2645,7 +2640,8 @@ def _refund_past_event(event_id: str, reason: str) -> Optional[dict]:
         conn.commit()
     for payer in {r["payer"] for r in rows}:
         try:
-            send_push(payer, "You've been refunded", f"We looked into {ev['title']} and refunded you to your Gorave Wallet.")
+            send_push(payer, "You've been refunded", f"We looked into {ev['title']} and refunded you. Tap to keep it in your wallet or send it back.",
+                      {"type": "refund", "event_id": event_id}, category="payments")
         except Exception:
             pass
     return {"host_id": ev["host_id"], "title": ev["title"], "refunded": len(rows), "amount": total}
@@ -2732,7 +2728,7 @@ def _cancel_event_and_refund(event_id: str, background_tasks: BackgroundTasks, c
         refunds = [(r["payer"], r["price_paid"] + r["fee_paid"]) for r in rows]
         for r in rows:
             amount = r["price_paid"] + r["fee_paid"]
-            _refund_to_wallet(cur, r["payer"], event_id, amount, ev_title, description=f"Refund — {ev_title}")
+            _refund_to_wallet(cur, r["payer"], event_id, amount, ev_title, description=f"Refund: {ev_title} was cancelled")
             cur.execute(
                 "UPDATE event_attendees SET refund_amount_inr = %s, refunded_at = NOW() WHERE event_id = %s AND user_id = %s::uuid",
                 (amount, event_id, r["user_id"]),
@@ -2775,8 +2771,8 @@ def _cancel_event_and_refund(event_id: str, background_tasks: BackgroundTasks, c
         background_tasks.add_task(
             send_push, att_uid,
             "Refund in your Gorave Wallet 💰",
-            f"₹{amount} from '{ev_title}' is now in your Gorave Wallet.",
-            {"type": "wallet", "event_id": event_id}, category="payments",
+            f"₹{amount} from '{ev_title}' is in your Gorave Wallet. Tap to keep it or send it back.",
+            {"type": "refund", "event_id": event_id}, category="payments",
         )
     return True
 

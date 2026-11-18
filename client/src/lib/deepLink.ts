@@ -12,6 +12,7 @@ export type DeepLinkTarget =
   | { screen: 'eventChat'; id: string }
   | { screen: 'eventRequests'; id: string }
   | { screen: 'wallet' }
+  | { screen: 'refund'; id: string }
   | { screen: 'profile'; id: string }
   | { screen: 'chat'; id: string }
   | { screen: 'chatList' }
@@ -30,6 +31,7 @@ export function targetToHref(t: DeepLinkTarget, currentUserId?: string | null): 
     case 'eventChat': return `/(chat)/event/${t.id}`
     case 'eventRequests': return `/(events)/${t.id}/requests`
     case 'wallet': return '/(settings)/wallet'
+    case 'refund': return `/(settings)/refund/${t.id}`
     case 'profile': return t.id === currentUserId ? '/(tabs)/profile' : `/(profile)/${t.id}`
     case 'chat': return `/(chat)/${t.id}`
     case 'chatList': return '/(tabs)/chat'
@@ -69,6 +71,8 @@ export function pushDataToTarget(data: any): DeepLinkTarget | null {
       return { screen: 'browseEvents' }
     case 'wallet':
       return { screen: 'wallet' }
+    case 'refund':
+      return data.event_id ? { screen: 'refund', id: data.event_id } : { screen: 'wallet' }
     case 'ticket_transfer':
       return data.token ? { screen: 'transfer', token: data.token } : null
     case 'host_verification':
@@ -87,6 +91,7 @@ export function notifEntityToTarget(entityType: string | null, entityId: string 
   if (entityType === 'host_verification') return { screen: 'verifyId' }
   if (!entityId) return null
   if (entityType === 'event') return { screen: 'event', id: entityId }
+  if (entityType === 'refund') return { screen: 'refund', id: entityId }
   if (entityType === 'user') return { screen: 'profile', id: entityId }
   if (entityType === 'conversation') return { screen: 'chat', id: entityId }
   return null
