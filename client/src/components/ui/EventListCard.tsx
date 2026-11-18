@@ -11,6 +11,7 @@ import { HotlistButton } from '@/components/events/HotlistButton'
 import { SosButton } from '@/components/events/SosButton'
 import { isEventPast } from '@/lib/dates'
 import type { EventSummary } from '@/api/apiService'
+import { WomenOnlyBadge, isWomenOnly } from '@/components/events/WomenOnlyBadge'
 
 function formatPrice(price: number, isFree: boolean) {
   if (isFree) return 'Free'
@@ -92,6 +93,7 @@ function EventListCardBase({
 
       <View style={s.info}>
         <Text style={s.title} numberOfLines={1}>{event.title}</Text>
+        {isWomenOnly(event.women_pct) ? <WomenOnlyBadge variant="inline" /> : null}
         <View style={s.timeRow}>
           <Calendar size={12} color={Colors.inkSecondary} strokeWidth={2.2} />
           <Text style={s.time} numberOfLines={1}>{formatEventDate(event.date_time)}</Text>

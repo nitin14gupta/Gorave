@@ -11,6 +11,7 @@ import { hSelection } from '@/lib/haptics'
 import { HotlistButton } from './HotlistButton'
 import { EventQuickPeekSheet } from './EventQuickPeekSheet'
 import type { EventSummary } from '@/api/apiService'
+import { WomenOnlyBadge, isWomenOnly } from '@/components/events/WomenOnlyBadge'
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable)
 
@@ -308,7 +309,7 @@ export const EventCard = memo(function EventCard({ event, onPress, showHost, isP
               <note.Icon size={11} color={Colors.white} strokeWidth={2.4} />
               <Text style={pa.chipText} numberOfLines={1}>{note.text}</Text>
             </View>
-          ) : null}
+          ) : isWomenOnly(event.women_pct) ? <WomenOnlyBadge /> : null}
         </View>
         <View style={pa.bottom}>
           {showHost && host ? (

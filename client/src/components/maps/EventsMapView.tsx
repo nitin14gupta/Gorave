@@ -87,9 +87,10 @@ interface GoogleProps {
   activeEventId: string | null
   onEventSelect: (ev: EventSummary, idx: number) => void
   focus?: MapFocus
+  pinFactor?: number
 }
 
-function EventsMapGoogle({ events, userLat, userLng, userHeading, activeEventId, onEventSelect, focus }: GoogleProps) {
+function EventsMapGoogle({ events, userLat, userLng, userHeading, activeEventId, onEventSelect, focus, pinFactor = 1 }: GoogleProps) {
   const { mapRef } = useGoogleMaps()
   const start = initialCenter(focus, userLat, userLng)
   const focusKey = focus ? `${focus.lat},${focus.lng}` : ''
@@ -105,7 +106,7 @@ function EventsMapGoogle({ events, userLat, userLng, userHeading, activeEventId,
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [focusKey])
   const [zoom, setZoom] = useState(DEFAULT_ZOOM)
-  const pinScale = pinScaleForZoom(zoom)
+  const pinScale = pinScaleForZoom(zoom) * pinFactor
 
   // Filtering is only redone when the underlying event list changes, not on
   // every zoom/selection re-render — index is preserved so it still lines up
@@ -169,9 +170,10 @@ interface LibreProps {
   onEventSelect: (ev: EventSummary, idx: number) => void
   onBoundsChange?: (bounds: MapBounds) => void
   focus?: MapFocus
+  pinFactor?: number
 }
 
-function EventsMapLibre({ events, userLat, userLng, userHeading, activeEventId, onEventSelect, onBoundsChange, focus }: LibreProps) {
+function EventsMapLibre({ events, userLat, userLng, userHeading, activeEventId, onEventSelect, onBoundsChange, focus, pinFactor = 1 }: LibreProps) {
   const { mapRef, handleRegionIsChanging, handleRegionDidChange, zoom } = useMapLibre(onBoundsChange)
   const cameraRef = useRef<CameraRef>(null)
   const start = initialCenter(focus, userLat, userLng)
@@ -187,7 +189,7 @@ function EventsMapLibre({ events, userLat, userLng, userHeading, activeEventId, 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [focusKey])
   const geojson = useMemo(() => eventsToGeoJSON(events), [events])
-  const pinScale = pinScaleForZoom(zoom)
+  const pinScale = pinScaleForZoom(zoom) * pinFactor
 
   // Filtering is only redone when the underlying event list changes, not on
   // every zoom/selection re-render — index is preserved so it still lines up
@@ -260,6 +262,8 @@ export interface EventsMapViewProps {
   onBoundsChange?: (bounds: MapBounds) => void
   /** Centre of the city being browsed — changing it moves the map there */
   focus?: MapFocus
+  /** Pin size multiplier (the compact map in the Events lab uses smaller pins). */
+  pinFactor?: number
   style?: ViewStyle
 }
 
@@ -273,6 +277,7 @@ export function EventsMapView({
   onEventSelect,
   onBoundsChange,
   focus,
+  pinFactor,
   style,
 }: EventsMapViewProps) {
   return (
@@ -286,6 +291,7 @@ export function EventsMapView({
           activeEventId={activeEventId}
           onEventSelect={onEventSelect}
           focus={focus}
+          pinFactor={pinFactor}
         />
       ) : (
         <EventsMapLibre
@@ -297,6 +303,7 @@ export function EventsMapView({
           onEventSelect={onEventSelect}
           onBoundsChange={onBoundsChange}
           focus={focus}
+          pinFactor={pinFactor}
         />
       )}
     </View>
@@ -442,7 +449,7 @@ const EventMapPin = React.memo(function EventMapPin({
 
   return (
     <View style={p.wrap}>
-      <Animated.View style={[p.bubble, animatedStyle]}>
+      <Animated.View style={[p.bubble, (event.women_pct ?? 0) >= 100 && p.bubbleWomen, active && p.bubbleActive, animatedStyle]}>
         {cover ? (
           <Image
             source={{ uri: cover }}
@@ -478,6 +485,8 @@ const p = StyleSheet.create({
     shadowOffset: { width: 0, height: 3 },
     elevation: 6,
   },
+  bubbleActive: { borderWidth: 2, borderColor: Colors.white },
+  bubbleWomen: { borderWidth: 2, borderColor: Colors.womenOnly },
   photo: {
     width: '100%',
     height: '100%',

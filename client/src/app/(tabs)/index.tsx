@@ -1,6 +1,6 @@
 import { useCallback, useRef, useState } from 'react'
 import {
-  BackHandler, View, Text, StyleSheet,
+  BackHandler, View, StyleSheet,
 } from 'react-native'
 import Animated from 'react-native-reanimated'
 import { useFocusEffect, router } from 'expo-router'
@@ -47,6 +47,8 @@ export default function HomeScreen() {
   const [albumPromptEmpty, setAlbumPromptEmpty] = useState<boolean | null>(null)
   const [recentEmpty, setRecentEmpty] = useState<boolean | null>(null)
   const [trendingEmpty, setTrendingEmpty] = useState<boolean | null>(null)
+  // Upcoming events you're hosting. null until Home knows, so the deck doesn't flash in and out.
+  const [hostingCount, setHostingCount] = useState<number | null>(null)
   const allEmpty = myEventsEmpty === true && waitlistEmpty === true && requestedEmpty === true && albumPromptEmpty === true && pendingReviewsEmpty === true && recentEmpty === true && trendingEmpty === true
 
   const [refreshing, setRefreshing] = useState(false)
@@ -101,24 +103,24 @@ export default function HomeScreen() {
     }, [showPill]),
   )
 
-  const firstName = profile?.name?.split(' ')[0] ?? 'there'
-
+  const openCreate = () => { hTap(); router.push('/(events)/create' as any) }
+  // Already hosting something coming up: the deck makes way for your own
+  // event in "You're Hosting", whose last card is "Host another night".
   const create = (
     <View style={{ gap: 10 }}>
       <HostStatusCard onboarded={!!profile?.is_host_onboarding_finished} />
-      <TemplateFan onCreatePress={() => { hTap(); router.push('/(events)/create' as any) }} />
-      <PrimaryButton
-        label="Create event"
-        size="small"
-        style={styles.createBtn}
-        onPress={() => { hTap(); router.push('/(events)/create' as any) }}
-      />
+      {hostingCount === 0 ? (
+        <>
+          <TemplateFan onCreatePress={openCreate} />
+          <PrimaryButton label="Create event" size="small" style={styles.createBtn} onPress={openCreate} />
+        </>
+      ) : null}
     </View>
   )
   const mine = (
     <>
       <ActiveEventsSection ref={activeEventsRef} />
-      <MyEventsSection ref={myEventsRef} onEmptyChange={setMyEventsEmpty} />
+      <MyEventsSection ref={myEventsRef} onEmptyChange={setMyEventsEmpty} onHostingChange={setHostingCount} />
       <RequestedSection ref={requestedRef} onEmptyChange={setRequestedEmpty} />
       <WaitlistSection ref={waitlistRef} onEmptyChange={setWaitlistEmpty} />
       <PendingReviewsSection ref={pendingReviewsRef} onEmptyChange={setPendingReviewsEmpty} />
@@ -137,10 +139,6 @@ export default function HomeScreen() {
         refreshControl={<BrandedRefreshControl refreshing={refreshing} onRefresh={handleRefresh} progressViewOffset={insets.top} />}
       >
         <HomeTopBar />
-        <Text style={styles.hello}>Hey, {firstName}.</Text>
-
-
-        {/* <Text style={styles.hostHead}>Host your own night</Text> */}
         {create}
         {mine}
         <TonightCarousel events={tonight} city={profile?.city} />
@@ -167,8 +165,6 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: Colors.background },
   content: { paddingHorizontal: 16, paddingBottom: ComponentSize.navBar + 24, gap: 18 },
 
-  hello: { fontFamily: FontFamily.displayExtraBold, fontSize: 34, letterSpacing: -1, color: Colors.inkPrimary, marginTop: 4 },
-  hostHead: { fontFamily: FontFamily.displayExtraBold, fontSize: 24, letterSpacing: -0.5, color: Colors.inkPrimary, marginTop: 8 },
   createBtn: {
     alignSelf: 'center',
     marginTop: 2,

@@ -6,6 +6,8 @@ import { Users, ChevronRight } from 'lucide-react-native'
 import type { EventSummary } from '@/api/apiService'
 import { EventCard } from '@/components/events/EventCard'
 import { Colors, FontFamily, EVENT_CARD_CAROUSEL_W } from '@/constants'
+import { POSTER } from '@/components/ui/ParallaxScreen'
+import { RailEndCard } from '@/components/home/RailEndCard'
 
 const CARD_GAP = 12
 const INITIAL_COUNT = 6
@@ -72,6 +74,9 @@ export function HostingSection({ events }: { events: EventSummary[] }) {
         onEndReached={() => setVisibleCount(c => Math.min(c + PAGE_SIZE, events.length))}
         renderItem={renderItem}
         getItemLayout={getItemLayout}
+        // The open slot at the end: the next step, same size as the cards.
+        ListFooterComponent={visibleCount >= events.length ? <RailEndCard kind="host" posters={[POSTER.houseParty, POSTER.djNight, POSTER.cheers]} onPress={() => router.push('/(events)/create' as any)} /> : null}
+        ListFooterComponentStyle={s.footer}
         initialNumToRender={INITIAL_COUNT}
         maxToRenderPerBatch={PAGE_SIZE}
         windowSize={5}
@@ -84,6 +89,7 @@ export function HostingSection({ events }: { events: EventSummary[] }) {
 const s = StyleSheet.create({
   wrap: { gap: 10 },
   list: { gap: 12, paddingRight: 4 },
+  footer: { alignSelf: 'stretch', flexDirection: 'row' },
   manageFooter: {
     flexDirection: 'row',
     alignItems: 'center',

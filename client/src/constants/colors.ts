@@ -8,6 +8,7 @@ export const Colors = {
   // Brand
   brandOrange: '#FF6B35',
   brandCoral: '#FF3864',
+  womenOnly: '#E8669A',         // the one rose accent: women-only nights (badge, map pin ring)
 
   // Accents
   accentGold: '#FFB830',       // tickets, badges, premium

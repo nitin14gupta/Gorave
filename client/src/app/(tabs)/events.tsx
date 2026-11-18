@@ -10,6 +10,8 @@ import {
 } from "react-native";
 import Animated from "react-native-reanimated";
 import { EventsMapView } from "@/components/maps";
+import { LabSwitch } from "@/components/lab/LabSwitch";
+import { useLabVariant } from "@/store/labStore";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors, ComponentSize, FontFamily, EVENT_GRID_GAP, eventGridCellWidth } from "@/constants";
@@ -17,7 +19,7 @@ import { useEvents } from "@/hooks/useEvents";
 import type { EventSummary } from "@/api/apiService";
 import { EventCard, EventCardSkeletonList } from "@/components/events/EventCard";
 import { EventSearchModal } from "@/components/events/EventSearchModal";
-import { EventPreviewStrip, PreviewCard } from "@/components/events/EventPreviewStrip";
+import { EventPreviewStrip, PreviewCard, COMPACT_CARD_W } from "@/components/events/EventPreviewStrip";
 import { MapFloatingHeader, ListModeHeader, ViewModeTogglePill, FilterChipsRow, LIST_HEADER_CONTENT_HEIGHT } from "@/components/events/EventsScreenHeader";
 import { MapErrorOverlay, MapEmptyOverlay, ListErrorState, ListEmptyState } from "@/components/events/EventsStateViews";
 import { LocationWarning, EventListCard, EventListCardSkeleton, ViewModeToggle, BrandedRefreshControl } from "@/components/ui";
@@ -136,15 +138,25 @@ export default function EventsScreen() {
   );
 
   const openEvent = useCallback((id: string) => router.push(`/(events)/${id}` as any), []);
+  // Lab "events-map": A = smaller pins and compact row cards (the calendar's
+  // card) so the map keeps most of the screen; B = the big 4:5 cards.
+  const mapLook = useLabVariant("events-map");
+  const compactMap = mapLook === "a";
   const renderPreviewCard = useCallback(
     ({ item }: { item: EventSummary }) => (
-      <PreviewCard
-        event={item}
-        active={item.id === activeEventId}
-        onPress={() => openEvent(item.id)}
-      />
+      compactMap ? (
+        <View style={{ width: COMPACT_CARD_W }}>
+          <EventListCard event={item} onPress={() => openEvent(item.id)} />
+        </View>
+      ) : (
+        <PreviewCard
+          event={item}
+          active={item.id === activeEventId}
+          onPress={() => openEvent(item.id)}
+        />
+      )
     ),
-    [activeEventId, openEvent],
+    [activeEventId, openEvent, compactMap],
   );
   const renderListItem = useCallback(
     ({ item }: { item: EventSummary }) => (
@@ -193,6 +205,7 @@ export default function EventsScreen() {
           onEventSelect={handleMarkerPress}
           onBoundsChange={loadInBounds}
           focus={cityFocus}
+          pinFactor={compactMap ? 0.72 : 1}
           style={{ flex: 1 }}
         />
 
@@ -230,8 +243,10 @@ export default function EventsScreen() {
             paddingBottom={Math.max(insets.bottom, 8) + 6 + (ComponentSize.navBar - 26)}
             renderPreviewCard={renderPreviewCard}
             onMorePress={() => setViewMode("list")}
+            compact={compactMap}
           />
         ) : null}
+        <LabSwitch screen="events-map" top={64} />
       </View>
     );
   }

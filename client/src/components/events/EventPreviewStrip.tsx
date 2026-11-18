@@ -1,5 +1,5 @@
 import React from "react";
-import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
+import { Dimensions, FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from "react-native-reanimated";
 import { LinearGradient } from "expo-linear-gradient";
 import { Image } from "expo-image";
@@ -14,6 +14,8 @@ import { isEventPast } from "@/lib/dates";
 
 const CARD_W = 200;
 const CARD_MARGIN = 10;
+/** Compact strip (lab A): one row card per swipe, the next one peeking in. */
+export const COMPACT_CARD_W = Dimensions.get("window").width - 56;
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
@@ -108,13 +110,13 @@ function PreviewCardBase({
 export const PreviewCard = React.memo(PreviewCardBase);
 
 // "N more events" tail card in preview strip
-export function MoreCard({ count, onPress }: { count: number; onPress: () => void }) {
+export function MoreCard({ count, onPress, compact }: { count: number; onPress: () => void; compact?: boolean }) {
   const pressScale = useSharedValue(1);
   const pressStyle = useAnimatedStyle(() => ({ transform: [{ scale: pressScale.value }] }));
 
   return (
     <AnimatedPressable
-      style={[styles.moreCard, pressStyle]}
+      style={[styles.moreCard, compact && styles.moreCardCompact, pressStyle]}
       onPress={onPress}
       onPressIn={() => { pressScale.set(withSpring(0.97, { duration: 120 })); }}
       onPressOut={() => { pressScale.set(withSpring(1, { duration: 120 })); }}
@@ -132,6 +134,7 @@ export function EventPreviewStrip({
   paddingBottom,
   renderPreviewCard,
   onMorePress,
+  compact = false,
 }: {
   previewListRef: React.RefObject<FlatList<EventSummary> | null>;
   previewEvents: EventSummary[];
@@ -139,7 +142,9 @@ export function EventPreviewStrip({
   paddingBottom: number;
   renderPreviewCard: ({ item }: { item: EventSummary }) => React.ReactElement;
   onMorePress: () => void;
+  compact?: boolean;
 }) {
+  const itemW = compact ? COMPACT_CARD_W : CARD_W;
   return (
     <View style={[styles.previewStrip, { paddingBottom }]}>
       <LinearGradient
@@ -153,13 +158,13 @@ export function EventPreviewStrip({
         horizontal
         keyExtractor={(e) => e.id}
         showsHorizontalScrollIndicator={false}
-        snapToInterval={CARD_W + CARD_MARGIN}
+        snapToInterval={itemW + CARD_MARGIN}
         decelerationRate="fast"
         contentContainerStyle={{ paddingHorizontal: 14, gap: CARD_MARGIN }}
         onScrollToIndexFailed={() => { }}
         ListFooterComponent={
           extraCount > 0 ? (
-            <MoreCard count={extraCount} onPress={onMorePress} />
+            <MoreCard count={extraCount} onPress={onMorePress} compact={compact} />
           ) : null
         }
         renderItem={renderPreviewCard}
@@ -244,6 +249,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 2,
   },
+  moreCardCompact: { minHeight: 0, alignSelf: "stretch" },
   moreCount: {
     fontFamily: FontFamily.headingBold,
     fontSize: 22,

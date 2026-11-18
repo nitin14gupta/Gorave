@@ -21,10 +21,12 @@ export interface MyEventsSectionHandle {
 
 interface Props {
   onEmptyChange?: (empty: boolean) => void
+  /** How many upcoming events you're hosting (Home hides the template deck while it's above 0). */
+  onHostingChange?: (count: number) => void
 }
 
 export const MyEventsSection = forwardRef<MyEventsSectionHandle, Props>(function MyEventsSection(
-  { onEmptyChange },
+  { onEmptyChange, onHostingChange },
   ref,
 ) {
   const [joined, setJoined] = useState<EventSummary[]>([])
@@ -52,8 +54,9 @@ export const MyEventsSection = forwardRef<MyEventsSectionHandle, Props>(function
       setJoined(j)
       setHosted(h)
       onEmptyChange?.(j.length === 0 && h.length === 0)
+      onHostingChange?.(h.length)
     })
-  }, [onEmptyChange])
+  }, [onEmptyChange, onHostingChange])
 
   useEffect(() => { reloadRef.current = load }, [load])
 
