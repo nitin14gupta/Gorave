@@ -90,7 +90,7 @@ export const LEGAL_TERMS: LegalDoc = {
       heading: 'Payments, fees and the Gorave Wallet',
       paragraphs: [
         'Paid tickets cost the host’s ticket price plus a flat ₹50 platform fee per ticket, and you see the total before you pay. Free events have no fee. You can pay by UPI through our payment partner, with your Gorave Wallet balance, or with both.',
-        'The Gorave Wallet holds credit from refunds. You can’t add money to it yourself. Wallet credit can be spent on tickets on Gorave and carries an expiry date shown in the app.',
+        'The Gorave Wallet holds credit from refunds. You can’t add money to it yourself. Wallet credit can be spent on tickets on Gorave and never expires. The part of a refund you paid by UPI or card can be sent back to it instead.',
         'Cancellations, refunds and the wallet are covered in detail in our Refunds & Cancellations policy at /refunds, which forms part of these terms.',
       ],
     },
@@ -190,9 +190,9 @@ export const LEGAL_REFUNDS: LegalDoc = {
   short: [
     'You can cancel your spot at a free event any time in the app.',
     `Paid tickets can’t be cancelled in the app once booked. If something has gone wrong, contact ${E.email}.`,
-    'If a host or Gorave cancels an event, everyone who paid gets the ticket price back in their Gorave Wallet automatically. The ₹50 platform fee isn’t included.',
+    'If a host or Gorave cancels an event, everyone who paid gets everything back, ticket and ₹50 platform fee, in their Gorave Wallet straight away. They can keep it there or send it back to how they paid.',
     'Waitlists are free to join. You only pay if you’re offered a spot and confirm it.',
-    'Wallet credit can be spent on tickets, carries an expiry date, and can be moved to your bank by asking support.',
+    'Wallet credit can be spent on tickets and never expires. The UPI or card part of a refund can be sent back to it from the app.',
   ],
   sections: [
     {
@@ -218,7 +218,7 @@ export const LEGAL_REFUNDS: LegalDoc = {
       ],
       bullets: [
         'everyone going, waitlisted or waiting on a request is told the event is cancelled;',
-        'every guest with a paid ticket automatically gets the ticket price back as Gorave Wallet credit. You don’t need to ask for it;',
+        'every guest with a paid ticket automatically gets everything back, ticket and platform fee, in their Gorave Wallet. You don’t need to ask for it, and you can send it back to how you paid from the app;',
         `the ₹50 platform fee is not part of the automatic refund. If you’d like to ask about it, contact ${E.email};`,
         'pending requests and waitlist places end, and as nothing was charged for them there is nothing to refund.',
       ],
@@ -226,7 +226,7 @@ export const LEGAL_REFUNDS: LegalDoc = {
     {
       heading: 'If Gorave cancels an event',
       paragraphs: [
-        'We may cancel an event at any time, including within 48 hours of the start, for example if it breaks our terms or guidelines or we have safety concerns. When we do, guests are told, and paid guests get the ticket price back as Gorave Wallet credit in the same way as a host cancellation.',
+        'We may cancel an event at any time, including within 48 hours of the start, for example if it breaks our terms or guidelines or we have safety concerns. When we do, guests are told, and paid guests get everything back, ticket and platform fee, in the same way as a host cancellation.',
         'Hosts don’t receive a payout for cancelled events.',
       ],
     },
@@ -259,8 +259,8 @@ export const LEGAL_REFUNDS: LegalDoc = {
       ],
       bullets: [
         'You can use wallet credit at checkout for a paid ticket, on its own or together with UPI.',
-        'Each credit shows an expiry date in the app. Credits currently expire 6 months from the date you receive them.',
-        'To move your wallet balance to your bank, go to Support in the app and choose “Wallet refund to bank”, with your registered phone number and the event you were refunded for. These requests are handled by our team, so we can’t promise a fixed time.',
+        'Refund money in your wallet never expires.',
+        'Every refund lands in your wallet first. You can keep it, or send the part you paid by UPI or card back to that payment method from the refund in your wallet. It reaches your bank in 5 to 7 business days. This is possible for about 6 months after you paid; after that, write to support and we will help. Money you paid from your wallet goes back to your wallet. Wallet balance can’t be withdrawn in any other way.',
         'If you delete your account, any wallet balance is permanently lost once the account is removed 30 days later. Paid tickets for upcoming events are also released without a refund when you delete. Please ask about your balance first.',
       ],
     },

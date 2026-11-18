@@ -25,6 +25,68 @@ Routes live in `client/src/app/` (Expo Router). `(group)` folders don't show in 
 
 ---
 
+## Store screenshots: shot list
+
+Log in as **Reyansh** (9000000005, OTP 000000) after running
+`python server/scripts/seed_reyansh_demo.py` (local only; `--clean` removes it).
+It gives him friends, chats, a photo collage, three nights he's going to, a
+night he's hosting with requests, a past hosted night with reviews, a past
+night with an album, vibes and notifications.
+
+**How to use this:** take each screenshot below, name the file by its code
+(`S01.png`, `S02.png`…), and give the files plus this table to Claude. Ask it to
+pick the best 6 to 8 for the App Store and Play Store, in order, with a short
+caption each. Codes marked ★ are the likely picks.
+
+| Code | Screen | How to get there (as Reyansh) | What it shows / what it does |
+|---|---|---|---|
+| ★ S01 | Welcome | Log out → open the app | First impression: party posters scattered like invites, "Every good night starts with an invite." |
+| ★ S02 | Home | Home tab | His week: Dumpling dinner tomorrow, Acoustic set, Rooftop with a paid ticket, the Catan night he's hosting, trending in Mumbai |
+| ★ S03 | Events: list | Events tab | Mumbai events as big 4:5 posters, filters, search |
+| S04 | Events: map | Events tab → map view | Photo pins on the map with a preview strip |
+| ★ S05 | Event page | Home → Sunset Rooftop Sessions | Poster, host, date, price ₹799, crowd mix 50/50, who's going (friends' faces), ticket bar |
+| S06 | Event page (scrolled) | Same, scroll down | Details, masked address, crowd split bars, people going |
+| S07 | Book | An event you're not going to with a price → Book | The ticket you're buying, the bill, wallet toggle |
+| S08 | Payment | Book → Pay | UPI apps grid, QR, UPI ID |
+| ★ S09 | Ticket | Sunset Rooftop Sessions → View ticket | Maroon ticket stub, big date, QR for the door |
+| ★ S10 | Event group chat | Chat → Sunset Rooftop Sessions group | Host's pinned update, guests chatting, terrace photo collage, reactions, seen-by faces |
+| S11 | Group chat (his own night) | Chat → Catan & Chai Night | Him as host: update card, guests asking questions, a joke and reactions |
+| ★ S12 | 1:1 chat | Chat → Ananya Iyer | Real conversation: 4-photo collage from Saturday, an event card, reactions, plans for Friday |
+| S13 | 1:1 chat with a profile card | Chat → Kabir Mehta | Kabir shares Rohan's profile card, banter |
+| ★ S14 | Chat list | Chat tab | Ananya (1 unread), Meera (2 unread), event group chats, vibe banner on top |
+| ★ S15 | Vibe inbox | Chat → vibe banner | Tara and Isha sent vibes with a message: big photo cards, Pass / Vibe back |
+| S16 | Send a vibe | Someone's profile → Send vibe | Their photo, ideas from their interests |
+| ★ S17 | Someone's profile | Chat → Ananya → her name | Photos, bio, interests, going-to rail, follow, vibe |
+| ★ S18 | His own profile | Profile tab | His photos with parallax, voice intro, 44 vibers, up-next ticket, going and hosting rails, host reviews |
+| S19 | Followers | Profile → vibers count | Clean rows of people, "Follows you" tags |
+| S20 | Host reviews | Profile → host reviews | 4.8 score huge, bars, "best host" reviews from Monsoon Board Game Brunch |
+| ★ S21 | Join requests (host) | Home → Catan & Chai Night → Requests | Ananya and 2 others waiting, the room drawn seat by seat, swipe to let in |
+| S22 | Guest list (host) | Catan & Chai Night → Guests | Who's coming, crowd mix, arrival bar |
+| S23 | Check-in scanner | Catan & Chai Night → Scanner | Camera with the scan window (shows "not open yet" until 3h before) |
+| ★ S24 | Create event | Home → Host your own night | Step 1 with live preview (Reyansh must finish the PAN step first, see S38) |
+| S25 | Event is live | After publishing | Invite card, share to WhatsApp |
+| ★ S26 | After-party album | Home → Retro Bollywood Night → Album | 8 photos from the night in a 4:5 grid |
+| S27 | Rate the night | Home → Rate your nights → Retro Bollywood Night | Five big stars with a word for each |
+| S28 | Reviews | Monsoon Board Game Brunch → Reviews | Score over the photo, bars, review list |
+| ★ S29 | Safety centre | Settings → Safety | SOS, emergency contacts, tips |
+| S30 | Emergency contacts | Safety → Contacts | Trusted people with the SMS preview |
+| S31 | Notifications | Settings → Notifications (or the bell) | Ananya's join request, Tara's vibe, Isha followed, album photos, a 5-star review |
+| S32 | Wallet | Settings → Wallet | Balance on a poster, history |
+| S33 | Your refund | Cancel a paid ticket (Dumpling dinner) | Keep in wallet or send back to UPI. Cancelling is real: only do it on a copy |
+| S34 | Calendar | Settings → Calendar | His nights by date |
+| S35 | Settings | Profile → Settings | His photo on top, quick tiles |
+| S36 | Host onboarding | Settings → Become a host (or after PAN) | Story segments with party photos |
+| S37 | Host agreement | Host onboarding → agreement step | Clause cards, sign at 5 of 5 |
+| S38 | Verify your ID (PAN) | Home → Host your own night | PAN entry and the check (he has 2 fresh tries; use the Surepass sandbox PAN) |
+| S39 | Women-only event | Any women-only event (as a man) | "This night is for women": shows crowd safety |
+| S40 | My QR | Profile → QR | His pass or a photo card to share |
+
+Good store order to start from: S02 Home → S05 Event → S29/S39 Safety →
+S10 Group chat → S15 Vibes → S09 Ticket → S21/S24 Hosting → S12 Chat. Keep
+captions about nights out and making friends, not dating.
+
+---
+
 ## App (Expo, `client/`)
 
 ### 1. Sign in

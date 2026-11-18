@@ -41,7 +41,7 @@ once it ships.
 
 ## Money
 - [ ] Automate host payouts (for example RazorpayX), paid only after the event ends and check-ins look right. When it's built, skip events with `payout_held_at` set (guests were refunded after reports). Today the admin panel only works out what each host is owed; transfers are done by hand.
-- [ ] Refund the card/UPI part of a payment back to the original method, instead of bank refunds by hand ("5 to 10 days" by email today).
+- [ ] Refund the UPI part of a payment back to the original method, instead of bank refunds by hand ("5 to 10 days" by email today).
 
 
 ## Trust and safety

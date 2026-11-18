@@ -191,11 +191,11 @@ export const HELP_TOPICS_DATA: HelpTopic[] = [
       },
       {
         q: 'Does wallet credit expire?',
-        a: 'Yes. Credits expire 6 months from the date you got them, and each credit shows its expiry date in your wallet.',
+        a: 'No. Refund money in your wallet never expires.',
       },
       {
-        q: 'Can I move my wallet balance to my bank?',
-        a: 'Yes, through support. In the app, go to Support, choose “Wallet refund to bank” and include your registered phone number and the event you were refunded for. These transfers are processed by hand, and the support screen shows how long they usually take.',
+        q: 'Can I get a refund back to my UPI or card instead?',
+        a: 'Yes. Every refund lands in your wallet first, then you choose: keep it, or send the part you paid by UPI or card back to it. Open Wallet in the app and tap the refund. It reaches your bank in 5 to 7 business days. Money you paid from your wallet goes back to your wallet.',
       },
       {
         q: 'Can I add money to my wallet?',

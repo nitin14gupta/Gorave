@@ -27,7 +27,7 @@ const FAQS: { topic: Topic; q: string; a: string; popular?: boolean }[] = [
   { topic: 'Hosting', q: 'Why do you need my PAN?', a: 'Every host on Gorave shows a real ID, so guests know who they are going to. We check your PAN with the Income Tax records and keep only the last 4 characters. Guests never see it.' },
   { topic: 'Hosting', q: 'How long does the ID check take?', a: 'The PAN check is instant. Then a person on our team reviews it, usually in less than a day. You get a notification as soon as it is done.' },
   { topic: 'Hosting', q: 'My PAN was not accepted. What now?', a: 'You will see why on the Verify screen. Fix it and try again: everyone gets two tries. After that, write to us from Contact support and a person will sort it out with you.' },
-  { topic: 'Payments', q: 'How do refunds work?', a: 'Refunds from Gorave go to your Gorave Wallet as credits. Credits can be used on any Gorave event and expire 6 months after you get them.', popular: true },
+  { topic: 'Payments', q: 'How do refunds work?', a: 'A refund lands in your Gorave Wallet straight away and never expires. You choose: keep it there for any event, or send the part you paid by card or UPI back to it (5 to 7 business days). Tap the refund in Wallet to choose.', popular: true },
   { topic: 'Payments', q: 'I want my money back in my bank', a: `Write to us from Contact support or at ${SUPPORT_EMAIL} and we will help.` },
   { topic: 'People', q: 'What are Vibers and Vibing?', a: 'Vibers are people who follow you. Vibing is the people you follow.' },
   { topic: 'People', q: 'What is a vibe?', a: 'A vibe is how you start a chat. Send one from someone\'s profile; once they accept, the chat opens.' },
