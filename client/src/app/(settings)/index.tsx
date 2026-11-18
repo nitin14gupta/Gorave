@@ -80,6 +80,8 @@ export default function SettingsScreen() {
             { icon: <HeadphonesIcon size={18} color={iconColor} strokeWidth={1.5} />, label: 'Contact support', onPress: () => router.push('/(settings)/support' as any) },
             { icon: <MessageSquare size={18} color={iconColor} strokeWidth={1.5} />, label: 'Send feedback', onPress: () => router.push('/(settings)/feedback') },
             { icon: <Info size={18} color={iconColor} strokeWidth={1.5} />, label: 'About Gorave', value: `v${appVersion}`, onPress: () => router.push('/(settings)/about') },
+            // Dev builds only: compare the women-only card looks.
+            ...(__DEV__ ? [{ icon: <Info size={18} color={iconColor} strokeWidth={1.5} />, label: 'Design lab: women-only cards', onPress: () => router.push('/(settings)/women-lab' as any) }] : []),
           ]}
         />
 

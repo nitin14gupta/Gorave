@@ -7,7 +7,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
  * Flip it with <LabSwitch screen="…" /> (dev builds only). Once a screen's
  * winner is picked, its loser and its LabSwitch are deleted.
  */
-export type LabVariant = 'a' | 'b'
+export type LabVariant = 'a' | 'b' | 'c' | 'd'
 
 interface LabStore {
   picks: Record<string, LabVariant>
