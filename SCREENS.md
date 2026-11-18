@@ -246,7 +246,7 @@ captions about nights out and making friends, not dating.
 | Requested section | Home | ✅ new: events you asked to join, "Waiting for the host" |
 | Send vibe | Someone's profile | ✅ full screen, their photo, ideas from their interests, 4 lines max |
 | Vibe accept | Chat, profile | ✅ full screen "It's a vibe", both faces, their message, ideas |
-| Vibe inbox | Chat flame / banner | ✅ big photo cards, message bubble, Pass / Vibe back |
+| Vibe inbox | Chat flame / banner | ✅ compact rows (square photo, name, city · time, two-line message, round Pass / Vibe back), opens at 62% and drags to full |
 | UPI ID | Payment | ✅ full screen, big ID, handle chips, verified card, remember tick |
 | Review text | Rate your night | ✅ opens the full-screen editor |
 | Event options, share event, share details, guest list, report event | Event page | ✅ big titles, solid red for destructive, square faces, report details in full-screen editor |

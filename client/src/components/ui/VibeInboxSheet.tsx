@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { View, Text, StyleSheet, Pressable } from 'react-native'
 import { Image } from 'expo-image'
-import { LinearGradient } from 'expo-linear-gradient'
 import { BottomSheetModal, BottomSheetView, BottomSheetFlatList, BottomSheetBackdrop } from '@gorhom/bottom-sheet'
 import type { BottomSheetBackdropProps } from '@gorhom/bottom-sheet'
 import { AutoSkeletonView } from 'react-native-auto-skeleton'
@@ -42,41 +41,51 @@ function renderBackdrop(props: BottomSheetBackdropProps) {
   return <BottomSheetBackdrop {...props} disappearsOnIndex={-1} appearsOnIndex={0} pressBehavior="close" opacity={0.65} />
 }
 
+/** "5m", "3h", "2d": when the vibe came in. */
+function ago(iso: string): string {
+  const mins = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000))
+  if (mins < 60) return `${Math.max(1, mins)}m`
+  if (mins < 60 * 24) return `${Math.round(mins / 60)}h`
+  return `${Math.round(mins / (60 * 24))}d`
+}
+
+// One compact row per vibe, so 20 in a day still fits on a screen or two:
+// their photo (opens the profile), name, the message, and two round buttons.
 function RequestCard({ req, onBeginAccept, onPass }: { req: VibeRequest; onBeginAccept: (id: string, name: string | null) => void; onPass: (id: string) => void }) {
   const [actioned, setActioned] = useState<'pending' | 'passed' | null>(null)
   const avatar = req.photos[0]?.url
   const first = (req.name ?? 'Someone').split(' ')[0]
+  const openProfile = () => router.push(`/(profile)/${req.sender_id}` as any)
 
   return (
-    <View style={[s.card, actioned && s.cardActioned]}>
-      <Pressable style={s.photo} onPress={() => router.push(`/(profile)/${req.sender_id}` as any)}>
+    <View style={[s.row, actioned && s.cardActioned]}>
+      <Pressable style={s.photo} onPress={openProfile} accessibilityLabel={`Open ${first}'s profile`}>
         {avatar ? (
           <Image source={{ uri: avatar }} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="memory-disk" transition={150} />
         ) : (
           <Text style={s.photoInit}>{first.charAt(0)}</Text>
         )}
-        <LinearGradient pointerEvents="none" colors={['transparent', 'rgba(0,0,0,0.8)']} locations={[0.55, 1]} style={StyleSheet.absoluteFill} />
-        <View style={s.photoInfo}>
-          <Text style={s.photoName} numberOfLines={1}>{req.name ?? 'Someone'}</Text>
-          {req.city ? <Text style={s.photoCity} numberOfLines={1}>{req.city}</Text> : null}
-        </View>
       </Pressable>
 
-      <View style={s.bubble}><Text style={s.bubbleText}>{req.message}</Text></View>
+      <Pressable style={s.mid} onPress={openProfile}>
+        <View style={s.nameRow}>
+          <Text style={s.name} numberOfLines={1}>{first}</Text>
+          <Text style={s.meta} numberOfLines={1}>{[req.city, ago(req.created_at)].filter(Boolean).join(' · ')}</Text>
+        </View>
+        <Text style={s.message} numberOfLines={2}>{req.message}</Text>
+      </Pressable>
 
       {actioned === 'pending' ? (
-        <View style={s.actionedBadge}><Check size={14} color={Colors.onlineGreen} strokeWidth={2.5} /><Text style={s.actionedText}>Opening…</Text></View>
+        <Check size={20} color={Colors.onlineGreen} strokeWidth={2.5} />
       ) : actioned === 'passed' ? (
-        <View style={s.actionedBadge}><Text style={s.actionedText}>Passed</Text></View>
+        <Text style={s.actionedText}>Passed</Text>
       ) : (
-        <View style={s.cardActions}>
-          <Pressable style={s.passBtn} onPress={() => { hTap(); setActioned('passed'); onPass(req.id) }}>
+        <View style={s.actions}>
+          <Pressable style={s.passBtn} hitSlop={4} accessibilityLabel={`Pass on ${first}`} onPress={() => { hTap(); setActioned('passed'); onPass(req.id) }}>
             <X size={18} color={Colors.inkPrimary} strokeWidth={2.2} />
-            <Text style={s.passText}>Pass</Text>
           </Pressable>
-          <Pressable style={s.acceptBtn} onPress={() => { hSuccess(); setActioned('pending'); onBeginAccept(req.id, req.name) }}>
-            <Flame size={17} color={Colors.background} fill={Colors.background} />
-            <Text style={s.acceptText}>Vibe back</Text>
+          <Pressable style={s.acceptBtn} hitSlop={4} accessibilityLabel={`Vibe back with ${first}`} onPress={() => { hSuccess(); setActioned('pending'); onBeginAccept(req.id, req.name) }}>
+            <Flame size={18} color={Colors.background} fill={Colors.background} />
           </Pressable>
         </View>
       )}
@@ -106,7 +115,8 @@ function VibeInboxSheetCore({ requests, loading, onBeginAccept, onPass, onClose 
   return (
     <BottomSheetModal
       ref={sheetRef}
-      snapPoints={['92%']}
+      snapPoints={['62%', '92%']}
+      enableDynamicSizing={false}
       enablePanDownToClose
       onDismiss={onClose}
       backdropComponent={renderBackdrop}
@@ -117,7 +127,7 @@ function VibeInboxSheetCore({ requests, loading, onBeginAccept, onPass, onClose 
         <BottomSheetView style={s.fullContent}>
           {Header}
           <AutoSkeletonView isLoading animationType="gradient" defaultRadius={16} gradientColors={[Colors.surfaceMuted, '#3a3a3a']}>
-            <View style={{ gap: 12 }}>
+            <View style={{ gap: 10 }}>
               {Array.from({ length: 4 }).map((_, i) => (
                 <RequestCardSkeleton key={i} />
               ))}
@@ -140,7 +150,7 @@ function VibeInboxSheetCore({ requests, loading, onBeginAccept, onPass, onClose 
           contentContainerStyle={s.listContent}
           showsVerticalScrollIndicator={false}
           ListHeaderComponent={Header}
-          ItemSeparatorComponent={() => <View style={{ height: 18 }} />}
+          ItemSeparatorComponent={() => <View style={s.divider} />}
           renderItem={({ item }) => <RequestCard req={item} onBeginAccept={onBeginAccept} onPass={onPass} />}
         />
       )}
@@ -158,30 +168,29 @@ const s = StyleSheet.create({
   handleIndicator: { backgroundColor: withOpacity(Colors.inkPrimary, 0.18) },
   fullContent: { paddingHorizontal: 20, paddingBottom: 36, paddingTop: 8 },
   listContent: { paddingHorizontal: 20, paddingBottom: 36, paddingTop: 8 },
-  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
+  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
   headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  title: { fontFamily: FontFamily.displayExtraBold, fontSize: 28, letterSpacing: -0.7, color: Colors.inkPrimary },
+  title: { fontFamily: FontFamily.displayExtraBold, fontSize: 22, letterSpacing: -0.5, color: Colors.inkPrimary },
   countBadge: { width: 22, height: 22, borderRadius: 11, backgroundColor: Colors.inkPrimary, alignItems: 'center', justifyContent: 'center' },
   countBadgeText: { fontFamily: FontFamily.bodySemiBold, fontSize: 11, color: Colors.background },
-  card: { gap: 12 },
-  skCard: { flexDirection: 'row', alignItems: 'center', borderRadius: 16, borderWidth: 1, borderColor: Colors.surfaceMuted, padding: 14, gap: 12 },
+  skCard: { flexDirection: 'row', alignItems: 'center', borderRadius: 16, borderWidth: 1, borderColor: Colors.surfaceMuted, padding: 12, gap: 12 },
   cardActioned: { opacity: 0.5 },
-  cardAvatar: { width: 52, height: 52, borderRadius: 26 },
+  cardAvatar: { width: 56, height: 56, borderRadius: 14 },
   cardInfo: { flex: 1 },
-  photo: { width: '100%', aspectRatio: 1, borderRadius: 24, overflow: 'hidden', backgroundColor: Colors.surfaceMuted, alignItems: 'center', justifyContent: 'center' },
-  photoInit: { fontFamily: FontFamily.displayExtraBold, fontSize: 72, color: Colors.inkDisabled },
-  photoInfo: { position: 'absolute', left: 16, right: 16, bottom: 14 },
-  photoName: { fontFamily: FontFamily.displayExtraBold, fontSize: 28, letterSpacing: -0.6, color: Colors.white },
-  photoCity: { fontFamily: FontFamily.bodyMedium, fontSize: 13, color: withOpacity(Colors.white, 0.85) },
-  bubble: { alignSelf: 'flex-start', maxWidth: '92%', paddingHorizontal: 14, paddingVertical: 11, borderRadius: 18, borderTopLeftRadius: 6, backgroundColor: Colors.surface, borderWidth: 1, borderColor: Colors.divider },
-  bubbleText: { fontFamily: FontFamily.bodyRegular, fontSize: 15, lineHeight: 21, color: Colors.inkPrimary },
-  cardActions: { flexDirection: 'row', gap: 10 },
-  passBtn: { flex: 1, height: 50, borderRadius: 25, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: withOpacity(Colors.inkPrimary, 0.08) },
-  passText: { fontFamily: FontFamily.bodySemiBold, fontSize: 15, color: Colors.inkPrimary },
-  acceptBtn: { flex: 1.6, height: 50, borderRadius: 25, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: Colors.inkPrimary },
-  acceptText: { fontFamily: FontFamily.headingBold, fontSize: 15, color: Colors.background },
-  actionedBadge: { height: 50, borderRadius: 25, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: withOpacity(Colors.inkPrimary, 0.06) },
-  actionedText: { fontFamily: FontFamily.bodySemiBold, fontSize: 14, color: Colors.inkSecondary },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12 },
+  // People photos are square.
+  photo: { width: 56, height: 56, borderRadius: 14, overflow: 'hidden', backgroundColor: Colors.surfaceMuted, alignItems: 'center', justifyContent: 'center' },
+  photoInit: { fontFamily: FontFamily.headingBold, fontSize: 22, color: Colors.inkDisabled },
+  mid: { flex: 1, minWidth: 0, gap: 3 },
+  nameRow: { flexDirection: 'row', alignItems: 'baseline', gap: 6 },
+  name: { flexShrink: 1, fontFamily: FontFamily.bodySemiBold, fontSize: 15, color: Colors.inkPrimary },
+  meta: { flexShrink: 1, fontFamily: FontFamily.bodyRegular, fontSize: 12, color: Colors.inkDisabled },
+  message: { fontFamily: FontFamily.bodyRegular, fontSize: 13, lineHeight: 18, color: Colors.inkSecondary },
+  actions: { flexDirection: 'row', gap: 8 },
+  passBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: withOpacity(Colors.inkPrimary, 0.08) },
+  acceptBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.inkPrimary },
+  actionedText: { fontFamily: FontFamily.bodySemiBold, fontSize: 12, color: Colors.inkSecondary },
+  divider: { height: StyleSheet.hairlineWidth, backgroundColor: Colors.divider, marginLeft: 68 },
   emptyBox: { paddingVertical: 40, alignItems: 'center', gap: 10 },
   emptyTitle: { fontFamily: FontFamily.headingBold, fontSize: 18, color: Colors.inkPrimary },
   emptySub: { fontFamily: FontFamily.bodyRegular, fontSize: 13, color: Colors.inkSecondary, textAlign: 'center' },
