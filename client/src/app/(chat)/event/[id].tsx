@@ -14,6 +14,7 @@ import { DateSeparator } from '@/components/chat/DateSeparator'
 import { EmojiPickerOverlay } from '@/components/chat/EmojiPickerOverlay'
 import { MediaViewerModal } from '@/components/chat/MediaViewerModal'
 import { MessageBubble } from '@/components/chat/MessageBubble'
+import { MediaStack } from '@/components/chat/MediaStack'
 import { ReportMessageSheet } from '@/components/chat/ReportMessageSheet'
 import { EmptyState, HeaderIconBtn } from '@/components/ui'
 import { useEventChat } from '@/hooks/useEventChat'
@@ -29,7 +30,13 @@ import { Colors, FontFamily } from '@/constants'
 const BUBBLE_TYPES_SKIPPED = new Set(['system', 'update', 'blocked'])
 const PARTY_REACTION = '🎉'
 
-type ListRow = { kind: 'date'; id: string; label: string } | { kind: 'msg'; id: string; msg: EventChatMessage; index: number }
+// `end` is the oldest index in the row: a run of photos/videos from one person
+// on the same day is one row (`group`), drawn as a stack like in 1:1 chats.
+type ListRow = { kind: 'date'; id: string; label: string } | { kind: 'msg'; id: string; msg: EventChatMessage; index: number; end: number; group?: EventChatMessage[] }
+
+const STACKABLE = new Set(['image', 'gif', 'video'])
+// View once/twice and forwarded media are opened on their own, never stacked.
+const stackable = (m: EventChatMessage) => STACKABLE.has(m.content_type) && !!m.metadata?.url && !m.view_limit && !m.forward_score
 
 const dayKey = (iso: string) => new Date(iso).toDateString()
 
@@ -69,11 +76,20 @@ export default function EventChatScreen() {
 
   const rows = useMemo<ListRow[]>(() => {
     const out: ListRow[] = []
-    c.messages.forEach((msg, index) => {
-      out.push({ kind: 'msg', id: msg.id, msg, index })
-      const older = c.messages[index + 1]
-      if (!older || dayKey(older.sent_at) !== dayKey(msg.sent_at)) out.push({ kind: 'date', id: `day_${msg.id}`, label: dayLabel(msg.sent_at) })
-    })
+    const all = c.messages
+    let i = 0
+    while (i < all.length) {
+      const msg = all[i]
+      let end = i
+      if (stackable(msg)) {
+        while (end + 1 < all.length && stackable(all[end + 1]) && all[end + 1].sender_id === msg.sender_id && dayKey(all[end + 1].sent_at) === dayKey(msg.sent_at)) end++
+      }
+      out.push({ kind: 'msg', id: end > i ? `grp_${msg.id}` : msg.id, msg, index: i, end, group: end > i ? all.slice(i, end + 1) : undefined })
+      const last = all[end]
+      const older = all[end + 1]
+      if (!older || dayKey(older.sent_at) !== dayKey(last.sent_at)) out.push({ kind: 'date', id: `day_${last.id}`, label: dayLabel(last.sent_at) })
+      i = end + 1
+    }
     return out
   }, [c.messages])
 
@@ -150,12 +166,12 @@ export default function EventChatScreen() {
 
   const renderItem = ({ item }: { item: ListRow }) => {
     if (item.kind === 'date') return <DateSeparator label={item.label} />
-    const { msg, index } = item
+    const { msg, index, end, group } = item
     if (msg.content_type === 'system') return <SystemLine text={msg.content ?? ''} />
     if (msg.content_type === 'update') return <UpdateCard msg={msg} />
     const isMine = msg.sender_id === myId
     const newer = c.messages[index - 1]
-    const older = c.messages[index + 1]
+    const older = c.messages[end + 1]
     // A block either way: one quiet line, and a run of them shows once.
     if (msg.content_type === 'blocked') {
       if (newer?.content_type === 'blocked' && dayKey(newer.sent_at) === dayKey(msg.sent_at)) return null
@@ -171,6 +187,9 @@ export default function EventChatScreen() {
           lastInRun={!sameRun(newer)}
           onPressSender={() => { if (msg.sender?.unavailable || !msg.sender_id) return; hTap(); router.push(`/(profile)/${msg.sender_id}` as any) }}
         >
+          {group ? (
+            <MediaStack messages={group as Message[]} isMine={isMine} onOpen={(items, i) => openMedia(items, i)} />
+          ) : (
           <MessageBubble
             msg={msg as Message}
             isMine={isMine}
@@ -184,8 +203,9 @@ export default function EventChatScreen() {
             onMediaTap={(url, type) => openMedia([{ url, type }], 0)}
             onRetry={c.retry}
           />
+          )}
         </GroupRow>
-        {msg.id === newest?.id ? <SeenRow people={seenNewest} isMine={isMine} onPress={() => setInfoOpen(true)} /> : null}
+        {(group ? group.some(g => g.id === newest?.id) : msg.id === newest?.id) ? <SeenRow people={seenNewest} isMine={isMine} onPress={() => setInfoOpen(true)} /> : null}
       </>
     )
   }

@@ -311,18 +311,29 @@ class Seed:
         self.say(r, u["rohan"], at(days=-5, minutes=31), "Good enough for Thursday")
 
         # ── Group chats ──
-        g = self.group(rooftop, u["ananya"], [u["kabir"], u["zoya"], u["meera"], u["rohan"], u["tara"], u["dev"], me])
-        self.say(g, u["ananya"], at(days=-4), "Welcome everyone! Sunset is around 6:40, so try to get here by 6:15", ctype="update")
-        self.say(g, u["tara"], at(days=-3), "Is there parking nearby?")
-        self.say(g, u["ananya"], at(days=-3, minutes=5), "Street parking on Chapel Road, or take an auto from Bandra station")
-        self.say(g, u["dev"], at(days=-2), "Bringing my film camera, will share the pics in the album after")
-        self.photos(g, u["ananya"], at(days=-1, hours=-2), PARTY[:3])
-        self.say(g, u["ananya"], at(days=-1, hours=-2, minutes=1), "Sneak peek of the terrace")
-        self.say(g, u["meera"], at(hours=-1), "This looks unreal", reactions={u["ananya"]: "❤️", u["zoya"]: "🔥"})
-        self.say(g, u["zoya"], at(minutes=-35), "Can't wait!!", read=False)
-        pin = self.say(g, u["ananya"], at(days=-4, minutes=1), "Dress code: something you can sit on the floor in. Cushions and mats are there.", ctype="update")
+        g = self.group(rooftop, u["ananya"], [u["kabir"], u["zoya"], u["meera"], u["rohan"], u["tara"], u["dev"], u["aditi"], me])
+        pin = self.say(g, u["ananya"], at(days=-4), "Welcome everyone! Sunset is around 6:40, so get here by 6:15. Wear something you can sit on the floor in, cushions are sorted", ctype="update")
         c.execute("UPDATE conversations SET pinned_message_id = %s WHERE id = %s", (pin, g))
-        c.execute("UPDATE conversation_members SET last_read_at = %s WHERE conversation_id = %s AND user_id = %s", (at(hours=-2), g, me))
+        self.say(g, u["tara"], at(days=-3), "Is there parking nearby?")
+        self.say(g, u["ananya"], at(days=-3, minutes=5), "Street parking on Chapel Road, or an auto from Bandra station is 5 mins")
+        self.say(g, u["dev"], at(days=-2), "Bringing my film camera, will drop the pics in the album after")
+        # Today: the bit you see first when you open the chat.
+        self.say(g, u["tara"], at(minutes=-150), "Anyone coming from Andheri? Can share an auto")
+        self.say(g, u["dev"], at(minutes=-148), "Me! Leaving around 5:45", reactions={u["tara"]: "🙌"})
+        self.say(g, u["meera"], at(minutes=-120), "First time at one of these, a little nervous ngl")
+        self.say(g, u["zoya"], at(minutes=-118), "Don't be! Ananya's rooftops are the friendliest", reactions={u["meera"]: "❤️", u["ananya"]: "❤️"})
+        self.say(g, me, at(minutes=-115), "I knew one person at my first one. Now look at this group", reactions={u["kabir"]: "😂", u["meera"]: "😂"})
+        self.say(g, u["kabir"], at(minutes=-90), "Bringing my guitar, requests open")
+        self.say(g, u["rohan"], at(minutes=-88), "Cajón is packed too")
+        self.say(g, u["aditi"], at(minutes=-86), "Okay this is turning into a concert", reactions={u["kabir"]: "🔥", u["rohan"]: "🔥", me: "🔥"})
+        self.say(g, u["ananya"], at(minutes=-61), "Lights are up!")
+        self.photos(g, u["ananya"], at(minutes=-60), PARTY[:3])
+        self.say(g, u["meera"], at(minutes=-55), "Stop it's so pretty", reactions={u["ananya"]: "❤️"})
+        self.say(g, u["zoya"], at(minutes=-35), "Can't wait!!", read=False)
+        self.say(g, u["kabir"], at(minutes=-20), "See you all at 6:15 sharp", read=False)
+        c.execute("UPDATE conversation_members SET last_read_at = %s WHERE conversation_id = %s AND user_id = %s", (at(minutes=-50), g, me))
+        # Everyone else has read up to now, so the seen faces show under the newest message.
+        c.execute("UPDATE conversation_members SET last_read_at = %s WHERE conversation_id = %s AND user_id <> %s", (at(minutes=-5), g, me))
 
         h = self.group(catan, me, [u["kabir"], u["naina"], u["arjun"], u["vikram"]] + self.crowd[20:25])
         self.say(h, me, at(days=-2), "Hey all! Doors at 7:30, first game starts 8. Chai and snacks are on me", ctype="update")
@@ -344,8 +355,17 @@ class Seed:
         self.album(retro, [u["dev"], u["ananya"], u["meera"], me], PARTY[3:] + PARTY[:3] + MUSIC[:2])
 
         # ── Vibes ──
+        crowd_f = [self.crowd[i] for i in range(1, len(self.crowd), 2)]  # the women in the crowd
         for sender, msg, mins in [(u["tara"], "Your Catan night looks fun, are you doing another one soon?", -95),
-                                  (u["isha"], "Saw you at Retro Bollywood Night, your dance moves were something", -300)]:
+                                  (u["isha"], "Saw you at Retro Bollywood Night, your dance moves were something", -300),
+                                  (u["naina"], "Okay I need a Catan rematch. Same team?", -12),
+                                  (crowd_f[0], "You were the one singing Kishore songs at the karaoke corner right?", -40),
+                                  (crowd_f[1], "Also going to Sunset Rooftop Sessions! See you there?", -75),
+                                  (crowd_f[2], "Your voice intro made me laugh. Coffee sometime?", -150),
+                                  (crowd_f[3], "Fellow yoga person. Know any good morning classes in Bandra?", -220),
+                                  (crowd_f[4], "Saw you're hosting board games, I'm terrible but I'm fun", -420),
+                                  (crowd_f[5], "Your playlist taste is elite, swap recommendations?", -700),
+                                  (crowd_f[6], "Hi! We were both at the dumpling dinner list, are you veg too?", -1100)]:
             c.execute("INSERT INTO vibe_requests (sender_id, receiver_id, message, status, created_at, expires_at) VALUES (%s,%s,%s,'pending',%s,%s) RETURNING id::text",
                       (sender, me, msg, at(minutes=mins), at(days=7, minutes=mins)))
             self.note("vibe", c.fetchone()["id"])
