@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Dimensions, Pressable, ScrollView, StyleSheet, Text, View, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native'
+import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { Image } from 'expo-image'
 import Animated, { FadeIn } from 'react-native-reanimated'
 import { Ban, ChevronDown, Flag, PartyPopper, PenLine, Scale, ShieldCheck } from 'lucide-react-native'
@@ -14,7 +14,6 @@ interface Props {
 }
 
 const ICONS = { shield: ShieldCheck, ban: Ban, flag: Flag, scale: Scale, party: PartyPopper } as const
-const CARD_W = Dimensions.get('window').width - 48 - 24
 
 /** The full wording, folded away. It's what's actually signed. */
 function FinePrint() {
@@ -61,7 +60,7 @@ function Sign({ signatureUri, name, onSign }: Props) {
 
 // ── A: house rules, one line each ───────────────────────────────────────────
 
-export function AgreementViewA(p: Props) {
+export function AgreementView(p: Props) {
   return (
     <View>
       <Text style={s.title}>A few house{'\n'}rules</Text>
@@ -90,49 +89,6 @@ export function AgreementViewA(p: Props) {
 
 // ── B: swipe through, then sign ─────────────────────────────────────────────
 
-export function AgreementViewB(p: Props) {
-  const [page, setPage] = useState(0)
-  const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const i = Math.round(e.nativeEvent.contentOffset.x / (CARD_W + 12))
-    if (i !== page) setPage(i)
-  }
-  return (
-    <View>
-      <Text style={s.title}>A few house{'\n'}rules</Text>
-      <Text style={s.lede}>Swipe through. Five quick ones.</Text>
-
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        snapToInterval={CARD_W + 12}
-        decelerationRate="fast"
-        onScroll={onScroll}
-        scrollEventThrottle={32}
-        style={s.cardsBleed}
-        contentContainerStyle={s.cards}
-      >
-        {AGREEMENT_CLAUSES.map((c, i) => {
-          const Icon = ICONS[c.icon]
-          return (
-            <View key={c.short} style={s.card}>
-              <View style={s.cardIcon}><Icon size={26} color={Colors.inkPrimary} strokeWidth={1.8} /></View>
-              <Text style={s.cardTitle}>{c.short}</Text>
-              <Text style={s.cardLine}>{c.line}</Text>
-              <Text style={s.cardCount}>{i + 1} / {AGREEMENT_CLAUSES.length}</Text>
-            </View>
-          )
-        })}
-      </ScrollView>
-      <View style={s.dots}>
-        {AGREEMENT_CLAUSES.map((_, i) => <View key={i} style={[s.dot, i === page && s.dotOn]} />)}
-      </View>
-
-      <FinePrint />
-      <Sign {...p} />
-    </View>
-  )
-}
-
 const s = StyleSheet.create({
   // Same type as the wizard's other steps.
   title: { fontFamily: FontFamily.displayExtraBold, fontSize: 36, lineHeight: 39, letterSpacing: -1, color: Colors.inkPrimary, marginTop: 8 },
@@ -147,16 +103,6 @@ const s = StyleSheet.create({
   ruleLine: { fontFamily: FontFamily.bodyRegular, fontSize: 14, lineHeight: 19, color: Colors.inkSecondary },
 
   // B
-  cardsBleed: { marginHorizontal: -24, marginTop: 22 },
-  cards: { paddingHorizontal: 24, gap: 12 },
-  card: { width: CARD_W, minHeight: 200, padding: 20, borderRadius: 24, backgroundColor: Colors.surface },
-  cardIcon: { width: 52, height: 52, borderRadius: 16, backgroundColor: withOpacity(Colors.inkPrimary, 0.07), alignItems: 'center', justifyContent: 'center' },
-  cardTitle: { fontFamily: FontFamily.displayExtraBold, fontSize: 24, lineHeight: 28, letterSpacing: -0.5, color: Colors.inkPrimary, marginTop: 18 },
-  cardLine: { fontFamily: FontFamily.bodyRegular, fontSize: 15, lineHeight: 21, color: Colors.inkSecondary, marginTop: 8 },
-  cardCount: { fontFamily: FontFamily.bodyMedium, fontSize: 12, color: Colors.inkDisabled, marginTop: 'auto', paddingTop: 16 },
-  dots: { flexDirection: 'row', justifyContent: 'center', gap: 6, marginTop: 14 },
-  dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: withOpacity(Colors.inkPrimary, 0.18) },
-  dotOn: { width: 18, backgroundColor: Colors.inkPrimary },
 
   // Shared
   fine: { marginTop: 20 },

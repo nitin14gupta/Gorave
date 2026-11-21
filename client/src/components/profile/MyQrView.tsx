@@ -6,7 +6,7 @@ import QRCode from 'react-native-qrcode-svg'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Download, MessageCircle, Share2, X } from 'lucide-react-native'
 import { Colors, FontFamily, Logo, withOpacity } from '@/constants'
-import { LogoMark, StyledQr } from '@/components/ui'
+import { LogoMark, StyledQr, Wordmark } from '@/components/ui'
 import { TICKET, TicketPaper } from '@/components/events/TicketView'
 import { hSelection, hTap } from '@/lib/haptics'
 
@@ -86,7 +86,8 @@ export function MyQrView({ cardRef, shareUrl, name, handle, city, photos, onShar
                 <Text style={s.passName} numberOfLines={1}>{name}</Text>
                 <Text style={s.passHandle} numberOfLines={1}>{handle}{city ? ` · ${city}` : ''}</Text>
               </View>
-              <LogoMark size={22} opacity={0.85} />
+              {/* The sticker, slapped on the pass's corner. */}
+              <View style={{ transform: [{ rotate: '-7deg' }] }}><Wordmark kind="sticker" height={26} /></View>
             </View>
             <View style={s.perf}>
               <View style={[s.notch, { marginLeft: -12 }]} />

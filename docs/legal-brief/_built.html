@@ -1,0 +1,1109 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Gorave: Legal review brief</title>
+<style>
+  @page { size: A4; margin: 18mm 17mm 20mm; }
+  :root { --ink: #16120f; --ink2: #4a433d; --muted: #7a716a; --line: #e4ddd5; --accent: #c2410c; --soft: #faf6f1; }
+  * { box-sizing: border-box; }
+  body { font-family: "Segoe UI", Inter, Arial, sans-serif; color: var(--ink); font-size: 10.4pt; line-height: 1.5; margin: 0; }
+  h1 { font-size: 26pt; letter-spacing: -0.02em; margin: 0 0 6px; line-height: 1.1; }
+  h2 { font-size: 15pt; margin: 26px 0 8px; padding-top: 8px; border-top: 2px solid var(--ink); letter-spacing: -0.01em; page-break-after: avoid; }
+  h3 { font-size: 11.5pt; margin: 16px 0 6px; page-break-after: avoid; }
+  p { margin: 6px 0; }
+  ul, ol { margin: 6px 0 6px 20px; padding: 0; }
+  li { margin: 3px 0; }
+  table { width: 100%; border-collapse: collapse; margin: 8px 0 10px; font-size: 9.6pt; page-break-inside: auto; }
+  tr { page-break-inside: avoid; }
+  th, td { text-align: left; vertical-align: top; padding: 5px 7px; border-bottom: 1px solid var(--line); }
+  th { background: var(--soft); font-weight: 600; }
+  .cover { height: 245mm; display: flex; flex-direction: column; justify-content: space-between; page-break-after: always; }
+  .kicker { font-size: 9pt; letter-spacing: 0.18em; text-transform: uppercase; color: var(--accent); font-weight: 700; }
+  .sub { font-size: 12pt; color: var(--ink2); max-width: 520px; }
+  .meta td { border: none; padding: 2px 12px 2px 0; color: var(--ink2); }
+  .box { background: var(--soft); border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; margin: 10px 0; page-break-inside: avoid; }
+  .q { counter-increment: q; }
+  .muted { color: var(--muted); font-size: 9pt; }
+  .tag { display: inline-block; font-size: 8pt; font-weight: 700; letter-spacing: 0.06em; padding: 1px 6px; border-radius: 3px; background: #fde7dc; color: var(--accent); }
+  .toc li { margin: 2px 0; }
+  .pb { page-break-before: always; }
+  .appendix h1 { font-size: 18pt; margin-top: 0; }
+  .appendix h2 { font-size: 12.5pt; border-top: 1px solid var(--line); }
+  .appendix blockquote { margin: 8px 0; padding: 6px 10px; background: var(--soft); border-left: 3px solid var(--accent); color: var(--ink2); }
+  code { font-family: Consolas, monospace; font-size: 9pt; background: var(--soft); padding: 0 3px; border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<section class="cover">
+  <div>
+    <div class="kicker">Confidential · Prepared for legal counsel</div>
+    <h1 style="margin-top:14px">Gorave: Legal review brief</h1>
+    <p class="sub">How the Gorave app works end to end (accounts, hosting, payments, the wallet, refunds, payouts, safety, data and app-store compliance), the laws we think apply, how we currently handle each one, and the questions we need you to answer before launch.</p>
+  </div>
+  <div>
+    <table class="meta">
+      <tr><td>Company</td><td><b>Gorave Pvt. Ltd.</b> (incorporation in progress; CIN, address and GSTIN to follow)</td></tr>
+      <tr><td>Product</td><td>Gorave, a mobile app (Android and iOS) and website (gorave.in) for discovering, hosting and attending small social events in India</td></tr>
+      <tr><td>Date</td><td>21 November 2026</td></tr>
+      <tr><td>Status</td><td>Pre-launch. Built and tested internally; not yet on the App Store or Google Play.</td></tr>
+      <tr><td>Attached</td><td>Appendix A to G: our current drafts of Terms, Privacy Policy, Refunds and Cancellation, Community Guidelines, Host Agreement, Guest Agreement, and Grievance page. Appendix H: internal incident process.</td></tr>
+    </table>
+    <p class="muted" style="margin-top:18px">This brief describes what the product does today, written by the founding team. It is not legal advice; it is the material for yours. Items marked <span class="tag">DECIDE</span> are open business decisions; items marked <span class="tag">QUESTION</span> are for you.</p>
+  </div>
+</section>
+
+<h2 style="border-top:none;margin-top:0">Contents</h2>
+<ol class="toc">
+  <li>What we need from you</li>
+  <li>The product in one page</li>
+  <li>Accounts, sign-in and SMS (DLT)</li>
+  <li>Hosting: who can host, ID checks, the host agreement</li>
+  <li>Attending: booking, tickets, cancellation, the guest agreement</li>
+  <li>Money: prices, payments, deals, refunds, the wallet, payouts, tax</li>
+  <li>Safety and moderation</li>
+  <li>Messaging, content and notifications</li>
+  <li>Personal data and privacy</li>
+  <li>App Store and Google Play compliance</li>
+  <li>Laws and rules we believe apply</li>
+  <li>Questions for counsel</li>
+  <li>Appendices: draft legal documents</li>
+</ol>
+
+<h2>1. What we need from you</h2>
+<ol>
+  <li><b>Review and finalise</b> our draft legal pages (Appendices A to G) so they match how the product actually works (sections 3 to 9) and Indian law.</li>
+  <li><b>Answer the questions in section 12</b>, especially: our status as an intermediary / e-commerce marketplace, the closed wallet, tax collection on host payouts, the payment flow, and gender-restricted events.</li>
+  <li><b>Flag anything</b> that would get the app rejected by Apple or Google, or expose the company, so we can change the product before launch.</li>
+  <li><b>Advise on registrations</b>: GST, TRAI DLT, trademark, and anything else we have missed.</li>
+</ol>
+
+<h2>2. The product in one page</h2>
+<p>Gorave helps adults (18+) in Indian cities find and join small social events hosted by other users: house parties, rooftop evenings, game nights, dinners, music sessions. Anyone can browse; verified users can host.</p>
+<table>
+  <tr><th style="width:24%">Who</th><th>What they do</th></tr>
+  <tr><td><b>Guests</b></td><td>Browse events by city on a map or list, book a free spot (often by request) or buy a paid ticket, chat in the event's group chat, check in with a QR code, review the night, share photos to an event album, and connect with people they met ("vibes", which open a 1:1 chat).</td></tr>
+  <tr><td><b>Hosts</b></td><td>Verify their identity (PAN), sign the Host Agreement, add a payout account, create events (price, capacity, age limit, optional women-only / men-only / set ratio), approve requests, manage a waitlist, offer deals (early-bird price, promo codes), check guests in, and get paid after the event.</td></tr>
+  <tr><td><b>Gorave (the company)</b></td><td>Runs the platform: listings, booking, payments (through Razorpay), chat, safety tools, moderation. We do not organise, own or attend events. We earn a ₹50 platform fee per paid ticket (paid by the guest) and a 10% commission on the ticket price (deducted from the host's payout).</td></tr>
+</table>
+<p>Scale today: pre-launch; launching city by city starting with Mumbai.</p>
+
+<h2>3. Accounts, sign-in and SMS</h2>
+<h3>3.1 Sign-in</h3>
+<ul>
+  <li><b>Phone number + one-time code (OTP) only.</b> No passwords, no social login. The OTP is sent by SMS through <b>Twilio</b>. On Android the code fills itself in from the SMS (Google SMS Retriever, no SMS-read permission).</li>
+  <li>Sessions use signed access and refresh tokens; signing out revokes them.</li>
+  <li>The user accepts the Terms and Privacy Policy on the phone-number screen ("By continuing you agree to our Terms and Privacy Policy, and to get event texts from Gorave").</li>
+</ul>
+<h3>3.2 Profile and age</h3>
+<ul>
+  <li>Onboarding asks for: confirmation the user is 18+, name, <b>date of birth</b> (users under 18 are refused), gender (set once), photos, an optional 30-second voice intro, interests and city.</li>
+  <li>Age is self-declared at sign-up. Hosts' age is checked against their PAN record (section 4).</li>
+</ul>
+<h3>3.3 SMS and DLT</h3>
+<table>
+  <tr><th>SMS</th><th>When</th><th>Type</th></tr>
+  <tr><td>Sign-in code (OTP)</td><td>Every sign-in, account deletion confirmation</td><td>Service / transactional</td></tr>
+  <tr><td>"Your account is unlocked"</td><td>After a successful appeal</td><td>Service</td></tr>
+  <tr><td>SOS alert to emergency contacts</td><td>When a user presses SOS (with their location)</td><td>Service</td></tr>
+</table>
+<p>We send <b>no promotional SMS</b>. Marketing-style messages (a weekly "this weekend" digest) go only as in-app push notifications the user can switch off. Before launch we will register the company, our sender header and each template on a <b>TRAI DLT</b> platform (TCCCPR 2018) through our SMS provider. <span class="tag">QUESTION</span> Confirm that SOS alerts sent to a third party (the user's emergency contact, who has not signed up) are permissible as a service message.</p>
+<h3>3.4 Deleting an account</h3>
+<ul>
+  <li>In the app: Settings → Account → Delete account, confirmed with an OTP. Also requestable by email.</li>
+  <li>A 30-day window to restore, then permanent deletion. Records the law requires (payments, tax, payouts) are kept.</li>
+  <li>A user cannot delete while hosting an upcoming event with guests (they must cancel first). Paid tickets for upcoming events are released without refund on deletion (warned in the flow). <span class="tag">QUESTION</span> Is releasing paid tickets without a refund on voluntary deletion acceptable, and what should happen to a remaining wallet balance (see 6.6)?</li>
+</ul>
+<h3>3.5 Locked accounts and appeals</h3>
+<ul>
+  <li>Gorave staff can lock an account (for example after reports of harassment). A locked account is hidden from everyone else; the user sees the reason when they open the app.</li>
+  <li><b>One appeal per lock</b>: a confirmation code, a short message, and a <b>live selfie</b> taken in the app, which a staff member compares with the profile photos. If the appeal is refused, the decision is final (they can still contact the Grievance Officer).</li>
+  <li><span class="tag">QUESTION</span> The selfie is a face image used only for a human comparison (no automated face matching or template). Is any special consent or retention rule needed? We plan to delete appeal selfies 90 days after the decision.</li>
+</ul>
+
+<h2>4. Hosting</h2>
+<h3>4.1 Who can host</h3>
+<ol>
+  <li><b>ID check (PAN).</b> The user enters their PAN and agrees to the check. We verify it through <b>Surepass</b> (an authorised PAN verification API). The name and date of birth on the PAN record must match the profile; middle names are tolerated. A Gorave admin then approves. Two failed tries, after which they contact support. One PAN can be used on only one account.</li>
+  <li><b>What we store</b>: the result, the name and date of birth returned for the PAN, a masked PAN (last digits), and a one-way salted hash of the PAN (to block reuse). We do not store the full PAN. <span class="tag">QUESTION</span> Confirm this is a proportionate KYC record and what retention applies.</li>
+  <li><b>Host Agreement</b> (Appendix E): five short clauses shown as cards (keep guests safe, zero tolerance for harassment, reports are for real problems, follow local laws, the host is responsible), the full text one tap away, then the host <b>draws a signature</b> with their finger. We store the signature image and the acceptance time. <span class="tag">QUESTION</span> Is click-to-accept plus a drawn signature image sufficient evidence of acceptance (IT Act s.10A), and should we also store a hash of the agreement version accepted?</li>
+  <li><b>Payout details</b>: UPI ID or bank account in the host's name, stored encrypted.</li>
+</ol>
+<h3>4.2 Event rules</h3>
+<table>
+  <tr><th style="width:34%">Rule</th><th>Detail</th></tr>
+  <tr><td>Price</td><td>Free, or at least ₹99. Free events are limited to 2 per host per month and are request-to-join.</td></tr>
+  <tr><td>Capacity, age limit</td><td>Set by the host. Age limit 18+ minimum; hosts can set 21+, 25+ etc.</td></tr>
+  <tr><td>Crowd mix</td><td>Open to all, a set share of women and men, <b>women only</b>, or <b>men only</b>. Seats are offered by the gender on the profile. See question 12.9.</td></tr>
+  <tr><td>Address</td><td>Public pages show the area only; the exact address is shown to confirmed guests.</td></tr>
+  <tr><td>Changes</td><td>Details editable up to 7 hours before start; capacity up to 2 hours before. Moving the date by more than 7 days gives buyers a 48-hour full-refund window.</td></tr>
+  <tr><td>Cancelling</td><td>Host can cancel up to 48 hours before start; every guest is refunded in full (ticket and fee). Closer than 48 hours they must contact us.</td></tr>
+  <tr><td>Check-in</td><td>The host scans guests' QR tickets in the app, from 3 hours before start until the end.</td></tr>
+  <tr><td>Permissions</td><td>Venue, police, excise (alcohol), music licences (PPL/IPRS), fire and noise rules are the host's responsibility under the Host Agreement. We do not verify them. <span class="tag">QUESTION</span> Is that allocation adequate, or should we require a declaration per event?</td></tr>
+</table>
+
+<h2>5. Attending</h2>
+<ul>
+  <li><b>Booking</b>: instant join (paid events) or request-to-join (host approves; up to 2 requests per person per event). Full events have a waitlist; when a seat opens the next person gets 1 hour to take it.</li>
+  <li><b>Ticket</b>: a QR code in the app. It can be <b>passed to another Gorave user once</b> (a "transfer"); it cannot be resold, and the receiver cannot cancel it for money. If the event is later cancelled, the refund goes to the person who paid.</li>
+  <li><b>Group chat</b>: confirmed guests join the event's group chat; the host can pin messages, mute the chat or remove people.</li>
+  <li><b>After the event</b>: reviews (stars and text), a shared photo album, and "People from last night" (the morning after, a list of who was there so you can send a vibe).</li>
+  <li><b>Guest Agreement</b> (Appendix F) sets out conduct, ID at the door, photos, the host's role and liability.</li>
+</ul>
+
+<h2>6. Money</h2>
+<h3>6.1 What a ticket costs and who gets what</h3>
+<table>
+  <tr><th>Example: ₹599 ticket</th><th>Amount</th></tr>
+  <tr><td>Guest pays: ticket + platform fee</td><td>₹599 + ₹50 = <b>₹649</b></td></tr>
+  <tr><td>Gorave keeps: platform fee + 10% commission on the ticket</td><td>₹50 + ₹60 = <b>₹110</b></td></tr>
+  <tr><td>Host receives</td><td>₹599 − ₹60 = <b>₹539</b></td></tr>
+</table>
+<p>The fee and commission rates are fixed per event at creation, so later changes never alter an existing event's maths.</p>
+<h3>6.2 Payments</h3>
+<ul>
+  <li>Through <b>Razorpay</b> (UPI apps, UPI ID, UPI QR, cards), or the Gorave Wallet, or both. We never see or store card or UPI credentials.</li>
+  <li>Tickets are for real-world events, so on iOS/Android we use Razorpay, not Apple/Google in-app purchase (see section 10).</li>
+  <li>Money is collected into the company's Razorpay account. Host payouts are made <b>manually today</b>; we plan to automate with Razorpay Route/RazorpayX. <span class="tag">QUESTION</span> Under RBI's Payment Aggregator rules, does collecting on behalf of hosts and paying them out later require an escrow/nodal arrangement on our side, or is that handled by Razorpay as the PA? Any limit on how long we may hold host money?</li>
+</ul>
+<h3>6.3 Deals (early bird and promo codes)</h3>
+<ul>
+  <li><b>Early bird</b>: the first N tickets at a lower price. Limits: at least half the full price, for at most half the capacity.</li>
+  <li><b>Promo codes</b> (e.g. RIYA20): % or ₹ off the ticket price, optional use limit. Limit: up to 50% off; deeper discounts (up to 100%) only for codes limited to 10 uses (guest lists).</li>
+  <li>Deals don't stack; a guest gets the cheaper one. The ₹50 fee is never discounted. <b>The host funds the discount</b>: payouts are always based on the price actually paid.</li>
+  <li>Counters shown to guests ("Early bird · 3 left", "5 spots left") are live, true numbers. <span class="tag">QUESTION</span> Please confirm our "was ₹1,299 / now ₹908" display and urgency messages are compliant with the CCPA Guidelines on Dark Patterns 2023 (false urgency, drip pricing): the fee is shown before payment.</li>
+</ul>
+<h3>6.4 Refunds</h3>
+<table>
+  <tr><th style="width:42%">Situation</th><th>Guest gets back</th></tr>
+  <tr><td>Guest cancels a <b>free</b> spot</td><td>Allowed until 2 hours before; nothing to refund</td></tr>
+  <tr><td>Guest cancels a <b>paid</b> ticket, 48h+ before</td><td>The ticket price they actually paid; the ₹50 fee is kept</td></tr>
+  <tr><td>Guest cancels inside 48 hours / no-show</td><td>No refund; they can pass the ticket to a friend once</td></tr>
+  <tr><td>Host or Gorave cancels</td><td>Everything paid, including the fee</td></tr>
+  <tr><td>Host moves the date by 7+ days</td><td>Everything paid, if they cancel within 48 hours of the change</td></tr>
+  <tr><td>After the event, we find it was fake or misleading (after reports)</td><td>Everything paid; the host is not paid for that event</td></tr>
+  <tr><td>Payment taken but no ticket (seat sold out at the same moment)</td><td>Everything paid, automatically</td></tr>
+</table>
+<h3>6.5 How refunds reach the guest</h3>
+<ul>
+  <li>A refund lands in the guest's <b>Gorave Wallet instantly</b> and <b>never expires</b>. The guest then chooses: keep it in the wallet, or <b>send the card/UPI part back to the original payment method</b> (5 to 7 business days; Razorpay refund). This is possible for about 180 days after the payment (the gateway's limit); after that, through support by bank transfer.</li>
+</ul>
+<h3>6.6 The Gorave Wallet</h3>
+<ul>
+  <li>Holds <b>only refunds</b>. No top-ups, no transfers between users, no interest, no cash withdrawal except sending a refund back to the payment it came from.</li>
+  <li>Spendable only on Gorave tickets. We believe this is a <b>closed-system PPI</b> outside RBI licensing.</li>
+  <li><span class="tag">QUESTION</span> Please confirm the closed-system characterisation, including the "send back to source" feature. <span class="tag">QUESTION</span> On account deletion our draft says any remaining balance is lost after 30 days. We would prefer to require the user to withdraw it to source first, or refund it automatically. What is the correct position under consumer law?</li>
+</ul>
+<h3>6.7 Host payouts</h3>
+<ul>
+  <li>After the event, if there are no open reports, the host is paid the ticket prices actually paid minus 10%, for tickets not refunded. Target timing: within [7] business days <span class="tag">DECIDE</span>.</li>
+  <li>Payouts can be <b>held</b> while reports are investigated. If an event is found to be fake or misleading, guests are refunded in full and the host is not paid; past payouts may be recovered from future ones (Host Agreement).</li>
+</ul>
+<h3>6.8 Tax</h3>
+<p><span class="tag">QUESTION</span> We need your (and a CA's) view on: GST on our ₹50 platform fee and 10% commission (B2C invoice to the guest for the fee?); whether we must collect <b>TCS under GST s.52</b> and deduct <b>TDS under Income Tax s.194-O</b> from host payouts as an e-commerce operator; whether Gorave has any liability for GST on the ticket price itself (hosts are mostly unregistered individuals); and what we must show on payout statements.</p>
+
+<h2>7. Safety and moderation</h2>
+<table>
+  <tr><th style="width:28%">Tool</th><th>What it does</th></tr>
+  <tr><td>Report</td><td>Users can report a person, an event, a chat message or an album photo, with a reason. Reports are confidential.</td></tr>
+  <tr><td>Block</td><td>Blocking hides both people from each other everywhere (profiles, lists, search, guest lists, shared profile cards, group chats show a neutral placeholder).</td></tr>
+  <tr><td>Admin actions</td><td>Staff can dismiss, warn (an in-app note + push), remove content, cancel an upcoming event (full refunds), refund a past event and hold the payout, or lock the account (the user may appeal once). Every admin action is written to an audit log. Locking and cancelling are restricted to senior admins.</td></tr>
+  <tr><td>Locked accounts</td><td>Disappear from everyone else's view (profiles, counts, lists, chats) and reappear if unlocked; their data is not deleted.</td></tr>
+  <tr><td>SOS</td><td>One tap sends an SMS with the user's live location to their chosen emergency contacts. The app also tells them to call 112.</td></tr>
+  <tr><td>Women-only nights, crowd mix, verified tick</td><td>Hosts' verified ID is shown as a tick. Women-only events are visible to women only in discovery.</td></tr>
+  <tr><td>Incident process</td><td>Appendix H: safety incidents, security breaches (CERT-In within 6 hours; DPDP notifications), law-enforcement requests, CSAM/NCII takedowns within 24 hours.</td></tr>
+</table>
+<p><span class="tag">QUESTION</span> Our draft says we act on reports and may lock accounts at our discretion. Is our appeal process (one appeal, then final, then Grievance Officer) adequate under IT Rules 2021 Rule 3(2)?</p>
+
+<h2>8. Messaging, content and notifications</h2>
+<ul>
+  <li><b>1:1 chat</b> opens when a "vibe" (a short intro message) is accepted. Text, photos, videos, GIFs, voice notes, shared events and profiles; edit and unsend; reactions; view-once/twice media.</li>
+  <li><b>Media storage</b>: chat media sits in a <b>private</b> storage bucket (Cloudflare R2) reachable only by short-lived signed links. View-once media is deleted 10 minutes after the last allowed view; unopened ones after 14 days.</li>
+  <li><b>Event group chats</b>, <b>event albums</b> (photos after the event, removable and reportable) and <b>reviews</b> are other user content.</li>
+  <li><b>Push notifications</b> (Expo → Apple/Google push) in five categories the user can switch off: Social, Hosting, Events you're going to, Payments, and Picks for you (weekend digest, saved event filling up). No marketing email or SMS.</li>
+  <li>We do not run third-party advertising or sell data.</li>
+</ul>
+
+<h2>9. Personal data and privacy</h2>
+<h3>9.1 What we collect and why</h3>
+<table>
+  <tr><th style="width:30%">Data</th><th>Purpose</th><th style="width:22%">Visible to</th></tr>
+  <tr><td>Phone number</td><td>Sign-in, security</td><td>Staff only</td></tr>
+  <tr><td>Name, username, photos, bio, interests, city, voice intro</td><td>Profile</td><td>Other users</td></tr>
+  <tr><td>Date of birth</td><td>18+ check, event age limits</td><td>Others see age only</td></tr>
+  <tr><td>Gender</td><td>Crowd mix, women-only events</td><td>Hosts, other users</td></tr>
+  <tr><td>Location (foreground only, optional)</td><td>Events near you; approximate position stored</td><td>Staff only; others see city</td></tr>
+  <tr><td>Contacts (optional)</td><td>Picking an SOS emergency contact; only the chosen contact is saved</td><td>The user</td></tr>
+  <tr><td>Bookings, tickets, check-ins, reviews, chats, album photos, follows, vibes, blocks, reports</td><td>Running the service and safety</td><td>As described in section 8</td></tr>
+  <tr><td>Payment references (no card data)</td><td>Tickets, refunds, wallet</td><td>User and staff</td></tr>
+  <tr><td>Hosts: PAN result, masked PAN, PAN hash, name/DOB from PAN, signature image, payout details (encrypted)</td><td>Host KYC and payouts</td><td>Staff only</td></tr>
+  <tr><td>Appeal message and live selfie</td><td>Confirming identity on appeal</td><td>Staff only</td></tr>
+  <tr><td>Device push token, app version, crash reports (Sentry)</td><td>Notifications, fixing bugs</td><td>Gorave</td></tr>
+  <tr><td>Event views (who opened an event, per day)</td><td>Host insights, shown only as counts</td><td>Hosts see totals</td></tr>
+</table>
+<h3>9.2 Service providers (processors)</h3>
+<p>Razorpay (payments), Twilio (SMS), Expo / Apple Push / Google Firebase Cloud Messaging (push), Cloudflare R2 (media storage), Surepass (PAN verification), Sentry (crash reports), [hosting provider] (servers and database). <span class="tag">DECIDE</span> Server location and hosting provider.</p>
+<h3>9.3 Retention</h3>
+<table>
+  <tr><th>Data</th><th>Kept</th></tr>
+  <tr><td>Account</td><td>Until deleted; 30-day restore window, then removed</td></tr>
+  <tr><td>View-once media</td><td>Deleted 10 minutes after last view; unopened after 14 days</td></tr>
+  <tr><td>Payment, payout and tax records</td><td>As the law requires (we assume 8 years)</td></tr>
+  <tr><td>Host KYC records</td><td>While a host, then as tax law requires <span class="tag">QUESTION</span></td></tr>
+  <tr><td>Appeal selfies</td><td>90 days after the decision (to be automated before launch)</td></tr>
+  <tr><td>Server and security logs</td><td>180 days (CERT-In)</td></tr>
+</table>
+<h3>9.4 Rights and grievances</h3>
+<p>Users can see, correct (mostly in-app), and delete their data, withdraw optional permissions, and complain to our Grievance Officer (Appendix G), then the Data Protection Board. <span class="tag">QUESTION</span> What consent notice wording and record-keeping does the DPDP Act and its Rules require from us at sign-up, and do we need separate consent for location, contacts and the voice intro?</p>
+
+<h2>10. App Store and Google Play compliance</h2>
+<p>These are the store rules most likely to cause a rejection, and what we have done. Please flag anything with a legal angle.</p>
+<table>
+  <tr><th style="width:32%">Rule</th><th>How Gorave complies</th></tr>
+  <tr><td><b>User-generated content</b> (Apple 1.2; Google UGC policy)</td><td>Published Community Guidelines (Appendix D); report on every person, event, message and photo; block; staff review with removal and account locks; contact details in-app.</td></tr>
+  <tr><td><b>Account deletion in the app</b> (Apple 5.1.1(v); Google account-deletion policy)</td><td>In-app deletion with OTP; Google also needs a web link to request deletion <span class="tag">DECIDE</span> (we will add a page on gorave.in).</td></tr>
+  <tr><td><b>Payments</b> (Apple 3.1.3(e)/3.1.5; Google Payments policy)</td><td>Tickets are for real-world events consumed outside the app, so a third-party gateway (Razorpay) is allowed. We sell no digital goods. If we ever sell digital extras (e.g. paid badges), Apple/Google billing would be required.</td></tr>
+  <tr><td><b>Meeting strangers / safety</b> (Apple 1.1, 1.2; Google: dating-style apps)</td><td>18+ only; ID-verified hosts with a visible tick; SOS; women-only events; reporting and blocking. Store listing will present Gorave as events and friendships, not dating.</td></tr>
+  <tr><td><b>Age rating</b></td><td>18+ / Mature 17+ given real-world meetups and possible alcohol at events.</td></tr>
+  <tr><td><b>Privacy disclosures</b> (Apple privacy labels; Google Data safety form)</td><td>Will be completed from section 9.1.</td></tr>
+  <tr><td><b>Permissions</b> (Apple purpose strings; Google prominent disclosure for contacts and location)</td><td>Location and contacts are optional, requested in context, with an in-app explanation sheet before the system prompt. Contacts are used only to pick an emergency contact. <span class="tag">QUESTION</span> Is our disclosure wording sufficient?</td></tr>
+  <tr><td><b>Review access</b> (Apple 2.1)</td><td>A dedicated demo login with a fixed code for the reviewer.</td></tr>
+  <tr><td><b>Sign in with Apple</b> (Apple 4.8)</td><td>Not required: we offer only phone sign-in, no third-party social login.</td></tr>
+  <tr><td><b>Developer account</b></td><td>Organisation accounts for Gorave Pvt. Ltd. (needs D-U-N-S); a privacy policy URL and support URL on gorave.in.</td></tr>
+</table>
+
+<h2>11. Laws and rules we believe apply</h2>
+<table>
+  <tr><th style="width:30%">Law / rule</th><th>Why it applies, and our current approach</th></tr>
+  <tr><td>Information Technology Act 2000; IT (Intermediary Guidelines and Digital Media Ethics Code) Rules 2021</td><td>We host user content. Published rules (Rule 3(1)(b)), Grievance Officer with 24h acknowledgment / 15-day resolution, takedown on lawful orders, 24-hour action on non-consensual intimate images.</td></tr>
+  <tr><td>Digital Personal Data Protection Act 2023 and Rules</td><td>We are a Data Fiduciary. Notice and consent at sign-up, purpose limitation, rights, breach notification, retention limits, processor contracts.</td></tr>
+  <tr><td>Consumer Protection Act 2019; Consumer Protection (E-Commerce) Rules 2020</td><td>We may be a marketplace e-commerce entity: refund policy, grievance redressal, seller (host) information display, no unfair trade practices. <span class="tag">QUESTION</span> What host details must we display (individual hosts' addresses?).</td></tr>
+  <tr><td>CCPA Guidelines for Prevention and Regulation of Dark Patterns 2023</td><td>Deal prices, scarcity counters, fee disclosure (section 6.3).</td></tr>
+  <tr><td>RBI Master Directions on Prepaid Payment Instruments; Payment Aggregator guidelines</td><td>Closed wallet (6.6); fund flow and payouts through Razorpay (6.2).</td></tr>
+  <tr><td>CGST Act (incl. s.52 TCS); Income Tax Act (s.194-O TDS)</td><td>Platform fee, commission, host payouts (6.8).</td></tr>
+  <tr><td>TRAI TCCCPR 2018 (DLT)</td><td>All SMS (3.3).</td></tr>
+  <tr><td>CERT-In Directions (April 2022)</td><td>6-hour incident reporting, 180-day log retention (Appendix H).</td></tr>
+  <tr><td>Indian Contract Act 1872; IT Act s.10A</td><td>Click-wrap Terms, Host and Guest Agreements, drawn signature.</td></tr>
+  <tr><td>State excise, police and entertainment rules; Copyright Act (music)</td><td>Allocated to hosts by the Host Agreement (4.2).</td></tr>
+  <tr><td>Trade Marks Act 1999</td><td>"Gorave" mark and logo; we intend to file in classes 9, 41 and 42.</td></tr>
+</table>
+
+<h2>12. Questions for counsel</h2>
+<ol>
+  <li><b>Status.</b> Are we an intermediary under the IT Act, a marketplace e-commerce entity under the E-Commerce Rules, or both, and what follows (seller information, grievance timelines, safe harbour conditions)?</li>
+  <li><b>Event liability.</b> Hosts are independent organisers. Are our limitation of liability and host indemnity (Appendices A, E, F) enforceable and sufficient? Should hosts carry event insurance?</li>
+  <li><b>Wallet.</b> Is the refund-only, closed, send-back-to-source wallet exempt from RBI PPI licensing (6.6)?</li>
+  <li><b>Wallet on deletion.</b> What must happen to a balance when a user deletes their account?</li>
+  <li><b>Refund terms.</b> Is keeping the ₹50 fee on a guest's own cancellation, and no refund inside 48 hours, enforceable and fair under the Consumer Protection Act?</li>
+  <li><b>Payment flow.</b> RBI Payment Aggregator rules for collecting on behalf of hosts and paying out later (6.2).</li>
+  <li><b>Tax.</b> GST on fee/commission; TCS s.52; TDS s.194-O; invoices (6.8).</li>
+  <li><b>KYC.</b> PAN verification through Surepass: consent wording, what we may store, retention (4.1).</li>
+  <li><b>Gender-restricted events.</b> Women-only and men-only events, and seats offered by gender, are core to safety for many users. Any discrimination or other risk, and how should the Terms frame it?</li>
+  <li><b>Appeal selfies.</b> Consent and retention for a face image used for a manual identity check (3.5).</li>
+  <li><b>SOS.</b> Sending a user's location to a third party at their request (3.3).</li>
+  <li><b>Deals and urgency.</b> Dark-patterns compliance of our deal displays and scarcity counters (6.3).</li>
+  <li><b>Alcohol and minors.</b> Events may serve alcohol; drinking ages differ by state. Is the host allocation plus our 18+ rule and host age limits enough?</li>
+  <li><b>Music.</b> Is placing PPL/IPRS licensing on hosts adequate?</li>
+  <li><b>DPDP consent.</b> The exact notice and consents we need at sign-up and for optional permissions (9.4).</li>
+  <li><b>Contract formation.</b> Validity of click-wrap acceptance and drawn signatures; should we store accepted document versions (4.1)?</li>
+  <li><b>Grievance Officer.</b> Must it be a founder/employee resident in India? Can one person also be the DPDP contact?</li>
+  <li><b>Website.</b> Public event pages and public member pages (gorave.in/u/username) show a safe subset of profile data. Is that consistent with our Privacy Policy and DPDP?</li>
+  <li><b>Anything else</b> you would change in the product before launch.</li>
+</ol>
+
+<div class="box"><b>Contact:</b> Founding team, Gorave Pvt. Ltd. · support@gorave.in · Grievance Officer: [Full name], grievance@gorave.in</div>
+
+<section class="appendix pb"><div class="kicker">Appendix A · current draft</div><h1>Terms of Service</h1><p><strong>Gorave Pvt. Ltd.</strong> · Last updated: [date]</p>
+<blockquote>
+<p>DRAFT. The main agreement for everyone who uses Gorave. Guests also accept the <a href="guest-agreement.md">Guest Agreement</a>, and hosts the <a href="host-agreement.md">Host Agreement</a>.</p>
+</blockquote>
+<h2>In short</h2>
+<ul>
+<li>Gorave helps you find events and meet people there. We're the platform; hosts run the events.</li>
+<li>You must be 18+, use your real identity, and follow the <a href="community-guidelines.md">Community Guidelines</a>.</li>
+<li>Refunds follow the <a href="refunds-cancellation.md">Refunds and Cancellation Policy</a>.</li>
+<li>We can remove content or lock accounts that break the rules. You can appeal a lock once.</li>
+</ul>
+<h2>1. These terms</h2>
+<p>These terms are between you and <strong>Gorave Pvt. Ltd.</strong> ([Registered address], CIN [CIN]), "Gorave", "we". By creating an account or using the app or gorave.in, you agree to them, together with the documents they link to:
+- <a href="privacy.md">Privacy Policy</a>
+- <a href="community-guidelines.md">Community Guidelines</a>
+- <a href="guest-agreement.md">Guest Agreement</a>
+- <a href="host-agreement.md">Host Agreement</a>, if you host
+- <a href="refunds-cancellation.md">Refunds and Cancellation Policy</a></p>
+<h2>2. What Gorave is</h2>
+<p>Gorave lists social events in India and lets people book them, chat, and connect afterwards. Gorave is an <strong>intermediary</strong> under the IT Act 2000. Events are organised by independent hosts. We don't organise, own, control or attend events, and we don't guarantee any event, host or user.</p>
+<h2>3. Your account</h2>
+<ul>
+<li>You must be <strong>18 or over</strong>, and able to enter a contract under Indian law.</li>
+<li>One account per person, signed in with your own mobile number. Keep your phone and sign-in codes to yourself. You're responsible for what happens on your account.</li>
+<li>Your profile details (name, age, gender, photos) must be true.</li>
+</ul>
+<h2>4. Using Gorave</h2>
+<p>You agree not to:
+- break the Community Guidelines or any law,
+- resell tickets, or take payment outside Gorave for an event listed on Gorave,
+- scrape, copy or collect data from Gorave, or use bots,
+- interfere with the app's security or try to reach accounts or data that aren't yours,
+- use Gorave for advertising or spam.</p>
+<h2>5. Your content</h2>
+<ul>
+<li>You keep ownership of what you post (photos, voice, messages, reviews, event listings).</li>
+<li>You give Gorave a non-exclusive, royalty-free licence to host, show and share it <strong>within Gorave</strong>, and to show public parts of it (for example event pages and host profiles) on gorave.in and in search results, only to run and promote the service. This ends when you delete the content or your account, except where others have already received it (for example messages you sent) or we must keep it by law.</li>
+<li>You confirm you have the right to post it and that people shown in it are fine with it.</li>
+</ul>
+<h2>6. Payments and the wallet</h2>
+<ul>
+<li>Prices include the host's ticket price and Gorave's platform fee (₹50 per ticket), shown before you pay. Payments are processed by Razorpay.</li>
+<li>Refunds follow the Refunds and Cancellation Policy.</li>
+<li><strong>Gorave Wallet</strong> holds refunds you choose to receive as wallet balance. It can only be spent on Gorave and earns no interest. Refund balance doesn't expire and can be sent back to your original payment method as described in the Refunds policy. Wallet balance isn't cash and can't be transferred to another user.</li>
+</ul>
+<h2>7. Safety tools</h2>
+<p>Block, report, SOS, and crowd-mix events are there to help, but they don't guarantee safety. Use your judgement, meet in public places, and call <strong>112</strong> in an emergency.</p>
+<h2>8. Moderation, locks and appeals</h2>
+<ul>
+<li>We can remove content, cancel events, refund guests, hold host payouts, or <strong>lock</strong> accounts that break these terms or the Community Guidelines, or where the law requires it.</li>
+<li>A locked account is hidden from other users. You'll see why when you open the app.</li>
+<li>You can <strong>appeal once</strong>, from the app, with a message and a live selfie to confirm it's you. If the appeal is turned down, the decision is final.</li>
+<li>You can also contact the Grievance Officer about any decision.</li>
+</ul>
+<h2>9. Deleting your account</h2>
+<p>You can delete your account in the app (Settings → Account → Delete account). You can't delete it while you're hosting an upcoming event with guests. After you ask, there's a 30-day window to change your mind; then it's removed for good, except records we must keep by law (see the Privacy Policy).</p>
+<h2>10. Our liability</h2>
+<ul>
+<li>Gorave is provided "as is". We try to keep it running, but we don't promise it will always be available or error-free.</li>
+<li>We're not liable for what happens at events, or for the actions of hosts or other users, except where the law says we can't exclude it.</li>
+<li>Where we are liable, our total liability to you is limited to what you paid Gorave in the 12 months before the claim (or, for a single event, what you paid for that event).</li>
+<li>Nothing in these terms limits liability that can't be limited under Indian law, or your rights under the Consumer Protection Act 2019.</li>
+</ul>
+<h2>11. Indemnity</h2>
+<p>If you break these terms or the law and someone makes a claim against Gorave because of it, you agree to cover our reasonable losses and legal costs.</p>
+<h2>12. Changes</h2>
+<p>We may update these terms. If a change matters, we'll tell you in the app before it takes effect. If you keep using Gorave after that, you accept the new terms.</p>
+<h2>13. Law and disputes</h2>
+<p>These terms are governed by the laws of India. Disputes go to the courts of <strong>[city of registered office]</strong>. Please contact us first (see <a href="grievance.md">Grievance and Contact</a>). Most problems can be fixed quickly.</p></section>
+<section class="appendix pb"><div class="kicker">Appendix B · current draft</div><h1>Privacy Policy</h1><p><strong>Gorave Pvt. Ltd.</strong> · Last updated: [date]</p>
+<blockquote>
+<p>DRAFT, written for India's Digital Personal Data Protection Act 2023 (DPDP) and the IT Act 2000. Built from what the app actually collects. Every <strong>[CHECK]</strong> is a promise the code has to keep before this goes live (see <code>docs/GO_LIVE.md</code>, section 5).</p>
+</blockquote>
+<h2>In short</h2>
+<ul>
+<li>We collect what's needed to run Gorave: your phone number, profile, the events you join, your chats, and payments.</li>
+<li>Other people see your profile. They don't see your phone number, exact date of birth or exact location.</li>
+<li>We don't sell your data and we don't show third-party ads.</li>
+<li>You can delete your account in the app. It's removed for good after 30 days.</li>
+<li>For anything about your data: grievance@gorave.in.</li>
+</ul>
+<h2>1. Who we are</h2>
+<p>Gorave Pvt. Ltd. ([Registered address], CIN [CIN]) is the <strong>Data Fiduciary</strong> for your personal data on Gorave: the app and gorave.in.</p>
+<h2>2. What we collect</h2>
+<table>
+<thead>
+<tr>
+<th>What</th>
+<th>Why</th>
+<th>Who sees it</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Phone number</strong></td>
+<td>Sign-in by one-time code, account security</td>
+<td>Only you and Gorave staff</td>
+</tr>
+<tr>
+<td><strong>Name, username, photos, bio, interests, city</strong></td>
+<td>Your profile</td>
+<td>Other users</td>
+</tr>
+<tr>
+<td><strong>Voice intro</strong> (optional)</td>
+<td>Your profile</td>
+<td>Other users</td>
+</tr>
+<tr>
+<td><strong>Date of birth</strong></td>
+<td>Checking you're 18+, and event age limits</td>
+<td>Others see your age, not your date of birth</td>
+</tr>
+<tr>
+<td><strong>Gender</strong></td>
+<td>Events with a crowd mix (women only, set ratios)</td>
+<td>Hosts and other users</td>
+</tr>
+<tr>
+<td><strong>Location</strong> (only while using the app, if you allow it)</td>
+<td>Showing events near you. We store an approximate position.</td>
+<td>Only Gorave. Others only see your city.</td>
+</tr>
+<tr>
+<td><strong>Contacts</strong> (only if you allow it)</td>
+<td>Choosing an emergency contact for SOS. We only save the contact you pick, not your address book.</td>
+<td>Only you</td>
+</tr>
+<tr>
+<td><strong>Events you join, tickets, check-ins, waitlists, requests</strong></td>
+<td>Running bookings</td>
+<td>The host, and other guests see who's going</td>
+</tr>
+<tr>
+<td><strong>Messages, photos, videos, voice notes</strong> in chats and event group chats</td>
+<td>Messaging</td>
+<td>The people in that chat</td>
+</tr>
+<tr>
+<td><strong>Event album photos, reviews</strong></td>
+<td>Event features</td>
+<td>Guests of that event / public on the event page</td>
+</tr>
+<tr>
+<td><strong>Follows, vibes, blocks</strong></td>
+<td>Social features and safety</td>
+<td>Follows and vibes: the people involved. Blocks: only you.</td>
+</tr>
+<tr>
+<td><strong>Reports you make or receive</strong></td>
+<td>Safety</td>
+<td>Gorave staff. We don't reveal who reported.</td>
+</tr>
+<tr>
+<td><strong>Payments</strong>: amount, status, Razorpay payment ID</td>
+<td>Tickets, refunds, wallet</td>
+<td>You and Gorave. <strong>Card and UPI details are handled by Razorpay. We never see or store them.</strong></td>
+</tr>
+<tr>
+<td><strong>Hosts: PAN check</strong></td>
+<td>Verifying a host's identity</td>
+<td>Gorave staff only. We keep the result, a masked PAN (last digits) and a one-way hash to stop the same PAN being used twice, not your full PAN. <strong>[CHECK: confirm nothing else is stored]</strong></td>
+</tr>
+<tr>
+<td><strong>Hosts: payout details</strong> (UPI ID or bank account)</td>
+<td>Paying you</td>
+<td>Gorave staff. Stored encrypted.</td>
+</tr>
+<tr>
+<td><strong>Hosts: agreement signature</strong></td>
+<td>Proof you accepted the Host Agreement</td>
+<td>Gorave staff</td>
+</tr>
+<tr>
+<td><strong>Account appeal: message and live selfie</strong></td>
+<td>Checking a locked account belongs to you</td>
+<td>Gorave staff only</td>
+</tr>
+<tr>
+<td><strong>Device and push token, app version, crash reports</strong></td>
+<td>Notifications, fixing bugs</td>
+<td>Gorave</td>
+</tr>
+<tr>
+<td><strong>Support and feedback messages</strong></td>
+<td>Helping you</td>
+<td>Gorave staff</td>
+</tr>
+</tbody>
+</table>
+<p>We don't knowingly collect data from anyone under 18. If we find an account belongs to someone under 18, we delete it.</p>
+<h2>3. Why we can use it (DPDP)</h2>
+<ul>
+<li><strong>Your consent</strong>, given when you sign up and when you turn on optional features (location, contacts, voice intro). You can withdraw consent at any time in your phone settings or by deleting your account. Withdrawing doesn't affect what was already done.</li>
+<li><strong>Legitimate uses allowed by law</strong>: for example keeping records the law requires (tax and payment records), responding to lawful requests, and acting in an emergency.</li>
+</ul>
+<h2>4. Who we share it with</h2>
+<p>We share data only with service providers who process it for us under contract, and only what they need:</p>
+<table>
+<thead>
+<tr>
+<th>Provider</th>
+<th>What for</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Razorpay</td>
+<td>Payments and refunds</td>
+</tr>
+<tr>
+<td>Twilio (and our DLT-registered SMS route)</td>
+<td>Sign-in codes and SMS alerts</td>
+</tr>
+<tr>
+<td>Expo, Apple Push and Google Firebase Cloud Messaging</td>
+<td>Push notifications</td>
+</tr>
+<tr>
+<td>Cloudflare R2</td>
+<td>Storing photos and media. Chat media is in a private store that only signed, expiring links can open.</td>
+</tr>
+<tr>
+<td>Surepass</td>
+<td>Host PAN verification</td>
+</tr>
+<tr>
+<td>Sentry</td>
+<td>Crash reports</td>
+</tr>
+<tr>
+<td>[Hosting provider]</td>
+<td>Running our servers and database</td>
+</tr>
+</tbody>
+</table>
+<p>We also share data:
+- with <strong>hosts</strong>, for the events you join (your profile, gender for crowd mix, check-in status),
+- with <strong>your emergency contact</strong>, if you trigger SOS (your name and location),
+- with <strong>police or government</strong>, when the law requires it or someone's safety is at risk,
+- with a buyer, if Gorave is ever merged or sold (they must keep this policy).</p>
+<p>We <strong>don't sell</strong> personal data and don't share it for advertising.</p>
+<h2>5. Where it's stored</h2>
+<p>Our main servers are in [India / region]. Some providers may process data outside India. When they do, it's under contract and only to countries the Government of India hasn't restricted.</p>
+<h2>6. How long we keep it</h2>
+<table>
+<thead>
+<tr>
+<th>Data</th>
+<th>Kept</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Your account</td>
+<td>Until you delete it. After you ask, there's a 30-day window to change your mind, then it's removed for good.</td>
+</tr>
+<tr>
+<td>View-once photos and videos</td>
+<td>Deleted 10 minutes after the last allowed view. Unopened ones after 14 days.</td>
+</tr>
+<tr>
+<td>Other chat messages</td>
+<td>Until you or the other person deletes them, or the account is removed</td>
+</tr>
+<tr>
+<td>Payment, payout and tax records</td>
+<td>As long as tax and payment laws require (usually 8 years), even after you delete your account</td>
+</tr>
+<tr>
+<td>Host PAN check records</td>
+<td>While you're a host, then as tax law requires <strong>[CHECK]</strong></td>
+</tr>
+<tr>
+<td>Appeal selfies</td>
+<td>90 days after the appeal is decided <strong>[CHECK: not built yet]</strong></td>
+</tr>
+<tr>
+<td>Server and security logs</td>
+<td>180 days (CERT-In requirement) <strong>[CHECK]</strong></td>
+</tr>
+<tr>
+<td>Reports and safety records</td>
+<td>As long as needed to keep people safe and meet legal duties</td>
+</tr>
+</tbody>
+</table>
+<h2>7. Your rights</h2>
+<p>You can:
+- <strong>see</strong> what we hold about you and who we shared it with,
+- <strong>correct</strong> or update it (most of it directly in the app),
+- <strong>delete</strong> it: Settings → Account → Delete account,
+- <strong>withdraw consent</strong> for optional features,
+- <strong>nominate</strong> someone to act for you if you die or can't act,
+- <strong>complain</strong> to our Grievance Officer and then to the Data Protection Board of India.</p>
+<p>Email grievance@gorave.in from your registered number's account details. We reply within the time the law sets.</p>
+<h2>8. Security</h2>
+<p>We use encryption in transit, encrypted storage for payout details, a private store for chat media, hashing for PAN numbers, limited staff access with audit logs, and rate limits on sign-in. No system is perfectly secure. If a breach affects your data, we'll tell you and the Data Protection Board as the law requires.</p>
+<h2>9. Changes</h2>
+<p>If we change this policy in a way that matters, we'll tell you in the app before it takes effect.</p>
+<h2>10. Contact</h2>
+<p>Grievance Officer: [Full name], grievance@gorave.in, [Registered address]. See <a href="grievance.md">Grievance and Contact</a>.</p></section>
+<section class="appendix pb"><div class="kicker">Appendix C · current draft</div><h1>Refunds and Cancellation Policy</h1><p><strong>Gorave Pvt. Ltd.</strong> · Last updated: [date]</p>
+<blockquote>
+<p>DRAFT. Written from how the app works today (the wallet model in section 5 is built).</p>
+</blockquote>
+<h2>In short</h2>
+<ul>
+<li>Free spot: cancel up to <strong>2 hours</strong> before the start.</li>
+<li>Paid ticket: cancel up to <strong>48 hours</strong> before the start and get the <strong>ticket price</strong> back. The ₹50 platform fee isn't refunded.</li>
+<li>If the host or Gorave cancels, you get <strong>everything back</strong>, ticket and fee.</li>
+<li>If the host moves the event by more than 7 days, you have <strong>48 hours</strong> to cancel for everything back.</li>
+<li>Can't make it inside 48 hours? You can <strong>pass your ticket to a friend</strong> once.</li>
+</ul>
+<h2>1. What you pay</h2>
+<p>A paid ticket has two parts:
+- <strong>Ticket price</strong>, set by the host (at least ₹99).
+- <strong>Platform fee</strong> of ₹50 per ticket, which goes to Gorave for running the service.</p>
+<p>Both are shown before you pay. Payments are processed by Razorpay. Gorave never sees or stores your card details.</p>
+<h2>2. Cancelling your own spot</h2>
+<table>
+<thead>
+<tr>
+<th>Your spot</th>
+<th>You can cancel</th>
+<th>You get back</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Free</td>
+<td>Up to 2 hours before the start</td>
+<td>Nothing to refund. Your spot goes to the next person on the waitlist.</td>
+</tr>
+<tr>
+<td>Paid</td>
+<td>Up to 48 hours before the start</td>
+<td>The ticket price. The ₹50 platform fee is kept.</td>
+</tr>
+<tr>
+<td>Paid, less than 48 hours to go</td>
+<td>Can't be cancelled</td>
+<td>No refund. You can pass the ticket to a friend (section 4).</td>
+</tr>
+<tr>
+<td>Passed to you by a friend</td>
+<td>Can't be cancelled</td>
+<td>No refund.</td>
+</tr>
+<tr>
+<td>After the event has started</td>
+<td>Can't be cancelled</td>
+<td>No refund.</td>
+</tr>
+</tbody>
+</table>
+<p>Cancel from the event page: ⋯ → Can't make it?</p>
+<h2>3. When the host or Gorave changes the event</h2>
+<table>
+<thead>
+<tr>
+<th>What happened</th>
+<th>What you get</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>The host cancels the event</td>
+<td>Everything back: ticket and platform fee.</td>
+</tr>
+<tr>
+<td>Gorave cancels the event (for example after reports that it's fake or unsafe)</td>
+<td>Everything back: ticket and platform fee.</td>
+</tr>
+<tr>
+<td>The host moves the date by more than 7 days after you bought</td>
+<td>48 hours from the change (or until the start, if sooner) to cancel for everything back.</td>
+</tr>
+<tr>
+<td>Small changes (time, details)</td>
+<td>No refund rights beyond section 2.</td>
+</tr>
+<tr>
+<td>After the event, Gorave finds it was misleading or didn't happen as listed</td>
+<td>Everything back to everyone who paid. The host isn't paid for the event.</td>
+</tr>
+</tbody>
+</table>
+<p>Hosts can only cancel up to 48 hours before the start. Closer to the start, they have to contact Gorave.</p>
+<h2>4. Passing a ticket to a friend</h2>
+<p>If you can't go, you can pass your ticket to someone on Gorave from the event page. A ticket can be passed on <strong>once</strong>. The person who receives it can't cancel it for money or pass it on again. If the event is later cancelled, the refund goes to <strong>whoever originally paid</strong>.</p>
+<h2>5. How refunds reach you</h2>
+<p>When you're due a refund, you choose:
+- <strong>Gorave Wallet, instantly.</strong> Spend it on any event on Gorave. Refund money in your wallet <strong>doesn't expire</strong>.
+- <strong>Your original payment method</strong> (card, UPI, net banking), usually in <strong>5 to 7 business days</strong>, depending on your bank.</p>
+<p>Wallet balance that came from a refund can be sent back to your original payment method later from Support. Wallet balance can't be withdrawn as cash in any other way.</p>
+<h2>6. Deals</h2>
+<ul>
+<li>A ticket bought at an <strong>early-bird</strong> price or with a <strong>promo code</strong> is refunded at the price you actually paid, never the full price.</li>
+<li>Deals don't stack: you get the cheaper one. The ₹50 platform fee is never discounted.</li>
+<li>If you cancel an early-bird ticket, that early-bird spot can go to someone else. A promo code use isn't given back.</li>
+</ul>
+<h2>7. No-shows and being turned away</h2>
+<ul>
+<li>If you don't turn up, there's no refund.</li>
+<li>If the host turns you away at the door for breaking the Guest Agreement or Community Guidelines (for example being too drunk, harassment, or being under the event's age limit), there's no refund.</li>
+<li>If you were turned away for no good reason, or the event wasn't as listed, report it from the event page within <strong>7 days</strong>. We'll look into it and refund you if we agree.</li>
+</ul>
+<h2>8. Delivery</h2>
+<p>Tickets are digital. They appear in the Gorave app as soon as payment goes through, with a QR code for check-in. Nothing is shipped.</p>
+<h2>9. Failed or double payments</h2>
+<p>If money left your account but no ticket appeared, it's refunded automatically to the original payment method, usually within 5 to 7 business days. If it doesn't arrive, contact support@gorave.in with your phone number and the payment time.</p>
+<h2>10. Contact</h2>
+<p>support@gorave.in · Grievance Officer: see <a href="grievance.md">Grievance and Contact</a></p></section>
+<section class="appendix pb"><div class="kicker">Appendix D · current draft</div><h1>Community Guidelines</h1><p><strong>Gorave Pvt. Ltd.</strong> · Last updated: [date]</p>
+<blockquote>
+<p>DRAFT. These are the rules for everything people post and do on Gorave. Rule 3(1)(b) of India's IT Rules 2021 requires us to publish them, and Apple and Google require them for apps with user content. They apply to profiles, photos, voice intros, chats, event group chats, event listings, reviews, event albums and vibes, and to behaviour at events.</p>
+</blockquote>
+<h2>The idea</h2>
+<p>Gorave is for meeting new people at real events. That only works if everyone feels safe showing up. Be someone people are glad they met.</p>
+<h2>1. Be real</h2>
+<ul>
+<li>One account per person, in your own name, with recent photos of you.</li>
+<li>You must be 18 or over.</li>
+<li>Don't pretend to be someone else, a brand, or Gorave.</li>
+<li>Your gender and age on your profile must be true. Events with a crowd mix rely on them.</li>
+</ul>
+<h2>2. Respect consent, online and offline</h2>
+<ul>
+<li>No harassment, bullying, threats or stalking.</li>
+<li>No sexual messages or photos to people who haven't clearly asked for them. Don't keep messaging someone who hasn't replied or has said no.</li>
+<li>No touching without consent at events.</li>
+<li>Blocking is final. Don't try to reach someone who blocked you through another account or through friends.</li>
+</ul>
+<h2>3. Don't post</h2>
+<ul>
+<li>Nudity or sexual content, and anything sexual involving minors (we report this to the police).</li>
+<li>Hate or attacks on people for their religion, caste, gender, sexuality, disability, ethnicity or where they're from.</li>
+<li>Violence, threats, or praise for violence or terrorism.</li>
+<li>Illegal drugs, weapons, or selling anything illegal.</li>
+<li>Someone else's private information (phone number, address, photos) without their permission.</li>
+<li>Photos of other people taken or shared without their consent.</li>
+<li>Misinformation that could cause real harm.</li>
+<li>Anything that breaks the law, including copyright: only post photos and music you have the right to use.</li>
+</ul>
+<h2>4. No scams, no spam</h2>
+<ul>
+<li>No fake events, bait-and-switch listings, or collecting money outside Gorave for a Gorave event.</li>
+<li>No reselling tickets.</li>
+<li>No advertising, mass messaging, referral spam or crypto/investment pitches.</li>
+<li>No fake reviews, including reviews of your own events.</li>
+</ul>
+<h2>5. Hosts</h2>
+<p>Hosts also follow the <a href="host-agreement.md">Host Agreement</a>: honest listings, keeping guests safe, and following local laws.</p>
+<h2>6. Reports</h2>
+<ul>
+<li>Report a person, message, photo, review or event from the ⋯ menu.</li>
+<li>Report real problems, never to settle a score. False or revenge reports break these guidelines.</li>
+<li>Reports are confidential. We don't tell the person who reported them.</li>
+</ul>
+<h2>7. What we do</h2>
+<p>Depending on how serious it is and whether it's happened before, we may:
+- remove the content,
+- warn you (you'll see it in your notifications),
+- cancel an event or refund its guests,
+- <strong>lock your account</strong>. A locked account is hidden from everyone. You can appeal once from the app, with a short message and a live selfie. If the appeal is turned down, the decision is final.
+- report it to the police where the law requires it or someone is in danger.</p>
+<h2>8. If you're in danger</h2>
+<p>Call <strong>112</strong>. In the app, use <strong>SOS</strong> to alert your emergency contact with your location.</p>
+<h2>9. Questions or complaints</h2>
+<p>support@gorave.in, or the Grievance Officer (see <a href="grievance.md">Grievance and Contact</a>).</p></section>
+<section class="appendix pb"><div class="kicker">Appendix E · current draft</div><h1>Host Agreement</h1><p><strong>Gorave Pvt. Ltd.</strong> · Last updated: [date]</p>
+<blockquote>
+<p>DRAFT. Hosts accept this in the app during host onboarding, by signing. It adds to the <a href="terms.md">Terms</a> and <a href="community-guidelines.md">Community Guidelines</a>. The five friendly clauses shown in the app (<code>client/src/components/host-onboarding/agreementClauses.ts</code>) are the short version of sections 4 to 7 here. Keep them in step.</p>
+</blockquote>
+<h2>In short</h2>
+<ul>
+<li><strong>It's your event.</strong> You run it and you're responsible for it. Gorave brings the people and handles booking and payments.</li>
+<li>Verify your ID before hosting, and describe your event honestly.</li>
+<li>Get whatever permissions your venue and city need.</li>
+<li>You're paid the ticket price minus a 10% commission after the event. Guests pay the ₹50 platform fee on top.</li>
+<li>If guests report an event as fake or misleading and we agree, they're refunded and you aren't paid.</li>
+</ul>
+<h2>1. Who can host</h2>
+<ul>
+<li>You must be 18 or over and have a Gorave account in your own name.</li>
+<li>Before your first event you complete the <strong>host ID check</strong>: your PAN is verified with a government-backed check, and your name and date of birth must match. A Gorave admin approves it. One PAN can only be used for one account. You get two tries; after that, contact support.</li>
+<li>You add a <strong>payout method</strong> (UPI or bank account) in your own name.</li>
+</ul>
+<h2>2. Creating an event</h2>
+<ul>
+<li>Describe the event honestly: what it is, where, when, the price, the crowd and the house rules. Photos must be of your event or venue, or clearly representative of it.</li>
+<li>Paid tickets are at least ₹99. Free events are limited to 2 per month per host.</li>
+<li>You choose instant join or request-to-join, the capacity, an age limit, and optionally a crowd mix (a set share of women and men, women only, or men only).</li>
+<li>The exact address can be kept for confirmed guests.</li>
+<li>You can edit details up to <strong>7 hours</strong> before the start, and capacity up to <strong>2 hours</strong> before.</li>
+</ul>
+<h2>3. Money</h2>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Guest pays</td>
+<td>Your ticket price + Gorave's ₹50 platform fee per ticket</td>
+</tr>
+<tr>
+<td>Gorave keeps</td>
+<td>The platform fee, plus a <strong>10% commission</strong> on your ticket price</td>
+</tr>
+<tr>
+<td>You receive</td>
+<td>Ticket price minus 10%, for every ticket that isn't refunded</td>
+</tr>
+<tr>
+<td>When</td>
+<td>After the event ends, within <strong>[7] business days</strong>, if there are no open reports about it <strong>[DECIDE]</strong></td>
+</tr>
+<tr>
+<td>How</td>
+<td>To your verified UPI or bank account in your name</td>
+</tr>
+<tr>
+<td>Taxes</td>
+<td>You're responsible for your own income tax and GST. Gorave may deduct tax at source where the law requires it (for example TCS under GST and TDS under section 194-O) and show it on your payout statement <strong>[CA to confirm]</strong>.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Payouts can be held</strong> while we look into reports about an event. If we find the event was fake, misleading, or didn't happen as listed, we refund the guests in full and you aren't paid for that event. If we've already paid you, we may recover the amount from your future payouts.</p>
+<h3>Deals</h3>
+<p>You can offer an <strong>early-bird</strong> price (the first tickets for less) and <strong>promo codes</strong>. To keep your full price honest, an early bird is at least half the full price for at most half your seats, and a code is up to 50% off; deeper codes (up to 100%) are only for guest lists of 10 uses or fewer. Guests get the cheaper deal, never two. <strong>You fund the discount</strong>: your payout is on the price each guest actually paid.</p>
+<h2>4. Cancelling and changing your event</h2>
+<ul>
+<li>You can cancel up to <strong>48 hours</strong> before the start, from the event page. Every guest gets everything back, ticket and platform fee. Closer to the start, contact Gorave.</li>
+<li>If you move the date by more than 7 days, guests who bought before the change get 48 hours to cancel for a full refund.</li>
+<li>Repeated cancellations or big changes can lead to warnings or losing hosting access.</li>
+</ul>
+<h2>5. Your responsibilities at the event</h2>
+<ul>
+<li><strong>You run the night.</strong> Keep your guests safe and step in if something feels off. Have a way to contact you on the night.</li>
+<li><strong>Zero tolerance for harassment</strong>, from you or anyone at your event. Remove people who harass others.</li>
+<li><strong>Follow local laws</strong>, and get what your event needs. This can include: venue permission, police permission for public events, an excise licence where alcohol is served or sold, music licences (for example PPL or IPRS) for playing recorded music in public, fire safety and capacity limits, and noise rules. Gorave doesn't get these for you.</li>
+<li><strong>Age</strong>: check ID at the door. Keep to the event's age limit and the legal drinking age in your state.</li>
+<li><strong>Check-in</strong>: scan guests' QR codes in the app.</li>
+<li><strong>Group chat</strong>: you can pin messages, mute the chat and remove people. Use these fairly.</li>
+</ul>
+<h2>6. Reports</h2>
+<ul>
+<li>Report real problems: a guest who harassed someone, broke the law, or was dangerous. False or revenge reports break this agreement.</li>
+<li>Guests can report you and your event. We review reports and may warn you, cancel an upcoming event, refund guests, hold your payout, or lock your account.</li>
+</ul>
+<h2>7. It's on you, not just Gorave</h2>
+<ul>
+<li>You're an independent organiser, not an employee, agent or partner of Gorave.</li>
+<li>You're responsible for your event, your venue, and any loss, injury or damage caused by you, your staff or your venue. Consider event insurance.</li>
+<li>You agree to cover Gorave's losses (including legal costs and fines) that come from your event, your breach of this agreement, or your breaking the law.</li>
+<li>Gorave isn't liable for what happens at your event, except where the law says we can't exclude it.</li>
+</ul>
+<h2>8. Ending hosting</h2>
+<ul>
+<li>You can stop hosting any time. Events you've already listed must be run or cancelled under section 4.</li>
+<li>We can suspend or end your hosting access if you break this agreement, the Terms or the Community Guidelines, or if we're required to by law. If your account is locked, you can appeal once from the app.</li>
+<li>Sections 3 (for money still owed either way), 7 and 9 continue after hosting ends.</li>
+</ul>
+<h2>9. Law and disputes</h2>
+<p>This agreement is governed by the laws of India. Disputes go to the courts of <strong>[city of registered office]</strong>. Before going to court, contact the Grievance Officer (see <a href="grievance.md">Grievance and Contact</a>) so we can try to sort it out.</p></section>
+<section class="appendix pb"><div class="kicker">Appendix F · current draft</div><h1>Guest Agreement</h1><p><strong>Gorave Pvt. Ltd.</strong> · Last updated: [date]</p>
+<blockquote>
+<p>DRAFT. This applies whenever you join, book or attend an event on Gorave, alongside the <a href="terms.md">Terms</a>, <a href="community-guidelines.md">Community Guidelines</a> and <a href="refunds-cancellation.md">Refunds and Cancellation Policy</a>.</p>
+</blockquote>
+<h2>In short</h2>
+<ul>
+<li>Gorave is the platform. <strong>The host runs the event</strong> and is responsible for the venue and what happens there.</li>
+<li>Your ticket lets you in. It's for you (or one friend you pass it to), and it isn't for resale.</li>
+<li>Bring ID. The host can check your age and turn you away if you don't meet the event's rules.</li>
+<li>Treat people well. Breaking the rules can get you removed from the event and off Gorave.</li>
+</ul>
+<h2>1. Who does what</h2>
+<ul>
+<li><strong>Gorave Pvt. Ltd.</strong> runs the app: listings, booking, payments, chat and safety tools. We're an intermediary under India's IT Act. We don't organise, own or run the events.</li>
+<li><strong>The host</strong> creates the event and is responsible for it: the venue, permissions, safety at the venue, and that it matches the listing.</li>
+<li><strong>You</strong> agree to follow this agreement and the host's house rules shown on the event page.</li>
+</ul>
+<h2>2. Joining an event</h2>
+<ul>
+<li><strong>Instant events</strong>: your spot is confirmed when you RSVP or pay.</li>
+<li><strong>Request-to-join events</strong>: the host decides. You can ask up to twice per event.</li>
+<li><strong>Crowd mix</strong>: some events keep a set mix of women and men, or are for women only or men only. Spots are offered based on the gender on your profile. Giving a false gender to get a spot breaks this agreement.</li>
+<li><strong>Waitlist</strong>: if a spot opens, it's offered to the next person on the waitlist, who has 1 hour to take it.</li>
+<li><strong>Age</strong>: you must be 18 or over to use Gorave. Some events have a higher age limit.</li>
+</ul>
+<h2>3. Your ticket</h2>
+<ul>
+<li>Your ticket is a <strong>licence to attend</strong>, not something you own. It can be cancelled under the Refunds and Cancellation Policy.</li>
+<li>You can pass it <strong>once</strong> to another Gorave user. You can't sell it on, including for a markup or outside Gorave.</li>
+<li>The exact address may only be shown to confirmed guests, close to the event. Don't share it publicly.</li>
+</ul>
+<h2>4. At the door</h2>
+<ul>
+<li>Check-in is by the QR code in the app. Have it ready.</li>
+<li>Carry a government photo ID. The host may check your age and that the ticket is yours.</li>
+<li>The host can refuse entry or ask you to leave if you break their house rules, this agreement or the Community Guidelines, or are too intoxicated to be safe. In those cases there's no refund.</li>
+</ul>
+<h2>5. How to behave</h2>
+<ul>
+<li>Respect everyone's consent and space. No harassment, touching without consent, following people, or unwanted advances, at the event or afterwards in chat.</li>
+<li>No illegal drugs, weapons, or anything illegal at the venue.</li>
+<li>Drink responsibly. Follow local laws on alcohol, including the legal drinking age in that state.</li>
+<li>Look after the venue. You may have to pay for damage you cause.</li>
+</ul>
+<h2>6. Photos and the event album</h2>
+<ul>
+<li>Events can have a shared album. Only add photos of people who are fine with it, and remove one if someone asks.</li>
+<li>The host or other guests may take photos. If you don't want to be photographed, say so to the host.</li>
+<li>You can report any photo of you from the album.</li>
+</ul>
+<h2>7. Group chat</h2>
+<ul>
+<li>Confirmed guests join the event's group chat. What you post there is seen by the host and other guests.</li>
+<li>The host can pin messages, mute the chat or remove people.</li>
+<li>Blocking someone hides them from you everywhere, including the group chat.</li>
+</ul>
+<h2>8. Safety</h2>
+<ul>
+<li>Use <strong>SOS</strong> in the app if you feel unsafe. It alerts your emergency contact with your location.</li>
+<li>In an emergency, call <strong>112</strong> first.</li>
+<li>Report a person, a message, a photo or an event from the app. We review reports and may warn, lock or remove accounts and events.</li>
+</ul>
+<h2>9. Your risk and our liability</h2>
+<ul>
+<li>You take part in events at your own risk and are responsible for your own conduct, belongings and travel.</li>
+<li>Gorave isn't liable for what happens at an event, the venue, or the behaviour of hosts and other guests, except where the law says we can't exclude it.</li>
+<li>Where we are liable, our total liability for an event is limited to what you paid us for that event (ticket plus platform fee).</li>
+</ul>
+<h2>10. If something goes wrong</h2>
+<p>Report it from the event page, or email support@gorave.in. For complaints about content or our decisions, contact the Grievance Officer (see <a href="grievance.md">Grievance and Contact</a>).</p></section>
+<section class="appendix pb"><div class="kicker">Appendix G · current draft</div><h1>Grievance Officer and Contact</h1><p><strong>Gorave Pvt. Ltd.</strong> · Last updated: [date]</p>
+<blockquote>
+<p>DRAFT. The IT Rules 2021 (Rule 3(2)) and the DPDP Act 2023 require this page. The Grievance Officer <strong>must be a named person</strong>; a job title or role email alone isn't enough.</p>
+</blockquote>
+<h2>Company</h2>
+<ul>
+<li><strong>Gorave Pvt. Ltd.</strong></li>
+<li>CIN: [CIN]</li>
+<li>Registered office: [Registered address]</li>
+<li>GSTIN: [GSTIN]</li>
+</ul>
+<h2>Support</h2>
+<ul>
+<li>In the app: Settings → Help and Support</li>
+<li>Email: support@gorave.in</li>
+<li>Safety issues: safety@gorave.in</li>
+</ul>
+<h2>Grievance Officer</h2>
+<ul>
+<li>Name: <strong>[Full name]</strong></li>
+<li>Email: grievance@gorave.in</li>
+<li>Address: [Registered address]</li>
+</ul>
+<p>You can complain to the Grievance Officer about content on Gorave, a decision we made about your account or content, or how we handle your personal data.</p>
+<p><strong>What happens next</strong>
+- We acknowledge your complaint within <strong>24 hours</strong>.
+- We resolve it within <strong>15 days</strong>.
+- If the content is a sexual image of you, or shows you in a way that violates your privacy, we act on it within <strong>24 hours</strong> of your complaint.</p>
+<p>Please include your registered phone number, links or screenshots of what you're complaining about, and what you'd like us to do.</p>
+<h2>Personal data (DPDP Act 2023)</h2>
+<p>For requests about your data (access, correction, deletion, or withdrawing consent), email grievance@gorave.in. If you're not satisfied with our answer, you can complain to the <strong>Data Protection Board of India</strong>.</p>
+<h2>Requests from police and authorities</h2>
+<p>Lawful requests from government and law enforcement go to legal@gorave.in. We respond as the law requires.</p></section>
+<section class="appendix pb"><div class="kicker">Appendix H · current draft</div><h1>Incident response (internal)</h1><p><strong>Gorave Pvt. Ltd.</strong> · Owner: [name] · Last reviewed: [date]</p>
+<p>Who does what when something goes wrong. Keep it short enough to follow at 2 a.m.</p>
+<h2>Contacts (fill in)</h2>
+<table>
+<thead>
+<tr>
+<th>Role</th>
+<th>Person</th>
+<th>Phone</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Incident lead (decides)</td>
+<td>[name]</td>
+<td>[phone]</td>
+</tr>
+<tr>
+<td>Tech lead (servers, data)</td>
+<td>[name]</td>
+<td>[phone]</td>
+</tr>
+<tr>
+<td>Safety lead (users, hosts, police)</td>
+<td>[name]</td>
+<td>[phone]</td>
+</tr>
+<tr>
+<td>Grievance Officer</td>
+<td>[name]</td>
+<td>[phone]</td>
+</tr>
+<tr>
+<td>Lawyer</td>
+<td>[firm]</td>
+<td>[phone]</td>
+</tr>
+<tr>
+<td>CERT-In</td>
+<td>incident@cert-in.org.in</td>
+<td>+91-1800-11-4949</td>
+</tr>
+</tbody>
+</table>
+<h2>Severity</h2>
+<table>
+<thead>
+<tr>
+<th>Level</th>
+<th>Examples</th>
+<th>Respond within</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>S1 critical</strong></td>
+<td>Someone in physical danger. Data breach or leak. Payment money going wrong at scale. App down for everyone.</td>
+<td>15 minutes, any hour</td>
+</tr>
+<tr>
+<td><strong>S2 high</strong></td>
+<td>A harassment or assault report from an event. A fake event that took money. Sign-in broken. Push or SMS not sending.</td>
+<td>2 hours</td>
+</tr>
+<tr>
+<td><strong>S3 normal</strong></td>
+<td>Single bug, one wrong refund, a content report</td>
+<td>1 business day</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>A. Someone's safety (SOS, assault, harassment, danger at an event)</h2>
+<ol>
+<li><strong>Danger right now?</strong> Tell them to call <strong>112</strong>. Don't delay this for anything else.</li>
+<li>Contact the person who raised it. Check they're safe and get the facts: event, people involved, time.</li>
+<li>If a user is a threat: <strong>lock their account</strong> (admin → Users → Lock). If it's the host: Safety → Events → <em>Refund and lock host</em> (or <em>Cancel and lock host</em> if the event hasn't happened yet).</li>
+<li><strong>Keep the evidence</strong>: don't delete chats, reports or photos. Note them in the report.</li>
+<li>If police ask, follow section C. If the person wants to file a police complaint, help them with what we can lawfully share.</li>
+<li>Follow up within 24 hours. Write it in the incident log.</li>
+</ol>
+<h2>B. Security incident or data breach</h2>
+<p>Covers: leaked database or keys, unauthorised access to admin, stolen staff laptop or phone, malware, account takeovers at scale, defacement.</p>
+<ol>
+<li><strong>Contain</strong>: rotate exposed keys (DB, R2, Razorpay, Twilio, Surepass, JWT secrets), revoke admin sessions, block the access path. Take a snapshot before changing things where you can.</li>
+<li><strong>Report to CERT-In within 6 hours</strong> of noticing it (CERT-In Directions, April 2022), using their incident form, to incident@cert-in.org.in.</li>
+<li><strong>Personal data affected?</strong> Under the DPDP Act, inform the <strong>Data Protection Board</strong> and <strong>each affected user</strong> without delay, then send the Board a detailed report (what happened, what data, what we did, how we'll stop it happening again) within <strong>72 hours</strong>.</li>
+<li>Find out what was taken and from whom. Logs must be kept for <strong>180 days</strong> (CERT-In), so check those first.</li>
+<li>Fix the cause, then write a short post-incident note: timeline, cause, fix, what changes.</li>
+</ol>
+<h2>C. Requests from police or government</h2>
+<ol>
+<li>Requests must be <strong>in writing</strong> from an official (a notice under BNSS section 94, an IT Act section 69 or 79 order, or a court order). Phone calls aren't enough, except in a real emergency where life is at risk.</li>
+<li>Send it to the incident lead and the lawyer. Check it's genuine (call the station back on its official number).</li>
+<li>Share <strong>only what's asked for</strong>. Log what was shared, when and with whom.</li>
+<li><strong>Takedown orders</strong> under IT Act section 69A or 79(3)(b): act within the time stated, usually 36 hours, or 24 hours for non-consensual intimate images.</li>
+<li>Don't tell the user about the request if the order says not to.</li>
+</ol>
+<h2>D. Money incidents</h2>
+<p>Wrong refunds, double charges, payouts to the wrong account, Razorpay webhook failures.
+1. Stop the bleeding: pause payouts and turn off the failing flow if needed.
+2. List every affected payment from the admin wallet and revenue pages and Razorpay.
+3. Fix each one, and tell each affected user what happened and when they'll be made whole.
+4. Tell the CA if tax records are affected.</p>
+<h2>E. App or service outage</h2>
+<ol>
+<li>Confirm it (Sentry, uptime alert, try it yourself).</li>
+<li>Post a short notice in-app or on social if it lasts more than 30 minutes.</li>
+<li>Fix it, then check that payments made during the outage weren't lost (Razorpay vs our records).</li>
+</ol>
+<h2>F. Content emergencies</h2>
+<p>Child sexual abuse material, non-consensual intimate images, threats of violence or self-harm.
+1. Remove or lock immediately: within 24 hours at most, sooner if possible.
+2. <strong>CSAM</strong>: keep the evidence, report it to the police / NCRB cybercrime portal (cybercrime.gov.in). Never share it, even internally beyond what's needed.
+3. Self-harm: share helplines (Tele-MANAS <strong>14416</strong>) and contact the person.</p>
+<h2>Incident log</h2>
+<p>For every S1 and S2, write down: date and time noticed, who noticed it, what happened, who was affected, actions with times, reports made (CERT-In, Board, police), and what we changed. Keep these for at least 3 years.</p></section>
+
+</body>
+</html>

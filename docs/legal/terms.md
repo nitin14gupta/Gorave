@@ -42,7 +42,7 @@ You agree not to:
 ## 6. Payments and the wallet
 - Prices include the host's ticket price and Gorave's platform fee (₹50 per ticket), shown before you pay. Payments are processed by Razorpay.
 - Refunds follow the Refunds and Cancellation Policy.
-- **Gorave Wallet** holds refunds you choose to receive as wallet balance. It can only be spent on Gorave and earns no interest. **[WALLET DECISION]** Refund balance doesn't expire and can be sent back to your original payment method as described in the Refunds policy. Wallet balance isn't cash and can't be transferred to another user.
+- **Gorave Wallet** holds refunds you choose to receive as wallet balance. It can only be spent on Gorave and earns no interest. Refund balance doesn't expire and can be sent back to your original payment method as described in the Refunds policy. Wallet balance isn't cash and can't be transferred to another user.
 
 ## 7. Safety tools
 Block, report, SOS, and crowd-mix events are there to help, but they don't guarantee safety. Use your judgement, meet in public places, and call **112** in an emergency.

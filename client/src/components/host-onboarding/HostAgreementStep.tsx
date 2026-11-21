@@ -3,9 +3,7 @@ import { router } from 'expo-router'
 import { hTap } from '@/lib/haptics'
 import { useSignatureCaptureStore } from '@/store/signatureCaptureStore'
 import { useProfile } from '@/hooks/useProfile'
-import { AgreementViewA, AgreementViewB } from './AgreementView'
-import { LabSwitch } from '@/components/lab/LabSwitch'
-import { useLabVariant } from '@/store/labStore'
+import { AgreementView } from './AgreementView'
 
 interface Props {
   onSignatureChange?: (uri: string | null) => void
@@ -18,7 +16,6 @@ interface Props {
 export function HostAgreementStep({ onSignatureChange }: Props) {
   const signatureUri = useSignatureCaptureStore(s => s.uri)
   const { profile } = useProfile()
-  const look = useLabVariant('host-agreement')
 
   useEffect(() => {
     onSignatureChange?.(signatureUri)
@@ -27,11 +24,5 @@ export function HostAgreementStep({ onSignatureChange }: Props) {
 
   const openSheet = () => { hTap(); router.push('/(host-onboarding)/signature-sheet') }
 
-  const View_ = look === 'b' ? AgreementViewB : AgreementViewA
-  return (
-    <>
-      <View_ signatureUri={signatureUri} name={profile?.name ?? ''} onSign={openSheet} />
-      <LabSwitch screen="host-agreement" top={0} />
-    </>
-  )
+  return <AgreementView signatureUri={signatureUri} name={profile?.name ?? ''} onSign={openSheet} />
 }

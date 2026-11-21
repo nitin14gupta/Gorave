@@ -36,6 +36,9 @@
 
 **Payouts can be held** while we look into reports about an event. If we find the event was fake, misleading, or didn't happen as listed, we refund the guests in full and you aren't paid for that event. If we've already paid you, we may recover the amount from your future payouts.
 
+### Deals
+You can offer an **early-bird** price (the first tickets for less) and **promo codes**. To keep your full price honest, an early bird is at least half the full price for at most half your seats, and a code is up to 50% off; deeper codes (up to 100%) are only for guest lists of 10 uses or fewer. Guests get the cheaper deal, never two. **You fund the discount**: your payout is on the price each guest actually paid.
+
 ## 4. Cancelling and changing your event
 - You can cancel up to **48 hours** before the start, from the event page. Every guest gets everything back, ticket and platform fee. Closer to the start, contact Gorave.
 - If you move the date by more than 7 days, guests who bought before the change get 48 hours to cancel for a full refund.

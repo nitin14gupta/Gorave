@@ -2,7 +2,7 @@
 
 **Gorave Pvt. Ltd.** · Last updated: [date]
 
-> DRAFT. Written from how the app works today. Lines marked **[WALLET DECISION]** depend on the wallet model in `docs/GO_LIVE.md`. They're written for the recommended model, so the code has to change to match before this goes live.
+> DRAFT. Written from how the app works today (the wallet model in section 5 is built).
 
 ## In short
 - Free spot: cancel up to **2 hours** before the start.
@@ -45,23 +45,29 @@ Hosts can only cancel up to 48 hours before the start. Closer to the start, they
 ## 4. Passing a ticket to a friend
 If you can't go, you can pass your ticket to someone on Gorave from the event page. A ticket can be passed on **once**. The person who receives it can't cancel it for money or pass it on again. If the event is later cancelled, the refund goes to **whoever originally paid**.
 
-## 5. How refunds reach you **[WALLET DECISION]**
+## 5. How refunds reach you
 When you're due a refund, you choose:
 - **Gorave Wallet, instantly.** Spend it on any event on Gorave. Refund money in your wallet **doesn't expire**.
 - **Your original payment method** (card, UPI, net banking), usually in **5 to 7 business days**, depending on your bank.
 
 Wallet balance that came from a refund can be sent back to your original payment method later from Support. Wallet balance can't be withdrawn as cash in any other way.
 
-## 6. No-shows and being turned away
+## 6. Deals
+
+- A ticket bought at an **early-bird** price or with a **promo code** is refunded at the price you actually paid, never the full price.
+- Deals don't stack: you get the cheaper one. The ₹50 platform fee is never discounted.
+- If you cancel an early-bird ticket, that early-bird spot can go to someone else. A promo code use isn't given back.
+
+## 7. No-shows and being turned away
 - If you don't turn up, there's no refund.
 - If the host turns you away at the door for breaking the Guest Agreement or Community Guidelines (for example being too drunk, harassment, or being under the event's age limit), there's no refund.
 - If you were turned away for no good reason, or the event wasn't as listed, report it from the event page within **7 days**. We'll look into it and refund you if we agree.
 
-## 7. Delivery
+## 8. Delivery
 Tickets are digital. They appear in the Gorave app as soon as payment goes through, with a QR code for check-in. Nothing is shipped.
 
-## 8. Failed or double payments
+## 9. Failed or double payments
 If money left your account but no ticket appeared, it's refunded automatically to the original payment method, usually within 5 to 7 business days. If it doesn't arrive, contact support@gorave.in with your phone number and the payment time.
 
-## 9. Contact
+## 10. Contact
 support@gorave.in · Grievance Officer: see [Grievance and Contact](grievance.md)

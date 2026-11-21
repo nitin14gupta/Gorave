@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Gorave: Questions for counsel</title>
+<style>
+  @page { size: A4; margin: 18mm 18mm 18mm; }
+  :root { --ink: #16120f; --ink2: #4a433d; --muted: #7a716a; --line: #e4ddd5; --accent: #c2410c; --soft: #faf6f1; }
+  body { font-family: "Segoe UI", Inter, Arial, sans-serif; color: var(--ink); font-size: 10.5pt; line-height: 1.5; margin: 0; }
+  .kicker { font-size: 8.5pt; letter-spacing: 0.18em; text-transform: uppercase; color: var(--accent); font-weight: 700; }
+  h1 { font-size: 22pt; letter-spacing: -0.02em; margin: 6px 0 4px; }
+  .meta { color: var(--ink2); font-size: 9.5pt; margin-bottom: 14px; }
+  h2 { font-size: 12.5pt; margin: 18px 0 6px; padding-top: 6px; border-top: 2px solid var(--ink); }
+  p { margin: 5px 0; }
+  ul { margin: 4px 0 4px 18px; padding: 0; }
+  li { margin: 2px 0; }
+  .q { page-break-inside: avoid; margin: 12px 0; padding: 10px 12px; border: 1px solid var(--line); border-radius: 6px; }
+  .q h3 { font-size: 11pt; margin: 0 0 4px; }
+  .q .n { color: var(--accent); margin-right: 6px; }
+  .ctx { color: var(--ink2); }
+  .ask { margin-top: 5px; }
+  .ask b { color: var(--accent); }
+  .muted { color: var(--muted); font-size: 9pt; }
+</style>
+</head>
+<body>
+
+<div class="kicker">Confidential · For legal counsel</div>
+<h1>Gorave: 10 questions before launch</h1>
+<div class="meta">Gorave Pvt. Ltd. (incorporation in progress) · {{DATE}} · Pre-launch</div>
+
+<h2>What Gorave is</h2>
+<ul>
+  <li>An app (Android, iOS) and website for adults (18+) in Indian cities to find and join small social events hosted by other users: house parties, rooftops, game nights, dinners.</li>
+  <li><b>Hosts</b> verify their PAN, accept a Host Agreement, and list events (free, or paid from ₹99). They can make events women-only or men-only.</li>
+  <li><b>Guests</b> pay through <b>Razorpay</b>. Gorave charges guests a <b>₹50 platform fee</b> per ticket and takes a <b>10% commission</b> from the host's payout. Hosts are paid after the event.</li>
+  <li>Users chat (1:1 and event group chats), share photos, review events, and can report and block. We moderate and can lock accounts.</li>
+  <li>Sign-in is by phone OTP only. We send three kinds of SMS: OTP, "account unlocked", and an SOS alert to the user's chosen emergency contact.</li>
+</ul>
+
+<h2>The questions</h2>
+
+<div class="q">
+  <h3><span class="n">1</span>What are we, legally?</h3>
+  <p class="ctx">We host user content and connect hosts with paying guests; we don't organise events.</p>
+  <p class="ask"><b>Need:</b> Are we an intermediary (IT Act / IT Rules 2021), a marketplace e-commerce entity (Consumer Protection E-Commerce Rules 2020), or both? What do we have to do as a result (e.g. Grievance Officer, showing host details on listings)?</p>
+</div>
+
+<div class="q">
+  <h3><span class="n">2</span>Who is liable if something goes wrong at an event?</h3>
+  <p class="ctx">Hosts are independent. Our terms say the host is responsible for the venue, safety and permissions (alcohol, music licences, police), and limit our liability to what the guest paid us.</p>
+  <p class="ask"><b>Need:</b> Will this hold up? What must the Host Agreement and Terms say? Should we require hosts to declare permissions per event, or carry insurance?</p>
+</div>
+
+<div class="q">
+  <h3><span class="n">3</span>Is our wallet allowed without an RBI licence?</h3>
+  <p class="ctx">Refunds land in an in-app wallet. It only holds refunds (no top-ups, no transfers, no cash-out), never expires, can only be spent on Gorave tickets, and a refund can be sent back to the original card/UPI on request.</p>
+  <p class="ask"><b>Need:</b> Confirm this is a closed-system prepaid instrument outside RBI licensing. What must happen to a balance if a user deletes their account?</p>
+</div>
+
+<div class="q">
+  <h3><span class="n">4</span>Is our money flow compliant?</h3>
+  <p class="ctx">Guests pay into the company's Razorpay account. We pay hosts after the event (manually now; Razorpay Route later), and can hold a payout while reports are investigated.</p>
+  <p class="ask"><b>Need:</b> Any RBI Payment Aggregator / escrow requirements on our side? Any limit on how long we can hold host money?</p>
+</div>
+
+<div class="q">
+  <h3><span class="n">5</span>What tax do we collect and charge?</h3>
+  <p class="ctx">Most hosts are unregistered individuals.</p>
+  <p class="ask"><b>Need:</b> GST on our ₹50 fee and 10% commission (and invoices)? Do we deduct TCS (GST s.52) and TDS (Income Tax s.194-O) from host payouts? Any GST liability for us on the ticket price?</p>
+</div>
+
+<div class="q">
+  <h3><span class="n">6</span>Are our refund rules fair and enforceable?</h3>
+  <p class="ctx">Guest cancels 48h+ before: ticket price refunded, ₹50 fee kept. Inside 48h or no-show: no refund (they can pass the ticket to a friend once). Host or Gorave cancels: everything back. Fake event found after the fact: everything back, host not paid.</p>
+  <p class="ask"><b>Need:</b> OK under the Consumer Protection Act? Anything we must change or add?</p>
+</div>
+
+<div class="q">
+  <h3><span class="n">7</span>Can we run women-only and men-only events?</h3>
+  <p class="ctx">This is a core safety feature, especially for women. Seats are offered by the gender on the profile.</p>
+  <p class="ask"><b>Need:</b> Any discrimination or other legal risk? How should our Terms describe it?</p>
+</div>
+
+<div class="q">
+  <h3><span class="n">8</span>What do we need for personal data (DPDP Act)?</h3>
+  <p class="ctx">We collect phone, name, photos, date of birth, gender, optional location and contacts (contacts only to pick an SOS contact), chats, and for hosts a PAN check (via Surepass: we store the result, masked PAN, a hash, and the name/DOB returned). Locked users who appeal send a live selfie that staff compare by eye.</p>
+  <p class="ask"><b>Need:</b> The consent notice and records we need at sign-up and for optional permissions; what we may keep from the PAN check and for how long; any special rule for the appeal selfie.</p>
+</div>
+
+<div class="q">
+  <h3><span class="n">9</span>Are our deals and urgency labels allowed?</h3>
+  <p class="ctx">Hosts can offer early-bird prices (at most 50% off, for at most half the seats) and promo codes (up to 50% off). We show "was ₹1,299, now ₹908" and live counts like "3 left". The ₹50 fee is shown before payment.</p>
+  <p class="ask"><b>Need:</b> Compliant with the CCPA Dark Patterns Guidelines 2023?</p>
+</div>
+
+<div class="q">
+  <h3><span class="n">10</span>Are our agreements validly accepted?</h3>
+  <p class="ctx">Users accept Terms and Privacy by continuing at sign-up ("By continuing you agree…"). Hosts tick through the Host Agreement and draw a signature with their finger; we store the image and time.</p>
+  <p class="ask"><b>Need:</b> Is that enough (IT Act s.10A)? Should we store which version each person accepted?</p>
+</div>
+
+<h2>Also tell us</h2>
+<ul>
+  <li>Anything that could get us <b>rejected by Apple or Google</b> (we have report/block, in-app account deletion, an 18+ rating, and use Razorpay because tickets are for real-world events).</li>
+  <li><b>Registrations</b> we need: GST, TRAI DLT for SMS, trademark "Gorave", anything else.</li>
+  <li>Who can be our <b>Grievance Officer</b> (must it be a resident founder or employee?).</li>
+</ul>
+<p class="muted" style="margin-top:14px">Contact: Founding team, Gorave Pvt. Ltd. · support@gorave.in. A detailed product brief and our draft Terms, Privacy Policy, Refunds, Community Guidelines, Host and Guest Agreements are available if useful.</p>
+
+</body>
+</html>
