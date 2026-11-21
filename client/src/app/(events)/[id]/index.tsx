@@ -147,6 +147,7 @@ export default function EventDetailScreen() {
         onClose={() => d.setOptionsOpen(false)}
         showWaitlist={(event?.waitlist_count ?? 0) > 0}
         onDeals={event && !event.is_free ? () => router.push(`/(events)/${event.id}/deals` as any) : undefined}
+        onInsights={event ? () => router.push(`/(events)/${event.id}/insights` as any) : undefined}
       />
       <ConfirmSheet
         visible={d.withdrawConfirm}

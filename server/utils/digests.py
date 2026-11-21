@@ -135,3 +135,68 @@ def send_saved_filling_up() -> int:
     if items:
         send_push_many(items, category=CATEGORY)
     return len(items)
+
+
+# ── Nights: before and after ────────────────────────────────────────────────
+
+def send_host_reminders() -> int:
+    """Two hours before doors, to the host: who's coming, who's waiting, and
+    that the scanner is ready. Once per event."""
+    with get_db() as (cur, conn):
+        cur.execute(
+            """
+            UPDATE events e SET host_reminded_at = NOW()
+            WHERE NOT e.is_cancelled AND e.is_published AND e.host_reminded_at IS NULL
+              AND e.date_time BETWEEN NOW() + INTERVAL '90 minutes' AND NOW() + INTERVAL '2 hours 15 minutes'
+            RETURNING e.id::text, e.host_id::text, e.title, e.join_mode,
+                      (SELECT COUNT(*) FROM event_attendees a WHERE a.event_id = e.id AND a.status = 'going')::int AS going,
+                      (SELECT COUNT(*) FROM event_attendees a WHERE a.event_id = e.id AND a.status = 'requested')::int AS waiting
+            """
+        )
+        items = []
+        for r in cur.fetchall():
+            parts = [f"{r['going']} going"]
+            if r["waiting"]:
+                parts.append(f"{r['waiting']} {'request' if r['waiting'] == 1 else 'requests'} waiting")
+            parts.append("scanner ready")
+            title = f"{r['title']} starts in 2 hours"
+            body = ", ".join(parts) + "."
+            _insert_notification(cur, r["host_id"], "host_doors_soon", title=title, body=body, entity_id=r["id"], entity_type="event")
+            data = {"type": "event_requests", "event_id": r["id"]} if r["waiting"] else {"type": "event", "event_id": r["id"]}
+            items.append({"user_id": r["host_id"], "title": title, "body": body, "data": data})
+        conn.commit()
+    if items:
+        send_push_many(items, category="hosting")
+    return len(items)
+
+
+def send_people_from_last_night(now: Optional[datetime] = None) -> int:
+    """The morning after (from 10 AM IST), to everyone who went to a night
+    that ended in the last day and a half: see who was there, send a vibe.
+    Only when at least two other people were there. Once per ticket."""
+    now = now or datetime.now(timezone.utc)
+    if now.astimezone(IST).hour < 10:
+        return 0
+    with get_db() as (cur, conn):
+        cur.execute(
+            """
+            UPDATE event_attendees ea SET people_prompt_sent_at = NOW()
+            FROM events e
+            WHERE e.id = ea.event_id AND ea.status = 'going' AND ea.people_prompt_sent_at IS NULL
+              AND NOT e.is_cancelled
+              AND COALESCE(e.end_time, e.date_time + INTERVAL '4 hours') BETWEEN NOW() - INTERVAL '36 hours' AND NOW() - INTERVAL '6 hours'
+              AND (SELECT COUNT(*) FROM event_attendees o WHERE o.event_id = e.id AND o.status = 'going' AND o.user_id <> ea.user_id) >= 2
+            RETURNING ea.user_id::text, e.id::text AS event_id, e.title,
+                      (SELECT COUNT(*) FROM event_attendees o WHERE o.event_id = e.id AND o.status = 'going' AND o.user_id <> ea.user_id)::int AS others
+            """
+        )
+        items = []
+        for r in cur.fetchall():
+            title = f"Who you met at {r['title']}"
+            body = f"{r['others']} people were there. Send a vibe to someone you clicked with."
+            _insert_notification(cur, r["user_id"], "people_from_night", title=title, body=body, entity_id=r["event_id"], entity_type="night_people")
+            items.append({"user_id": r["user_id"], "title": title, "body": body, "data": {"type": "night_people", "event_id": r["event_id"]}})
+        conn.commit()
+    if items:
+        send_push_many(items, category="social")
+    return len(items)

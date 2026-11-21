@@ -27,6 +27,14 @@ def get_wallet(current_user: dict = Depends(get_current_user)):
                    wt.reference_id::text AS event_id,
                    e.title AS event_title,
                    e.cover_photos[1] AS event_cover,
+                   -- A ticket bought with a deal: what it saved, and the code if one was used.
+                   CASE WHEN wt.source = 'ticket_purchase' THEN (
+                       SELECT GREATEST(0, e.price_inr - ea.price_paid_inr) FROM event_attendees ea
+                       WHERE ea.event_id = wt.reference_id AND ea.user_id = wt.user_id AND ea.pricing IS NOT NULL) END AS saved_inr,
+                   CASE WHEN wt.source = 'ticket_purchase' THEN (
+                       SELECT COALESCE(pc.code, CASE WHEN ea.pricing = 'early_bird' THEN 'Early bird' END) FROM event_attendees ea
+                       LEFT JOIN promo_codes pc ON pc.id = ea.promo_code_id
+                       WHERE ea.event_id = wt.reference_id AND ea.user_id = wt.user_id AND ea.pricing IS NOT NULL) END AS deal_label,
                    CASE WHEN wt.source = 'event_refund' THEN COALESCE(wt.to_source_status, 'in_wallet') END AS refund_status,
                    CASE WHEN wt.source = 'event_refund' AND wt.to_source_status IS NULL AND wt.to_source_until > NOW()
                         THEN GREATEST(0, LEAST(COALESCE(wt.to_source_inr, 0), (SELECT wallet_balance FROM users WHERE id = wt.user_id))) END AS refund_sendable_inr

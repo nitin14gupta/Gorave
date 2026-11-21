@@ -197,6 +197,7 @@ export default function CreateScreen() {
             )}
             {step === 4 && (
               <Step4Pricing
+                showDeals
                 form={form} set={set} errors={shownErrors} setErrors={setErrors}
                 submitError={submitError}
                 scrollable={false}

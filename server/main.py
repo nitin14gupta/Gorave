@@ -140,11 +140,13 @@ async def _digest_loop():
     while True:
         try:
             if await _try_acquire_lock("sched_lock:digests", EVENT_WRAPUP_INTERVAL_SECONDS - 60):
-                from utils.digests import send_weekend_digest, send_saved_filling_up
+                from utils.digests import send_weekend_digest, send_saved_filling_up, send_host_reminders, send_people_from_last_night
                 weekly = await asyncio.to_thread(send_weekend_digest)
                 saved = await asyncio.to_thread(send_saved_filling_up)
-                if weekly or saved:
-                    print(f"[DIGEST] {weekly} weekend digest(s), {saved} saved-event nudge(s)", flush=True)
+                hosts = await asyncio.to_thread(send_host_reminders)
+                people = await asyncio.to_thread(send_people_from_last_night)
+                if weekly or saved or hosts or people:
+                    print(f"[DIGEST] {weekly} weekend, {saved} saved-night, {hosts} host-reminder, {people} people-from-last-night", flush=True)
         except Exception as e:
             print(f"[DIGEST] Digest run failed: {e}", flush=True)
         await asyncio.sleep(EVENT_WRAPUP_INTERVAL_SECONDS)

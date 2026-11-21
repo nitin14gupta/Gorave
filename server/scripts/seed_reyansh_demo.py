@@ -370,6 +370,12 @@ class Seed:
                 (vinyl, uid, at(days=-5 + i * 0.3), f"pay_DEMO{uuid.uuid4().hex[:10]}", price, round(price * 0.1), kind, code_id if kind == "promo" else None),
             )
         c.execute("UPDATE events SET spots_left = capacity - 10 WHERE id = %s", (vinyl,))
+        # Insights: a week of people opening it (some came back), and saves.
+        for i, uid in enumerate(self.crowd + list(u.values())):
+            for back in range(1 + (i % 3 == 0)):
+                c.execute("INSERT INTO event_views (event_id, user_id, day) VALUES (%s, %s, CURRENT_DATE - %s) ON CONFLICT DO NOTHING", (vinyl, uid, (i + back * 2) % 7))
+        for uid in self.crowd[12:19] + [u["aditi"], u["naina"]]:
+            c.execute("INSERT INTO event_hotlist (user_id, event_id) VALUES (%s, %s) ON CONFLICT DO NOTHING", (uid, vinyl))
 
         # Guest side: deals on someone else's night he can book.
         c.execute("""SELECT e.id::text, e.price_inr, e.host_id::text FROM events e

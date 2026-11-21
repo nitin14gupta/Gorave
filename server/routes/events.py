@@ -273,6 +273,8 @@ class MyEventsPage(BaseModel):
 
 
 class EventDetail(EventSummary):
+    # Friends going, faces first: [{id, name, avatar}], up to 5.
+    friends_going: List[dict] = []
     description: Optional[str] = None
     rules: Optional[str] = None
     host_id: str
@@ -1393,10 +1395,38 @@ def get_free_slots(current_user: dict = Depends(get_current_user)):
 
 # ── GET /events/{id} ──────────────────────────────────────────────────────────
 
+def _friends_going(cur, event_id: str, uid: str) -> tuple:
+    """Friends (people you follow or chat with, minus blocks either way) who
+    are going, faces first for the event page. Returns (up to 5, total)."""
+    cur.execute(
+        """
+        WITH friends AS (
+            SELECT following_id AS fid FROM follows WHERE follower_id = %(me)s::uuid
+            UNION
+            SELECT CASE WHEN c.user1_id = %(me)s::uuid THEN c.user2_id ELSE c.user1_id END
+            FROM conversations c WHERE c.kind = 'direct' AND c.status = 'active' AND (c.user1_id = %(me)s::uuid OR c.user2_id = %(me)s::uuid)
+            EXCEPT (SELECT blocked_id FROM user_blocks WHERE blocker_id = %(me)s::uuid
+                    UNION SELECT blocker_id FROM user_blocks WHERE blocked_id = %(me)s::uuid)
+        )
+        SELECT u.id::text, split_part(u.name, ' ', 1) AS name,
+               (SELECT p.url FROM user_photos p WHERE p.user_id = u.id ORDER BY p.position LIMIT 1) AS avatar,
+               COUNT(*) OVER () AS total
+        FROM event_attendees ea JOIN users u ON u.id = ea.user_id
+        WHERE ea.event_id = %(ev)s::uuid AND ea.status = 'going' AND ea.user_id IN (SELECT fid FROM friends)
+          AND COALESCE(u.is_deleted, FALSE) = FALSE AND COALESCE(u.is_locked, FALSE) = FALSE
+        ORDER BY ea.joined_at
+        LIMIT 5
+        """,
+        {"me": uid, "ev": event_id},
+    )
+    rows = cur.fetchall()
+    return [{"id": r["id"], "name": r["name"], "avatar": r["avatar"]} for r in rows], (rows[0]["total"] if rows else 0)
+
+
 @router.get("/{event_id}", response_model=EventDetail)
 def get_event(event_id: str, current_user: dict = Depends(get_current_user)):
     uid = current_user["id"]
-    with get_db() as (cur, _):
+    with get_db() as (cur, conn):
         cur.execute(
             """
             SELECT
@@ -1514,6 +1544,15 @@ def get_event(event_id: str, current_user: dict = Depends(get_current_user)):
         if d["host_id"] == uid and not d.get("is_cancelled"):
             event_chat.ensure_chat(cur, event_id)
         d["chat"] = event_chat.summary_for_event(cur, event_id, uid)
+        d["friends_going"], d["friends_going_count"] = _friends_going(cur, event_id, uid)
+        # Host insights: one view per person per day, never the host.
+        if d["host_id"] != uid:
+            cur.execute(
+                "INSERT INTO event_views (event_id, user_id) VALUES (%s::uuid, %s::uuid) ON CONFLICT DO NOTHING",
+                (event_id, uid),
+            )
+            conn.commit()
+        d["friends_going_names"] = [f["name"] for f in d["friends_going"][:2]]
         _apply_location_privacy(cur, [d], uid)
 
     # 0 position means not in regular queue (promoted or not on waitlist)
@@ -3057,10 +3096,14 @@ def get_my_ticket(event_id: str, current_user: dict = Depends(get_current_user))
                    e.end_time::text, e.location_name, e.event_type,
                    u.name AS host_name, (u.id_verified_at IS NOT NULL) AS host_verified, e.early_bird_price_inr, e.early_bird_count, (SELECT COUNT(*) FROM event_attendees ebs WHERE ebs.event_id = e.id AND ebs.pricing = 'early_bird' AND ebs.status IN ('going', 'transferred') AND ebs.refunded_at IS NULL)::int AS early_bird_sold,
                    (SELECT p.url FROM user_photos p WHERE p.user_id = u.id ORDER BY p.position LIMIT 1) AS host_avatar,
-                   (SELECT COUNT(*) FROM event_attendees g WHERE g.event_id = e.id AND g.status = 'going')::int AS attendee_count
+                   (SELECT COUNT(*) FROM event_attendees g WHERE g.event_id = e.id AND g.status = 'going')::int AS attendee_count,
+                   -- The deal this ticket got, so the ticket can say "Code GHAZAL40 · saved ₹520".
+                   ea.pricing, pc.code AS promo_code,
+                   CASE WHEN ea.pricing IS NOT NULL AND ea.price_paid_inr IS NOT NULL THEN GREATEST(0, e.price_inr - ea.price_paid_inr) END AS saved_inr
             FROM event_attendees ea
             JOIN events e ON e.id = ea.event_id
             JOIN users u ON u.id = e.host_id
+            LEFT JOIN promo_codes pc ON pc.id = ea.promo_code_id
             WHERE ea.event_id = %s AND ea.user_id = %s::uuid AND ea.status = 'going'
             """,
             (event_id, uid),
@@ -3069,6 +3112,53 @@ def get_my_ticket(event_id: str, current_user: dict = Depends(get_current_user))
     if not row:
         raise HTTPException(status_code=404, detail="No ticket found — you are not attending this event")
     return dict(row)
+
+
+# ── GET /events/{id}/people ── People from last night ──────────────────────────
+
+@router.get("/{event_id}/people")
+def people_from_the_night(event_id: str, current_user: dict = Depends(get_current_user)):
+    """Who else was there, once it's over: the morning after, so you can send
+    a vibe to someone you met. Only for people who were there themselves
+    (a ticket, or the host). Checked-in guests first."""
+    uid = current_user["id"]
+    with get_db() as (cur, _):
+        cur.execute(
+            """
+            SELECT e.title, e.host_id::text, COALESCE(e.end_time, e.date_time + INTERVAL '4 hours') < NOW() AS over,
+                   (e.cover_photos->>0) AS cover,
+                   EXISTS (SELECT 1 FROM event_attendees a WHERE a.event_id = e.id AND a.user_id = %s::uuid AND a.status = 'going') AS was_there
+            FROM events e WHERE e.id = %s::uuid AND NOT e.is_cancelled
+            """,
+            (uid, event_id),
+        )
+        ev = cur.fetchone()
+        if not ev:
+            raise HTTPException(status_code=404, detail="Event not found")
+        if not (ev["was_there"] or ev["host_id"] == uid):
+            raise HTTPException(status_code=403, detail="Only people who were there can see this")
+        if not ev["over"]:
+            raise HTTPException(status_code=400, detail="This shows once the night is over")
+        cur.execute(
+            f"""
+            SELECT u.id::text, u.name, u.username, (u.id_verified_at IS NOT NULL) AS is_verified,
+                   (SELECT p.url FROM user_photos p WHERE p.user_id = u.id ORDER BY p.position LIMIT 1) AS avatar,
+                   (u.id = e.host_id) AS is_host, (ea.checked_in_at IS NOT NULL) AS checked_in,
+                   EXISTS (SELECT 1 FROM follows f WHERE f.follower_id = %(me)s::uuid AND f.following_id = u.id) AS is_following,
+                   (SELECT vr.status FROM vibe_requests vr WHERE (vr.sender_id = %(me)s::uuid AND vr.receiver_id = u.id) OR (vr.sender_id = u.id AND vr.receiver_id = %(me)s::uuid) ORDER BY vr.created_at DESC LIMIT 1) AS vibe_status,
+                   EXISTS (SELECT 1 FROM conversations c WHERE c.kind = 'direct' AND c.status = 'active' AND ((c.user1_id = %(me)s::uuid AND c.user2_id = u.id) OR (c.user2_id = %(me)s::uuid AND c.user1_id = u.id))) AS connected
+            FROM events e
+            JOIN users u ON u.id = e.host_id OR u.id IN (SELECT a.user_id FROM event_attendees a WHERE a.event_id = e.id AND a.status = 'going')
+            LEFT JOIN event_attendees ea ON ea.event_id = e.id AND ea.user_id = u.id
+            WHERE e.id = %(ev)s::uuid AND u.id <> %(me)s::uuid
+              AND {visibility.live('u')} AND {visibility.not_blocked('u.id', '%(me)s::uuid')}
+            ORDER BY (u.id = e.host_id) DESC, (ea.checked_in_at IS NOT NULL) DESC, ea.checked_in_at
+            LIMIT 200
+            """,
+            {"me": uid, "ev": event_id},
+        )
+        people = [dict(r) for r in cur.fetchall()]
+    return {"title": ev["title"], "cover": ev["cover"], "people": people}
 
 
 # ── POST /events/{id}/checkin ─────────────────────────────────────────────────

@@ -146,6 +146,14 @@ export function TicketView({ ticket, event, cardRef, onBack, onShare, onSave, on
                   <Text style={s.ref}>ADMIT ONE</Text>
                   <LogoMark size={14} opacity={0.7} />
                 </View>
+                {ticket.pricing ? (
+                  <View style={s.dealRow}>
+                    <Text style={s.dealText}>
+                      {ticket.pricing === 'promo' && ticket.promo_code ? `CODE ${ticket.promo_code}` : 'EARLY BIRD'}
+                      {ticket.saved_inr ? `  ·  SAVED ₹${ticket.saved_inr.toLocaleString('en-IN')}` : ''}
+                    </Text>
+                  </View>
+                ) : null}
               </View>
             </View>
           </ViewShot>
@@ -243,6 +251,9 @@ const ON_TICKET = Colors.white
 
 const s = StyleSheet.create({
   // Half off the top-right corner, barely there: you notice it, it never fights the text.
+  // The deal this ticket got, stamped under the reference like a coupon.
+  dealRow: { alignSelf: 'center', marginTop: 10, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6, borderWidth: 1, borderStyle: 'dashed', borderColor: withOpacity(Colors.white, 0.45) },
+  dealText: { fontFamily: FontFamily.bodySemiBold, fontSize: 10, letterSpacing: 1.4, color: withOpacity(Colors.white, 0.85) },
   watermark: { position: 'absolute', top: -28, right: -30, opacity: 0.07, transform: [{ rotate: '-14deg' }] },
   root: { flex: 1, backgroundColor: Colors.background },
   hero: { width: W, overflow: 'hidden' },

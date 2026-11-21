@@ -68,6 +68,17 @@ export function validateCreateEventStep(
       flag('priceInr', "You've used 2 free events this month", "You've used your 2 free events this month. Set a ticket price.")
     } else if (!form.isFree && form.priceInr < minPrice) {
       flag('priceInr', `Minimum ticket price is ₹${minPrice}`, `Minimum ticket price is ₹${minPrice}`)
+    } else if (!form.isFree) {
+      if (form.earlyBirdOn && (form.earlyBirdPrice < 49 || form.earlyBirdPrice >= form.priceInr)) {
+        flag('earlyBird', `Between ₹49 and ₹${form.priceInr - 1}`, `Early bird must be between ₹49 and ₹${form.priceInr - 1}`)
+      } else if (form.earlyBirdOn && (form.earlyBirdCount < 1 || form.earlyBirdCount > form.capacity)) {
+        flag('earlyBird', `1 to ${form.capacity} tickets`, `Early bird spots must be between 1 and ${form.capacity}`)
+      }
+      if (form.promoOn && !/^[A-Z0-9]{3,20}$/.test(form.promoCode)) {
+        flag('promo', '3 to 20 letters or numbers', 'Promo codes are 3 to 20 letters or numbers, like RIYA20')
+      } else if (form.promoOn && (form.promoPercent < 5 || form.promoPercent > 100)) {
+        flag('promo', '5% to 100% off', 'Promo code discount must be 5% to 100%')
+      }
     }
   } else if (step === 5) {
     if (!form.coverPhotos[0]) {

@@ -2,10 +2,11 @@ import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { Image } from 'expo-image'
 import { LinearGradient } from 'expo-linear-gradient'
 import { router } from 'expo-router'
-import { Camera, ChevronRight, Ghost, MessagesSquare, Star } from 'lucide-react-native'
+import { Camera, ChevronRight, Ghost, MessagesSquare, Star, Users } from 'lucide-react-native'
 import type { EventAlbum, EventDetail, EventGuest } from '@/api/apiService'
 import { photosLabel } from '@/lib/album'
 import { hTap } from '@/lib/haptics'
+import { isEventPast } from '@/lib/dates'
 import { Colors, FontFamily, HOST_BADGE_IMAGES, withOpacity } from '@/constants'
 import { NameWithTick } from '@/components/profile/VerifiedTick'
 
@@ -87,6 +88,12 @@ const hostName = (event: EventDetail, isHost: boolean) => (event.host_is_deleted
  * shape, split by thin lines, so they don't read as one list of cards.
  */
 export function EventSocialSections({ event, eventId, isHost, guests, guestTotal, onOpenGuests }: Props) {
+  // "Riya and 2 friends are going": the strongest reason to book.
+  const friends = event.friends_going ?? []
+  const fc = event.friends_going_count ?? friends.length
+  const friendsLine = !isHost && friends.length
+    ? fc === 1 ? `${friends[0].name} is going` : fc === 2 && friends[1] ? `${friends[0].name} and ${friends[1].name} are going` : `${friends[0].name} and ${fc - 1} friends are going`
+    : null
   const album = event.album
   return (
     <View style={s.open}>
@@ -117,7 +124,31 @@ export function EventSocialSections({ event, eventId, isHost, guests, guestTotal
               <ChevronRight size={15} color={Colors.inkSecondary} strokeWidth={2} />
             </View>
           </View>
+          {friendsLine ? (
+            <View style={s.friends}>
+              <View style={s.friendFaces}>
+                {(event.friends_going ?? []).slice(0, 3).map((f, i) => (
+                  <View key={f.id} style={[s.friendFace, { marginLeft: i ? -8 : 0, zIndex: 3 - i }]}>
+                    {f.avatar ? <Image source={{ uri: f.avatar }} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="memory-disk" /> : <Text style={s.friendInitial}>{f.name.charAt(0)}</Text>}
+                  </View>
+                ))}
+              </View>
+              <Text style={s.friendsText} numberOfLines={2}>{friendsLine}</Text>
+            </View>
+          ) : null}
           <Faces guests={guests} total={guestTotal} size={50} max={6} overlap={10} ringColor={Colors.background} />
+        </Pressable>
+      ) : null}
+
+      {/* Once it's over: everyone who was there, to send a vibe to. */}
+      {isEventPast(event) && !event.is_cancelled && (isHost || event.my_rsvp_status === 'going') && guestTotal > 1 ? (
+        <Pressable style={[s.block, s.chatRow]} onPress={() => { hTap(); router.push(`/(events)/${eventId}/people` as any) }} accessibilityRole="button">
+          <View style={s.peopleIcon}><Users size={18} color={Colors.inkPrimary} strokeWidth={1.9} /></View>
+          <View style={{ flex: 1 }}>
+            <Text style={s.title}>People from last night</Text>
+            <Text style={s.label}>See who was there and send a vibe</Text>
+          </View>
+          <ChevronRight size={16} color={Colors.inkSecondary} strokeWidth={2} />
         </Pressable>
       ) : null}
 
@@ -166,6 +197,12 @@ const s = StyleSheet.create({
   badge: { position: 'absolute', right: -3, bottom: -3, width: 22, height: 22, borderRadius: 11, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.surface, borderWidth: 1.5, borderColor: Colors.background },
   badgeImage: { width: 15, height: 15 },
   faces: { flexDirection: 'row', alignItems: 'center' },
+  friends: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 },
+  peopleIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: withOpacity(Colors.inkPrimary, 0.07), alignItems: 'center', justifyContent: 'center' },
+  friendFaces: { flexDirection: 'row' },
+  friendFace: { width: 28, height: 28, borderRadius: 14, overflow: 'hidden', borderWidth: 2, borderColor: Colors.background, backgroundColor: Colors.surfaceMuted, alignItems: 'center', justifyContent: 'center' },
+  friendInitial: { fontFamily: FontFamily.headingBold, fontSize: 11, color: Colors.inkPrimary },
+  friendsText: { flex: 1, fontFamily: FontFamily.bodySemiBold, fontSize: 14, color: Colors.inkPrimary },
   guest: { borderWidth: 2, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.elevated },
   guestInitial: { fontFamily: FontFamily.headingBold, fontSize: 14, color: Colors.inkPrimary },
   more: { fontFamily: FontFamily.bodySemiBold, fontSize: 12, color: Colors.inkSecondary },

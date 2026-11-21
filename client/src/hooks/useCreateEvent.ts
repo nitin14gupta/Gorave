@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react'
 import ApiService, { type EventDetail } from '@/api/apiService'
 import { useHomeCity } from '@/hooks/useHomeCity'
+import { usePillStore } from '@/store/pillStore'
 
 export interface CreateEventForm {
   title: string
@@ -23,6 +24,13 @@ export interface CreateEventForm {
   priceInr: number
   isFree: boolean
   coverPhotos: string[]
+  /** Deals, set up with the price (paid events). Applied right after the event is created. */
+  earlyBirdOn: boolean
+  earlyBirdPrice: number
+  earlyBirdCount: number
+  promoOn: boolean
+  promoCode: string
+  promoPercent: number
 }
 
 const INITIAL: CreateEventForm = {
@@ -45,6 +53,12 @@ const INITIAL: CreateEventForm = {
   priceInr: 0,
   isFree: false,
   coverPhotos: [],
+  earlyBirdOn: false,
+  earlyBirdPrice: 0,
+  earlyBirdCount: 10,
+  promoOn: false,
+  promoCode: '',
+  promoPercent: 20,
 }
 
 /** "Flat 42, Test Towers, Lokhandwala, Andheri West, Mumbai" — mirrors how
@@ -117,6 +131,20 @@ export function useCreateEvent() {
         price_inr: form.isFree ? 0 : form.priceInr,
         cover_photos: uploadedUrls,
       })
+      // Deals go on once the event exists. If one fails the event is still
+      // live; say so, and the host can fix it in Deals.
+      const paid = !form.isFree && form.priceInr > 0
+      const eventId = (result as any)?.id
+      if (paid && eventId) {
+        const failed: string[] = []
+        if (form.earlyBirdOn) {
+          await ApiService.setEarlyBird(eventId, form.earlyBirdPrice, form.earlyBirdCount).catch(() => failed.push('early bird'))
+        }
+        if (form.promoOn && form.promoCode) {
+          await ApiService.createPromoCode(eventId, { code: form.promoCode, percent_off: form.promoPercent }).catch(() => failed.push('promo code'))
+        }
+        if (failed.length) usePillStore.getState().show(`Your event is live, but the ${failed.join(' and ')} didn't save. Add it from ⋯ → Deals.`, 'error')
+      }
       return result
     } catch (e: any) {
       setSubmitError(e.message ?? 'Failed to create event')

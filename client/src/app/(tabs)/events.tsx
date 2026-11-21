@@ -221,7 +221,7 @@ export default function EventsScreen() {
 
         {hasError && <MapErrorOverlay onRetry={reload} />}
 
-        {isEmpty && <MapEmptyOverlay onCreate={goToCreate} />}
+        {isEmpty && <MapEmptyOverlay onCreate={goToCreate} city={city} filtered={activeChip !== 'all'} />}
 
         {/* Preview strip — floats over map with fade gradient */}
         {!isEmpty ? (
@@ -291,7 +291,7 @@ export default function EventsScreen() {
         ) : isEmpty ? (
           <View style={{ flex: 1, paddingTop: insets.top + LIST_HEADER_CONTENT_HEIGHT }}>
             <FilterChipsRow activeChip={activeChip} onSelect={handleChip} showWomenOnly={isWoman} />
-            <ListEmptyState onCreate={goToCreate} />
+            <ListEmptyState onCreate={goToCreate} city={city} filtered={activeChip !== 'all'} onClearFilter={() => handleChip('all')} />
           </View>
         ) : (
           <Animated.FlatList

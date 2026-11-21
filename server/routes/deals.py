@@ -172,3 +172,72 @@ def price_quote(event_id: str, code: Optional[str] = Query(default=None), curren
         q = pricing.quote(cur, dict(ev), code)
     q.pop("promo_code_id", None)
     return q
+
+
+# ── Host insights ────────────────────────────────────────────────────────────
+
+@router.get("/events/{event_id}/insights")
+def event_insights(event_id: str, current_user: dict = Depends(get_current_user)):
+    """For the host: how the night is doing. Views (unique people per day),
+    saves, bookings, and for paid nights what each deal sold."""
+    uid = current_user["id"]
+    with get_db() as (cur, _):
+        cur.execute("SELECT host_id::text, price_inr, capacity, created_at FROM events WHERE id = %s::uuid", (event_id,))
+        ev = cur.fetchone()
+        if not ev:
+            raise HTTPException(status_code=404, detail="Event not found")
+        if ev["host_id"] != uid:
+            raise HTTPException(status_code=403, detail="Not your event")
+        cur.execute(
+            """
+            SELECT
+              (SELECT COUNT(DISTINCT user_id) FROM event_views WHERE event_id = %(e)s::uuid)::int AS viewers,
+              (SELECT COUNT(*) FROM event_views WHERE event_id = %(e)s::uuid)::int AS views,
+              (SELECT COUNT(*) FROM event_hotlist WHERE event_id = %(e)s::uuid)::int AS saves,
+              (SELECT COUNT(*) FROM event_attendees WHERE event_id = %(e)s::uuid AND status = 'going')::int AS going,
+              (SELECT COUNT(*) FROM event_attendees WHERE event_id = %(e)s::uuid AND status = 'requested')::int AS requests,
+              (SELECT COUNT(*) FROM event_attendees WHERE event_id = %(e)s::uuid AND status = 'waitlist')::int AS waitlist
+            """,
+            {"e": event_id},
+        )
+        totals = dict(cur.fetchone())
+        # Bookings and views over the last 7 days, for a small chart.
+        cur.execute(
+            """
+            SELECT d::date AS day,
+                   (SELECT COUNT(DISTINCT user_id) FROM event_views v WHERE v.event_id = %(e)s::uuid AND v.day = d::date)::int AS views,
+                   (SELECT COUNT(*) FROM event_attendees a WHERE a.event_id = %(e)s::uuid AND a.status = 'going'
+                      AND (a.joined_at AT TIME ZONE 'Asia/Kolkata')::date = d::date)::int AS bookings
+            FROM generate_series((NOW() AT TIME ZONE 'Asia/Kolkata')::date - 6, (NOW() AT TIME ZONE 'Asia/Kolkata')::date, INTERVAL '1 day') d
+            ORDER BY d
+            """,
+            {"e": event_id},
+        )
+        days = [{"day": r["day"].isoformat(), "views": r["views"], "bookings": r["bookings"]} for r in cur.fetchall()]
+        # Money by how each ticket was priced (paid, not refunded).
+        cur.execute(
+            """
+            SELECT COALESCE(a.pricing, 'full') AS kind, pc.code,
+                   COUNT(*)::int AS tickets,
+                   COALESCE(SUM(a.price_paid_inr), 0)::int AS revenue,
+                   COALESCE(SUM(a.commission_inr), 0)::int AS commission
+            FROM event_attendees a LEFT JOIN promo_codes pc ON pc.id = a.promo_code_id
+            WHERE a.event_id = %(e)s::uuid AND a.status = 'going' AND a.refunded_at IS NULL
+              AND a.payment_id IS NOT NULL AND COALESCE(a.price_paid_inr, 0) > 0
+            GROUP BY 1, 2 ORDER BY tickets DESC
+            """,
+            {"e": event_id},
+        )
+        sold = [dict(r) for r in cur.fetchall()]
+    revenue = sum(s["revenue"] for s in sold)
+    commission = sum(s["commission"] for s in sold)
+    return {
+        **totals,
+        "capacity": ev["capacity"],
+        "conversion_pct": round(100 * totals["going"] / totals["viewers"]) if totals["viewers"] else None,
+        "days": days,
+        "paid": ev["price_inr"] > 0,
+        "revenue_inr": revenue,
+        "you_get_inr": revenue - commission,
+        "by_deal": sold,
+    }

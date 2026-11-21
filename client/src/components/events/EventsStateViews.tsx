@@ -17,12 +17,20 @@ export function MapErrorOverlay({ onRetry }: { onRetry: () => void }) {
   );
 }
 
-export function MapEmptyOverlay({ onCreate }: { onCreate: () => void }) {
+/** Nothing here: a filter is hiding things, or the city is waiting for its first host. */
+export function emptyCopy(city: string | null | undefined, filtered: boolean) {
+  return filtered
+    ? { title: 'Nothing matches that filter', sub: 'Try another one, or host the night you were looking for' }
+    : { title: `Be the first to host${city ? ` in ${city}` : ' here'}`, sub: 'Pick a template, set a date, and your night is live' }
+}
+
+export function MapEmptyOverlay({ onCreate, city, filtered = false }: { onCreate: () => void; city?: string | null; filtered?: boolean }) {
+  const copy = emptyCopy(city, filtered)
   return (
     <View style={styles.mapEmpty} pointerEvents="box-none">
       <View style={styles.mapEmptyCard}>
         <Flame size={28} color={Colors.inkDisabled} strokeWidth={1.5} />
-        <Text style={styles.mapEmptyTitle}>No events nearby</Text>
+        <Text style={styles.mapEmptyTitle}>{copy.title}</Text>
         <PrimaryButton
           label="Create one"
           size="small"
@@ -44,7 +52,8 @@ export function ListErrorState({ onRetry }: { onRetry: () => void }) {
   );
 }
 
-export function ListEmptyState({ onCreate }: { onCreate: () => void }) {
+export function ListEmptyState({ onCreate, city, filtered = false, onClearFilter }: { onCreate: () => void; city?: string | null; filtered?: boolean; onClearFilter?: () => void }) {
+  const copy = emptyCopy(city, filtered)
   return (
     // Centering within the space left below the header+chips row lands
     // visually low (that leftover region's own middle sits well under the
@@ -52,8 +61,11 @@ export function ListEmptyState({ onCreate }: { onCreate: () => void }) {
     // centered on the screen, not just on its flex parent.
     <View style={[styles.listEmpty, { flex: 1 }, styles.listEmptyFanShift]}>
       <TemplateFan onCreatePress={onCreate} />
-      <Text style={styles.listEmptyTitle}>No events nearby yet</Text>
-      <Text style={styles.listEmptySub}>Tap a card to host one</Text>
+      <Text style={styles.listEmptyTitle}>{copy.title}</Text>
+      <Text style={styles.listEmptySub}>{copy.sub}</Text>
+      {filtered && onClearFilter ? (
+        <Text style={styles.listEmptyClear} onPress={() => { hTap(); onClearFilter() }}>Show all events</Text>
+      ) : null}
       <PrimaryButton
         label="Create Event"
         size="small"
@@ -66,6 +78,7 @@ export function ListEmptyState({ onCreate }: { onCreate: () => void }) {
 }
 
 const styles = StyleSheet.create({
+  listEmptyClear: { fontFamily: FontFamily.bodySemiBold, fontSize: 14, color: Colors.inkPrimary, textDecorationLine: 'underline', marginTop: 10 },
   mapEmpty: {
     position: "absolute",
     top: 0,

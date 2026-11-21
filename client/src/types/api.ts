@@ -279,6 +279,8 @@ export interface CalendarDayEvents {
 }
 
 export interface EventDetail extends EventSummary {
+  /** Friends going, faces first (up to 5). Total is friends_going_count. */
+  friends_going?: { id: string; name: string; avatar: string | null }[]
   description: string | null
   rules: string | null
   host_id: string
@@ -370,6 +372,10 @@ export interface TicketInfo {
   host_name: string | null
   host_avatar: string | null
   attendee_count: number
+  /** The deal this ticket got: 'early_bird' or 'promo' (with promo_code), and what it saved. */
+  pricing?: 'early_bird' | 'promo' | null
+  promo_code?: string | null
+  saved_inr?: number | null
 }
 
 export interface ReviewItem {
@@ -620,6 +626,9 @@ export interface WalletTransaction {
   refund_status?: 'in_wallet' | 'processing' | 'done' | 'failed' | null
   /** Refunds only: the card/UPI part that can still go back. */
   refund_sendable_inr?: number | null
+  /** Ticket bought with a deal: what it saved and the code (or 'Early bird'). */
+  saved_inr?: number | null
+  deal_label?: string | null
 }
 
 /** One refund: in the wallet first, the card/UPI part can go back to where it came from. */

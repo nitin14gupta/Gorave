@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { BottomSheetModal, BottomSheetView, BottomSheetBackdrop } from '@gorhom/bottom-sheet'
 import type { BottomSheetBackdropProps } from '@gorhom/bottom-sheet'
-import { ChevronRight, Pencil, Tag, Users } from 'lucide-react-native'
+import { BarChart3, ChevronRight, Pencil, Tag, Users } from 'lucide-react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Colors, FontFamily, withOpacity } from '@/constants'
 import { hTap } from '@/lib/haptics'
@@ -19,6 +19,7 @@ interface CoreProps {
   showWaitlist: boolean
   /** Paid events: early bird and promo codes. */
   onDeals?: () => void
+  onInsights?: () => void
 }
 
 function Row({ icon, title, sub, onPress }: { icon: React.ReactNode; title: string; sub: string; onPress: () => void }) {
@@ -39,7 +40,7 @@ function Row({ icon, title, sub, onPress }: { icon: React.ReactNode; title: stri
  * a centred title, the actions as rows, then Cancel event in solid red and a
  * grey Close.
  */
-function EventOptionsSheetCore({ onEdit, onCancel, onWaitlist, onClose, showWaitlist, onDeals }: CoreProps) {
+function EventOptionsSheetCore({ onEdit, onCancel, onWaitlist, onClose, showWaitlist, onDeals, onInsights }: CoreProps) {
   const sheetRef = useRef<BottomSheetModal>(null)
   const insets = useSafeAreaInsets()
   useEffect(() => { sheetRef.current?.present() }, [])
@@ -65,6 +66,14 @@ function EventOptionsSheetCore({ onEdit, onCancel, onWaitlist, onClose, showWait
             sub="Details, photos, time and place"
             onPress={() => { hTap(); onClose(); onEdit() }}
           />
+          {onInsights ? (
+            <Row
+              icon={<BarChart3 size={18} color={Colors.inkPrimary} strokeWidth={1.9} />}
+              title="Insights"
+              sub="Who looked, saved and booked"
+              onPress={() => { hTap(); onClose(); onInsights() }}
+            />
+          ) : null}
           {onDeals ? (
             <Row
               icon={<Tag size={18} color={Colors.inkPrimary} strokeWidth={1.9} />}

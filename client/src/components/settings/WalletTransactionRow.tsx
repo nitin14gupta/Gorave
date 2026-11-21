@@ -18,6 +18,9 @@ function fmtDate(str: string | null | undefined) {
 }
 
 function refundLine(item: WalletTransaction): string | null {
+  if (item.source === 'ticket_purchase' && item.saved_inr) {
+    return `Saved ₹${item.saved_inr.toLocaleString('en-IN')}${item.deal_label === 'Early bird' ? ' with early bird' : item.deal_label ? ` with ${item.deal_label}` : ''}`
+  }
   if (item.source !== 'event_refund') return null
   if (item.refund_status === 'processing') return 'Going back to how you paid'
   if (item.refund_status === 'done') return 'Sent back to how you paid'
