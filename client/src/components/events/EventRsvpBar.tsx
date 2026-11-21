@@ -8,6 +8,7 @@ import { hSuccess, hTap } from '@/lib/haptics'
 import { PrimaryButton, TickingCountdown } from '@/components/ui'
 import { formatPrice, hoursUntil, type RsvpStatus } from './eventDetailUtils'
 import type { EventDetail } from '@/api/apiService'
+import { earlyBird } from '@/lib/deals'
 
 interface Props {
   event: EventDetail
@@ -68,6 +69,8 @@ export function EventRsvpBar({
   const myStatus = event.my_rsvp_status
   const pending = event.pending_request_count ?? 0
   const bucketLabel = myBucket === 'women' ? 'women' : myBucket === 'men' ? 'men' : 'open spots'
+  // Only worth showing to someone who could still buy one.
+  const eb = !isGoing && !hasTicket ? earlyBird(event) : null
 
   return (
     <View style={[styles.stickyBar, { paddingBottom: bottomInset + 12 }]}>
@@ -158,7 +161,17 @@ export function EventRsvpBar({
                 <Text style={styles.spotsText}>Only {event.spots_left} left</Text>
               </View>
             )}
-            <Text style={styles.stickyPrice}>{formatPrice(event.price_inr, event.is_free)}</Text>
+            {eb ? (
+              <View>
+                <View style={styles.ebRow}>
+                  <Text style={styles.stickyPrice}>{formatPrice(eb.price, false)}</Text>
+                  <Text style={styles.ebWas}>{formatPrice(event.price_inr, false)}</Text>
+                </View>
+                <Text style={styles.ebLine}>Early bird · {eb.left === 1 ? 'last one' : `${eb.left} left`}</Text>
+              </View>
+            ) : (
+              <Text style={styles.stickyPrice}>{formatPrice(event.price_inr, event.is_free)}</Text>
+            )}
           </View>
 
           {event.is_cancelled ? (
@@ -319,6 +332,9 @@ const styles = StyleSheet.create({
   spotsDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: Colors.inkPrimary },
   spotsText: { color: Colors.inkPrimary, fontFamily: FontFamily.bodyMedium, fontSize: 12 },
   stickyPrice: { fontFamily: FontFamily.headingBold, fontSize: 22, color: Colors.inkPrimary },
+  ebRow: { flexDirection: 'row', alignItems: 'baseline', gap: 8 },
+  ebWas: { fontFamily: FontFamily.bodyMedium, fontSize: 14, color: Colors.inkDisabled, textDecorationLine: 'line-through' },
+  ebLine: { fontFamily: FontFamily.bodySemiBold, fontSize: 12, color: Colors.brandOrange, marginTop: 1 },
 
   bookBtn: { borderRadius: 14, overflow: 'hidden' },
   bookGradient: { paddingHorizontal: 28, paddingVertical: 14, borderRadius: 14, alignItems: 'center', minWidth: 120 },

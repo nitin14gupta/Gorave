@@ -12,6 +12,7 @@ import { SosButton } from '@/components/events/SosButton'
 import { isEventPast } from '@/lib/dates'
 import type { EventSummary } from '@/api/apiService'
 import { isWomenOnly, womenRowStyle, WomenTag } from '@/components/events/womenLook'
+import { priceNow } from '@/lib/deals'
 
 function formatPrice(price: number, isFree: boolean) {
   if (isFree) return 'Free'
@@ -88,7 +89,7 @@ function EventListCardBase({
           )
         ) : null}
         <View style={[s.priceBadge, event.is_free && s.priceBadgeFree]}>
-          <Text style={s.priceText}>{formatPrice(event.price_inr, event.is_free)}</Text>
+          <Text style={s.priceText}>{formatPrice(priceNow(event), event.is_free)}</Text>
         </View>
       </View>
 

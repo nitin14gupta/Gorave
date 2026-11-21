@@ -242,6 +242,10 @@ class EventSummary(BaseModel):
     host_name: Optional[str] = None
     # The host's government ID (PAN) was checked and approved.
     host_verified: bool = False
+    # Early bird: the first `early_bird_count` tickets at `early_bird_price_inr`.
+    early_bird_price_inr: Optional[int] = None
+    early_bird_count: Optional[int] = None
+    early_bird_sold: int = 0
     host_avatar: Optional[str] = None
     host_is_deleted: bool = False
     album_count: int = 0
@@ -677,7 +681,7 @@ def list_events(
             e.host_id::text,
             {dist_sql} AS distance_km,
             (SELECT ea.status FROM event_attendees ea WHERE ea.event_id = e.id AND ea.user_id = %s::uuid) AS my_rsvp_status,
-            u.name AS host_name, (u.id_verified_at IS NOT NULL) AS host_verified,
+            u.name AS host_name, (u.id_verified_at IS NOT NULL) AS host_verified, e.early_bird_price_inr, e.early_bird_count, (SELECT COUNT(*) FROM event_attendees ebs WHERE ebs.event_id = e.id AND ebs.pricing = 'early_bird' AND ebs.status IN ('going', 'transferred') AND ebs.refunded_at IS NULL)::int AS early_bird_sold,
             (SELECT p.url FROM user_photos p WHERE p.user_id = u.id ORDER BY p.position LIMIT 1) AS host_avatar,
             (COALESCE(u.is_deleted, FALSE) OR COALESCE(u.is_locked, FALSE)) AS host_is_deleted,
             (SELECT COUNT(*) FROM event_attendees ea WHERE ea.event_id = e.id AND ea.status = 'going' AND NOT EXISTS (SELECT 1 FROM users lu WHERE lu.id = ea.user_id AND COALESCE(lu.is_locked, FALSE)))::int AS attendee_count,
@@ -741,7 +745,7 @@ def get_hosted_events(current_user: dict = Depends(get_current_user)):
                 e.cover_photos, e.is_cancelled,
                 e.host_id::text,
                 NULL::int AS distance_km,
-                u.name AS host_name, (u.id_verified_at IS NOT NULL) AS host_verified,
+                u.name AS host_name, (u.id_verified_at IS NOT NULL) AS host_verified, e.early_bird_price_inr, e.early_bird_count, (SELECT COUNT(*) FROM event_attendees ebs WHERE ebs.event_id = e.id AND ebs.pricing = 'early_bird' AND ebs.status IN ('going', 'transferred') AND ebs.refunded_at IS NULL)::int AS early_bird_sold,
                 (SELECT p.url FROM user_photos p WHERE p.user_id = u.id ORDER BY p.position LIMIT 1) AS host_avatar,
                 (COALESCE(u.is_deleted, FALSE) OR COALESCE(u.is_locked, FALSE)) AS host_is_deleted,
                 (SELECT COUNT(*) FROM event_attendees ea WHERE ea.event_id = e.id AND ea.status = 'going' AND NOT EXISTS (SELECT 1 FROM users lu WHERE lu.id = ea.user_id AND COALESCE(lu.is_locked, FALSE)))::int AS attendee_count,
@@ -813,7 +817,7 @@ def get_hosted_events_paged(
                 e.cover_photos, e.is_cancelled,
                 e.host_id::text,
                 NULL::int AS distance_km,
-                u.name AS host_name, (u.id_verified_at IS NOT NULL) AS host_verified,
+                u.name AS host_name, (u.id_verified_at IS NOT NULL) AS host_verified, e.early_bird_price_inr, e.early_bird_count, (SELECT COUNT(*) FROM event_attendees ebs WHERE ebs.event_id = e.id AND ebs.pricing = 'early_bird' AND ebs.status IN ('going', 'transferred') AND ebs.refunded_at IS NULL)::int AS early_bird_sold,
                 (SELECT p.url FROM user_photos p WHERE p.user_id = u.id ORDER BY p.position LIMIT 1) AS host_avatar,
                 (COALESCE(u.is_deleted, FALSE) OR COALESCE(u.is_locked, FALSE)) AS host_is_deleted,
                 (SELECT COUNT(*) FROM event_attendees ea WHERE ea.event_id = e.id AND ea.status = 'going' AND NOT EXISTS (SELECT 1 FROM users lu WHERE lu.id = ea.user_id AND COALESCE(lu.is_locked, FALSE)))::int AS attendee_count,
@@ -869,7 +873,7 @@ def get_joined_events(current_user: dict = Depends(get_current_user)):
                 e.cover_photos, e.is_cancelled,
                 e.host_id::text,
                 NULL::int AS distance_km,
-                u.name AS host_name, (u.id_verified_at IS NOT NULL) AS host_verified,
+                u.name AS host_name, (u.id_verified_at IS NOT NULL) AS host_verified, e.early_bird_price_inr, e.early_bird_count, (SELECT COUNT(*) FROM event_attendees ebs WHERE ebs.event_id = e.id AND ebs.pricing = 'early_bird' AND ebs.status IN ('going', 'transferred') AND ebs.refunded_at IS NULL)::int AS early_bird_sold,
                 (SELECT p.url FROM user_photos p WHERE p.user_id = u.id ORDER BY p.position LIMIT 1) AS host_avatar,
                 (COALESCE(u.is_deleted, FALSE) OR COALESCE(u.is_locked, FALSE)) AS host_is_deleted,
                 (SELECT COUNT(*) FROM event_attendees ea2 WHERE ea2.event_id = e.id AND ea2.status = 'going' AND NOT EXISTS (SELECT 1 FROM users lu WHERE lu.id = ea2.user_id AND COALESCE(lu.is_locked, FALSE)))::int AS attendee_count,
@@ -951,7 +955,7 @@ def get_joined_events_paged(
                     SELECT COUNT(*) FROM event_photos ph WHERE ph.event_id = e.id AND ph.removed_at IS NULL AND ph.hidden_at IS NULL
                 ) END::int AS album_count,
                 (SELECT COUNT(*) FROM event_photos ph WHERE ph.event_id = e.id AND ph.uploader_id = ea.user_id AND ph.removed_at IS NULL)::int AS my_album_count,
-                u.name AS host_name, (u.id_verified_at IS NOT NULL) AS host_verified,
+                u.name AS host_name, (u.id_verified_at IS NOT NULL) AS host_verified, e.early_bird_price_inr, e.early_bird_count, (SELECT COUNT(*) FROM event_attendees ebs WHERE ebs.event_id = e.id AND ebs.pricing = 'early_bird' AND ebs.status IN ('going', 'transferred') AND ebs.refunded_at IS NULL)::int AS early_bird_sold,
                 (SELECT p.url FROM user_photos p WHERE p.user_id = u.id ORDER BY p.position LIMIT 1) AS host_avatar,
                 (COALESCE(u.is_deleted, FALSE) OR COALESCE(u.is_locked, FALSE)) AS host_is_deleted,
                 (SELECT COUNT(*) FROM event_attendees ea2 WHERE ea2.event_id = e.id AND ea2.status = 'going' AND NOT EXISTS (SELECT 1 FROM users lu WHERE lu.id = ea2.user_id AND COALESCE(lu.is_locked, FALSE)))::int AS attendee_count,
@@ -1007,7 +1011,7 @@ def get_waitlisted_events(current_user: dict = Depends(get_current_user)):
                 e.cover_photos, e.is_cancelled,
                 e.host_id::text,
                 NULL::int AS distance_km,
-                u.name AS host_name, (u.id_verified_at IS NOT NULL) AS host_verified,
+                u.name AS host_name, (u.id_verified_at IS NOT NULL) AS host_verified, e.early_bird_price_inr, e.early_bird_count, (SELECT COUNT(*) FROM event_attendees ebs WHERE ebs.event_id = e.id AND ebs.pricing = 'early_bird' AND ebs.status IN ('going', 'transferred') AND ebs.refunded_at IS NULL)::int AS early_bird_sold,
                 (SELECT p.url FROM user_photos p WHERE p.user_id = u.id ORDER BY p.position LIMIT 1) AS host_avatar,
                 (COALESCE(u.is_deleted, FALSE) OR COALESCE(u.is_locked, FALSE)) AS host_is_deleted,
                 (SELECT COUNT(*) FROM event_attendees ea2 WHERE ea2.event_id = e.id AND ea2.status = 'going' AND NOT EXISTS (SELECT 1 FROM users lu WHERE lu.id = ea2.user_id AND COALESCE(lu.is_locked, FALSE)))::int AS attendee_count,
@@ -1047,7 +1051,7 @@ def get_requested_events(current_user: dict = Depends(get_current_user)):
                 e.cover_photos, e.is_cancelled,
                 e.host_id::text,
                 NULL::int AS distance_km,
-                u.name AS host_name, (u.id_verified_at IS NOT NULL) AS host_verified,
+                u.name AS host_name, (u.id_verified_at IS NOT NULL) AS host_verified, e.early_bird_price_inr, e.early_bird_count, (SELECT COUNT(*) FROM event_attendees ebs WHERE ebs.event_id = e.id AND ebs.pricing = 'early_bird' AND ebs.status IN ('going', 'transferred') AND ebs.refunded_at IS NULL)::int AS early_bird_sold,
                 (SELECT p.url FROM user_photos p WHERE p.user_id = u.id ORDER BY p.position LIMIT 1) AS host_avatar,
                 (COALESCE(u.is_deleted, FALSE) OR COALESCE(u.is_locked, FALSE)) AS host_is_deleted,
                 (SELECT COUNT(*) FROM event_attendees ea2 WHERE ea2.event_id = e.id AND ea2.status = 'going' AND NOT EXISTS (SELECT 1 FROM users lu WHERE lu.id = ea2.user_id AND COALESCE(lu.is_locked, FALSE)))::int AS attendee_count,
@@ -1103,7 +1107,7 @@ def get_hotlist_events(current_user: dict = Depends(get_current_user)):
                 e.cover_photos, e.is_cancelled,
                 e.host_id::text,
                 NULL::int AS distance_km,
-                u.name AS host_name, (u.id_verified_at IS NOT NULL) AS host_verified,
+                u.name AS host_name, (u.id_verified_at IS NOT NULL) AS host_verified, e.early_bird_price_inr, e.early_bird_count, (SELECT COUNT(*) FROM event_attendees ebs WHERE ebs.event_id = e.id AND ebs.pricing = 'early_bird' AND ebs.status IN ('going', 'transferred') AND ebs.refunded_at IS NULL)::int AS early_bird_sold,
                 (SELECT p.url FROM user_photos p WHERE p.user_id = u.id ORDER BY p.position LIMIT 1) AS host_avatar,
                 (COALESCE(u.is_deleted, FALSE) OR COALESCE(u.is_locked, FALSE)) AS host_is_deleted,
                 (SELECT COUNT(*) FROM event_attendees ea2 WHERE ea2.event_id = e.id AND ea2.status = 'going' AND NOT EXISTS (SELECT 1 FROM users lu WHERE lu.id = ea2.user_id AND COALESCE(lu.is_locked, FALSE)))::int AS attendee_count,
@@ -1193,7 +1197,7 @@ _EVENT_COLUMNS = """
     e.cover_photos, e.is_cancelled,
     e.host_id::text,
     NULL::int AS distance_km,
-    u.name AS host_name, (u.id_verified_at IS NOT NULL) AS host_verified,
+    u.name AS host_name, (u.id_verified_at IS NOT NULL) AS host_verified, e.early_bird_price_inr, e.early_bird_count, (SELECT COUNT(*) FROM event_attendees ebs WHERE ebs.event_id = e.id AND ebs.pricing = 'early_bird' AND ebs.status IN ('going', 'transferred') AND ebs.refunded_at IS NULL)::int AS early_bird_sold,
     (SELECT p.url FROM user_photos p WHERE p.user_id = u.id ORDER BY p.position LIMIT 1) AS host_avatar,
     (COALESCE(u.is_deleted, FALSE) OR COALESCE(u.is_locked, FALSE)) AS host_is_deleted,
     (SELECT COUNT(*) FROM event_attendees ea2 WHERE ea2.event_id = e.id AND ea2.status = 'going' AND NOT EXISTS (SELECT 1 FROM users lu WHERE lu.id = ea2.user_id AND COALESCE(lu.is_locked, FALSE)))::int AS attendee_count,
@@ -1408,7 +1412,7 @@ def get_event(event_id: str, current_user: dict = Depends(get_current_user)):
                 e.host_id::text,
                 (e.date_time - INTERVAL '48 hours')::text AS cancel_deadline,
                 (e.date_time - INTERVAL '7 hours')::text AS edit_deadline,
-                u.name AS host_name, (u.id_verified_at IS NOT NULL) AS host_verified,
+                u.name AS host_name, (u.id_verified_at IS NOT NULL) AS host_verified, e.early_bird_price_inr, e.early_bird_count, (SELECT COUNT(*) FROM event_attendees ebs WHERE ebs.event_id = e.id AND ebs.pricing = 'early_bird' AND ebs.status IN ('going', 'transferred') AND ebs.refunded_at IS NULL)::int AS early_bird_sold,
                 (SELECT p.url FROM user_photos p WHERE p.user_id = u.id ORDER BY p.position LIMIT 1) AS host_avatar,
                 (COALESCE(u.is_deleted, FALSE) OR COALESCE(u.is_locked, FALSE)) AS host_is_deleted,
                 (SELECT COUNT(*) FROM events he
@@ -3051,7 +3055,7 @@ def get_my_ticket(event_id: str, current_user: dict = Depends(get_current_user))
             """
             SELECT ea.ticket_token, e.title AS event_title, e.date_time::text,
                    e.end_time::text, e.location_name, e.event_type,
-                   u.name AS host_name, (u.id_verified_at IS NOT NULL) AS host_verified,
+                   u.name AS host_name, (u.id_verified_at IS NOT NULL) AS host_verified, e.early_bird_price_inr, e.early_bird_count, (SELECT COUNT(*) FROM event_attendees ebs WHERE ebs.event_id = e.id AND ebs.pricing = 'early_bird' AND ebs.status IN ('going', 'transferred') AND ebs.refunded_at IS NULL)::int AS early_bird_sold,
                    (SELECT p.url FROM user_photos p WHERE p.user_id = u.id ORDER BY p.position LIMIT 1) AS host_avatar,
                    (SELECT COUNT(*) FROM event_attendees g WHERE g.event_id = e.id AND g.status = 'going')::int AS attendee_count
             FROM event_attendees ea

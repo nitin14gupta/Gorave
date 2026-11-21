@@ -13,6 +13,7 @@ import { EventQuickPeekSheet } from './EventQuickPeekSheet'
 import type { EventSummary } from '@/api/apiService'
 import { isWomenOnly, WomenTag, womenGlassPanel } from '@/components/events/womenLook'
 import { NameWithTick } from '@/components/profile/VerifiedTick'
+import { priceNow } from '@/lib/deals'
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable)
 
@@ -276,7 +277,7 @@ export const EventCard = memo(function EventCard({ event, onPress, showHost, isP
       <TypeIcon size={36} color={Colors.inkDisabled} strokeWidth={1.5} />
     </LinearGradient>
   )
-  const price = formatPrice(event.price_inr, event.is_free)
+  const price = formatPrice(priceNow(event), event.is_free)
   const women = isWomenOnly(event.women_pct)
   const scrim = ['transparent', 'rgba(0,0,0,0.55)', 'rgba(0,0,0,0.88)']
 

@@ -39,6 +39,9 @@ import type {
   Message,
   WalletTransaction,
   RefundItem,
+  PriceQuote,
+  PromoCode,
+  EventDeals,
   PaymentOrderResponse,
   BlockedUser,
   EmergencyContact,
@@ -116,6 +119,9 @@ export type {
   Message,
   WalletTransaction,
   RefundItem,
+  PriceQuote,
+  PromoCode,
+  EventDeals,
   PaymentOrderResponse,
   BlockedUser,
   EmergencyContact,
@@ -1019,8 +1025,31 @@ class ApiService {
     return this.get(ENDPOINTS.PAYMENT_PUBLIC_KEY)
   }
 
-  static async createPaymentOrder(eventId: string, walletAmount = 0): Promise<PaymentOrderResponse> {
-    return this.post(ENDPOINTS.PAYMENT_CREATE_ORDER, { event_id: eventId, wallet_amount: walletAmount })
+  static async createPaymentOrder(eventId: string, walletAmount = 0, promoCode?: string | null): Promise<PaymentOrderResponse> {
+    return this.post(ENDPOINTS.PAYMENT_CREATE_ORDER, { event_id: eventId, wallet_amount: walletAmount, promo_code: promoCode || null })
+  }
+
+  /** What the ticket costs right now for you: early bird, or a code if given. A bad code throws with the reason. */
+  static async getQuote(eventId: string, code?: string | null): Promise<PriceQuote> {
+    const q = code ? `&code=${encodeURIComponent(code)}` : ''
+    return this.get(`/payments/quote?event_id=${encodeURIComponent(eventId)}${q}`)
+  }
+
+  // ── Host deals: early bird + promo codes ──────────────────────────────────
+  static async getDeals(eventId: string): Promise<EventDeals> {
+    return this.get(`/events/${eventId}/deals`)
+  }
+
+  static async setEarlyBird(eventId: string, priceInr: number | null, count?: number): Promise<EventDeals> {
+    return this.put(`/events/${eventId}/early-bird`, { price_inr: priceInr, count: count ?? null })
+  }
+
+  static async createPromoCode(eventId: string, body: { code: string; percent_off?: number; amount_off?: number; max_uses?: number | null }): Promise<EventDeals> {
+    return this.post(`/events/${eventId}/promo-codes`, body)
+  }
+
+  static async stopPromoCode(eventId: string, codeId: string): Promise<EventDeals> {
+    return this.delete(`/events/${eventId}/promo-codes/${codeId}`)
   }
 
   static async verifyPayment(body: {
@@ -1033,8 +1062,8 @@ class ApiService {
     return this.post(ENDPOINTS.PAYMENT_VERIFY, body)
   }
 
-  static async walletPay(eventId: string): Promise<{ ok: boolean; status: string }> {
-    return this.post(ENDPOINTS.PAYMENT_WALLET_PAY, { event_id: eventId })
+  static async walletPay(eventId: string, promoCode?: string | null): Promise<{ ok: boolean; status: string }> {
+    return this.post(ENDPOINTS.PAYMENT_WALLET_PAY, { event_id: eventId, promo_code: promoCode || null })
   }
 
   static async getSavedUpiId(): Promise<{ upi_id: string; name: string } | null> {
@@ -1049,10 +1078,10 @@ class ApiService {
     return this.post(ENDPOINTS.PAYMENT_SAVED_UPI, { upi_id, name })
   }
 
-  static async createQrPayment(eventId: string, walletAmount = 0): Promise<{
+  static async createQrPayment(eventId: string, walletAmount = 0, promoCode?: string | null): Promise<{
     qr_id: string; image_url: string; payment_url: string; amount_inr: number; expires_at: string
   }> {
-    return this.post(ENDPOINTS.PAYMENT_CREATE_QR, { event_id: eventId, wallet_amount: walletAmount })
+    return this.post(ENDPOINTS.PAYMENT_CREATE_QR, { event_id: eventId, wallet_amount: walletAmount, promo_code: promoCode || null })
   }
 
   static async getQrStatus(qrId: string): Promise<{ status: 'pending' | 'paid' | 'expired' | 'refunded' }> {

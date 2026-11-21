@@ -12,7 +12,8 @@ export interface PaymentData {
   error: string | null
 }
 
-export function usePaymentData(eventId: string | undefined): PaymentData {
+/** The price comes from the server's quote (early bird, or the code you applied). */
+export function usePaymentData(eventId: string | undefined, promoCode?: string | null): PaymentData {
   const [eventTitle, setEventTitle]     = useState('')
   const [ticketPrice, setTicketPrice]   = useState(0)
   const [platformFee, setPlatformFee]   = useState(0)
@@ -25,18 +26,17 @@ export function usePaymentData(eventId: string | undefined): PaymentData {
     if (!eventId) return
     setLoading(true)
     setError(null)
-    Promise.all([ApiService.getEvent(eventId), ApiService.getWallet()])
-      .then(([ev, wallet]) => {
+    Promise.all([ApiService.getEvent(eventId), ApiService.getWallet(), ApiService.getQuote(eventId, promoCode)])
+      .then(([ev, wallet, q]) => {
         setEventTitle(ev.title)
-        setTicketPrice(ev.price_inr)
-        const fee = ev.platform_fee_inr
-        setPlatformFee(fee)
-        setTotal(ev.price_inr + fee)
+        setTicketPrice(q.price_inr)
+        setPlatformFee(q.fee_inr)
+        setTotal(q.total_inr)
         setWalletBalance(wallet.balance)
       })
       .catch(() => setError("Couldn't load payment details"))
       .finally(() => setLoading(false))
-  }, [eventId]))
+  }, [eventId, promoCode]))
 
   return { eventTitle, ticketPrice, platformFee, total, walletBalance, loading, error }
 }

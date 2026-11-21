@@ -16,14 +16,16 @@ import { PaymentWalletSuccessOverlay } from '@/components/events/PaymentWalletSu
 import { PaymentView } from '@/components/events/PaymentView'
 
 export default function PaymentScreen() {
-  const { id, wallet: walletParam } = useLocalSearchParams<{ id: string; wallet?: string }>()
+  const { id, wallet: walletParam, code } = useLocalSearchParams<{ id: string; wallet?: string; code?: string }>()
+  // A promo code applied on the booking screen; every payment call carries it.
+  const promoCode = code || null
   const router   = useRouter()
   const showPill = usePillStore(s => s.show)
 
   // walletApplied is decided on the booking screen and passed as a route param
   const walletApplied = parseInt(walletParam ?? '0', 10) || 0
 
-  const { eventTitle, ticketPrice, platformFee, total, loading, error } = usePaymentData(id)
+  const { eventTitle, ticketPrice, platformFee, total, loading, error } = usePaymentData(id, promoCode)
   const { apps: upiApps, loading: upiAppsLoading } = useInstalledUpiApps()
   const lastPackageName = useLastPaymentStore(s => s.lastPackageName)
   const setLastPackageName = useLastPaymentStore(s => s.setLastPackageName)
@@ -59,7 +61,7 @@ export default function PaymentScreen() {
     setPaying(true)
     setPayingMsg('Processing…')
     try {
-      await ApiService.walletPay(id)
+      await ApiService.walletPay(id, promoCode)
       hSuccess()
       if (walletApplied > 0) {
         // paying must clear here or the "processing" screen would keep
@@ -110,7 +112,7 @@ export default function PaymentScreen() {
   // ── Fetch order helper ───────────────────────────────────────────────────
 
   const fetchOrder = async () => {
-    const order = await ApiService.createPaymentOrder(id!, walletApplied)
+    const order = await ApiService.createPaymentOrder(id!, walletApplied, promoCode)
     if (order.full_wallet) { await doWalletPay(); return null }
     if (!order.order_id || !order.razorpay_key || !order.amount) {
       setFailedMsg('Could not initialise payment. Please try again.')
@@ -191,11 +193,12 @@ export default function PaymentScreen() {
     setPaying(true)
     setPayingMsg('Generating QR code…')
     try {
-      const res = await ApiService.createQrPayment(id!, walletApplied)
+      const res = await ApiService.createQrPayment(id!, walletApplied, promoCode)
       router.push({
         pathname: `/(events)/${id}/qr-payment` as any,
         params: {
           wallet: String(walletApplied),
+          code: promoCode ?? '',
           qr_id: res.qr_id,
           purl: res.payment_url,
           iurl: res.image_url,

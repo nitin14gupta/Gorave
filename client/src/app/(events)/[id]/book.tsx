@@ -4,7 +4,7 @@ import { StatusBar } from 'expo-status-bar'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { Colors } from '@/constants'
 import { BrandedLoader } from '@/components/ui'
-import ApiService, { type EventDetail } from '@/api/apiService'
+import ApiService, { type EventDetail, type PriceQuote } from '@/api/apiService'
 import { usePillStore } from '@/store/pillStore'
 import { BookView } from '@/components/events/BookView'
 
@@ -17,6 +17,8 @@ export default function BookScreen() {
   const [walletEnabled, setWalletEnabled] = useState(false)
   const [loading, setLoading] = useState(true)
   const [paying, setPaying] = useState(false)
+  // The live price: early bird, or the code you applied.
+  const [quote, setQuote] = useState<PriceQuote | null>(null)
   const showPill = usePillStore(s => s.show)
 
   useEffect(() => {
@@ -25,14 +27,28 @@ export default function BookScreen() {
       .then(([ev, wallet]) => {
         setEvent(ev)
         setWalletBalance(wallet.balance)
+        if (!ev.is_free) ApiService.getQuote(id).then(setQuote).catch(() => {})
         if (ev.is_cancelled) showPill('This event has been cancelled', 'error')
       })
       .catch(() => showPill("Couldn't load this event", 'error'))
       .finally(() => setLoading(false))
   }, [id])
 
-  const platformFee = event ? event.platform_fee_inr : 0
-  const total       = event ? event.price_inr + platformFee : 0
+  const platformFee = quote?.fee_inr ?? (event ? event.platform_fee_inr : 0)
+  const total       = quote?.total_inr ?? (event ? event.price_inr + platformFee : 0)
+
+  /** Try a code. Returns the reason it didn't work, or null. */
+  const applyCode = async (code: string): Promise<string | null> => {
+    if (!id) return null
+    try {
+      const q = await ApiService.getQuote(id, code)
+      setQuote(q)
+      return q.code_applied ? null : 'Early bird is already cheaper, so you keep that price.'
+    } catch (e: any) {
+      return e?.message || "That code didn't work"
+    }
+  }
+  const removeCode = () => { if (id) ApiService.getQuote(id).then(setQuote).catch(() => {}) }
   const walletApplied = walletEnabled ? Math.min(walletBalance, total) : 0
   const toPay = Math.max(0, total - walletApplied)
 
@@ -41,7 +57,8 @@ export default function BookScreen() {
 
     if (!event.is_free) {
       // Pass walletApplied as a param so payment screen knows what was decided here
-      router.push(`/(events)/${id}/payment?wallet=${walletApplied}` as any)
+      const code = quote?.code_applied && quote.code ? `&code=${encodeURIComponent(quote.code)}` : ''
+      router.push(`/(events)/${id}/payment?wallet=${walletApplied}${code}` as any)
       return
     }
 
@@ -90,6 +107,9 @@ export default function BookScreen() {
         walletEnabled={walletEnabled}
         onWallet={setWalletEnabled}
         platformFee={platformFee}
+        quote={quote}
+        onApplyCode={applyCode}
+        onRemoveCode={removeCode}
         total={total}
         walletApplied={walletApplied}
         toPay={toPay}

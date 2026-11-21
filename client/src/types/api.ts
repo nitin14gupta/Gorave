@@ -161,7 +161,45 @@ export interface CrowdRatio {
   open_left: number
 }
 
+/** What a ticket costs right now, for you (GET /payments/quote). */
+export interface PriceQuote {
+  full_price_inr: number
+  price_inr: number
+  fee_inr: number
+  total_inr: number
+  discount_inr: number
+  pricing: 'early_bird' | 'promo' | null
+  early_bird_left: number
+  early_bird_price_inr: number | null
+  code_applied: boolean
+  code: string | null
+}
+
+export interface PromoCode {
+  id: string
+  code: string
+  percent_off: number | null
+  amount_off: number | null
+  max_uses: number | null
+  uses: number
+  active: boolean
+  created_at: string
+  /** The ticket price with this code. */
+  price_inr: number
+}
+
+/** A host's deals on one event. */
+export interface EventDeals {
+  price_inr: number
+  early_bird: { price_inr: number; count: number; sold: number; left: number } | null
+  codes: PromoCode[]
+}
+
 export interface EventSummary {
+  /** Early bird: the first `early_bird_count` tickets at `early_bird_price_inr`. */
+  early_bird_price_inr?: number | null
+  early_bird_count?: number | null
+  early_bird_sold?: number
   /** The host's ID (PAN) was checked and approved. */
   host_verified?: boolean
   id: string

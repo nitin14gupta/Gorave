@@ -17,10 +17,10 @@ type Status = 'loading' | 'active' | 'paid' | 'expired' | 'error'
 
 export default function QrPaymentScreen() {
   const {
-    id, wallet: walletParam,
+    id, wallet: walletParam, code,
     qr_id: qrIdParam, purl, iurl, amount, exp, etitle,
   } = useLocalSearchParams<{
-    id: string; wallet?: string
+    id: string; wallet?: string; code?: string
     qr_id?: string; purl?: string; iurl?: string
     amount?: string; exp?: string; etitle?: string
   }>()
@@ -49,7 +49,7 @@ export default function QrPaymentScreen() {
   // ── Load QR on mount (skip if pre-loaded from params) ─────────────────────
 
   const fetchQr = () => {
-    ApiService.createQrPayment(id!, walletApplied)
+    ApiService.createQrPayment(id!, walletApplied, code || null)
       .then(res => {
         setQrId(res.qr_id)
         setImageUrl(res.image_url)

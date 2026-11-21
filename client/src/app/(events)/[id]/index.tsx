@@ -1,7 +1,7 @@
 import React from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import Animated, { useAnimatedScrollHandler, useSharedValue } from 'react-native-reanimated'
-import { useLocalSearchParams } from 'expo-router'
+import { router, useLocalSearchParams } from 'expo-router'
 import { useGoBack } from '@/hooks/useGoBack'
 import { useEventDetail } from '@/hooks/useEventDetail'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -146,6 +146,7 @@ export default function EventDetailScreen() {
         onWaitlist={d.handleManageWaitlist}
         onClose={() => d.setOptionsOpen(false)}
         showWaitlist={(event?.waitlist_count ?? 0) > 0}
+        onDeals={event && !event.is_free ? () => router.push(`/(events)/${event.id}/deals` as any) : undefined}
       />
       <ConfirmSheet
         visible={d.withdrawConfirm}

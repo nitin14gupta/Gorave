@@ -10,7 +10,8 @@ import { eventDateParts } from '@/components/events/EventCard'
 import { TicketPaper } from '@/components/events/TicketView'
 import { useParallaxHero } from '@/hooks/useParallaxHero'
 import { hSelection, hSuccess } from '@/lib/haptics'
-import type { EventDetail } from '@/api/apiService'
+import type { EventDetail, PriceQuote } from '@/api/apiService'
+import { PromoCodeField } from '@/components/events/PromoCodeField'
 
 const { width: W, height: SCREEN_H } = Dimensions.get('window')
 const HERO_H = Math.min(eventImageHeight(W), SCREEN_H * 0.48)
@@ -21,6 +22,10 @@ export interface BookViewProps {
   walletEnabled: boolean
   onWallet: (on: boolean) => void
   platformFee: number
+  /** The live price for this guest (early bird / code). null until loaded. */
+  quote: PriceQuote | null
+  onApplyCode: (code: string) => Promise<string | null>
+  onRemoveCode: () => void
   total: number
   walletApplied: number
   toPay: number
@@ -44,6 +49,13 @@ export function BookView(p: BookViewProps) {
   const parts = eventDateParts(ev.date_time)
   const cover = ev.cover_photos?.[0]?.url
   const { onScroll, photoStyle, textStyle } = useParallaxHero(HERO_H)
+  const q = p.quote
+  const price = q?.price_inr ?? ev.price_inr
+  const deal = q && q.discount_inr > 0
+    ? q.pricing === 'early_bird'
+      ? { label: 'Early bird', line: q.early_bird_left === 1 ? 'Early bird · last one' : `Early bird · ${q.early_bird_left} left` }
+      : { label: `Code ${q.code}`, line: `Code ${q.code}` }
+    : null
 
   return (
     <View style={s.root}>
@@ -69,8 +81,9 @@ export function BookView(p: BookViewProps) {
                 <Text style={s.small}>{parts?.mon.toUpperCase() ?? ''}</Text>
               </View>
               <View style={{ flex: 1, alignItems: 'flex-end' }}>
-                <Text style={s.small}>ADMIT ONE</Text>
-                <Text style={s.price}>{ev.is_free ? 'Free' : inr(ev.price_inr)}</Text>
+                <Text style={s.small}>{deal ? deal.line.toUpperCase() : 'ADMIT ONE'}</Text>
+                {deal ? <Text style={s.was}>{inr(q!.full_price_inr)}</Text> : null}
+                <Text style={s.price}>{ev.is_free ? 'Free' : inr(price)}</Text>
                 <Text style={s.stubSub} numberOfLines={1}>{parts?.time ?? ''}{ev.area ? ` · ${ev.area}` : ''}</Text>
               </View>
             </View>
@@ -85,11 +98,18 @@ export function BookView(p: BookViewProps) {
 
         {!ev.is_free ? (
           <View style={s.receipt}>
-            <Row label="Ticket" value={inr(ev.price_inr)} />
+            <Row label="Ticket" value={inr(q?.full_price_inr ?? ev.price_inr)} />
+            {deal ? <Row label={deal.label} value={`-${inr(q!.discount_inr)}`} accent /> : null}
             <Row label="Platform fee" value={inr(p.platformFee)} />
             {p.walletApplied > 0 ? <Row label="From your wallet" value={`-${inr(p.walletApplied)}`} accent /> : null}
             <View style={s.receiptRule} />
             <Row label="You pay" value={inr(p.toPay)} big />
+          </View>
+        ) : null}
+
+        {!ev.is_free && !ev.is_cancelled ? (
+          <View style={s.promo}>
+            <PromoCodeField applied={q?.code_applied ? q.code : null} onApply={p.onApplyCode} onRemove={p.onRemoveCode} />
           </View>
         ) : null}
 
@@ -156,6 +176,8 @@ const s = StyleSheet.create({
   small: { fontFamily: FontFamily.bodySemiBold, fontSize: 10, letterSpacing: 1.4, color: withOpacity(ON, 0.55) },
   day: { fontFamily: FontFamily.displayExtraBold, fontSize: 44, lineHeight: 48, color: ON, letterSpacing: -1 },
   price: { fontFamily: FontFamily.displayExtraBold, fontSize: 34, color: ON, marginTop: 4 },
+  was: { fontFamily: FontFamily.bodyMedium, fontSize: 13, color: withOpacity(ON, 0.55), textDecorationLine: 'line-through', marginTop: 4 },
+  promo: { marginHorizontal: 20, marginTop: 14 },
   stubSub: { fontFamily: FontFamily.bodyMedium, fontSize: 12, color: withOpacity(ON, 0.7), marginTop: 2 },
   perf: { flexDirection: 'row', alignItems: 'center', height: 24 },
   notch: { width: 24, height: 24, borderRadius: 12, backgroundColor: Colors.background },

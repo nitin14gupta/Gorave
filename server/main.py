@@ -8,6 +8,7 @@ from fastapi.responses import JSONResponse
 from middleware.security_headers import SecurityHeadersMiddleware
 from middleware.request_id import RequestIDMiddleware
 from routes.auth import router as auth_router
+from routes.deals import router as deals_router
 from routes.users import router as users_router
 from routes.upload import router as upload_router
 from routes.places import router as places_router
@@ -194,6 +195,7 @@ async def maintenance_mode(request: Request, call_next):
     return await call_next(request)
 
 app.include_router(auth_router)
+app.include_router(deals_router)
 app.include_router(public_router)
 app.include_router(users_router)
 app.include_router(upload_router)

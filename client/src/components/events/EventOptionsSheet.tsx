@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { BottomSheetModal, BottomSheetView, BottomSheetBackdrop } from '@gorhom/bottom-sheet'
 import type { BottomSheetBackdropProps } from '@gorhom/bottom-sheet'
-import { ChevronRight, Pencil, Users } from 'lucide-react-native'
+import { ChevronRight, Pencil, Tag, Users } from 'lucide-react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Colors, FontFamily, withOpacity } from '@/constants'
 import { hTap } from '@/lib/haptics'
@@ -17,6 +17,8 @@ interface CoreProps {
   onWaitlist: () => void
   onClose: () => void
   showWaitlist: boolean
+  /** Paid events: early bird and promo codes. */
+  onDeals?: () => void
 }
 
 function Row({ icon, title, sub, onPress }: { icon: React.ReactNode; title: string; sub: string; onPress: () => void }) {
@@ -37,7 +39,7 @@ function Row({ icon, title, sub, onPress }: { icon: React.ReactNode; title: stri
  * a centred title, the actions as rows, then Cancel event in solid red and a
  * grey Close.
  */
-function EventOptionsSheetCore({ onEdit, onCancel, onWaitlist, onClose, showWaitlist }: CoreProps) {
+function EventOptionsSheetCore({ onEdit, onCancel, onWaitlist, onClose, showWaitlist, onDeals }: CoreProps) {
   const sheetRef = useRef<BottomSheetModal>(null)
   const insets = useSafeAreaInsets()
   useEffect(() => { sheetRef.current?.present() }, [])
@@ -63,6 +65,14 @@ function EventOptionsSheetCore({ onEdit, onCancel, onWaitlist, onClose, showWait
             sub="Details, photos, time and place"
             onPress={() => { hTap(); onClose(); onEdit() }}
           />
+          {onDeals ? (
+            <Row
+              icon={<Tag size={18} color={Colors.inkPrimary} strokeWidth={1.9} />}
+              title="Deals"
+              sub="Early bird tickets and promo codes"
+              onPress={() => { hTap(); onClose(); onDeals() }}
+            />
+          ) : null}
           {showWaitlist ? (
             <Row
               icon={<Users size={18} color={Colors.inkPrimary} strokeWidth={1.9} />}

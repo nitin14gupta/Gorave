@@ -3,6 +3,7 @@ import hmac
 import os
 import time
 from datetime import datetime, timedelta, timezone
+from utils import pricing
 from io import BytesIO
 
 import cv2
@@ -89,7 +90,8 @@ def _precheck_paid_seat(cur, event_id: str, uid: str) -> dict:
     cur.execute(
         """
         SELECT id::text, host_id::text, title, capacity, spots_left, women_pct, age_restriction,
-               price_inr, platform_fee_inr, host_commission_inr, date_time, end_time, is_cancelled
+               price_inr, platform_fee_inr, host_commission_inr, date_time, end_time, is_cancelled,
+               early_bird_price_inr, early_bird_count
         FROM events WHERE id = %s
         """,
         (event_id,),
@@ -238,6 +240,7 @@ def _get_rz() -> razorpay.Client:
 class CreateOrderBody(BaseModel):
     event_id: str
     wallet_amount: int = 0
+    promo_code: Optional[str] = None
 
 
 class VerifyPaymentBody(BaseModel):
@@ -250,11 +253,13 @@ class VerifyPaymentBody(BaseModel):
 
 class WalletPayBody(BaseModel):
     event_id: str
+    promo_code: Optional[str] = None
 
 
 class CreateQrBody(BaseModel):
     event_id: str
     wallet_amount: int = 0
+    promo_code: Optional[str] = None
 
 
 class SaveUpiBody(BaseModel):
@@ -288,10 +293,11 @@ def create_order(body: CreateOrderBody, current_user: dict = Depends(get_current
         raw_phone = (user["phone"] or "") if user else ""
         country_code = (user.get("country_code") or "+91") if user else "+91"
         contact = f"{country_code}{raw_phone}".replace(" ", "")
+        q = pricing.quote(cur, ev, body.promo_code)
 
-    ticket_price = ev["price_inr"]
-    platform_fee = ev["platform_fee_inr"]
-    total = ticket_price + platform_fee
+    ticket_price = q["price_inr"]
+    platform_fee = q["fee_inr"]
+    total = q["total_inr"]
 
     wallet_use = max(0, min(body.wallet_amount, wallet_bal, total))
     razorpay_charge = total - wallet_use
@@ -318,10 +324,10 @@ def create_order(body: CreateOrderBody, current_user: dict = Depends(get_current
             """
             INSERT INTO payment_orders
                 (user_id, event_id, razorpay_order_id, amount_inr,
-                 wallet_amount_inr, razorpay_amount_inr, platform_fee_inr)
-            VALUES (%s::uuid, %s::uuid, %s, %s, %s, %s, %s)
+                 wallet_amount_inr, razorpay_amount_inr, platform_fee_inr, pricing, promo_code_id)
+            VALUES (%s::uuid, %s::uuid, %s, %s, %s, %s, %s, %s, %s)
             """,
-            (uid, body.event_id, order["id"], total, wallet_use, razorpay_charge, platform_fee),
+            (uid, body.event_id, order["id"], total, wallet_use, razorpay_charge, platform_fee, q["pricing"], q["promo_code_id"]),
         )
         conn.commit()
 
@@ -398,9 +404,10 @@ def wallet_pay(body: WalletPayBody, current_user: dict = Depends(get_current_use
 
         ev_title = ev["title"]
         ev_host_id = ev["host_id"]
-        ticket_price = ev["price_inr"]
-        platform_fee = ev["platform_fee_inr"]
-        total = ticket_price + platform_fee
+        q = pricing.quote(cur, ev, body.promo_code)
+        ticket_price = q["price_inr"]
+        platform_fee = q["fee_inr"]
+        total = q["total_inr"]
         commission = ticket_commission(ticket_price, ev["price_inr"], ev["host_commission_inr"])
 
         cur.execute("SELECT name FROM users WHERE id = %s::uuid", (uid,))
@@ -440,10 +447,11 @@ def wallet_pay(body: WalletPayBody, current_user: dict = Depends(get_current_use
         cur.execute(
             """
             INSERT INTO event_attendees (event_id, user_id, status, payment_id,
-                                         price_paid_inr, fee_paid_inr, commission_inr)
-            VALUES (%s::uuid, %s::uuid, 'going', 'wallet', %s, %s, %s)
+                                         price_paid_inr, fee_paid_inr, commission_inr, pricing, promo_code_id)
+            VALUES (%s::uuid, %s::uuid, 'going', 'wallet', %s, %s, %s, %s, %s)
             ON CONFLICT (event_id, user_id)
             DO UPDATE SET status = 'going', payment_id = 'wallet', offer_expires_at = NULL,
+                          pricing = EXCLUDED.pricing, promo_code_id = EXCLUDED.promo_code_id,
                           price_paid_inr = EXCLUDED.price_paid_inr, fee_paid_inr = EXCLUDED.fee_paid_inr,
                           commission_inr = EXCLUDED.commission_inr,
                           prior_fees_kept_inr = event_attendees.prior_fees_kept_inr + CASE
@@ -455,8 +463,9 @@ def wallet_pay(body: WalletPayBody, current_user: dict = Depends(get_current_use
                           paid_by_user_id = NULL, transferred_from_user_id = NULL,
                           transfer_count = 0, cancel_reason = NULL
             """,
-            (body.event_id, uid, ticket_price, platform_fee, commission),
+            (body.event_id, uid, ticket_price, platform_fee, commission, q["pricing"], q["promo_code_id"]),
         )
+        pricing.use_code(cur, q["promo_code_id"])
         from utils import event_chat
         event_chat.sync_member(cur, body.event_id, uid)
         if not held_offer:
@@ -623,7 +632,7 @@ def _complete_paid_booking(*, event_id: str, uid: str, payment_id: str, wallet_a
             )
         # What this ticket cost, from the order that was actually paid.
         cur.execute(
-            "SELECT amount_inr, platform_fee_inr FROM payment_orders WHERE razorpay_payment_id = %s",
+            "SELECT amount_inr, platform_fee_inr, pricing, promo_code_id::text FROM payment_orders WHERE razorpay_payment_id = %s",
             (payment_id,),
         )
         order = cur.fetchone()
@@ -635,10 +644,11 @@ def _complete_paid_booking(*, event_id: str, uid: str, payment_id: str, wallet_a
         cur.execute(
             """
             INSERT INTO event_attendees (event_id, user_id, status, payment_id,
-                                         price_paid_inr, fee_paid_inr, commission_inr)
-            VALUES (%s::uuid, %s::uuid, 'going', %s, %s, %s, %s)
+                                         price_paid_inr, fee_paid_inr, commission_inr, pricing, promo_code_id)
+            VALUES (%s::uuid, %s::uuid, 'going', %s, %s, %s, %s, %s, %s::uuid)
             ON CONFLICT (event_id, user_id)
             DO UPDATE SET status = 'going', payment_id = EXCLUDED.payment_id, offer_expires_at = NULL,
+                          pricing = EXCLUDED.pricing, promo_code_id = EXCLUDED.promo_code_id,
                           price_paid_inr = EXCLUDED.price_paid_inr, fee_paid_inr = EXCLUDED.fee_paid_inr,
                           commission_inr = EXCLUDED.commission_inr,
                           prior_fees_kept_inr = event_attendees.prior_fees_kept_inr + CASE
@@ -650,8 +660,10 @@ def _complete_paid_booking(*, event_id: str, uid: str, payment_id: str, wallet_a
                           paid_by_user_id = NULL, transferred_from_user_id = NULL,
                           transfer_count = 0, cancel_reason = NULL
             """,
-            (event_id, uid, payment_id, price_paid, fee_paid, commission),
+            (event_id, uid, payment_id, price_paid, fee_paid, commission,
+             order["pricing"] if order else None, order["promo_code_id"] if order else None),
         )
+        pricing.use_code(cur, order["promo_code_id"] if order else None)
         from utils import event_chat
         event_chat.sync_member(cur, event_id, uid)
         if not held_offer:
@@ -744,10 +756,11 @@ def create_qr(body: CreateQrBody, current_user: dict = Depends(get_current_user)
         cur.execute("SELECT wallet_balance FROM users WHERE id = %s::uuid", (uid,))
         user = cur.fetchone()
         wallet_bal = user["wallet_balance"] if user else 0
+        q = pricing.quote(cur, ev, body.promo_code)
 
-    ticket_price = ev["price_inr"]
-    platform_fee = ev["platform_fee_inr"]
-    total = ticket_price + platform_fee
+    ticket_price = q["price_inr"]
+    platform_fee = q["fee_inr"]
+    total = q["total_inr"]
     wallet_use = max(0, min(body.wallet_amount, wallet_bal, total))
     charge = total - wallet_use
 
@@ -808,11 +821,11 @@ def create_qr(body: CreateQrBody, current_user: dict = Depends(get_current_user)
             """
             INSERT INTO payment_orders
                 (user_id, event_id, qr_code_id, qr_image_url, qr_expires_at,
-                 amount_inr, wallet_amount_inr, razorpay_amount_inr, platform_fee_inr)
-            VALUES (%s::uuid, %s::uuid, %s, %s, %s, %s, %s, %s, %s)
+                 amount_inr, wallet_amount_inr, razorpay_amount_inr, platform_fee_inr, pricing, promo_code_id)
+            VALUES (%s::uuid, %s::uuid, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """,
             (uid, body.event_id, qr_id, image_url,
-             expires_at, total, wallet_use, charge, platform_fee),
+             expires_at, total, wallet_use, charge, platform_fee, q["pricing"], q["promo_code_id"]),
         )
         conn.commit()
 
