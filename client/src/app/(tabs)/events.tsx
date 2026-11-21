@@ -307,6 +307,11 @@ export default function EventsScreen() {
             scrollEventThrottle={16}
             onEndReachedThreshold={0.4}
             onEndReached={loadMoreList}
+            // Render a screenful first, then a few at a time; drop rows far off screen.
+            initialNumToRender={6}
+            maxToRenderPerBatch={6}
+            windowSize={7}
+            removeClippedSubviews
             refreshControl={
               <BrandedRefreshControl refreshing={loading} onRefresh={reload} />
             }

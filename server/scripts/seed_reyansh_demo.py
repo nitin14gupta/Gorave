@@ -415,6 +415,7 @@ class Seed:
 
         # ── Notifications ──
         self.notify("join_request", "New request", "Ananya wants to join Catan & Chai Night", actor=u["ananya"], entity_id=catan, entity_type="event", minutes=-6)
+        self.notify("people_from_night", "Who you met at Retro Bollywood Night", "17 people were there. Send a vibe to someone you clicked with.", entity_id=retro, entity_type="night_people", minutes=-30)
         self.notify("vibe_request", "New vibe", "Tara sent you a vibe", actor=u["tara"], minutes=-95)
         self.notify("new_follower", "New follower", "Isha started following you", actor=u["isha"], minutes=-180)
         self.notify("event_rsvp", "Someone's going", "Vikram is going to Catan & Chai Night", actor=u["vikram"], entity_id=catan, entity_type="event", minutes=-240, read=True)

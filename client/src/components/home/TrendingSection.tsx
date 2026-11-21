@@ -6,6 +6,7 @@ import ApiService, { type EventSummary } from '@/api/apiService'
 import { EventCard } from '@/components/events/EventCard'
 import { useProfile } from '@/hooks/useProfile'
 import { EVENT_CARD_CAROUSEL_W } from '@/constants'
+import { getOrFetch, invalidate } from '@/lib/queryCache'
 
 const CARD_GAP = 12
 const INITIAL_COUNT = 6
@@ -51,14 +52,17 @@ export const TrendingSection = forwardRef<TrendingSectionHandle, Props>(function
   const [visibleCount, setVisibleCount] = useState(INITIAL_COUNT)
   const mountedRef = useRef(true)
 
-  const load = useCallback((): Promise<void> => {
+  const load = useCallback((force = false): Promise<void> => {
     // City-scoped like the Events tab — the profile's lat/lng get
     // overwritten by live GPS pings, so the city is the stable signal.
     const city = profile?.city
     if (!city) return Promise.resolve()
     // discover: the server leaves out events you host, are going to or are
     // waiting on, and women-only / men-only events that aren't for you.
-    return ApiService.getEvents({ city, limit: FETCH_LIMIT, discover: true, sort: 'trending' })
+    // Cached for 2 minutes; pull-to-refresh (force) always fetches fresh.
+    const key = `home:trending:${city}`
+    const fetcher = () => ApiService.getEvents({ city, limit: FETCH_LIMIT, discover: true, sort: 'trending' })
+    return (force ? invalidate(key).then(() => getOrFetch(key, fetcher, { ttlMs: 120_000 })) : getOrFetch(key, fetcher, { ttlMs: 120_000 }))
       .then(result => {
         if (!mountedRef.current) return
         const sorted = result
@@ -69,7 +73,7 @@ export const TrendingSection = forwardRef<TrendingSectionHandle, Props>(function
       .catch(() => {})
   }, [profile?.city, onEmptyChange])
 
-  useImperativeHandle(ref, () => ({ refresh: load }), [load])
+  useImperativeHandle(ref, () => ({ refresh: () => load(true) }), [load])
 
   useEffect(() => {
     mountedRef.current = true

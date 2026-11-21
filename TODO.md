@@ -26,6 +26,8 @@ once it ships.
   - `2026-11-18_refund_choice.sql`
   - `2026-11-21_deals.sql`
   - `2026-11-21_digests.sql`
+  - `2026-11-21_night_nudges.sql`
+  - `2026-11-21_event_views.sql`
 
   All are in `server/scripts/sql/`.
 - [ ] Production server env: set `R2_CHAT_BUCKET=gorave-chat`.

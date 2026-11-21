@@ -1,4 +1,4 @@
-import { memo, useState, useEffect } from 'react'
+import { memo, useCallback, useEffect, useRef, useState } from 'react'
 import {
   View, Text, StyleSheet, Pressable,
   ActivityIndicator,
@@ -68,9 +68,14 @@ function formatLastMessage(conv: Conversation, currentUserId: string | null): st
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable)
 
-const ConvRow = memo(function ConvRow({ conv, onPress, onLongPress, onAvatarPress, currentUserId }: {
-  conv: Conversation; onPress: () => void; onLongPress: () => void; onAvatarPress: () => void; currentUserId: string | null
+// Handlers take the row's own conversation, so the parent can pass the same
+// functions every render and memo() actually skips rows that didn't change.
+const ConvRow = memo(function ConvRow({ conv, onPress: onPressConv, onLongPress: onLongPressConv, onAvatarPress: onAvatarConv, currentUserId }: {
+  conv: Conversation; onPress: (c: Conversation) => void; onLongPress: (c: Conversation) => void; onAvatarPress: (c: Conversation) => void; currentUserId: string | null
 }) {
+  const onPress = () => onPressConv(conv)
+  const onLongPress = () => onLongPressConv(conv)
+  const onAvatarPress = () => onAvatarConv(conv)
   const isLocked   = conv.status === 'pending'
   const isDeleted  = conv.partner_is_deleted
   const displayName = isDeleted ? UNAVAILABLE_LABEL : conv.partner_name ?? 'User'
@@ -150,9 +155,10 @@ const ConvRow = memo(function ConvRow({ conv, onPress, onLongPress, onAvatarPres
 })
 
 /** An event group chat, in the same list as 1:1 chats. A rounded square so it never reads as one person. */
-const EventConvRow = memo(function EventConvRow({ chat, currentUserId, onLongPress }: {
-  chat: EventChatRow; currentUserId: string | null; onLongPress: () => void
+const EventConvRow = memo(function EventConvRow({ chat, currentUserId, onLongPress: onLongPressChat }: {
+  chat: EventChatRow; currentUserId: string | null; onLongPress: (c: EventChatRow) => void
 }) {
+  const onLongPress = () => onLongPressChat(chat)
   const unread = chat.unread_count > 0 && !chat.closed
   const rowScale = useSharedValue(1)
   const rowPressStyle = useAnimatedStyle(() => ({ transform: [{ scale: rowScale.value }] }))
@@ -291,11 +297,19 @@ export default function ChatScreen() {
     }
   }
 
+  // Stable row handlers (see ConvRow): always call the latest versions.
+  const latest = useRef({ openConversation: (_c: Conversation) => {}, openProfile: (_c: Conversation) => {} })
+  const onRowPress = useCallback((c: Conversation) => latest.current.openConversation(c), [])
+  const onRowAvatar = useCallback((c: Conversation) => latest.current.openProfile(c), [])
+  const onRowLongPress = useCallback((c: Conversation) => { hTap(); setMenuTarget(c) }, [])
+  const onEventLongPress = useCallback((c: EventChatRow) => { hTap(); setEventMenu(c) }, [])
+
   const openProfile = (item: Conversation) => {
     if (item.partner_is_deleted) return
     hTap()
     router.push(`/(profile)/${item.partner_id}` as any)
   }
+  useEffect(() => { latest.current = { openConversation, openProfile } })
 
   const handleBlock = async () => {
     if (!menuTarget) return
@@ -419,16 +433,19 @@ export default function ChatScreen() {
             ) : null
           }
           renderItem={({ item }) => item.kind === 'event' ? (
-            <EventConvRow chat={item.chat} currentUserId={currentUserId} onLongPress={() => { hTap(); setEventMenu(item.chat) }} />
+            <EventConvRow chat={item.chat} currentUserId={currentUserId} onLongPress={onEventLongPress} />
           ) : (
             <ConvRow
               conv={item.conv}
               currentUserId={currentUserId}
-              onPress={() => openConversation(item.conv)}
-              onLongPress={() => { hTap(); setMenuTarget(item.conv) }}
-              onAvatarPress={() => openProfile(item.conv)}
+              onPress={onRowPress}
+              onLongPress={onRowLongPress}
+              onAvatarPress={onRowAvatar}
             />
           )}
+          initialNumToRender={12}
+          maxToRenderPerBatch={10}
+          windowSize={9}
         />
       )}
 

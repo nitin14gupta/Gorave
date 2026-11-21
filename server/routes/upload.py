@@ -113,7 +113,7 @@ async def upload_event_photo(
     current_user: dict = Depends(get_current_user),
 ):
     """Upload an event cover/gallery photo. No face validation — posters are fine.
-    Always center-cropped to 16:9 server-side — a safety net in case the client
+    Always center-cropped to 4:5 server-side, a safety net in case the client
     skipped the in-app cropper, so every stored photo ends up the right shape."""
     print(f"\n[UPLOAD] event-photo — user={current_user['id']} "
           f"content_type={file.content_type!r} filename={file.filename!r}", flush=True)
@@ -125,7 +125,10 @@ async def upload_event_photo(
     if len(raw) == 0:
         raise HTTPException(status_code=400, detail="Empty file received")
     try:
-        contents = convert_to_webp(raw, aspect_ratio=16 / 9)
+        # 4:5 like every event photo in the app (the in-app cropper already
+        # makes it 4:5; this only fixes clients that skip it), and no bigger
+        # than 1080x1350 so cards load fast.
+        contents = convert_to_webp(raw, aspect_ratio=4 / 5, max_dimension=1350, quality=82)
     except ImageConversionError as e:
         raise HTTPException(status_code=400, detail="Could not process this image — is it a valid photo?") from e
     if len(contents) > MAX_PHOTO_SIZE:

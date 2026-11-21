@@ -13,6 +13,7 @@ import { eventDateParts } from '@/components/events/EventCard'
 import { isWomenOnly, womenGlassPanel, WomenTag } from '@/components/events/womenLook'
 import { parseServerDate } from '@/lib/dates'
 import { hTap } from '@/lib/haptics'
+import { getOrFetch } from '@/lib/queryCache'
 
 const W = Dimensions.get('window').width
 const CARD_W = W - 64
@@ -42,7 +43,8 @@ export function useTonight(city: string | null | undefined) {
   useFocusEffect(useCallback(() => {
     if (!city) return
     let alive = true
-    ApiService.getEvents({ city, discover: true, limit: 30 })
+    // Cached for 2 minutes: coming back to Home doesn't refetch every time.
+    getOrFetch(`home:week:${city}`, () => ApiService.getEvents({ city, discover: true, limit: 30 }), { ttlMs: 120_000, persist: true })
       .then(list => {
         if (!alive) return
         const weekOut = Date.now() + 7 * 24 * 60 * 60 * 1000
