@@ -8,7 +8,7 @@ EXPO_PUSH_URL = "https://exp.host/--/api/v2/push/send"
 # routes/notifications.py's preferences endpoints and client
 # (settings)/notification-preferences.tsx. `category=None` (account
 # security notices, report confirmations) is never gated — always sent.
-NOTIF_CATEGORIES = ("social", "hosting", "attending", "payments")
+NOTIF_CATEGORIES = ("social", "hosting", "attending", "payments", "discover")
 
 
 def _category_enabled(user_id: str, category: str) -> bool:

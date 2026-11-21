@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react'
-import { ActivityIndicator, Pressable, Share, StyleSheet, Text, TextInput, View } from 'react-native'
+import { Pressable, Share, StyleSheet, Text, TextInput, View } from 'react-native'
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router'
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -8,7 +8,7 @@ import ApiService, { type EventDeals, type PromoCode } from '@/api/apiService'
 import { AppHeader, HeaderIconBtn, PrimaryButton, BrandedLoader, ConfirmSheet } from '@/components/ui'
 import { Colors, FontFamily, withOpacity } from '@/constants'
 import { usePillStore } from '@/store/pillStore'
-import { useAuthStore } from '@/store/auth'
+import { useProfile } from '@/hooks/useProfile'
 import { hSelection, hSuccess, hTap } from '@/lib/haptics'
 
 const inr = (n: number) => `₹${n.toLocaleString('en-IN')}`
@@ -22,7 +22,7 @@ export default function DealsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>()
   const insets = useSafeAreaInsets()
   const showPill = usePillStore(s => s.show)
-  const myName = useAuthStore(s => s.name)
+  const myName = useProfile().profile?.name
   const [deals, setDeals] = useState<EventDeals | null>(null)
   const [title, setTitle] = useState('')
   const [loading, setLoading] = useState(true)

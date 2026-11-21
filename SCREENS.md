@@ -147,6 +147,7 @@ captions about nights out and making friends, not dating.
 | 29 | Edit event | `(events)/[id]/edit` | Opened from the ⋯ on your own event. A listing editor: the cover with parallax, one row per part (Basics, When and who, Where, Price, Photos) showing what's set, each opening on its own page, save bar that says when there are unsaved changes | ✅ |
 | 30 | Join requests | `(events)/[id]/requests` | A guest list: folding large title, the room drawn seat by seat in the crowd-mix colours, filters (All, Women, Men, Been before), rows you swipe right to let in or left to decline, "Let in all who fit" | ✅ |
 | 31 | Guest list | `(events)/[id]/attendees` | The door list: event photo with parallax, in / to come / waiting counts with an arrival bar and the crowd mix, filters, everyone still to come first then everyone in with their time, the waitlist, and the scanner button | ✅ |
+| 32b | Deals (host) | `(events)/[id]/deals` | Paid events, from the ⋯ menu: early bird (price, how many, sold bar) and promo codes (% or ₹ off, use limits, share, stop). Guests get the cheapest one, never two | ✅ new |
 | 32 | Check-in scanner | `(events)/[id]/scanner` | Full-screen camera with a rounded scan window cut into the shade, live in-count, torch button (turns off when you leave), a big result card with the guest's photo (green in, yellow already in, red not valid), guest list slides up for checking in by hand | ✅ |
 
 ### 6. Host onboarding

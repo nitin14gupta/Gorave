@@ -699,6 +699,8 @@ export interface NotificationPrefs {
   hosting: boolean
   attending: boolean
   payments: boolean
+  /** Picks for you: the weekend digest and saved nights filling up. */
+  discover: boolean
 }
 
 /**

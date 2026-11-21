@@ -43,7 +43,7 @@ export function SplashScreen() {
         </Animated.View>
         <Wordmark height={40} style={{ marginTop: 6 }} />
       </View>
-      <Text style={s.tagline}>EVERY GOOD NIGHT STARTS WITH AN INVITE</Text>
+      {/* <Text style={s.tagline}>EVERY GOOD NIGHT STARTS WITH AN INVITE</Text> */}
 
       <View style={s.loaderTrack}>
         <Animated.View style={[s.loaderBar, barStyle]} />

@@ -68,6 +68,7 @@ export function pushDataToTarget(data: any): DeepLinkTarget | null {
     case 'event_requests':
       return data.event_id ? { screen: 'eventRequests', id: data.event_id } : null
     case 'event_missed':
+    case 'weekend_digest':
       return { screen: 'browseEvents' }
     case 'wallet':
       return { screen: 'wallet' }
@@ -89,6 +90,7 @@ export function pushDataToTarget(data: any): DeepLinkTarget | null {
 // to the same canonical target.
 export function notifEntityToTarget(entityType: string | null, entityId: string | null): DeepLinkTarget | null {
   if (entityType === 'host_verification') return { screen: 'verifyId' }
+  if (entityType === 'browse') return { screen: 'browseEvents' }
   if (!entityId) return null
   if (entityType === 'event') return { screen: 'event', id: entityId }
   if (entityType === 'refund') return { screen: 'refund', id: entityId }

@@ -354,6 +354,40 @@ class Seed:
         print("uploading album photos...")
         self.album(retro, [u["dev"], u["ananya"], u["meera"], me], PARTY[3:] + PARTY[:3] + MUSIC[:2])
 
+        # ── Deals ──
+        # Host side: a paid night he runs, with early bird and a code already in use.
+        vinyl_at = evening(9, 14)
+        vinyl = self.event(me, "Vinyl & Wine Listening Night", "music", vinyl_at, "Bandra West", MUSIC[1:] + MUSIC[:1], price=599, cap=20,
+                           desc="Side A to side B, no skipping. Bring a record you love, we'll pour the wine. Seats on the floor, good speakers.")
+        c.execute("UPDATE events SET early_bird_price_inr = 399, early_bird_count = 10 WHERE id = %s", (vinyl,))
+        c.execute("INSERT INTO promo_codes (event_id, host_id, code, percent_off, uses) VALUES (%s, %s, 'REYANSH20', 20, 2) RETURNING id::text", (vinyl, me))
+        code_id = c.fetchone()["id"]
+        for i, uid in enumerate(self.crowd[:10]):
+            kind, price = ("early_bird", 399) if i < 6 else ("promo", 479) if i < 8 else (None, 599)
+            c.execute(
+                """INSERT INTO event_attendees (event_id, user_id, status, joined_at, payment_id, price_paid_inr, fee_paid_inr, commission_inr, pricing, promo_code_id)
+                   VALUES (%s, %s, 'going', %s, %s, %s, 50, %s, %s, %s)""",
+                (vinyl, uid, at(days=-5 + i * 0.3), f"pay_DEMO{uuid.uuid4().hex[:10]}", price, round(price * 0.1), kind, code_id if kind == "promo" else None),
+            )
+        c.execute("UPDATE events SET spots_left = capacity - 10 WHERE id = %s", (vinyl,))
+
+        # Guest side: deals on someone else's night he can book.
+        c.execute("""SELECT e.id::text, e.price_inr, e.host_id::text FROM events e
+                     WHERE e.title = 'Unplugged Ghazal Evening' AND e.city = 'Mumbai' AND e.date_time > NOW() AND NOT e.is_cancelled
+                       AND e.host_id <> %s AND NOT EXISTS (SELECT 1 FROM event_attendees a WHERE a.event_id = e.id AND a.user_id = %s)
+                     ORDER BY e.date_time LIMIT 1""", (me, me))
+        gz = c.fetchone()
+        if gz:
+            if gz["price_inr"] < 199:
+                c.execute("UPDATE events SET price_inr = 499, platform_fee_inr = 50 WHERE id = %s", (gz["id"],))
+                self.note("price_reset", f"{gz['id']}:{gz['price_inr']}")
+            # Early bird: 3 spots at 70% of full price. The code beats it, so it visibly applies.
+            c.execute("UPDATE events SET early_bird_price_inr = (price_inr * 7 / 10) - 1, early_bird_count = 3 WHERE id = %s", (gz["id"],))
+            self.note("eb_reset", gz["id"])
+            c.execute("INSERT INTO promo_codes (event_id, host_id, code, percent_off) VALUES (%s, %s, 'GHAZAL40', 40) RETURNING id::text", (gz["id"], gz["host_id"]))
+            self.note("promo", c.fetchone()["id"])
+            print("Unplugged Ghazal Evening: early bird 3 spots at 70%, code GHAZAL40 (40% off)")
+
         # ── Vibes ──
         crowd_f = [self.crowd[i] for i in range(1, len(self.crowd), 2)]  # the women in the crowd
         for sender, msg, mins in [(u["tara"], "Your Catan night looks fun, are you doing another one soon?", -95),
@@ -401,6 +435,14 @@ def clean(cur):
         except Exception as e:
             print(f"  couldn't delete some album files from R2: {e}")
     ev, users, convs = made.get("event", []), made.get("user", []), made.get("conversation", [])
+    for pid in made.get("promo", []):
+        cur.execute("UPDATE event_attendees SET promo_code_id = NULL, pricing = NULL WHERE promo_code_id = %s::uuid", (pid,))
+        cur.execute("DELETE FROM promo_codes WHERE id = %s::uuid", (pid,))
+    for eid in made.get("eb_reset", []):
+        cur.execute("UPDATE events SET early_bird_price_inr = NULL, early_bird_count = NULL WHERE id = %s::uuid", (eid,))
+    for pr in made.get("price_reset", []):
+        eid, old = pr.split(":")
+        cur.execute("UPDATE events SET price_inr = %s, platform_fee_inr = CASE WHEN %s > 0 THEN 50 ELSE 0 END WHERE id = %s::uuid", (int(old), int(old), eid))
     for kind, sql in [
         ("notification", "DELETE FROM notifications WHERE id = ANY(%s::uuid[])"),
         ("vibe", "DELETE FROM vibe_requests WHERE id = ANY(%s::uuid[])"),
@@ -415,6 +457,7 @@ def clean(cur):
         cur.execute("DELETE FROM conversation_members WHERE conversation_id = ANY(%s::uuid[])", (convs,))
         cur.execute("DELETE FROM conversations WHERE id = ANY(%s::uuid[])", (convs,))
     if ev:
+        cur.execute("DELETE FROM promo_codes WHERE event_id = ANY(%s::uuid[])", (ev,))
         cur.execute("DELETE FROM notifications WHERE entity_id = ANY(%s::uuid[])", (ev,))
         cur.execute("DELETE FROM event_photos WHERE event_id = ANY(%s::uuid[])", (ev,))
         cur.execute("DELETE FROM event_reviews WHERE event_id = ANY(%s::uuid[])", (ev,))

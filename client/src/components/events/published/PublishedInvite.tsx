@@ -7,6 +7,7 @@ import { Calendar, Check, Link2, MapPin, MessageCircle, MoreHorizontal, Share2, 
 import { WhatsAppLogo } from '@/components/ui/brand/WhatsAppLogo'
 import { Colors, FontFamily, withOpacity } from '@/constants'
 import { hSuccess, hTap } from '@/lib/haptics'
+import { Wordmark } from '@/components/ui/Wordmark'
 
 export interface PublishedProps {
   title: string
@@ -112,6 +113,10 @@ export function PublishedInvite(p: PublishedProps) {
           <View style={a.liveDot} />
           <Text style={a.liveText}>Live</Text>
         </Animated.View>
+        {/* The sticker, slapped on the invite like on a real flyer. */}
+        <Animated.View style={[a.sticker, stampStyle]} pointerEvents="none">
+          <Wordmark kind="sticker" height={30} />
+        </Animated.View>
       </Animated.View>
 
       <Animated.View style={[{ width: '100%', alignItems: 'center' }, restStyle]}>
@@ -151,6 +156,7 @@ export function PublishedInvite(p: PublishedProps) {
 }
 
 const a = StyleSheet.create({
+  sticker: { position: 'absolute', top: 12, right: 8, transform: [{ rotate: '8deg' }] },
   wrap: { width: '100%', alignItems: 'center' },
   card: { width: '72%', aspectRatio: 4 / 5, borderRadius: 28, overflow: 'hidden', backgroundColor: Colors.surface, marginBottom: 26, borderWidth: 1, borderColor: withOpacity(Colors.white, 0.12), shadowColor: Colors.brandCoral, shadowOpacity: 0.4, shadowRadius: 34, shadowOffset: { width: 0, height: 20 }, elevation: 16 },
   cardShade: { position: 'absolute', left: 0, right: 0, bottom: 0, height: '65%' },

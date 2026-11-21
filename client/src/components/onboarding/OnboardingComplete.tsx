@@ -10,6 +10,7 @@ import { Colors, FontFamily, withOpacity } from '@/constants'
 import { PrimaryButton } from '@/components/ui'
 import { PosterWall } from '@/components/auth/WelcomeView'
 import { hSuccess, hTap } from '@/lib/haptics'
+import { Wordmark } from '@/components/ui/Wordmark'
 
 const { width: W, height: H } = Dimensions.get('window')
 const CARD = Math.round(W * 0.5)
@@ -72,7 +73,7 @@ export function OnboardingComplete(p: CompleteProps) {
               : <Text style={s.initial}>{first.charAt(0).toUpperCase()}</Text>}
             <View style={s.nameTag}><Text style={s.nameTagText} numberOfLines={1}>{first}</Text></View>
           </Animated.View>
-          <Animated.View style={[s.newTag, tagStyle]}><Text style={s.newTagText}>NEW ON GORAVE</Text></Animated.View>
+          <Animated.View style={[s.newTag, tagStyle]}><Wordmark kind="sticker" height={34} /></Animated.View>
         </View>
       </View>
 
@@ -118,8 +119,8 @@ const s = StyleSheet.create({
   initial: { fontFamily: FontFamily.displayExtraBold, fontSize: 72, color: Colors.inkDisabled },
   nameTag: { position: 'absolute', left: 10, bottom: 10, paddingHorizontal: 12, paddingVertical: 5, borderRadius: 999, backgroundColor: Colors.white, maxWidth: CARD - 20 },
   nameTagText: { fontFamily: FontFamily.headingBold, fontSize: 14, color: Colors.nearBlack },
-  newTag: { position: 'absolute', top: -14, right: W / 2 - CARD / 2 - 18, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, backgroundColor: Colors.white },
-  newTagText: { fontFamily: FontFamily.displayExtraBold, fontSize: 11, letterSpacing: 1.2, color: Colors.nearBlack },
+  // "You're in": the sticker slapped on the corner of your card.
+  newTag: { position: 'absolute', top: -18, right: W / 2 - CARD / 2 - 34, transform: [{ rotate: '8deg' }] },
 
   bottom: { flex: 1, paddingHorizontal: 20, marginTop: -8 },
   title: { fontFamily: FontFamily.displayExtraBold, fontSize: 40, lineHeight: 43, letterSpacing: -1.2, color: Colors.inkPrimary },

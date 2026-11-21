@@ -133,12 +133,30 @@ async def _chat_media_purge_loop():
         await asyncio.sleep(CHAT_MEDIA_PURGE_INTERVAL_SECONDS)
 
 
+async def _digest_loop():
+    """Every 15 minutes: the Thursday-evening weekend digest (it only sends
+    inside its window, once a week per person) and "a night you saved is
+    filling up" nudges. See utils/digests.py."""
+    while True:
+        try:
+            if await _try_acquire_lock("sched_lock:digests", EVENT_WRAPUP_INTERVAL_SECONDS - 60):
+                from utils.digests import send_weekend_digest, send_saved_filling_up
+                weekly = await asyncio.to_thread(send_weekend_digest)
+                saved = await asyncio.to_thread(send_saved_filling_up)
+                if weekly or saved:
+                    print(f"[DIGEST] {weekly} weekend digest(s), {saved} saved-event nudge(s)", flush=True)
+        except Exception as e:
+            print(f"[DIGEST] Digest run failed: {e}", flush=True)
+        await asyncio.sleep(EVENT_WRAPUP_INTERVAL_SECONDS)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     tasks = [
         asyncio.create_task(_account_purge_loop()),
         asyncio.create_task(_event_wrapup_loop()),
         asyncio.create_task(_chat_media_purge_loop()),
+        asyncio.create_task(_digest_loop()),
     ]
     yield
     for task in tasks:

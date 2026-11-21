@@ -8,7 +8,7 @@ import Svg, { Defs, LinearGradient as SvgLinear, RadialGradient, Rect, Stop } fr
 import QRCode from 'react-native-qrcode-svg'
 import ViewShot, { type ViewShotRef } from 'react-native-view-shot'
 import { ArrowLeft, ChevronRight, Download, Navigation, Share2, Ticket as TicketIcon, MoreHorizontal } from 'lucide-react-native'
-import { Colors, FontFamily, Logo, withOpacity, eventImageHeight, EVENT_ICONS, EVENT_ICON_FALLBACK } from '@/constants'
+import { Colors, FontFamily, Logo, LogoCream, withOpacity, eventImageHeight, EVENT_ICONS, EVENT_ICON_FALLBACK } from '@/constants'
 import { LogoMark } from '@/components/ui'
 import { eventDateParts } from '@/components/events/EventCard'
 import { hTap } from '@/lib/haptics'
@@ -214,6 +214,14 @@ export function TicketPaper() {
           <Rect x={0} y={0} width={size.w} height={size.h} fill="url(#orange)" />
         </Svg>
       ) : null}
+      {/* The seal, pressed faintly into the top corner of the paper. */}
+      {size.w > 0 ? (
+        <Image
+          source={LogoCream}
+          style={[s.watermark, { width: Math.min(size.w * 0.42, 170), height: Math.min(size.w * 0.42, 170) }]}
+          contentFit="contain"
+        />
+      ) : null}
     </View>
   )
 }
@@ -234,6 +242,8 @@ function Row({ icon, label, sub, onPress, last }: { icon: React.ReactNode; label
 const ON_TICKET = Colors.white
 
 const s = StyleSheet.create({
+  // Half off the top-right corner, barely there: you notice it, it never fights the text.
+  watermark: { position: 'absolute', top: -28, right: -30, opacity: 0.07, transform: [{ rotate: '-14deg' }] },
   root: { flex: 1, backgroundColor: Colors.background },
   hero: { width: W, overflow: 'hidden' },
   heroFallback: { backgroundColor: Colors.surface, alignItems: 'center', justifyContent: 'center' },

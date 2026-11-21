@@ -672,6 +672,8 @@ class NotificationPrefsBody(BaseModel):
     hosting: Optional[bool] = None
     attending: Optional[bool] = None
     payments: Optional[bool] = None
+    # "Picks for you": the weekend digest and saved-night nudges (utils/digests.py).
+    discover: Optional[bool] = None
 
 
 @router.get("/preferences")

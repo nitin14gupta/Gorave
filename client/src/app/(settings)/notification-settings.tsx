@@ -3,8 +3,7 @@ import { View, Text, StyleSheet, ScrollView, ActivityIndicator } from 'react-nat
 import { router } from 'expo-router'
 import { useFocusEffect } from 'expo-router'
 import {
-  ArrowLeft, UserPlus, PartyPopper, CalendarClock, Wallet,
-} from 'lucide-react-native'
+  ArrowLeft, UserPlus, PartyPopper, CalendarClock, Wallet, Sparkles } from 'lucide-react-native'
 import { Screen, HeaderIconBtn } from '@/components/ui'
 import { LargeTitleBar, useLargeTitle } from '@/components/ui/LargeTitle'
 import ApiService, { type NotificationPrefs } from '@/api/apiService'
@@ -37,6 +36,12 @@ const CATEGORIES: { key: keyof NotificationPrefs; icon: any; label: string; desc
     label: 'Payments',
     description: 'Payment confirmations and wallet refunds',
   },
+  {
+    key: 'discover',
+    icon: Sparkles,
+    label: 'Picks for you',
+    description: 'Your weekend plan on Thursday evenings, and when a night you saved is filling up',
+  },
 ]
 
 export default function NotificationSettingsScreen() {
@@ -49,7 +54,7 @@ export default function NotificationSettingsScreen() {
     ApiService.getNotificationPrefs()
       .then(setPrefs)
       .catch(() => {
-        setPrefs({ social: true, hosting: true, attending: true, payments: true })
+        setPrefs({ social: true, hosting: true, attending: true, payments: true, discover: true })
         showPill("Couldn't load your preferences, showing defaults", 'error')
       })
       .finally(() => setLoading(false))
