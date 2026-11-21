@@ -89,6 +89,7 @@ export interface ExtendedProfile extends ProfileResponse {
 }
 
 export interface FollowUser {
+  is_verified?: boolean
   id: string
   name: string | null
   username: string | null
@@ -161,6 +162,8 @@ export interface CrowdRatio {
 }
 
 export interface EventSummary {
+  /** The host's ID (PAN) was checked and approved. */
+  host_verified?: boolean
   id: string
   title: string
   event_type: string
@@ -377,6 +380,7 @@ export interface CreateEventPayload {
 }
 
 export interface DiscoverUser {
+  is_verified?: boolean
   id: string
   name: string | null
   username: string | null
@@ -397,6 +401,7 @@ export interface DiscoverUser {
 }
 
 export interface VibeRequest {
+  is_verified?: boolean
   id: string
   sender_id: string
   name: string | null
@@ -409,6 +414,7 @@ export interface VibeRequest {
 }
 
 export interface Conversation {
+  partner_verified?: boolean
   id: string
   status: 'pending' | 'active'
   partner_id: string
@@ -445,6 +451,7 @@ export interface EventAttendee {
 }
 
 export interface EventGuest {
+  is_verified?: boolean
   id: string
   name: string | null
   username: string | null
@@ -461,6 +468,7 @@ export interface LinkPreview {
 }
 
 export interface EventChatMember {
+  is_verified?: boolean
   id: string
   role: 'host' | 'guest'
   name: string | null
@@ -695,7 +703,7 @@ export type CancelReason = 'plans_changed' | 'unwell' | 'date' | 'other'
 
 export interface EventChatMessage extends Message {
   // `unavailable`: deleted, locked or a block. id is null for a block.
-  sender: { id: string | null; name: string | null; avatar: string | null; is_host: boolean; unavailable?: boolean }
+  sender: { id: string | null; name: string | null; avatar: string | null; is_host: boolean; unavailable?: boolean; verified?: boolean }
 }
 
 export interface EventChat {

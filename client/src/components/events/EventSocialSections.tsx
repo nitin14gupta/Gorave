@@ -7,6 +7,7 @@ import type { EventAlbum, EventDetail, EventGuest } from '@/api/apiService'
 import { photosLabel } from '@/lib/album'
 import { hTap } from '@/lib/haptics'
 import { Colors, FontFamily, HOST_BADGE_IMAGES, withOpacity } from '@/constants'
+import { NameWithTick } from '@/components/profile/VerifiedTick'
 
 interface Props {
   event: EventDetail
@@ -95,7 +96,7 @@ export function EventSocialSections({ event, eventId, isHost, guests, guestTotal
             <HostFace event={event} size={56} />
             <View style={s.flex}>
               <Text style={s.label}>Hosted by</Text>
-              <Text style={s.hostName} numberOfLines={1}>{hostName(event, isHost)}</Text>
+              <NameWithTick name={hostName(event, isHost) ?? ''} verified={event.host_verified && !event.host_is_deleted} style={s.hostName} tickSize={17} />
             </View>
           </Pressable>
           {!event.host_is_deleted ? (

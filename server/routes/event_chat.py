@@ -19,7 +19,7 @@ CLOSED_FOR_GOOD = f"(c.closed_at IS NULL OR c.closed_at > NOW() - INTERVAL '{ec.
 SEEN_LIMIT = 50
 MEMBER_FACE = "(SELECT ph.url FROM user_photos ph WHERE ph.user_id = u.id ORDER BY ph.position LIMIT 1)"
 MESSAGE_SELECT = "m.id::text, m.conversation_id::text, m.sender_id::text, m.content, m.content_type, m.metadata, m.sent_at, m.reactions, m.client_id::text, m.edited_at"
-SENDER_COLUMNS = f"u.name AS sender_name, {MEMBER_FACE} AS sender_avatar"
+SENDER_COLUMNS = f"u.name AS sender_name, {MEMBER_FACE} AS sender_avatar, (u.id_verified_at IS NOT NULL) AS sender_verified"
 
 
 def _load(cur, event_id: str, uid: str) -> dict:
@@ -59,8 +59,9 @@ def _block_error(chat: dict, uid: str) -> Optional[str]:
 def _out(row: dict, host_id: str) -> dict:
     d = dict(row)
     name, avatar = d.pop("sender_name", None), d.pop("sender_avatar", None)
+    verified = bool(d.pop("sender_verified", False))
     d = rt.with_signed_media(_serialize(d))
-    d["sender"] = {"id": d["sender_id"], "name": name, "avatar": avatar, "is_host": d["sender_id"] == host_id}
+    d["sender"] = {"id": d["sender_id"], "name": name, "avatar": avatar, "is_host": d["sender_id"] == host_id, "verified": verified}
     return d
 
 
@@ -356,7 +357,7 @@ def get_members(event_id: str, current_user: dict = Depends(get_current_user)):
         chat = _load(cur, event_id, uid)
         cur.execute(
             f"""
-            SELECT m.user_id::text AS id, m.role, m.last_read_at, u.name, u.username, {MEMBER_FACE} AS avatar
+            SELECT m.user_id::text AS id, m.role, m.last_read_at, u.name, u.username, {MEMBER_FACE} AS avatar, (u.id_verified_at IS NOT NULL) AS is_verified
             FROM conversation_members m JOIN users u ON u.id = m.user_id
             WHERE m.conversation_id = %s::uuid AND {ec.ACTIVE_MEMBER} AND {visibility.live('u')}
             ORDER BY (m.role = 'host') DESC, m.joined_at

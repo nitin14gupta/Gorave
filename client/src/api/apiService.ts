@@ -803,6 +803,8 @@ class ApiService {
     category?: string
     is_free?: boolean
     women_only?: boolean
+    /** 'trending': most momentum first (server ranks it). */
+    sort?: 'trending'
     date_range?: string
     q?: string
     min_lat?: number
@@ -829,6 +831,7 @@ class ApiService {
     if (filters.category) params.set('category', filters.category)
     if (filters.is_free != null) params.set('is_free', String(filters.is_free))
     if (filters.women_only) params.set('women_only', 'true')
+    if (filters.sort) params.set('sort', filters.sort)
     if (filters.date_range) params.set('date_range', filters.date_range)
     if (filters.q) params.set('q', filters.q)
     if (filters.min_lat != null) params.set('min_lat', String(filters.min_lat))

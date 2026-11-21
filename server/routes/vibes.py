@@ -146,6 +146,7 @@ def get_received_vibes(current_user: dict = Depends(get_current_user)):
                 vr.sender_id::text,
                 u.name,
                 u.city,
+                (u.id_verified_at IS NOT NULL) AS is_verified,
                 vr.message,
                 vr.status,
                 vr.created_at,
@@ -163,7 +164,7 @@ def get_received_vibes(current_user: dict = Depends(get_current_user)):
             WHERE vr.receiver_id = %s::uuid
               AND vr.status = 'pending'
               AND vr.expires_at > NOW()
-            GROUP BY vr.id, u.name, u.city
+            GROUP BY vr.id, u.name, u.city, u.id_verified_at
             ORDER BY vr.created_at DESC
             """,
             (current_user["id"],),

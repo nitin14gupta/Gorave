@@ -9,6 +9,7 @@ import { X, Flame, Check } from 'lucide-react-native'
 import { hTap, hSuccess } from '@/lib/haptics'
 import { Colors, FontFamily, withOpacity } from '@/constants'
 import type { VibeRequest } from '@/api/apiService'
+import { VerifiedTick } from '@/components/profile/VerifiedTick'
 
 function RequestCardSkeleton() {
   return (
@@ -70,6 +71,7 @@ function RequestCard({ req, onBeginAccept, onPass }: { req: VibeRequest; onBegin
       <Pressable style={s.mid} onPress={openProfile}>
         <View style={s.nameRow}>
           <Text style={s.name} numberOfLines={1}>{first}</Text>
+          {req.is_verified ? <VerifiedTick size={13} /> : null}
           <Text style={s.meta} numberOfLines={1}>{[req.city, ago(req.created_at)].filter(Boolean).join(' · ')}</Text>
         </View>
         <Text style={s.message} numberOfLines={2}>{req.message}</Text>

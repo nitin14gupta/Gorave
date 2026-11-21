@@ -52,6 +52,7 @@ class PublicHost(BaseModel):
     badges: List[str] = []
     avg_rating: Optional[float] = None
     review_count: int = 0
+    verified: bool = False
 
 
 class PublicEvent(BaseModel):
@@ -135,7 +136,7 @@ _EVENT_SELECT = """
     e.price_inr, (e.price_inr = 0) AS is_free, e.join_mode, e.women_pct, e.age_restriction,
     e.capacity, e.spots_left, e.cover_photos, e.is_cancelled,
     (SELECT COUNT(*) FROM event_attendees ea WHERE ea.event_id = e.id AND ea.status = 'going')::int AS attendee_count,
-    u.name AS host_name, u.username AS host_username,
+    u.name AS host_name, u.username AS host_username, (u.id_verified_at IS NOT NULL) AS host_verified,
     (SELECT p.url FROM user_photos p WHERE p.user_id = u.id ORDER BY p.position LIMIT 1) AS host_avatar,
     (SELECT COUNT(*) FROM events he WHERE he.host_id = u.id AND he.is_cancelled = FALSE)::int AS host_hosted_count,
     (SELECT ROUND(AVG(er.rating)::numeric, 1)::float FROM event_reviews er JOIN events he2 ON he2.id = er.event_id WHERE he2.host_id = u.id) AS host_avg_rating,
@@ -162,6 +163,7 @@ def _shape(row: dict) -> dict:
         "badges": compute_host_badges(d.pop("host_hosted_count", 0) or 0),
         "avg_rating": d.pop("host_avg_rating", None),
         "review_count": d.pop("host_review_count", 0) or 0,
+        "verified": bool(d.pop("host_verified", False)),
     }
     d.pop("host_name", None)
     return d

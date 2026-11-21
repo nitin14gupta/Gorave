@@ -5,6 +5,7 @@ import { ArrowLeft } from 'lucide-react-native'
 import { Colors, FontFamily, withOpacity } from '@/constants'
 import { PrimaryButton } from '@/components/ui'
 import { groupPhone, type PhoneViewProps } from './authTypes'
+import { PosterFan } from './AuthArt'
 
 /**
  * Phone number, as the big number. Your number typed in large display digits as you
@@ -14,6 +15,24 @@ import { groupPhone, type PhoneViewProps } from './authTypes'
 export function PhoneView(p: PhoneViewProps) {
   const insets = useSafeAreaInsets()
   const shown = groupPhone(p.phone)
+  const signIn = !p.title
+  // The real field lies invisibly over the number, so a tap
+  // always lands on it and the keyboard reopens, even after it was dismissed.
+  const field = (
+    <TextInput
+      value={p.phone}
+      onChangeText={t => p.onPhone(t.replace(/\D/g, '').slice(0, 10))}
+      keyboardType="number-pad"
+      textContentType="telephoneNumber"
+      autoComplete="tel"
+      maxLength={10}
+      autoFocus
+      caretHidden
+      contextMenuHidden
+      selectionColor="transparent"
+      style={s.overlay}
+    />
+  )
 
   return (
     <View style={[s.root, { paddingTop: insets.top }]}>
@@ -25,31 +44,21 @@ export function PhoneView(p: PhoneViewProps) {
 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <View style={s.body}>
-          <Text style={s.title}>{p.title ?? "What's your\nnumber?"}</Text>
+          {/* Sign-in gets the picture; reuses (delete account) stay plain. */}
+          {signIn ? <PosterFan step="phone" /> : null}
+          <Text style={[s.title, signIn && s.titleSignIn]}>{p.title ?? "What's your number?"}</Text>
           <Text style={s.sub}>{p.sub ?? "We'll text you a code to sign in."}</Text>
 
-          {/* The real field lies invisibly over the big number, so a tap always
-              lands on it and the keyboard reopens, even after it was dismissed. */}
-          <View style={s.numberRow}>
-            <View style={s.cc}><Text style={s.ccText}>+91</Text></View>
-            <Text style={[s.number, !p.phone && s.placeholder]} numberOfLines={1} adjustsFontSizeToFit>
-              {shown || '98765 43210'}
-            </Text>
-            <TextInput
-              value={p.phone}
-              onChangeText={t => p.onPhone(t.replace(/\D/g, '').slice(0, 10))}
-              keyboardType="number-pad"
-              textContentType="telephoneNumber"
-              autoComplete="tel"
-              maxLength={10}
-              autoFocus
-              caretHidden
-              contextMenuHidden
-              selectionColor="transparent"
-              style={s.overlay}
-            />
-          </View>
-          <View style={[s.rule, p.error ? { backgroundColor: Colors.destructive } : p.phone.length === 10 ? { backgroundColor: Colors.inkPrimary } : null]} />
+          <>
+              <View style={s.numberRow}>
+                <View style={s.cc}><Text style={s.ccText}>+91</Text></View>
+                <Text style={[s.number, !p.phone && s.placeholder]} numberOfLines={1} adjustsFontSizeToFit>
+                  {shown || '98765 43210'}
+                </Text>
+                {field}
+              </View>
+              <View style={[s.rule, p.error ? { backgroundColor: Colors.destructive } : p.phone.length === 10 ? { backgroundColor: Colors.inkPrimary } : null]} />
+          </>
           {p.error ? <Text style={s.error}>{p.error}</Text> : <Text style={s.hint}>{10 - p.phone.length > 0 ? `${10 - p.phone.length} digits to go` : 'Looks good'}</Text>}
 
         </View>
@@ -73,7 +82,8 @@ const s = StyleSheet.create({
   iconBtn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
   body: { flex: 1, paddingHorizontal: 24, paddingTop: 12 },
   title: { fontFamily: FontFamily.displayExtraBold, fontSize: 40, lineHeight: 42, letterSpacing: -1.1, color: Colors.inkPrimary },
-  sub: { fontFamily: FontFamily.bodyRegular, fontSize: 15, color: Colors.inkSecondary, marginTop: 10, marginBottom: 44 },
+  titleSignIn: { fontSize: 28, lineHeight: 32, letterSpacing: -0.8 },
+  sub: { fontFamily: FontFamily.bodyRegular, fontSize: 15, color: Colors.inkSecondary, marginTop: 6, marginBottom: 22 },
 
   numberRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   cc: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12, backgroundColor: withOpacity(Colors.inkPrimary, 0.08) },

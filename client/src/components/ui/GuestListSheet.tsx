@@ -13,6 +13,7 @@ import { Colors, FontFamily, Spacing, withOpacity } from '@/constants'
 import ApiService, { type EventGuest } from '@/api/apiService'
 import { useAuthStore } from '@/store/auth'
 import { usePillStore } from '@/store/pillStore'
+import { NameWithTick } from '@/components/profile/VerifiedTick'
 
 const SNAP_POINTS = ['74%']
 const VISIBLE_COUNT = 3
@@ -108,7 +109,7 @@ const GuestTile = memo(function GuestTile({ guest, isMe, isFollowing, onOpenProf
           </Pressable>
         )}
       </View>
-      <Text style={t.name} numberOfLines={1}>{isMe ? 'You' : (guest.name ?? 'Guest')}</Text>
+      <NameWithTick name={isMe ? 'You' : (guest.name ?? 'Guest')} verified={guest.is_verified} style={t.name} tickSize={12} rowStyle={{ justifyContent: 'center' }} />
     </Pressable>
   )
 })

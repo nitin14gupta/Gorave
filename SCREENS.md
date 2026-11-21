@@ -95,8 +95,8 @@ captions about nights out and making friends, not dating.
 |---|---|---|---|---|
 | 1 | Launch / splash | `index.tsx` | Kept as it was (the breathing logo and loader) | ✅ |
 | 2 | Welcome | `(auth)/index` | Twelve party posters (free Unsplash photos, 4:5) scattered like invites across the top and off the edges, the brand in a small pill, "Every good night starts with an invite." and the buttons. Posters settle in once | ✅ |
-| 3 | Phone number | `(auth)/phone` | Your number in big display digits with a +91 chip; tap anywhere on it to bring the keyboard back | ✅ |
-| 4 | OTP | `(auth)/otp` | Six big boxes, shakes once on a wrong code, fills from the SMS; tap the boxes to bring the keyboard back | ✅ |
+| 3 | Phone number | `(auth)/phone` | Your number in big display digits with a +91 chip; tap anywhere on it to bring the keyboard back | ✅ · 🧪 lab `auth-art`: A = posters fanned with the sticker on top, B = a festival wristband over a party photo with your number printed on it. Both fold smaller as the keyboard rises |
+| 4 | OTP | `(auth)/otp` | Six big boxes, shakes once on a wrong code, fills from the SMS; tap the boxes to bring the keyboard back | ✅ · 🧪 same lab `auth-art` (different posters / the wristband reads ENTRY CODE with six printed slots) |
 
 ### 2. Onboarding (new users)
 

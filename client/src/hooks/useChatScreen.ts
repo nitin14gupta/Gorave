@@ -148,6 +148,7 @@ export function useChatScreen(convId: string) {
   const [seed] = useState(() => peekConversation(convId))
   const [partnerName, setPartnerName] = useState<string | null>(seed?.partner_name ?? null)
   const [partnerUsername, setPartnerUsername] = useState<string | null>(seed?.partner_username ?? null)
+  const [partnerVerified, setPartnerVerified] = useState<boolean>(!!seed?.partner_verified)
   const [partnerAvatar, setPartnerAvatar] = useState<string | null>(seed?.partner_avatar ?? null)
   const [partnerId, setPartnerId] = useState<string | null>(seed?.partner_id ?? null)
   const [partnerIsDeleted, setPartnerIsDeleted] = useState(!!seed?.partner_is_deleted)
@@ -201,6 +202,7 @@ export function useChatScreen(convId: string) {
       if (conv) {
         setPartnerName(conv.partner_name)
         setPartnerUsername(conv.partner_username ?? null)
+        setPartnerVerified(!!conv.partner_verified)
         setPartnerAvatar(conv.partner_avatar)
         setPartnerId(conv.partner_id)
         setPartnerIsDeleted(!!conv.partner_is_deleted)
@@ -561,7 +563,7 @@ export function useChatScreen(convId: string) {
 
   return {
     // partner
-    partnerName, partnerUsername, partnerAvatar, partnerId, partnerIsDeleted, blockStatus,
+    partnerName, partnerUsername, partnerVerified, partnerAvatar, partnerId, partnerIsDeleted, blockStatus,
     partnerLastSeenAt,
     // chat
     messages, listData, isPartnerTyping, isPartnerRecording, isPartnerOnline,

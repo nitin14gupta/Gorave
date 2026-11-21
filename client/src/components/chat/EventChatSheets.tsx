@@ -10,6 +10,7 @@ import { hTap } from '@/lib/haptics'
 import { TextEditorModal } from '@/components/ui/TextEditorModal'
 import { usePillStore } from '@/store/pillStore'
 import { Colors, FontFamily, withOpacity } from '@/constants'
+import { NameWithTick } from '@/components/profile/VerifiedTick'
 
 const MAX_UPDATE = 1000
 
@@ -96,7 +97,7 @@ export function EventChatInfoSheet({ chat, eventId, myId, onMute, onClose }: {
                   {item.avatar ? <Image source={{ uri: item.avatar }} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="memory-disk" /> : null}
                 </View>
                 <View style={s.flex}>
-                  <Text style={s.name} numberOfLines={1}>{item.id === myId ? 'You' : item.name ?? 'Guest'}</Text>
+                  <NameWithTick name={item.id === myId ? 'You' : item.name ?? 'Guest'} verified={item.is_verified} style={s.name} />
                   {item.role === 'host' ? <Text style={s.role}>Host</Text> : null}
                 </View>
               </Pressable>

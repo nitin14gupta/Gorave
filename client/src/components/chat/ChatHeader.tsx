@@ -7,10 +7,12 @@ import { ChevronLeft, MoreVertical, Ghost, X } from 'lucide-react-native'
 import { Colors, FontFamily } from '@/constants'
 import { formatLastSeen } from '@/lib/formatLastSeen'
 import { UNAVAILABLE_LABEL } from '@/components/ui'
+import { VerifiedTick } from '@/components/profile/VerifiedTick'
 
 interface Props {
   partnerName: string | null
   partnerUsername: string | null
+  partnerVerified?: boolean
   partnerAvatar: string | null
   partnerId: string | null
   partnerIsDeleted?: boolean
@@ -34,7 +36,7 @@ interface Props {
 }
 
 export function ChatHeader({
-  partnerName, partnerUsername, partnerAvatar, partnerId, partnerIsDeleted,
+  partnerName, partnerUsername, partnerVerified, partnerAvatar, partnerId, partnerIsDeleted,
   isPartnerOnline, partnerLastSeenAt, isWsConnected, reconnectFailed, onManualReconnect, loading, onMenuPress,
   selectMode, selectedCount = 0, onExitSelect, identityShown, identityHidden,
 }: Props) {
@@ -93,6 +95,7 @@ export function ChatHeader({
             <View style={{ flexShrink: 1 }}>
               <View style={s.nameRow}>
                 <Text style={[s.name, partnerIsDeleted && s.nameDeleted]} numberOfLines={1}>{partnerIsDeleted ? UNAVAILABLE_LABEL : partnerName ?? 'Chat'}</Text>
+                {partnerVerified && !partnerIsDeleted ? <VerifiedTick size={15} /> : null}
                 {isPartnerOnline && !partnerIsDeleted && <View style={s.onlineDot} />}
               </View>
               <Text style={s.sub}>

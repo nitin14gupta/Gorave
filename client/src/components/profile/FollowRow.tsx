@@ -6,6 +6,7 @@ import { MoreHorizontal } from 'lucide-react-native'
 import { Colors, FontFamily, withOpacity } from '@/constants'
 import { hTap } from '@/lib/haptics'
 import type { FollowUser } from '@/api/apiService'
+import { VerifiedTick } from '@/components/profile/VerifiedTick'
 
 export interface FollowItemProps {
   user: FollowUser
@@ -42,7 +43,10 @@ export const FollowRow = memo(function FollowRow(p: FollowItemProps) {
         {u.avatar_url ? <Image source={{ uri: u.avatar_url }} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="memory-disk" /> : <Text style={s.initial}>{(u.name ?? u.username ?? '?').charAt(0).toUpperCase()}</Text>}
       </View>
       <View style={{ flex: 1 }}>
-        <Text style={s.name} numberOfLines={1}>{u.name ?? u.username ?? 'Guest'}{u.is_me ? <Text style={s.you}>  You</Text> : null}</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+          <Text style={[s.name, { flexShrink: 1 }]} numberOfLines={1}>{u.name ?? u.username ?? 'Guest'}{u.is_me ? <Text style={s.you}>  You</Text> : null}</Text>
+          {u.is_verified ? <VerifiedTick size={14} /> : null}
+        </View>
         <Text style={s.sub} numberOfLines={1}>{[u.username ? `@${u.username}` : null, u.city].filter(Boolean).join(' · ')}</Text>
         {u.follows_back ? <Text style={s.followsYou}>Follows you</Text> : null}
       </View>

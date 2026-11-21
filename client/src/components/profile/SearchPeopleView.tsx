@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { ArrowLeft, Search, X } from 'lucide-react-native'
 import { Colors, FontFamily, withOpacity } from '@/constants'
 import type { DiscoverUser } from '@/api/apiService'
+import { NameWithTick } from '@/components/profile/VerifiedTick'
 
 export interface RecentPerson { id: string; name: string | null; username: string | null; avatar: string | null }
 
@@ -88,7 +89,7 @@ export function SearchPeopleView(p: SearchViewProps) {
                       <Pressable key={r.id} style={s.face} onPress={() => p.onOpenRecent(r)}>
                         <View style={s.faceImg}>{r.avatar ? <Image source={{ uri: r.avatar }} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="memory-disk" /> : <Text style={s.initial}>{(r.name ?? '?').charAt(0)}</Text>}</View>
                         <Text style={s.faceName} numberOfLines={1}>{(r.name ?? r.username ?? '').split(' ')[0]}</Text>
-                        <Pressable style={s.faceX} onPress={() => p.onRemoveRecent(r.id)} hitSlop={6}><X size={10} color={Colors.nearBlack} strokeWidth={3} /></Pressable>
+                        <Pressable style={s.faceX} onPress={() => p.onRemoveRecent(r.id)} hitSlop={8} accessibilityLabel={`Remove ${(r.name ?? 'them').split(' ')[0]} from recent`}><X size={10} color={Colors.inkPrimary} strokeWidth={3} /></Pressable>
                       </Pressable>
                     ))}
                   </ScrollView>
@@ -105,15 +106,26 @@ export function SearchPeopleView(p: SearchViewProps) {
   )
 }
 
+/** One reason this person is here, or nothing. is_mutual means they follow you. */
+function reason(u: DiscoverUser): string | null {
+  if (u.is_mutual && u.is_following) return 'Friends'
+  if (u.is_mutual) return 'Follows you'
+  if (u.has_connection) return "You've chatted"
+  return null
+}
+
+// Two lines, like Instagram: the name, then @username and one reason.
 function Row({ u, onPress }: { u: DiscoverUser; onPress: () => void }) {
-  const tag = u.is_mutual ? 'You follow each other' : u.has_connection ? 'Friends in common' : u.same_city ? 'In your city' : null
+  const why = reason(u)
   return (
     <Pressable style={s.row} onPress={onPress}>
       <View style={s.avatar}>{u.photos[0]?.url ? <Image source={{ uri: u.photos[0].url }} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="memory-disk" /> : <Text style={s.initial}>{(u.name ?? '?').charAt(0)}</Text>}</View>
-      <View style={{ flex: 1 }}>
-        <Text style={s.name} numberOfLines={1}>{u.name ?? u.username}</Text>
-        <Text style={s.sub} numberOfLines={1}>{[u.username ? `@${u.username}` : null, whoLine(u)].filter(Boolean).join(' · ')}</Text>
-        {tag ? <Text style={s.tag}>{tag}</Text> : null}
+      <View style={s.rowText}>
+        <NameWithTick name={u.name ?? u.username ?? ''} verified={u.is_verified} style={s.name} />
+        <Text style={s.sub} numberOfLines={1}>
+          {u.username ? `@${u.username}` : ''}
+          {why ? <Text style={s.why}>{u.username ? ' · ' : ''}{why}</Text> : null}
+        </Text>
       </View>
     </Pressable>
   )
@@ -138,18 +150,20 @@ const s = StyleSheet.create({
   sectionRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', paddingHorizontal: 20, marginTop: 12, marginBottom: 12 },
   section: { fontFamily: FontFamily.headingBold, fontSize: 16, color: Colors.inkPrimary },
   clear: { fontFamily: FontFamily.bodySemiBold, fontSize: 13, color: Colors.inkSecondary },
-  recent: { gap: 16, paddingHorizontal: 20 },
+  // Room above the faces so the remove dot is never clipped by the scroller.
+  recent: { gap: 16, paddingHorizontal: 20, paddingTop: 4 },
   face: { width: 64, alignItems: 'center', gap: 6 },
   faceImg: { width: 64, height: 64, borderRadius: 32, overflow: 'hidden', backgroundColor: Colors.surfaceMuted, alignItems: 'center', justifyContent: 'center' },
   faceName: { fontFamily: FontFamily.bodyMedium, fontSize: 12, color: Colors.inkPrimary },
-  faceX: { position: 'absolute', top: -2, right: -2, width: 20, height: 20, borderRadius: 10, backgroundColor: Colors.white, alignItems: 'center', justifyContent: 'center' },
+  faceX: { position: 'absolute', top: 0, right: 0, width: 20, height: 20, borderRadius: 10, backgroundColor: Colors.elevated, borderWidth: 2, borderColor: Colors.background, alignItems: 'center', justifyContent: 'center' },
 
-  row: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 20, paddingVertical: 10 },
-  avatar: { width: 52, height: 52, borderRadius: 26, overflow: 'hidden', backgroundColor: Colors.surfaceMuted, alignItems: 'center', justifyContent: 'center' },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 20, paddingVertical: 8 },
+  rowText: { flex: 1, minWidth: 0, gap: 2 },
+  avatar: { width: 48, height: 48, borderRadius: 24, overflow: 'hidden', backgroundColor: Colors.surfaceMuted, alignItems: 'center', justifyContent: 'center' },
   initial: { fontFamily: FontFamily.headingBold, fontSize: 18, color: Colors.inkPrimary },
   name: { fontFamily: FontFamily.bodySemiBold, fontSize: 15, color: Colors.inkPrimary },
-  sub: { fontFamily: FontFamily.bodyRegular, fontSize: 12, color: Colors.inkSecondary, marginTop: 1 },
-  tag: { fontFamily: FontFamily.bodyMedium, fontSize: 11, color: withOpacity(Colors.inkPrimary, 0.7), marginTop: 3 },
+  sub: { fontFamily: FontFamily.bodyRegular, fontSize: 13, color: Colors.inkSecondary },
+  why: { fontFamily: FontFamily.bodyMedium, color: withOpacity(Colors.inkPrimary, 0.75) },
 
   empty: { alignItems: 'center', marginTop: 60, gap: 6, paddingHorizontal: 32 },
   emptyTitle: { fontFamily: FontFamily.headingBold, fontSize: 18, color: Colors.inkPrimary },

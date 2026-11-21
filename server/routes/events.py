@@ -240,6 +240,8 @@ class EventSummary(BaseModel):
     cover_photos: List[EventPhotoItem] = []
     host_id: Optional[str] = None
     host_name: Optional[str] = None
+    # The host's government ID (PAN) was checked and approved.
+    host_verified: bool = False
     host_avatar: Optional[str] = None
     host_is_deleted: bool = False
     album_count: int = 0
@@ -445,6 +447,31 @@ def _shape_event_rows(rows) -> list:
 
 # ── GET /events ────────────────────────────────────────────────────────────────
 
+# ── Ranking ──────────────────────────────────────────────────────────────────
+# hs.hosted: the host's non-cancelled events (what their badge tier is based
+# on, compute_host_badges). hs.recent: RSVPs to this event in the last 3 days.
+HOST_STATS_JOIN = """
+    JOIN LATERAL (
+        SELECT
+            (SELECT COUNT(*) FROM events he WHERE he.host_id = e.host_id AND he.is_cancelled = FALSE) AS hosted,
+            (SELECT COUNT(*) FROM event_attendees r WHERE r.event_id = e.id AND r.status = 'going' AND r.joined_at > NOW() - INTERVAL '3 days') AS recent
+    ) hs ON TRUE
+"""
+# Badge tier (Rising 2+, Established 10+, Elite 25+, Legend 75+) and a
+# verified ID, in "km closer" for the default feed.
+HOST_BOOST_KM = """(
+    CASE WHEN hs.hosted >= 75 THEN 10 WHEN hs.hosted >= 25 THEN 7 WHEN hs.hosted >= 10 THEN 4 WHEN hs.hosted >= 2 THEN 2 ELSE 0 END
+    + CASE WHEN u.id_verified_at IS NOT NULL THEN 2 ELSE 0 END
+)"""
+# Trending: momentum (recent RSVPs count triple), size, how full it is, and the host.
+TRENDING_SCORE = f"""(
+    hs.recent * 3
+    + (e.capacity - e.spots_left)
+    + CASE WHEN e.capacity > 0 THEN 10.0 * (e.capacity - e.spots_left) / e.capacity ELSE 0 END
+    + {HOST_BOOST_KM} * 1.5
+)"""
+
+
 @router.get("", response_model=List[EventSummary])
 def list_events(
     lat: Optional[float] = Query(default=None),
@@ -471,6 +498,9 @@ def list_events(
     # join. Leaves out your own events, ones you're already in, waiting on or
     # were declined from, and women-only / men-only events that aren't for you.
     discover: bool = Query(default=False),
+    # 'trending': most momentum first (see TRENDING_SCORE). Default: personal
+    # signals, then distance with a boost for trusted hosts (HOST_BOOST_KM).
+    sort: Optional[str] = Query(default=None),
     # Only this person's events (their profile page).
     host_id: Optional[str] = Query(default=None),
     current_user: dict = Depends(get_current_user),
@@ -594,7 +624,12 @@ def list_events(
     """
     relationship_params = [viewer_id, viewer_id, viewer_id, viewer_id]
 
-    default_order = dist_sql + " ASC NULLS LAST, e.date_time ASC" if sort_lat and sort_lng else "e.date_time ASC"
+    # Trusted hosts get a nudge: their badge tier and a verified ID count as
+    # being a few km closer (or, without a location, first within the same day).
+    default_order = (
+        f"(COALESCE({dist_sql}, 0) - {HOST_BOOST_KM}) ASC, e.date_time ASC" if sort_lat and sort_lng
+        else f"e.date_time::date ASC, {HOST_BOOST_KM} DESC, e.date_time ASC"
+    )
     # Relationship ranking (paid-attended > attended > following) applies to
     # every listing, not just an active text search — a followed host's event
     # should float up whether you're browsing nearby or typing a query. Text
@@ -607,7 +642,7 @@ def list_events(
         friends_going_count DESC,
         {text_rank_sql}
         {default_order}
-    """
+    """ if sort != "trending" else f"{TRENDING_SCORE} DESC, e.date_time ASC"
     order_params = [q, f"{q}%"] if q else []
 
     # Friends = people you follow + people you have an active chat with,
@@ -642,7 +677,7 @@ def list_events(
             e.host_id::text,
             {dist_sql} AS distance_km,
             (SELECT ea.status FROM event_attendees ea WHERE ea.event_id = e.id AND ea.user_id = %s::uuid) AS my_rsvp_status,
-            u.name AS host_name,
+            u.name AS host_name, (u.id_verified_at IS NOT NULL) AS host_verified,
             (SELECT p.url FROM user_photos p WHERE p.user_id = u.id ORDER BY p.position LIMIT 1) AS host_avatar,
             (COALESCE(u.is_deleted, FALSE) OR COALESCE(u.is_locked, FALSE)) AS host_is_deleted,
             (SELECT COUNT(*) FROM event_attendees ea WHERE ea.event_id = e.id AND ea.status = 'going' AND NOT EXISTS (SELECT 1 FROM users lu WHERE lu.id = ea.user_id AND COALESCE(lu.is_locked, FALSE)))::int AS attendee_count,
@@ -666,6 +701,7 @@ def list_events(
             {relationship_select}
         FROM events e
         JOIN users u ON u.id = e.host_id
+        {HOST_STATS_JOIN}
         {where}
         ORDER BY {order_sql}
         LIMIT %s
@@ -705,7 +741,7 @@ def get_hosted_events(current_user: dict = Depends(get_current_user)):
                 e.cover_photos, e.is_cancelled,
                 e.host_id::text,
                 NULL::int AS distance_km,
-                u.name AS host_name,
+                u.name AS host_name, (u.id_verified_at IS NOT NULL) AS host_verified,
                 (SELECT p.url FROM user_photos p WHERE p.user_id = u.id ORDER BY p.position LIMIT 1) AS host_avatar,
                 (COALESCE(u.is_deleted, FALSE) OR COALESCE(u.is_locked, FALSE)) AS host_is_deleted,
                 (SELECT COUNT(*) FROM event_attendees ea WHERE ea.event_id = e.id AND ea.status = 'going' AND NOT EXISTS (SELECT 1 FROM users lu WHERE lu.id = ea.user_id AND COALESCE(lu.is_locked, FALSE)))::int AS attendee_count,
@@ -777,7 +813,7 @@ def get_hosted_events_paged(
                 e.cover_photos, e.is_cancelled,
                 e.host_id::text,
                 NULL::int AS distance_km,
-                u.name AS host_name,
+                u.name AS host_name, (u.id_verified_at IS NOT NULL) AS host_verified,
                 (SELECT p.url FROM user_photos p WHERE p.user_id = u.id ORDER BY p.position LIMIT 1) AS host_avatar,
                 (COALESCE(u.is_deleted, FALSE) OR COALESCE(u.is_locked, FALSE)) AS host_is_deleted,
                 (SELECT COUNT(*) FROM event_attendees ea WHERE ea.event_id = e.id AND ea.status = 'going' AND NOT EXISTS (SELECT 1 FROM users lu WHERE lu.id = ea.user_id AND COALESCE(lu.is_locked, FALSE)))::int AS attendee_count,
@@ -833,7 +869,7 @@ def get_joined_events(current_user: dict = Depends(get_current_user)):
                 e.cover_photos, e.is_cancelled,
                 e.host_id::text,
                 NULL::int AS distance_km,
-                u.name AS host_name,
+                u.name AS host_name, (u.id_verified_at IS NOT NULL) AS host_verified,
                 (SELECT p.url FROM user_photos p WHERE p.user_id = u.id ORDER BY p.position LIMIT 1) AS host_avatar,
                 (COALESCE(u.is_deleted, FALSE) OR COALESCE(u.is_locked, FALSE)) AS host_is_deleted,
                 (SELECT COUNT(*) FROM event_attendees ea2 WHERE ea2.event_id = e.id AND ea2.status = 'going' AND NOT EXISTS (SELECT 1 FROM users lu WHERE lu.id = ea2.user_id AND COALESCE(lu.is_locked, FALSE)))::int AS attendee_count,
@@ -915,7 +951,7 @@ def get_joined_events_paged(
                     SELECT COUNT(*) FROM event_photos ph WHERE ph.event_id = e.id AND ph.removed_at IS NULL AND ph.hidden_at IS NULL
                 ) END::int AS album_count,
                 (SELECT COUNT(*) FROM event_photos ph WHERE ph.event_id = e.id AND ph.uploader_id = ea.user_id AND ph.removed_at IS NULL)::int AS my_album_count,
-                u.name AS host_name,
+                u.name AS host_name, (u.id_verified_at IS NOT NULL) AS host_verified,
                 (SELECT p.url FROM user_photos p WHERE p.user_id = u.id ORDER BY p.position LIMIT 1) AS host_avatar,
                 (COALESCE(u.is_deleted, FALSE) OR COALESCE(u.is_locked, FALSE)) AS host_is_deleted,
                 (SELECT COUNT(*) FROM event_attendees ea2 WHERE ea2.event_id = e.id AND ea2.status = 'going' AND NOT EXISTS (SELECT 1 FROM users lu WHERE lu.id = ea2.user_id AND COALESCE(lu.is_locked, FALSE)))::int AS attendee_count,
@@ -971,7 +1007,7 @@ def get_waitlisted_events(current_user: dict = Depends(get_current_user)):
                 e.cover_photos, e.is_cancelled,
                 e.host_id::text,
                 NULL::int AS distance_km,
-                u.name AS host_name,
+                u.name AS host_name, (u.id_verified_at IS NOT NULL) AS host_verified,
                 (SELECT p.url FROM user_photos p WHERE p.user_id = u.id ORDER BY p.position LIMIT 1) AS host_avatar,
                 (COALESCE(u.is_deleted, FALSE) OR COALESCE(u.is_locked, FALSE)) AS host_is_deleted,
                 (SELECT COUNT(*) FROM event_attendees ea2 WHERE ea2.event_id = e.id AND ea2.status = 'going' AND NOT EXISTS (SELECT 1 FROM users lu WHERE lu.id = ea2.user_id AND COALESCE(lu.is_locked, FALSE)))::int AS attendee_count,
@@ -1011,7 +1047,7 @@ def get_requested_events(current_user: dict = Depends(get_current_user)):
                 e.cover_photos, e.is_cancelled,
                 e.host_id::text,
                 NULL::int AS distance_km,
-                u.name AS host_name,
+                u.name AS host_name, (u.id_verified_at IS NOT NULL) AS host_verified,
                 (SELECT p.url FROM user_photos p WHERE p.user_id = u.id ORDER BY p.position LIMIT 1) AS host_avatar,
                 (COALESCE(u.is_deleted, FALSE) OR COALESCE(u.is_locked, FALSE)) AS host_is_deleted,
                 (SELECT COUNT(*) FROM event_attendees ea2 WHERE ea2.event_id = e.id AND ea2.status = 'going' AND NOT EXISTS (SELECT 1 FROM users lu WHERE lu.id = ea2.user_id AND COALESCE(lu.is_locked, FALSE)))::int AS attendee_count,
@@ -1067,7 +1103,7 @@ def get_hotlist_events(current_user: dict = Depends(get_current_user)):
                 e.cover_photos, e.is_cancelled,
                 e.host_id::text,
                 NULL::int AS distance_km,
-                u.name AS host_name,
+                u.name AS host_name, (u.id_verified_at IS NOT NULL) AS host_verified,
                 (SELECT p.url FROM user_photos p WHERE p.user_id = u.id ORDER BY p.position LIMIT 1) AS host_avatar,
                 (COALESCE(u.is_deleted, FALSE) OR COALESCE(u.is_locked, FALSE)) AS host_is_deleted,
                 (SELECT COUNT(*) FROM event_attendees ea2 WHERE ea2.event_id = e.id AND ea2.status = 'going' AND NOT EXISTS (SELECT 1 FROM users lu WHERE lu.id = ea2.user_id AND COALESCE(lu.is_locked, FALSE)))::int AS attendee_count,
@@ -1157,7 +1193,7 @@ _EVENT_COLUMNS = """
     e.cover_photos, e.is_cancelled,
     e.host_id::text,
     NULL::int AS distance_km,
-    u.name AS host_name,
+    u.name AS host_name, (u.id_verified_at IS NOT NULL) AS host_verified,
     (SELECT p.url FROM user_photos p WHERE p.user_id = u.id ORDER BY p.position LIMIT 1) AS host_avatar,
     (COALESCE(u.is_deleted, FALSE) OR COALESCE(u.is_locked, FALSE)) AS host_is_deleted,
     (SELECT COUNT(*) FROM event_attendees ea2 WHERE ea2.event_id = e.id AND ea2.status = 'going' AND NOT EXISTS (SELECT 1 FROM users lu WHERE lu.id = ea2.user_id AND COALESCE(lu.is_locked, FALSE)))::int AS attendee_count,
@@ -1372,7 +1408,7 @@ def get_event(event_id: str, current_user: dict = Depends(get_current_user)):
                 e.host_id::text,
                 (e.date_time - INTERVAL '48 hours')::text AS cancel_deadline,
                 (e.date_time - INTERVAL '7 hours')::text AS edit_deadline,
-                u.name AS host_name,
+                u.name AS host_name, (u.id_verified_at IS NOT NULL) AS host_verified,
                 (SELECT p.url FROM user_photos p WHERE p.user_id = u.id ORDER BY p.position LIMIT 1) AS host_avatar,
                 (COALESCE(u.is_deleted, FALSE) OR COALESCE(u.is_locked, FALSE)) AS host_is_deleted,
                 (SELECT COUNT(*) FROM events he
@@ -2921,6 +2957,7 @@ def get_attendees(event_id: str, current_user: dict = Depends(get_current_user))
                 u.id::text,
                 u.name,
                 u.username,
+                (u.id_verified_at IS NOT NULL) AS is_verified,
                 u.city,
                 u.gender,
                 ea.status,
@@ -2960,6 +2997,7 @@ def get_guests(event_id: str, current_user: dict = Depends(get_current_user)):
                 u.id::text,
                 u.name,
                 u.username,
+                (u.id_verified_at IS NOT NULL) AS is_verified,
                 (SELECT url FROM user_photos WHERE user_id = u.id ORDER BY position LIMIT 1) AS avatar,
                 EXISTS(
                     SELECT 1 FROM follows f
@@ -2983,6 +3021,7 @@ def get_guests(event_id: str, current_user: dict = Depends(get_current_user)):
                 u.id::text,
                 u.name,
                 u.username,
+                (u.id_verified_at IS NOT NULL) AS is_verified,
                 (SELECT url FROM user_photos WHERE user_id = u.id ORDER BY position LIMIT 1) AS avatar,
                 EXISTS(
                     SELECT 1 FROM follows f
@@ -3012,7 +3051,7 @@ def get_my_ticket(event_id: str, current_user: dict = Depends(get_current_user))
             """
             SELECT ea.ticket_token, e.title AS event_title, e.date_time::text,
                    e.end_time::text, e.location_name, e.event_type,
-                   u.name AS host_name,
+                   u.name AS host_name, (u.id_verified_at IS NOT NULL) AS host_verified,
                    (SELECT p.url FROM user_photos p WHERE p.user_id = u.id ORDER BY p.position LIMIT 1) AS host_avatar,
                    (SELECT COUNT(*) FROM event_attendees g WHERE g.event_id = e.id AND g.status = 'going')::int AS attendee_count
             FROM event_attendees ea

@@ -8,6 +8,7 @@ import { slugify } from '@/lib/seo'
 import { cn } from '@/lib/cn'
 import { Chip } from '@/components/ui/atoms'
 import { AvatarImage } from '@/components/ui/AvatarImage'
+import { VerifiedTick } from '@/components/ui/VerifiedTick'
 
 export type EventViewProps = {
   event: PublicEventDetail
@@ -175,7 +176,10 @@ export function YourHost({ event: e, stacked }: { event: PublicEventDetail; stac
           <AvatarImage src={h.avatar} name={name} sizes="112px" />
         </div>
         <div className="min-w-0">
-          <div className="font-display text-[26px] font-extrabold leading-tight tracking-[-0.03em] text-ink">{name}</div>
+          <div className="flex items-center gap-2 font-display text-[26px] font-extrabold leading-tight tracking-[-0.03em] text-ink">
+            <span className="truncate">{name}</span>
+            {h.verified && <VerifiedTick className="size-6 text-ink" />}
+          </div>
           <div className="mt-1 font-sans text-[15px] text-ink-2">{stats.join(' · ')}</div>
           {h.username && <Link href={`/h/${h.username}`} className="mt-1.5 inline-block font-sans text-sm font-bold text-ink underline-offset-4 hover:underline">See {first}’s profile →</Link>}
         </div>

@@ -206,6 +206,7 @@ export default function ChatDetailScreen() {
     <View style={s.root}>
       <ChatHeader
         partnerName={screen.partnerName}
+        partnerVerified={screen.partnerVerified}
         partnerUsername={screen.partnerUsername}
         partnerAvatar={screen.partnerAvatar}
         partnerId={screen.partnerId}

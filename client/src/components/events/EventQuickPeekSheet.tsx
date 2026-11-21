@@ -16,6 +16,7 @@ import { buildEventShareUrl } from '@/lib/deepLink'
 import { formatDateTime } from './eventDetailUtils'
 import { EventShareCard } from './EventShareCard'
 import type { EventSummary } from '@/api/apiService'
+import { VerifiedTick } from '@/components/profile/VerifiedTick'
 
 function formatEventDate(iso: string | null | undefined) {
   const d = parseServerDate(iso)
@@ -113,6 +114,7 @@ function EventQuickPeekSheetCore({ event, onClose }: CoreProps) {
           <Pressable style={s.hostRow} onPress={handleViewHost}>
             {event.host_avatar ? <Image source={{ uri: event.host_avatar }} style={s.hostAvatar} contentFit="cover" /> : <View style={[s.hostAvatar, s.hostFallback]}><Text style={s.hostInit}>{event.host_name.charAt(0)}</Text></View>}
             <Text style={s.hostText} numberOfLines={1}>Hosted by <Text style={s.hostName}>{event.host_id === myId ? 'you' : event.host_name}</Text></Text>
+            {event.host_verified ? <VerifiedTick size={14} /> : null}
           </Pressable>
         ) : null}
 

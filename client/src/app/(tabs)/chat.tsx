@@ -23,6 +23,7 @@ import { Colors, ComponentSize, FontFamily, Radius, withOpacity } from '@/consta
 import { isRecentlyActive } from '@/lib/formatLastSeen'
 import { ChatTop } from '@/components/chat/ChatVibeBanner'
 import type { Conversation, EventChatRow } from '@/api/apiService'
+import { VerifiedTick } from '@/components/profile/VerifiedTick'
 
 function formatTime(iso: string | null): string {
   if (!iso) return ''
@@ -116,9 +117,12 @@ const ConvRow = memo(function ConvRow({ conv, onPress, onLongPress, onAvatarPres
 
       <View style={s.convBody}>
         <View style={s.convTopRow}>
-          <Text style={[s.convName, isLocked && s.convNameLocked, isDeleted && s.convNameDeleted]} numberOfLines={1}>
-            {displayName}
-          </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, flexShrink: 1 }}>
+            <Text style={[s.convName, isLocked && s.convNameLocked, isDeleted && s.convNameDeleted, { flexShrink: 1 }]} numberOfLines={1}>
+              {displayName}
+            </Text>
+            {!isDeleted && conv.partner_verified ? <VerifiedTick size={14} /> : null}
+          </View>
           <View style={s.convMeta}>
             {conv.muted ? <BellOff size={12} color={Colors.inkSecondary} strokeWidth={2} /> : null}
             {conv.pinned_at ? <Pin size={12} color={Colors.inkSecondary} strokeWidth={2} /> : null}

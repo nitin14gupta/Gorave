@@ -560,7 +560,7 @@ def suggested_users(
     with get_db() as (cur, _):
         cur.execute("""
             SELECT
-                u.id::text, u.name, u.username, u.gender, u.bio, u.city, u.interests, u.voice_url,
+                u.id::text, u.name, u.username, u.gender, u.bio, u.city, u.interests, u.voice_url, (u.id_verified_at IS NOT NULL) AS is_verified,
                 NULL::float AS distance_km,
                 0 AS match_pct,
                 COALESCE(
@@ -597,6 +597,8 @@ def suggested_users(
             FROM users u
             LEFT JOIN user_photos p ON p.user_id = u.id
             WHERE u.id != %s::uuid
+              -- People you already follow are one tap away in Following; suggest new ones.
+              AND NOT EXISTS (SELECT 1 FROM follows mf WHERE mf.follower_id = %s::uuid AND mf.following_id = u.id)
               AND u.profile_complete = true
               AND COALESCE(u.is_deleted, FALSE) = FALSE
               AND COALESCE(u.is_locked, FALSE) = FALSE
@@ -615,7 +617,7 @@ def suggested_users(
             LIMIT %s
         """, (
             viewer_id, viewer_id, viewer_id, viewer_id, viewer_id, viewer_id,
-            viewer_id, viewer_id, viewer_id, limit,
+            viewer_id, viewer_id, viewer_id, viewer_id, limit,
         ))
         rows = cur.fetchall()
     users = []
@@ -641,7 +643,7 @@ def search_users(
     with get_db() as (cur, _):
         cur.execute("""
             SELECT
-                u.id::text, u.name, u.username, u.gender, u.bio, u.city, u.interests, u.voice_url,
+                u.id::text, u.name, u.username, u.gender, u.bio, u.city, u.interests, u.voice_url, (u.id_verified_at IS NOT NULL) AS is_verified,
                 NULL::float AS distance_km,
                 0 AS match_pct,
                 COALESCE(
@@ -1037,6 +1039,7 @@ def _follow_rows(cur, join_col: str, filter_col: str, viewer_id: str, target_id:
         u.name,
         u.username,
         u.city,
+        (u.id_verified_at IS NOT NULL) AS is_verified,
         (SELECT url FROM user_photos WHERE user_id = u.id ORDER BY position LIMIT 1) AS avatar_url,
         EXISTS(
             SELECT 1 FROM follows

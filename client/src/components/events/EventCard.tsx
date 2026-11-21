@@ -12,6 +12,7 @@ import { HotlistButton } from './HotlistButton'
 import { EventQuickPeekSheet } from './EventQuickPeekSheet'
 import type { EventSummary } from '@/api/apiService'
 import { isWomenOnly, WomenTag, womenGlassPanel } from '@/components/events/womenLook'
+import { NameWithTick } from '@/components/profile/VerifiedTick'
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable)
 
@@ -318,7 +319,7 @@ export const EventCard = memo(function EventCard({ event, onPress, showHost, isP
           {showHost && host ? (
             <View style={pa.hostRow}>
               <HostAvatar name={host} avatar={event.host_avatar} size={16} />
-              <Text style={pa.host} numberOfLines={1}>{host}</Text>
+              <NameWithTick name={host} verified={event.host_verified} style={pa.host} tickSize={12} rowStyle={{ flexShrink: 1 }} />
             </View>
           ) : null}
           <Text style={pa.title} numberOfLines={2}>{event.title}</Text>

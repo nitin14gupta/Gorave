@@ -15,6 +15,8 @@ export interface PublicHost {
   badges: string[]
   avg_rating: number | null
   review_count: number
+  /** ID (PAN) checked and approved by Gorave. */
+  verified?: boolean
 }
 
 export interface PublicEvent {

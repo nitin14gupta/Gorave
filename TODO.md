@@ -45,8 +45,8 @@ once it ships.
 
 
 ## Trust and safety
-- [ ] Show a "Verified host" tick on event pages and host profiles. The ID check itself is built (every host verifies before hosting), the tick isn't shown anywhere yet.
-- [ ] Badges promise "more visibility in Discover and Trending", but ranking ignores badge tier. Add it to ranking, or soften the message.
+- [x] Verified tick next to verified people everywhere: event host (app + website), event cards, profiles, followers, search, guest lists, chat list and header, group chat names and members, vibe inbox.
+- [x] Badge tier and verified ID now count in ranking: Discover gives trusted hosts a "few km closer" boost, Trending is a server score (recent RSVPs, size, how full, host). See `HOST_BOOST_KM` / `TRENDING_SCORE` in `server/routes/events.py`.
 
 ## Features
 - [ ] **Book for a +1:** buy 2 tickets and invite the friend into the app.

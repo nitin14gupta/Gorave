@@ -9,6 +9,7 @@ import { PrimaryButton } from '@/components/ui/PrimaryButton'
 import { hTap } from '@/lib/haptics'
 import { listenForSmsOtp } from '@/lib/smsOtp'
 import { groupPhone, type OtpViewProps } from './authTypes'
+import { PosterFan } from './AuthArt'
 
 const LEN = 6
 
@@ -24,8 +25,27 @@ export function OtpView(p: OtpViewProps) {
     if (p.error) shake.value = withSequence(withTiming(-8, { duration: 50 }), withTiming(8, { duration: 50 }), withTiming(-5, { duration: 50 }), withTiming(0, { duration: 50 }))
   }, [p.error, shake])
   const shakeStyle = useAnimatedStyle(() => ({ transform: [{ translateX: shake.value }] }))
+  const signIn = !p.title
 
   // Android: the code arrives by SMS and fills itself in (see lib/smsOtp).
+  // The real field lies invisibly over the boxes, so a tap
+  // always lands on it and the keyboard reopens, even after it was dismissed.
+  const field = (
+    <TextInput
+      value={p.code}
+      onChangeText={t => p.onCode(t.replace(/\D/g, '').slice(0, LEN))}
+      keyboardType="number-pad"
+      textContentType="oneTimeCode"
+      autoComplete={Platform.OS === 'android' ? 'sms-otp' : 'one-time-code'}
+      maxLength={LEN}
+      autoFocus
+      caretHidden
+      contextMenuHidden
+      selectionColor="transparent"
+      style={s.overlay}
+    />
+  )
+
   const onCode = useRef(p.onCode)
   useEffect(() => { onCode.current = p.onCode })
   useEffect(() => listenForSmsOtp(code => onCode.current(code), LEN), [])
@@ -40,7 +60,8 @@ export function OtpView(p: OtpViewProps) {
 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <View style={s.body}>
-          <Text style={s.title}>{p.title ?? "Enter the\ncode"}</Text>
+          {signIn ? <PosterFan step="otp" /> : null}
+          <Text style={[s.title, signIn && s.titleSignIn]}>{p.title ?? (signIn ? 'Enter the code' : "Enter the\ncode")}</Text>
           <Pressable style={s.sent} onPress={p.onEditNumber} hitSlop={6}>
             <Text style={s.sentText}>Sent to +91 {groupPhone(p.phone)}</Text>
             <Pencil size={13} color={Colors.inkSecondary} strokeWidth={2} />
@@ -60,19 +81,7 @@ export function OtpView(p: OtpViewProps) {
                 )
               })}
             </Animated.View>
-            <TextInput
-              value={p.code}
-              onChangeText={t => p.onCode(t.replace(/\D/g, '').slice(0, LEN))}
-              keyboardType="number-pad"
-              textContentType="oneTimeCode"
-              autoComplete={Platform.OS === 'android' ? 'sms-otp' : 'one-time-code'}
-              maxLength={LEN}
-              autoFocus
-              caretHidden
-              contextMenuHidden
-              selectionColor="transparent"
-              style={s.overlay}
-            />
+            {field}
           </View>
 
           {p.errorMsg ? <Text style={s.error}>{p.errorMsg}</Text> : null}
@@ -101,7 +110,8 @@ const s = StyleSheet.create({
   iconBtn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
   body: { flex: 1, paddingHorizontal: 24, paddingTop: 12 },
   title: { fontFamily: FontFamily.displayExtraBold, fontSize: 40, lineHeight: 42, letterSpacing: -1.1, color: Colors.inkPrimary },
-  sent: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 10, marginBottom: 36 },
+  titleSignIn: { fontSize: 28, lineHeight: 32, letterSpacing: -0.8 },
+  sent: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8, marginBottom: 26 },
   sentText: { fontFamily: FontFamily.bodyMedium, fontSize: 15, color: Colors.inkSecondary },
 
   boxes: { flexDirection: 'row', gap: 8 },

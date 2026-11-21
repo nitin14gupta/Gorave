@@ -8,6 +8,7 @@ import type { EventChatMessage, EventChatSeen } from '@/api/apiService'
 import { hTap } from '@/lib/haptics'
 import { UnavailableAvatar, UNAVAILABLE_LABEL } from '@/components/ui'
 import { Colors, FontFamily, withOpacity } from '@/constants'
+import { VerifiedTick } from '@/components/profile/VerifiedTick'
 
 const AVATAR = 28
 const SEEN_FACES = 5
@@ -68,6 +69,7 @@ export function GroupRow({ msg, isMine, firstInRun, lastInRun, children, onPress
         {firstInRun ? (
           <View style={s.nameRow}>
             <Text style={[s.name, gone && s.nameGone]} numberOfLines={1}>{gone ? UNAVAILABLE_LABEL : firstName(msg.sender?.name)}</Text>
+            {!gone && msg.sender?.verified ? <VerifiedTick size={12} /> : null}
             {msg.sender?.is_host ? <Text style={s.hostTag}>Host</Text> : null}
           </View>
         ) : null}

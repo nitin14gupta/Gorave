@@ -248,6 +248,7 @@ def list_conversations(
                 CASE WHEN c.user1_id = %s::uuid THEN p2.url ELSE p1.url END AS partner_avatar,
                 CASE WHEN c.user1_id = %s::uuid THEN (COALESCE(u2.is_deleted, FALSE) OR COALESCE(u2.is_locked, FALSE)) ELSE (COALESCE(u1.is_deleted, FALSE) OR COALESCE(u1.is_locked, FALSE)) END AS partner_is_deleted,
                 CASE WHEN c.user1_id = %s::uuid THEN u2.last_seen_at ELSE u1.last_seen_at END AS partner_last_seen_at,
+                CASE WHEN c.user1_id = %s::uuid THEN u2.id_verified_at ELSE u1.id_verified_at END IS NOT NULL AS partner_verified,
                 -- Last message
                 m.content AS last_message,
                 m.content_type AS last_message_type,
@@ -302,7 +303,7 @@ def list_conversations(
             WHERE (c.user1_id = %s::uuid OR c.user2_id = %s::uuid)""" + hidden_filter_sql + """
             ORDER BY COALESCE(c.last_message_at, c.created_at) DESC
             """,
-            (uid,) * 15,
+            (uid,) * 16,
         )
         rows = cur.fetchall()
 

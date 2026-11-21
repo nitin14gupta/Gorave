@@ -37,8 +37,8 @@ interface Props {
   onEmptyChange?: (empty: boolean) => void
 }
 
-// "Trending" has no dedicated backend signal yet — events in your city ranked by
-// current attendee_count is a reasonable stand-in and needs no new endpoint.
+// Trending is ranked on the server (sort=trending): RSVPs in the last 3 days,
+// how many are going and how full it is, plus the host's badge tier and ID.
 // The API has no offset/page param, so we over-fetch once (FETCH_LIMIT) and
 // reveal more of the already-sorted batch as the user scrolls — simple lazy
 // loading without a second network round-trip per page.
@@ -58,11 +58,10 @@ export const TrendingSection = forwardRef<TrendingSectionHandle, Props>(function
     if (!city) return Promise.resolve()
     // discover: the server leaves out events you host, are going to or are
     // waiting on, and women-only / men-only events that aren't for you.
-    return ApiService.getEvents({ city, limit: FETCH_LIMIT, discover: true })
+    return ApiService.getEvents({ city, limit: FETCH_LIMIT, discover: true, sort: 'trending' })
       .then(result => {
         if (!mountedRef.current) return
-        const sorted = [...result]
-          .sort((a, b) => b.attendee_count - a.attendee_count)
+        const sorted = result
         setAllEvents(sorted)
         setVisibleCount(INITIAL_COUNT)
         onEmptyChange?.(sorted.length === 0)

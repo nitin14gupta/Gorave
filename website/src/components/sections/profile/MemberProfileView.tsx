@@ -8,6 +8,7 @@ import { SiteFooter } from '@/components/layout/SiteFooter'
 import { FloatingDock } from '@/components/layout/FloatingDock'
 import { Stagger } from '@/components/sections/type/Stagger'
 import { MemberPhotos } from './MemberPhotos'
+import { VerifiedTick } from '@/components/ui/VerifiedTick'
 
 export interface MemberData {
   name: string
@@ -28,14 +29,6 @@ export interface MemberData {
 }
 
 /** A seal with a tick, drawn inline like the rest of the site's icons. */
-function VerifiedTick() {
-  return (
-    <svg aria-hidden viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 2.5l2.4 1.8 3-.2.9 2.9 2.4 1.8-1 2.8 1 2.8-2.4 1.8-.9 2.9-3-.2L12 21.5l-2.4-1.8-3 .2-.9-2.9-2.4-1.8 1-2.8-1-2.8 2.4-1.8.9-2.9 3 .2z" />
-      <path d="M8.5 12.2l2.4 2.3 4.6-4.8" />
-    </svg>
-  )
-}
 
 const count = (n: number) => (n >= 10_000 ? `${Math.round(n / 1000)}k` : n >= 1000 ? `${(n / 1000).toFixed(1).replace('.0', '')}k` : String(n))
 
