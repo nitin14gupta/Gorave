@@ -1,4 +1,5 @@
 import type { CreateEventForm } from '@/hooks/useCreateEvent'
+import { MAX_OFF_PCT, earlyBirdFloor, earlyBirdMaxSpots } from '@/lib/dealRules'
 
 // Rough India bounding box — Gorave only operates in India, so a pin dropped
 // outside it (map panned/dragged too far) shouldn't be publishable.
@@ -69,15 +70,17 @@ export function validateCreateEventStep(
     } else if (!form.isFree && form.priceInr < minPrice) {
       flag('priceInr', `Minimum ticket price is ₹${minPrice}`, `Minimum ticket price is ₹${minPrice}`)
     } else if (!form.isFree) {
-      if (form.earlyBirdOn && (form.earlyBirdPrice < 49 || form.earlyBirdPrice >= form.priceInr)) {
-        flag('earlyBird', `Between ₹49 and ₹${form.priceInr - 1}`, `Early bird must be between ₹49 and ₹${form.priceInr - 1}`)
-      } else if (form.earlyBirdOn && (form.earlyBirdCount < 1 || form.earlyBirdCount > form.capacity)) {
-        flag('earlyBird', `1 to ${form.capacity} tickets`, `Early bird spots must be between 1 and ${form.capacity}`)
+      const floor = earlyBirdFloor(form.priceInr)
+      const maxSpots = earlyBirdMaxSpots(form.capacity)
+      if (form.earlyBirdOn && (form.earlyBirdPrice < floor || form.earlyBirdPrice >= form.priceInr)) {
+        flag('earlyBird', `₹${floor} to ₹${form.priceInr - 1}: up to half off`, `Early bird can be ₹${floor} to ₹${form.priceInr - 1}. Up to half off keeps your full price believable.`)
+      } else if (form.earlyBirdOn && (form.earlyBirdCount < 1 || form.earlyBirdCount > maxSpots)) {
+        flag('earlyBird', `1 to ${maxSpots} tickets: up to half your capacity`, `Early bird can be 1 to ${maxSpots} tickets, up to half your capacity`)
       }
       if (form.promoOn && !/^[A-Z0-9]{3,20}$/.test(form.promoCode)) {
         flag('promo', '3 to 20 letters or numbers', 'Promo codes are 3 to 20 letters or numbers, like RIYA20')
-      } else if (form.promoOn && (form.promoPercent < 5 || form.promoPercent > 100)) {
-        flag('promo', '5% to 100% off', 'Promo code discount must be 5% to 100%')
+      } else if (form.promoOn && (form.promoPercent < 5 || form.promoPercent > MAX_OFF_PCT)) {
+        flag('promo', `5% to ${MAX_OFF_PCT}% off`, `A promo code can be 5% to ${MAX_OFF_PCT}% off. For bigger comps, add a guest-list code in Deals after publishing.`)
       }
     }
   } else if (step === 5) {

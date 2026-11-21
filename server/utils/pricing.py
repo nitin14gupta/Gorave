@@ -12,6 +12,16 @@ from typing import Optional
 from fastapi import HTTPException
 
 EARLY_BIRD_MIN_INR = 49
+# Guardrails, so deals stay deals (and the full price stays believable):
+# early bird at least half the full price, for at most half the seats; codes
+# up to 50% off, or deeper only as a small comp code (10 uses or fewer).
+MAX_OFF_PCT = 50
+COMP_MAX_USES = 10
+
+
+def early_bird_floor(full_price: int) -> int:
+    """Lowest early-bird price allowed: half the full price, never under ₹49."""
+    return max(EARLY_BIRD_MIN_INR, -(-full_price * (100 - MAX_OFF_PCT) // 100))
 
 
 def early_bird_left(cur, event: dict) -> int:

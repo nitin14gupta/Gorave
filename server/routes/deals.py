@@ -87,10 +87,12 @@ def set_early_bird(event_id: str, body: EarlyBirdBody, current_user: dict = Depe
         if body.price_inr is None:
             cur.execute("UPDATE events SET early_bird_price_inr = NULL, early_bird_count = NULL WHERE id = %s::uuid", (event_id,))
         else:
-            if not (pricing.EARLY_BIRD_MIN_INR <= body.price_inr < ev["price_inr"]):
-                raise HTTPException(status_code=400, detail=f"Early bird must be between ₹{pricing.EARLY_BIRD_MIN_INR} and ₹{ev['price_inr'] - 1}")
-            if not body.count or body.count < 1 or body.count > ev["capacity"]:
-                raise HTTPException(status_code=400, detail=f"Early bird spots must be between 1 and {ev['capacity']}")
+            floor = pricing.early_bird_floor(ev["price_inr"])
+            if not (floor <= body.price_inr < ev["price_inr"]):
+                raise HTTPException(status_code=400, detail=f"Early bird can be ₹{floor} to ₹{ev['price_inr'] - 1}. Up to half off keeps your full price believable.")
+            max_spots = max(1, ev["capacity"] // 2)
+            if not body.count or body.count < 1 or body.count > max_spots:
+                raise HTTPException(status_code=400, detail=f"Early bird can be 1 to {max_spots} tickets, up to half your capacity")
             sold = (ev["early_bird_count"] or 0) - pricing.early_bird_left(cur, ev) if ev["early_bird_count"] else 0
             if body.count < sold:
                 raise HTTPException(status_code=400, detail=f"{sold} early-bird tickets are already sold")
@@ -121,10 +123,15 @@ def create_code(event_id: str, body: CodeBody, current_user: dict = Depends(get_
         raise HTTPException(status_code=400, detail="% off must be between 5 and 100")
     if body.max_uses is not None and body.max_uses < 1:
         raise HTTPException(status_code=400, detail="Uses must be at least 1")
+    small_comp = body.max_uses is not None and body.max_uses <= pricing.COMP_MAX_USES
+    if body.percent_off is not None and body.percent_off > pricing.MAX_OFF_PCT and not small_comp:
+        raise HTTPException(status_code=400, detail=f"Over {pricing.MAX_OFF_PCT}% off needs a limit of {pricing.COMP_MAX_USES} uses or fewer, like a guest-list code")
     with get_db() as (cur, conn):
         ev = _own_paid_event(cur, event_id, current_user["id"])
         if body.amount_off is not None and not (10 <= body.amount_off <= ev["price_inr"]):
             raise HTTPException(status_code=400, detail=f"₹ off must be between ₹10 and ₹{ev['price_inr']}")
+        if body.amount_off is not None and body.amount_off * 100 > ev["price_inr"] * pricing.MAX_OFF_PCT and not small_comp:
+            raise HTTPException(status_code=400, detail=f"Over half off needs a limit of {pricing.COMP_MAX_USES} uses or fewer, like a guest-list code")
         cur.execute("SELECT 1 FROM promo_codes WHERE event_id = %s::uuid AND upper(code) = %s", (event_id, code))
         if cur.fetchone():
             raise HTTPException(status_code=409, detail="You already have that code on this event")

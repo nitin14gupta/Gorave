@@ -10,6 +10,7 @@ import { Colors, FontFamily, withOpacity } from '@/constants'
 import { usePillStore } from '@/store/pillStore'
 import { useProfile } from '@/hooks/useProfile'
 import { hSelection, hSuccess, hTap } from '@/lib/haptics'
+import { COMP_MAX_USES, MAX_OFF_PCT, earlyBirdFloor } from '@/lib/dealRules'
 
 const inr = (n: number) => `₹${n.toLocaleString('en-IN')}`
 
@@ -67,7 +68,7 @@ function EarlyBirdCard({ eventId, deals, onChange }: { eventId: string; deals: E
   const showPill = usePillStore(s => s.show)
   const eb = deals.early_bird
   const [editing, setEditing] = useState(false)
-  const [price, setPrice] = useState(eb ? String(eb.price_inr) : String(Math.max(49, Math.round(deals.price_inr * 0.6 / 10) * 10 - 1)))
+  const [price, setPrice] = useState(eb ? String(eb.price_inr) : String(Math.max(earlyBirdFloor(deals.price_inr), Math.round(deals.price_inr * 0.7 / 10) * 10 - 1)))
   const [count, setCount] = useState(eb ? String(eb.count) : '10')
   const [busy, setBusy] = useState(false)
   const [offOpen, setOffOpen] = useState(false)
@@ -125,7 +126,7 @@ function EarlyBirdCard({ eventId, deals, onChange }: { eventId: string; deals: E
               <Field label="Early bird price" prefix="₹" value={price} onChange={setPrice} />
               <Field label="How many tickets" value={count} onChange={setCount} />
             </View>
-            <Text style={s.help}>Between ₹49 and {inr(deals.price_inr - 1)}. Tickets already sold at early bird stay sold.</Text>
+            <Text style={s.help}>{inr(earlyBirdFloor(deals.price_inr))} to {inr(deals.price_inr - 1)}: up to half off keeps your full price believable. Tickets already sold at early bird stay sold.</Text>
             <View style={s.actions}>
               <PrimaryButton label="Save" size="small" onPress={save} loading={busy} style={{ flex: 1 }} />
               <Pressable style={s.ghostBtn} onPress={() => { hTap(); setEditing(false) }}><Text style={s.ghostText}>Not now</Text></Pressable>
@@ -240,7 +241,7 @@ function CodesCard({ eventId, deals, onChange, title, hostFirst }: { eventId: st
             <Field label={kind === 'percent' ? 'Percent off' : 'Amount off'} prefix={kind === 'amount' ? '₹' : undefined} suffix={kind === 'percent' ? '%' : undefined} value={value} onChange={setValue} />
             <Field label="Limit uses (optional)" value={limit} onChange={setLimit} placeholder="No limit" />
           </View>
-          <Text style={s.help}>Guests with this code pay {inr(preview)} instead of {inr(deals.price_inr)}.</Text>
+          <Text style={s.help}>Guests with this code pay {inr(preview)} instead of {inr(deals.price_inr)}.{(kind === 'percent' ? n > MAX_OFF_PCT : n * 100 > deals.price_inr * MAX_OFF_PCT) ? ` Over half off works as a guest-list code: limit it to ${COMP_MAX_USES} uses or fewer.` : ''}</Text>
           <View style={s.actions}>
             <PrimaryButton label="Create code" size="small" onPress={create} loading={busy} disabled={code.length < 3 || !n} style={{ flex: 1 }} />
             <Pressable style={s.ghostBtn} onPress={() => { hTap(); setAdding(false) }}><Text style={s.ghostText}>Cancel</Text></Pressable>

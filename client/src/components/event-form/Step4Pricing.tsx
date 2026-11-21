@@ -5,6 +5,7 @@ import { Colors, PLATFORM_FEE_INR, HOST_COMMISSION_RATE, HOST_COMMISSION_PERCENT
 import type { CreateEventForm } from '@/hooks/useCreateEvent'
 import { ef } from './styles'
 import { usePillStore } from '@/store/pillStore'
+import { MAX_OFF_PCT, earlyBirdFloor, earlyBirdMaxSpots } from '@/lib/dealRules'
 
 interface Props {
   form: CreateEventForm
@@ -128,7 +129,8 @@ function Inner({ form, set, errors, setErrors, submitError, priceLocked, priceLo
                 value={form.earlyBirdOn}
                 onValueChange={v => {
                   set('earlyBirdOn', v)
-                  if (v && !form.earlyBirdPrice) set('earlyBirdPrice', Math.max(49, Math.round(form.priceInr * 0.7 / 10) * 10 - 1))
+                  if (v && !form.earlyBirdPrice) set('earlyBirdPrice', Math.max(earlyBirdFloor(form.priceInr), Math.round(form.priceInr * 0.7 / 10) * 10 - 1))
+                  if (v) set('earlyBirdCount', Math.min(form.earlyBirdCount || 10, earlyBirdMaxSpots(form.capacity)))
                   setErrors(e => ({ ...e, earlyBird: '' }))
                 }}
                 trackColor={{ false: Colors.divider, true: Colors.inkPrimary }}
@@ -144,7 +146,7 @@ function Inner({ form, set, errors, setErrors, submitError, priceLocked, priceLo
             ) : null}
             {form.earlyBirdOn && errors.earlyBird ? <Text style={ef.errorText}>{errors.earlyBird}</Text> : null}
             {form.earlyBirdOn && !errors.earlyBird && form.earlyBirdPrice > 0 ? (
-              <Text style={s.dealNote}>First {form.earlyBirdCount} pay ₹{form.earlyBirdPrice}, then ₹{form.priceInr}.</Text>
+              <Text style={s.dealNote}>First {form.earlyBirdCount} pay ₹{form.earlyBirdPrice}, then ₹{form.priceInr}. Up to half off, for up to half the seats.</Text>
             ) : null}
 
             <View style={s.dealDivider} />
@@ -179,12 +181,12 @@ function Inner({ form, set, errors, setErrors, submitError, priceLocked, priceLo
                     />
                   </View>
                 </View>
-                <DealInput label="% off" suffix="%" value={form.promoPercent} onChange={n => { set('promoPercent', Math.min(100, n)); setErrors(e => ({ ...e, promo: '' })) }} />
+                <DealInput label="% off" suffix="%" value={form.promoPercent} onChange={n => { set('promoPercent', Math.min(MAX_OFF_PCT, n)); setErrors(e => ({ ...e, promo: '' })) }} />
               </View>
             ) : null}
             {form.promoOn && errors.promo ? <Text style={ef.errorText}>{errors.promo}</Text> : null}
             {form.promoOn && !errors.promo && form.promoPercent > 0 ? (
-              <Text style={s.dealNote}>With the code, guests pay ₹{form.priceInr - Math.round(form.priceInr * form.promoPercent / 100)}. They get the cheapest deal, never two.</Text>
+              <Text style={s.dealNote}>With the code, guests pay ₹{form.priceInr - Math.round(form.priceInr * form.promoPercent / 100)}. Up to {MAX_OFF_PCT}% off; guests get the cheapest deal, never two.</Text>
             ) : null}
           </View>
         </>
