@@ -10,7 +10,7 @@ import { getPrice } from './price'
 import { getTime } from './time'
 
 // Share cards (Open Graph + X/Twitter) for every page, drawn in the brand:
-// cream, the G mark, a Bricolage Grotesque headline with an Instrument Serif
+// cream, the Open Seat tile, a Bricolage Grotesque headline with an Instrument Serif
 // italic line in orange, trust chips and a gradient ticket. Swap in real
 // artwork later by adding an image file next to the route instead.
 

@@ -61,9 +61,15 @@ export const FACES = [
 ]
 
 export const BRAND = {
-  // The seal's orange-to-coral gradient reads on cream and on noir, so one file serves both.
-  logoDark: '/brand/seal-gradient.svg',
-  logoLight: '/brand/seal-gradient.svg',
+  // The Open Seat mark on its dark tile (like the app icon) reads on cream and on noir,
+  // so one file serves both slots.
+  logoDark: '/brand/seal.svg',
+  logoLight: '/brand/seal.svg',
+  // The bare mark, for when the background is known: black ring on cream, cream ring on noir.
+  mark: '/brand/seal-black.svg',
+  markCream: '/brand/seal-cream.svg',
+  /** width / height of the wordmark files. */
+  wordmarkAspect: 2875 / 703,
   wordmark: '/brand/wordmark-black.svg',
   wordmarkCream: '/brand/wordmark-cream.svg',
   sticker: '/brand/sticker-wordmark.svg',

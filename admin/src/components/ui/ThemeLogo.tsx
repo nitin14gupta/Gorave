@@ -1,9 +1,19 @@
 import { cn } from '@/lib/utils'
 
-/** The Gorave seal. Its orange-to-coral gradient reads on both themes. */
+/**
+ * The Open Seat mark: cream ring on the dark theme, black ring on the light
+ * one, orange dot on both. Both render and CSS picks one from <html data-theme>,
+ * so it never flashes.
+ */
 export function ThemeLogo({ className }: { className?: string }) {
-  // eslint-disable-next-line @next/next/no-img-element
-  return <img src="/brand/seal-gradient.svg" alt="Gorave" className={cn('shrink-0', className)} />
+  return (
+    <>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src="/brand/seal-cream.svg" alt="Gorave" className={cn('shrink-0 light:hidden', className)} />
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src="/brand/seal-black.svg" alt="Gorave" className={cn('hidden shrink-0 light:block', className)} />
+    </>
+  )
 }
 
 /**
