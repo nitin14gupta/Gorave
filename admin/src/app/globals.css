@@ -51,8 +51,8 @@
   --color-glass-overlay: var(--c-overlay);
 
   /* Fonts */
-  --font-sans: var(--font-satoshi), ui-sans-serif, system-ui, sans-serif;
-  --font-display: var(--font-cabinet), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-figtree), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-bricolage), ui-sans-serif, system-ui, sans-serif;
 
   /* Radius (pill uses Tailwind's built-in rounded-full = 9999px) */
   --radius-input: 12px;

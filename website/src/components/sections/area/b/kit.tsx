@@ -47,7 +47,7 @@ export function Postmark({ top, bottom, center, className, color = 'currentColor
         <circle cx="60" cy="60" r="56" />
         <circle cx="60" cy="60" r="33" strokeWidth="1.1" />
       </g>
-      <g fill={color} style={{ fontFamily: 'var(--font-satoshi), sans-serif', fontWeight: 700, letterSpacing: '0.18em' }}>
+      <g fill={color} style={{ fontFamily: 'var(--font-figtree), sans-serif', fontWeight: 700, letterSpacing: '0.18em' }}>
         <text fontSize="9.5">
           <textPath href={`#pt${id}`} startOffset="50%" textAnchor="middle">{top.toUpperCase()}</textPath>
         </text>

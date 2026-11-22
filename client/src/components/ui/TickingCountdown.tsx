@@ -11,10 +11,6 @@ interface Props {
   digitColor?: string
   fontSize?: number
   alwaysShowHours?: boolean
-  /** Match whatever font sits next to this — different typefaces have
-   * different baselines/cap-heights, so mismatched fonts can never be
-   * pixel-aligned by margin alone. Defaults to bodySemiBold (Satoshi),
-   * the usual "sits inline in a button/label" font in this app. */
   fontFamily?: string
 }
 

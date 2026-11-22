@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { cabinetGrotesk, satoshi } from "@/lib/fonts";
+import { bricolage, figtree } from "@/lib/fonts";
 import { QueryProvider } from "@/components/providers/QueryProvider";
 import { ToastOverlay } from "@/components/ui/ToastOverlay";
 
@@ -19,7 +19,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${cabinetGrotesk.variable} ${satoshi.variable} h-full antialiased`}
+      className={`${bricolage.variable} ${figtree.variable} h-full antialiased`}
       suppressHydrationWarning
     >
       <head>

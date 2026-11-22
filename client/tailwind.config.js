@@ -22,12 +22,12 @@ module.exports = {
         divider: '#2A2A2A',
       },
       fontFamily: {
-        'cabinet-extrabold': ['CabinetGrotesk-Extrabold'],
-        'cabinet-bold': ['CabinetGrotesk-Bold'],
-        'cabinet-medium': ['CabinetGrotesk-Medium'],
-        satoshi: ['Satoshi-Regular'],
-        'satoshi-medium': ['Satoshi-Medium'],
-        'satoshi-bold': ['Satoshi-Bold'],
+        'display-extrabold': ['BricolageGrotesque-ExtraBold'],
+        'display-bold': ['BricolageGrotesque-Bold'],
+        'display-medium': ['BricolageGrotesque-Medium'],
+        body: ['Figtree-Regular'],
+        'body-medium': ['Figtree-Medium'],
+        'body-bold': ['Figtree-Bold'],
       },
       fontSize: {
         'display-xl': ['72px', { lineHeight: '72px', letterSpacing: '-0.03em' }],

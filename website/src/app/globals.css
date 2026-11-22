@@ -31,8 +31,8 @@
   --color-sky: #dce6f2;
   --color-sky-ink: #131e2a;
 
-  --font-display: var(--font-cabinet), ui-sans-serif, system-ui, sans-serif;
-  --font-sans: var(--font-satoshi), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-bricolage), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-figtree), ui-sans-serif, system-ui, sans-serif;
   --font-serif: var(--font-instrument), Georgia, serif;
 
   --shadow-soft: 0 1px 0 rgb(23 19 16 / 0.04), 0 24px 60px -28px rgb(23 19 16 / 0.28);

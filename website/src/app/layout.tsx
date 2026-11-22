@@ -7,21 +7,24 @@ import "./globals.css";
 import { SmoothScroll } from "@/components/motion/SmoothScroll";
 import { SmartNavbar } from "@/components/layout/SmartNavbar";
 
-const cabinet = localFont({
-  variable: "--font-cabinet",
+// Bricolage Grotesque for headings (the logo's face), Figtree for text.
+// Same fixed-weight cuts as the app (docs/brand/cut_fonts.py).
+const bricolage = localFont({
+  variable: "--font-bricolage",
   src: [
-    { path: "./fonts/CabinetGrotesk-Medium.otf", weight: "500" },
-    { path: "./fonts/CabinetGrotesk-Bold.otf", weight: "700" },
-    { path: "./fonts/CabinetGrotesk-Extrabold.otf", weight: "800" },
+    { path: "./fonts/BricolageGrotesque-Medium.woff2", weight: "500" },
+    { path: "./fonts/BricolageGrotesque-Bold.woff2", weight: "700" },
+    { path: "./fonts/BricolageGrotesque-ExtraBold.woff2", weight: "800" },
   ],
 });
 
-const satoshi = localFont({
-  variable: "--font-satoshi",
+const figtree = localFont({
+  variable: "--font-figtree",
   src: [
-    { path: "./fonts/Satoshi-Regular.otf", weight: "400" },
-    { path: "./fonts/Satoshi-Medium.otf", weight: "500" },
-    { path: "./fonts/Satoshi-Bold.otf", weight: "700" },
+    { path: "./fonts/Figtree-Regular.woff2", weight: "400" },
+    { path: "./fonts/Figtree-Medium.woff2", weight: "500" },
+    { path: "./fonts/Figtree-SemiBold.woff2", weight: "600" },
+    { path: "./fonts/Figtree-Bold.woff2", weight: "700" },
   ],
 });
 
@@ -60,7 +63,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${cabinet.variable} ${satoshi.variable} ${instrument.variable}`}>
+    <html lang="en" className={`${bricolage.variable} ${figtree.variable} ${instrument.variable}`}>
       <body className="bg-cream text-ink">
         <SmoothScroll>
           <SmartNavbar />

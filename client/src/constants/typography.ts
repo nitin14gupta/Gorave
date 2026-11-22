@@ -1,12 +1,12 @@
 import { Colors } from './colors'
 
 export const FontFamily = {
-  displayExtraBold: 'CabinetGrotesk-Extrabold', // 800 — wordmark, hero titles
-  headingBold: 'CabinetGrotesk-Bold',            // 700 — screen titles, headings
-  headingMedium: 'CabinetGrotesk-Medium',        // 500 — sub-headers (no SemiBold in font set)
-  bodyRegular: 'Satoshi-Regular',                // 400 — descriptions, long-form
-  bodyMedium: 'Satoshi-Medium',                  // 500 — body emphasis, labels
-  bodySemiBold: 'Satoshi-Bold',                  // 700 — buttons, chips (sub for SemiBold)
+  displayExtraBold: 'BricolageGrotesque-ExtraBold', // 800 — hero titles, big numbers (the logo's face)
+  headingBold: 'BricolageGrotesque-Bold',            // 700 — screen titles, headings
+  headingMedium: 'BricolageGrotesque-Medium',        // 500 — sub-headers
+  bodyRegular: 'Figtree-Regular',                    // 400 — descriptions, long-form
+  bodyMedium: 'Figtree-Medium',                      // 500 — body emphasis, labels
+  bodySemiBold: 'Figtree-Bold',                      // 700 — buttons, chips, prices
 } as const
 
 export const TextStyles = {

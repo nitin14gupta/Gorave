@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react'
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native'
 import { Bird, Plus, Tag, X } from 'lucide-react-native'
-import { Colors, PLATFORM_FEE_INR, HOST_COMMISSION_RATE, HOST_COMMISSION_PERCENT_LABEL, withOpacity } from '@/constants'
+import { Colors, FontFamily, PLATFORM_FEE_INR, HOST_COMMISSION_RATE, HOST_COMMISSION_PERCENT_LABEL, withOpacity } from '@/constants'
 import type { CreateEventForm } from '@/hooks/useCreateEvent'
 import { ef } from './styles'
 import { usePillStore } from '@/store/pillStore'
@@ -236,14 +236,14 @@ export function Step4Pricing({ scrollable = true, ...props }: Props) {
 const s = StyleSheet.create({
   dealHead: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   dealIcon: { width: 34, height: 34, borderRadius: 17, backgroundColor: withOpacity(Colors.inkPrimary, 0.08), alignItems: 'center', justifyContent: 'center' },
-  dealTitle: { fontFamily: 'Satoshi-Bold', fontSize: 15, color: Colors.inkPrimary },
-  dealSub: { fontFamily: 'Satoshi-Regular', fontSize: 12, color: Colors.inkSecondary, marginTop: 1 },
+  dealTitle: { fontFamily: FontFamily.bodySemiBold, fontSize: 15, color: Colors.inkPrimary },
+  dealSub: { fontFamily: FontFamily.bodyRegular, fontSize: 12, color: Colors.inkSecondary, marginTop: 1 },
   dealFields: { flexDirection: 'row', gap: 10, marginTop: 12 },
-  dealLabel: { fontFamily: 'Satoshi-Medium', fontSize: 12, color: Colors.inkSecondary },
+  dealLabel: { fontFamily: FontFamily.bodyMedium, fontSize: 12, color: Colors.inkSecondary },
   dealInput: { flexDirection: 'row', alignItems: 'center', height: 46, paddingHorizontal: 12, borderRadius: 12, backgroundColor: withOpacity(Colors.inkPrimary, 0.06), gap: 4 },
-  dealText: { flex: 1, fontFamily: 'CabinetGrotesk-Bold', fontSize: 17, color: Colors.inkPrimary, paddingVertical: 0 },
-  dealAffix: { fontFamily: 'CabinetGrotesk-Bold', fontSize: 17, color: Colors.inkSecondary },
-  dealNote: { fontFamily: 'Satoshi-Medium', fontSize: 12, color: Colors.inkSecondary, marginTop: 8 },
+  dealText: { flex: 1, fontFamily: FontFamily.headingBold, fontSize: 17, color: Colors.inkPrimary, paddingVertical: 0 },
+  dealAffix: { fontFamily: FontFamily.headingBold, fontSize: 17, color: Colors.inkSecondary },
+  dealNote: { fontFamily: FontFamily.bodyMedium, fontSize: 12, color: Colors.inkSecondary, marginTop: 8 },
   dealDivider: { height: StyleSheet.hairlineWidth, backgroundColor: Colors.divider, marginVertical: 14 },
   lockedSection: { opacity: 0.45 },
   uploadOverlay: {
@@ -257,7 +257,7 @@ const s = StyleSheet.create({
     borderRadius: 10, padding: 12, marginTop: 12,
     borderWidth: 1, borderColor: Colors.destructive,
   },
-  submitErrorText: { color: Colors.destructive, fontFamily: 'Satoshi-Medium', fontSize: 13 },
+  submitErrorText: { color: Colors.destructive, fontFamily: FontFamily.bodyMedium, fontSize: 13 },
   freeDisabled: { opacity: 0.35 },
   feeBreakdown: {
     marginTop: 10,
@@ -267,7 +267,7 @@ const s = StyleSheet.create({
   },
   feeBreakdownText: {
     color: Colors.glassTextSecondary,
-    fontFamily: 'Satoshi-Regular',
+    fontFamily: FontFamily.bodyRegular,
     fontSize: 12,
     lineHeight: 17,
   },

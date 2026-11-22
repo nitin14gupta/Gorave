@@ -166,7 +166,7 @@ function Table({ types, filled, label }: { types: Seat[]; filled: number; label:
             >
               <circle cx={s.x} cy={s.y} r={30} style={{ fill: COLORS[types[j]], transition: `fill .5s ${EASE_CSS}` }} />
               {label && (
-                <text x={s.x} y={s.y + 6} textAnchor="middle" fontSize={17} fontWeight={800} fill="#171310" style={{ fontFamily: 'var(--font-cabinet), sans-serif' }}>
+                <text x={s.x} y={s.y + 6} textAnchor="middle" fontSize={17} fontWeight={800} fill="#171310" style={{ fontFamily: 'var(--font-bricolage), sans-serif' }}>
                   {label}
                 </text>
               )}
@@ -217,14 +217,14 @@ function AgeGate({ gate, age, onHover }: { gate: number; age: number; onHover: (
           <g key={t}>
             <line x1={ax(t)} x2={ax(t)} y1={80} y2={t % 2 === 0 ? 92 : 86} stroke="#171310" strokeOpacity={0.35} />
             {(t === 18 || t === 30 || t === 35 || t === 40 || t === gate) && (
-              <text x={ax(t)} y={112} textAnchor="middle" fontSize={15} fontWeight={700} fill="#4A423A" style={{ fontFamily: 'var(--font-satoshi), sans-serif' }}>
+              <text x={ax(t)} y={112} textAnchor="middle" fontSize={15} fontWeight={700} fill="#4A423A" style={{ fontFamily: 'var(--font-figtree), sans-serif' }}>
                 {t === 40 ? '40+' : t}
               </text>
             )}
           </g>
         ))}
         <line x1={ax(gate)} x2={ax(gate)} y1={20} y2={96} stroke="#171310" strokeWidth={3} />
-        <text x={ax(gate) + 10} y={34} fontSize={15} fontWeight={800} fill="#171310" style={{ fontFamily: 'var(--font-satoshi), sans-serif' }}>
+        <text x={ax(gate) + 10} y={34} fontSize={15} fontWeight={800} fill="#171310" style={{ fontFamily: 'var(--font-figtree), sans-serif' }}>
           THE GATE: {gate}+
         </text>
         <motion.g initial={false} animate={{ x: ax(age) }} transition={{ type: 'spring', stiffness: 260, damping: 30 }}>
