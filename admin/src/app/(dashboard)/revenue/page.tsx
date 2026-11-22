@@ -24,6 +24,7 @@ import { chartColors } from '@/lib/chartColors'
 import { formatInr } from '@/lib/formatters'
 import { toCsv, downloadCsv } from '@/lib/csv'
 import { useToast } from '@/hooks/useToast'
+import { FONT } from '@/constants/fonts'
 
 function formatDayTick(day: string) {
   return new Date(day).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
@@ -84,7 +85,7 @@ function OverviewTab() {
                   tickFormatter={(v: number) => `₹${v}`}
                 />
                 <Tooltip
-                  contentStyle={{ background: c.surface, border: '1px solid var(--c-divider)', borderRadius: 10, fontSize: 13, fontFamily: 'var(--font-figtree)' }}
+                  contentStyle={{ background: c.surface, border: '1px solid var(--c-divider)', borderRadius: 10, fontSize: 13, fontFamily: FONT.body }}
                   labelFormatter={(label) => formatDayTick(String(label))}
                   labelStyle={{ color: c.textSecondary }}
                   formatter={(value) => [`₹${Number(value).toLocaleString()}`, undefined]}

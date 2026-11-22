@@ -19,6 +19,7 @@ import { useAdminActivityQuery } from '@/hooks/useReports'
 import { chartColors, STATUS_COLOR } from '@/lib/chartColors'
 import { formatInr, formatRelative } from '@/lib/formatters'
 import { ACTION_LABELS, targetHref } from '@/lib/auditLog'
+import { FONT } from '@/constants/fonts'
 
 function formatDayTick(day: string) {
   const d = new Date(day)
@@ -86,7 +87,7 @@ export default function DashboardPage() {
                   />
                   <YAxis allowDecimals={false} tick={{ fill: c.muted, fontSize: 12 }} axisLine={false} tickLine={false} />
                   <Tooltip
-                    contentStyle={{ background: c.surface, border: '1px solid var(--c-divider)', borderRadius: 10, fontSize: 13, fontFamily: 'var(--font-figtree)' }}
+                    contentStyle={{ background: c.surface, border: '1px solid var(--c-divider)', borderRadius: 10, fontSize: 13, fontFamily: FONT.body }}
                     labelFormatter={(label) => formatDayTick(String(label))}
                     labelStyle={{ color: c.textSecondary }}
                   />
@@ -121,7 +122,7 @@ export default function DashboardPage() {
                   />
                   <Tooltip
                     cursor={{ fill: 'var(--c-glass)' }}
-                    contentStyle={{ background: c.surface, border: '1px solid var(--c-divider)', borderRadius: 10, fontSize: 13, fontFamily: 'var(--font-figtree)' }}
+                    contentStyle={{ background: c.surface, border: '1px solid var(--c-divider)', borderRadius: 10, fontSize: 13, fontFamily: FONT.body }}
                     labelStyle={{ color: c.textSecondary }}
                     formatter={(value) => [value, 'Events']}
                   />
@@ -152,7 +153,7 @@ export default function DashboardPage() {
                     tickFormatter={(v: number) => `₹${v}`}
                   />
                   <Tooltip
-                    contentStyle={{ background: c.surface, border: '1px solid var(--c-divider)', borderRadius: 10, fontSize: 13, fontFamily: 'var(--font-figtree)' }}
+                    contentStyle={{ background: c.surface, border: '1px solid var(--c-divider)', borderRadius: 10, fontSize: 13, fontFamily: FONT.body }}
                     labelFormatter={(label) => formatDayTick(String(label))}
                     labelStyle={{ color: c.textSecondary }}
                     formatter={(value) => [`₹${Number(value).toLocaleString()}`, undefined]}
@@ -186,7 +187,7 @@ export default function DashboardPage() {
                   />
                   <Tooltip
                     cursor={{ fill: 'var(--c-glass)' }}
-                    contentStyle={{ background: c.surface, border: '1px solid var(--c-divider)', borderRadius: 10, fontSize: 13, fontFamily: 'var(--font-figtree)' }}
+                    contentStyle={{ background: c.surface, border: '1px solid var(--c-divider)', borderRadius: 10, fontSize: 13, fontFamily: FONT.body }}
                     labelStyle={{ color: c.textSecondary }}
                     formatter={(value) => [value, 'Tickets']}
                   />

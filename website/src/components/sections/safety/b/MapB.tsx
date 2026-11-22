@@ -5,6 +5,7 @@ import { motion, useMotionValueEvent, useScroll, useTransform } from 'motion/rea
 import { DEMO_EVENT } from '@/lib/safety'
 import { Chapter } from '@/components/ui/atoms'
 import { cn } from '@/lib/cn'
+import { FONT } from '@/constants'
 
 // Map board in viewBox units.
 const C = { x: 560, y: 300 } // centre of the public circle
@@ -91,7 +92,7 @@ export function MapB() {
               />
               <motion.g style={{ opacity: areaLabel }}>
                 <rect x={C.x - 120} y={C.y + 186} width={240} height={36} rx={18} fill="#F5F0EB" />
-                <text x={C.x} y={C.y + 210} textAnchor="middle" fontSize={16} fontWeight={700} fill="#171310" style={{ fontFamily: "var(--font-figtree)" }}>Bandra West · approx. 1 km</text>
+                <text x={C.x} y={C.y + 210} textAnchor="middle" fontSize={16} fontWeight={700} fill="#171310" style={{ fontFamily: FONT.body }}>Bandra West · approx. 1 km</text>
               </motion.g>
               <motion.g style={{ opacity: pin, y: pinY }}>
                 <path d={`M${PIN.x} ${PIN.y} c-14 -16 -20 -26 -20 -36 a20 20 0 0 1 40 0 c0 10 -6 20 -20 36 Z`} fill="#FF3864" />
