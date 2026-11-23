@@ -13,9 +13,7 @@ const CARD_GAP = 12
 const INSTAGRAM_GORAVE_IMG = require('../../../assets/promo/instagramXgorave.png')
 const CALENDAR_GORAVE_IMG = require('../../../assets/promo/calenderXgorave.png')
 const HOST_GORAVE_IMG = require('../../../assets/promo/hostXgorave.png')
-// TODO: swap for a dedicated safety-promo graphic — reusing the Instagram
-// card's image as a placeholder until one's provided.
-const SAFETY_GORAVE_IMG = INSTAGRAM_GORAVE_IMG
+const SAFETY_GORAVE_IMG = require('../../../assets/promo/safetyXgorave.png')
 
 interface PromoCardData {
   key: string
