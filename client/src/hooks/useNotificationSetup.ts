@@ -9,7 +9,11 @@ import ApiService from '@/api/apiService'
 import { EAS_PROJECT_ID } from '@/api/config'
 import { pushDataToTarget } from '@/lib/deepLink'
 import { navigateToTarget } from '@/hooks/useDeepLinkRouter'
-import { Colors } from '@/constants'
+import { CacheKeys, Colors } from '@/constants'
+import { markStale } from '@/lib/queryCache'
+
+// Pushes that have nothing to do with your events (Home leaves its lists alone).
+const NOT_ABOUT_MY_EVENTS = new Set(['conversation', 'vibe', 'profile', 'month_recap'])
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -90,10 +94,13 @@ export function useNotificationSetup() {
     // Foreground arrival (app already open, no tap involved) — resync the
     // unread count right away instead of waiting for the Home tab to next
     // gain focus, so the header's attention-pop fires live like Instagram's.
-    const receivedSub = Notifications.addNotificationReceivedListener(() => {
-      // Any push may be about your events (edited, cancelled, accepted,
-      // checked in), so Home re-reads them next time.
-      invalidateMyEvents()
+    const receivedSub = Notifications.addNotificationReceivedListener(n => {
+      // A push about your events (edited, cancelled, accepted, checked in):
+      // Home refreshes them behind what it's showing. Chats and vibes aren't
+      // about your events, so they leave them alone.
+      const type = (n.request.content.data as { type?: string } | undefined)?.type
+      if (!type || !NOT_ABOUT_MY_EVENTS.has(type)) invalidateMyEvents()
+      if (type === 'host_verification' || type === 'host_onboarding_complete') markStale(CacheKeys.hostVerification)
       useNotifStore.getState().hydrate().then(() => {
         ApiService.getUnreadNotificationCount()
           .then(fresh => useNotifStore.getState().syncUnreadCount(fresh))

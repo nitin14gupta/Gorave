@@ -5,7 +5,8 @@ import Animated, { FadeIn } from 'react-native-reanimated'
 import { AlertCircle, BadgeCheck, ChevronRight, Clock, LifeBuoy } from 'lucide-react-native'
 import ApiService, { type HostVerification } from '@/api/apiService'
 import { hTap } from '@/lib/haptics'
-import { Colors, FontFamily, withOpacity } from '@/constants'
+import { CacheKeys, Colors, FontFamily, withOpacity } from '@/constants'
+import { getOrFetch } from '@/lib/queryCache'
 
 /**
  * Where you are on the way to hosting, on Home: being checked, not approved,
@@ -15,10 +16,15 @@ import { Colors, FontFamily, withOpacity } from '@/constants'
 export function HostStatusCard({ onboarded }: { onboarded: boolean }) {
   const [v, setV] = useState<HostVerification | null>(null)
 
-  // Fresh every time Home is shown, so the approval push is already reflected.
+  // Once you're set up to host there's never anything to show: no request at
+  // all. Otherwise cached: a minute while your PAN is being checked (you're
+  // waiting on it), a few hours otherwise. The approval push marks it stale.
   useFocusEffect(useCallback(() => {
-    ApiService.getHostVerification().then(setV).catch(() => {})
-  }, []))
+    if (onboarded) return
+    getOrFetch(CacheKeys.hostVerification, () => ApiService.getHostVerification(), {
+      ttlMs: r => (r?.status === 'review' ? 60_000 : 6 * 60 * 60_000),
+    }).then(setV).catch(() => {})
+  }, [onboarded]))
 
   if (!v) return null
   let card: { tone: 'neutral' | 'warn' | 'good'; Icon: typeof Clock; title: string; body: string; href: string } | null = null

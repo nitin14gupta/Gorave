@@ -1,13 +1,7 @@
 import type { EventSummary } from '@/api/apiService'
 import { CacheKeys } from '@/constants/cacheKeys'
-import { getOrFetch, invalidate, peekCached, peekEntry } from './queryCache'
+import { getOrFetch, markStale, peekCached, peekEntry } from './queryCache'
 import { parseServerDate } from './dates'
-
-// Your own event lists (going, hosting, waitlisted, requested) power Home's
-// sections. They're saved on the phone so Home opens instantly, and they stay
-// good until the next moment something has to move: an event starting (into
-// Happening now) or ending (into Rate your nights). Anything you change, and
-// any push about your events, throws them away so the next look is fresh.
 
 export const MY_EVENT_KEYS = [
   CacheKeys.homeJoinedEvents,
@@ -57,9 +51,9 @@ export async function fetchMine(
   return refresh(key, fetcher)
 }
 
-/** Something about your events changed: next look fetches fresh. */
+/** Something about your events changed: keep showing them, refresh in the background. */
 export function invalidateMyEvents(): void {
-  for (const k of MY_EVENT_KEYS) invalidate(k)
+  for (const k of MY_EVENT_KEYS) markStale(k)
 }
 
 /**

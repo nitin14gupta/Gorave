@@ -11,6 +11,9 @@ export const CacheKeys = {
   /** The chat: prefix keeps it encrypted on disk. */
   eventChat: (eventId: string) => `chat:event:${eventId}`,
 
+  /** Where you are on the way to hosting (Home's host status card). */
+  hostVerification: 'host:verification',
+
   /** No userId → the signed-in user's own profile. */
   profile: (userId?: string) => (userId ? `profile:${userId}` : 'profile:me'),
 

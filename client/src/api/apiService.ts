@@ -3,6 +3,8 @@ import { API_BASE_URL, WS_BASE_URL, ENDPOINTS, DEFAULT_HEADERS, createAuthHeader
 import { afterSmsOtpSent, prepareSmsOtp, type AutofillMode } from '@/lib/smsOtp'
 import { invalidateMyEvents } from '@/lib/myEventsCache'
 import { bumpMyVibing } from '@/lib/myProfileCache'
+import { setCached } from '@/lib/queryCache'
+import { CacheKeys } from '@/constants/cacheKeys'
 import { rememberConversations } from '@/lib/chatPartnerCache'
 import { useAuthStore } from '@/store/auth'
 import { useLockStore } from '@/store/lockStore'
@@ -194,6 +196,13 @@ function friendlyErrorMessage(status: number, err: any): string {
 function errorCode(err: any): string | undefined {
   const c = err?.detail?.code
   return typeof c === 'string' ? c : undefined
+}
+
+// Your host verification as last seen, for Home's status card: a minute while
+// it's being checked, a few hours otherwise (see HostStatusCard).
+function rememberHostVerification(v: HostVerification): HostVerification {
+  setCached(CacheKeys.hostVerification, v, v?.status === 'review' ? 60_000 : 6 * 60 * 60_000)
+  return v
 }
 
 // A change to your events or a payment makes Home's cached lists stale.
@@ -643,9 +652,14 @@ class ApiService {
     return this.post<AccountAppealState>('/account-appeal', body)
   }
 
-  static getHostVerification() { return this.get<HostVerification>('/host-verification') }
+  // Both keep Home's host status card in step (it reads CacheKeys.hostVerification).
+  static getHostVerification() {
+    return this.get<HostVerification>('/host-verification').then(rememberHostVerification)
+  }
   /** Checks the PAN with the Income Tax records, then an admin reviews it. */
-  static submitPan(pan: string) { return this.post<HostVerification>('/host-verification/pan', { pan, consent: true }) }
+  static submitPan(pan: string) {
+    return this.post<HostVerification>('/host-verification/pan', { pan, consent: true }).then(rememberHostVerification)
+  }
 
   static getEventChats() { return this.get<EventChatRow[]>('/event-chats') }
   static getEventChat(eventId: string) { return this.get<EventChat>(`/event-chats/${eventId}`) }
