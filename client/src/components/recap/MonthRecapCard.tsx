@@ -3,6 +3,7 @@ import { View, Text, Pressable, StyleSheet } from 'react-native'
 import { Image } from 'expo-image'
 import { Colors, FontFamily, Lockup, MarkCream, BRAND_ASPECT } from '@/constants'
 import type { MonthRecap, MonthRecapNearby } from '@/types/api'
+import { PrimaryButton } from '@/components/ui/PrimaryButton'
 
 // "Your month on Gorave", drawn as a 9:16 story card so it can be captured and
 // shared as-is. Designed at 1080 x 1920 and scaled to `width`; every size below
@@ -122,9 +123,9 @@ export const MonthRecapCard = forwardRef<View, Props>(({ recap, width, onOpenEve
               {recap.met_going === 1 ? 'Someone you partied with is going to one of these.' : `${recap.met_going} people you partied with are going to one of these.`}
             </Text>
           ) : null}
-          <Pressable style={st.cta} onPress={onBrowse}>
-            <Text style={st.ctaText}>{"See what's on this weekend"}</Text>
-          </Pressable>
+          <View style={st.cta}>
+            <PrimaryButton label="See what's on this weekend" onPress={() => onBrowse?.()} />
+          </View>
         </>
       )}
     </View>
@@ -180,7 +181,6 @@ function makeStyles(z: (n: number) => number) {
     evMeta: { fontFamily: FontFamily.bodyRegular, fontSize: z(28), color: Colors.inkSecondary },
     evPrice: { fontFamily: FontFamily.bodySemiBold, color: Colors.brandOrange },
     note: { position: 'absolute', left: pad, right: pad, top: z(1560), fontFamily: FontFamily.bodyRegular, fontSize: z(30), color: Colors.inkSecondary, textAlign: 'center' },
-    cta: { position: 'absolute', left: pad, right: pad, bottom: z(84), height: z(116), borderRadius: z(30), backgroundColor: Colors.brandOrange, alignItems: 'center', justifyContent: 'center' },
-    ctaText: { fontFamily: FontFamily.bodySemiBold, fontSize: z(38), color: Colors.inkOnAccent },
+    cta: { position: 'absolute', left: pad, right: pad, bottom: z(84) },
   })
 }

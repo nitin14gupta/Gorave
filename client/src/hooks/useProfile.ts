@@ -1,17 +1,21 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useCallback } from 'react'
 import { useFocusEffect } from 'expo-router'
 import { getMe, getProfile, followUser, unfollowUser } from '@/api/user'
 import type { ProfileResponse } from '@/api/user'
-import { peekCached, setCached } from '@/lib/queryCache'
+import { peekCached, peekEntry, setCached } from '@/lib/queryCache'
 import { CacheKeys } from '@/constants'
+import { MY_PROFILE_TTL_MS } from '@/lib/myProfileCache'
 import { usePillStore } from '@/store/pillStore'
 
-// "Own profile" barely changes between one tab visit and the next, so
-// blocking on a full network round-trip (and a BrandedLoader flash) every
-// single time you tap the Profile tab is wasted wait. Stale-while-revalidate:
-// paint whatever we last knew instantly, still refetch every focus like
-// before, just don't blank the screen to do it.
+// Paint whatever we last knew instantly, never blank the screen to refetch.
+//
+// Your own profile: your bio, details, photos and voice intro only change when
+// you change them, and every such call marks the cache out of date (api/user.ts
+// `mine`), so a visit only refetches after an edit, or once the copy is
+// OWN_TTL_MS old to pick up what others change (followers, badges, verified).
+// Pull to refresh always fetches. Someone else's profile refetches every visit.
 const cacheKey = CacheKeys.profile
+const OWN_TTL_MS = MY_PROFILE_TTL_MS
 
 // Two separate useProfile() instances exist for the same "me" profile — the
 // tab-bar layout (avatar) and the Profile screen itself — and both refetch on
@@ -47,7 +51,7 @@ export function useProfile(userId?: string) {
     try {
       const data = await fetchProfileDeduped(key, userId)
       setProfile(data)
-      setCached(key, data)
+      setCached(key, data, userId ? undefined : OWN_TTL_MS)
     } catch (e: any) {
       // A transient failure shouldn't wipe a perfectly good cached profile
       // that's already on screen — only surface the error if we've got nothing.
@@ -59,8 +63,22 @@ export function useProfile(userId?: string) {
 
   useFocusEffect(
     useCallback(() => {
-      fetch()
-    }, [fetch])
+      if (!isOwn) {
+        fetch()
+        return
+      }
+      let alive = true
+      peekEntry<ProfileResponse>(key).then(entry => {
+        if (!alive) return
+        if (entry?.fresh) {
+          setProfile(entry.value)
+          setLoading(false)
+        } else {
+          fetch()
+        }
+      })
+      return () => { alive = false }
+    }, [fetch, isOwn, key])
   )
 
   const followToggle = async () => {

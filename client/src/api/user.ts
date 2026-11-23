@@ -1,32 +1,44 @@
 import ApiService from './apiService'
+import { markMyProfileStale } from '@/lib/myProfileCache'
 export type { UserResponse, PhotoResponse, CityResponse, ProfileResponse, InterestResponse } from './apiService'
 
+// Your own profile is cached on the phone (lib/myProfileCache). Anything here
+// that changes it marks that copy out of date once it succeeds, so the next
+// time the profile shows it refetches in the background, whichever screen made
+// the edit. Add any new "change my profile" call through `mine`.
+function mine<T>(request: Promise<T>): Promise<T> {
+  return request.then(result => {
+    markMyProfileStale()
+    return result
+  })
+}
+
 export const createProfile = (data: { name: string; dob: string; gender: string; bio?: string }) =>
-  ApiService.createProfile(data)
+  mine(ApiService.createProfile(data))
 
 export const updateProfile = (data: { name?: string; username?: string; dob?: string; gender?: string; bio?: string; badges?: string[] }) =>
-  ApiService.updateProfile(data)
+  mine(ApiService.updateProfile(data))
 
 export const setInterests = (interests: string[]) =>
-  ApiService.setInterests(interests)
+  mine(ApiService.setInterests(interests))
 
 export const setLocation = (city: string, lat: number, lng: number) =>
-  ApiService.setLocation(city, lat, lng)
+  mine(ApiService.setLocation(city, lat, lng))
 
 export const getMe = () => ApiService.getMe()
 
 export const uploadPhoto = (uri: string, position: number) =>
-  ApiService.uploadPhoto(uri, position)
+  mine(ApiService.uploadPhoto(uri, position))
 
-export const deletePhoto = (id: string) => ApiService.deletePhoto(id)
+export const deletePhoto = (id: string) => mine(ApiService.deletePhoto(id))
 
 export const swapPhotos = (positionA: number, positionB: number) =>
-  ApiService.swapPhotos(positionA, positionB)
+  mine(ApiService.swapPhotos(positionA, positionB))
 
 export const reorderPhotos = (updates: { id: string; position: number }[]) =>
-  ApiService.reorderPhotos(updates)
+  mine(ApiService.reorderPhotos(updates))
 
-export const uploadVoice = (uri: string) => ApiService.uploadVoice(uri)
+export const uploadVoice = (uri: string) => mine(ApiService.uploadVoice(uri))
 
 export const getCities = () => ApiService.getCities()
 export const getInterests = () => ApiService.getInterests()

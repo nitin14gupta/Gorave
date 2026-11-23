@@ -2,6 +2,7 @@ import * as FileSystem from 'expo-file-system/legacy'
 import { API_BASE_URL, WS_BASE_URL, ENDPOINTS, DEFAULT_HEADERS, createAuthHeader } from './config'
 import { afterSmsOtpSent, prepareSmsOtp, type AutofillMode } from '@/lib/smsOtp'
 import { invalidateMyEvents } from '@/lib/myEventsCache'
+import { bumpMyVibing } from '@/lib/myProfileCache'
 import { rememberConversations } from '@/lib/chatPartnerCache'
 import { useAuthStore } from '@/store/auth'
 import { useLockStore } from '@/store/lockStore'
@@ -499,11 +500,13 @@ class ApiService {
   static async followUser(userId: string): Promise<void> {
     const endpoint = ENDPOINTS.FOLLOW_USER.replace(':id', userId)
     await this.post<{ ok: boolean }>(endpoint, {})
+    bumpMyVibing(1)
   }
 
   static async unfollowUser(userId: string): Promise<void> {
     const endpoint = ENDPOINTS.FOLLOW_USER.replace(':id', userId)
     await this.delete<{ ok: boolean }>(endpoint)
+    bumpMyVibing(-1)
   }
 
   static async getFollowers(userId: string, limit = 20, offset = 0): Promise<FollowsPage> {

@@ -13,6 +13,7 @@ import { eventDateParts } from '@/components/events/EventCard'
 import { EventRail, useProfileActivity } from '@/components/profile/ProfileActivity'
 import { ProfileBioVoiceCard } from '@/components/profile/ProfileBioVoiceCard'
 import { ProfileDetailsChips } from '@/components/profile/ProfileDetailsChips'
+import { MonthRecapTile } from '@/components/profile/MonthRecapTile'
 
 export interface MeViewProps {
   profile: ProfileResponse
@@ -101,6 +102,7 @@ export function MeSections(p: MeViewProps & { nights: ReturnType<typeof useMyNig
 
       {restGoing.length ? <View style={s.card}><EventRail title="ALSO GOING" events={restGoing} name={pr.name ?? 'You'} /></View> : null}
       {hostingEvents.length ? <View style={s.card}><EventRail title="YOU'RE HOSTING" events={hostingEvents} name={pr.name ?? 'You'} /></View> : null}
+      <MonthRecapTile />
 
       <ProfileBioVoiceCard bio={pr.bio ?? null} voiceUrl={pr.voice_url ?? null} playing={p.voicePlaying} onTogglePlay={p.onToggleVoice} />
       <ProfileDetailsChips badges={pr.badges ?? []} interests={pr.interests ?? []} />

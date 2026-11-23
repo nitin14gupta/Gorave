@@ -18,6 +18,7 @@ interface NotifState {
    *  popNonce accordingly. */
   syncUnreadCount: (fresh: number) => void
   markAllRead: () => void
+  markSeen: () => void
 }
 
 export const useNotifStore = create<NotifState>((set, get) => ({
@@ -52,6 +53,11 @@ export const useNotifStore = create<NotifState>((set, get) => ({
   },
 
   markAllRead: () => {
+    set({ unreadCount: 0, lastSeenCount: 0 })
+    AsyncStorage.setItem(LAST_SEEN_KEY, '0').catch(() => {})
+  },
+
+  markSeen: () => {
     set({ unreadCount: 0, lastSeenCount: 0 })
     AsyncStorage.setItem(LAST_SEEN_KEY, '0').catch(() => {})
   },

@@ -29,6 +29,14 @@ TYPE_LABEL = {"house_party": "House parties", "rooftop": "Rooftops", "game_night
 PUSH_BATCH = 500  # per run; the loop comes back every 15 minutes
 
 
+def attended(a: str) -> str:
+    """`a` (an event_attendees alias) went: they were scanned in, or they held a
+    going spot at a night where the host scanned nobody (many hosts of house
+    parties don't use check-in). When a host does scan, no-shows don't count."""
+    return (f"({a}.status = 'going' AND ({a}.checked_in_at IS NOT NULL OR NOT EXISTS ("
+            f"SELECT 1 FROM event_attendees ci WHERE ci.event_id = {a}.event_id AND ci.checked_in_at IS NOT NULL)))")
+
+
 def previous_month(now: Optional[datetime] = None) -> str:
     local = (now or datetime.now(timezone.utc)).astimezone(IST)
     first = local.replace(day=1)
@@ -97,11 +105,11 @@ def build_recap(cur, user_id: str, month: str) -> Optional[dict]:
 
     # Nights out: checked in, not cancelled, started this month.
     cur.execute(
-        """
+        f"""
         SELECT e.id::text AS id, e.title, e.area, e.event_type, e.date_time, e.cover_photos
         FROM event_attendees ea JOIN events e ON e.id = ea.event_id
-        WHERE ea.user_id = %(me)s::uuid AND ea.status = 'going' AND ea.checked_in_at IS NOT NULL
-          AND NOT e.is_cancelled AND e.date_time >= %(s)s AND e.date_time < %(e)s
+        WHERE ea.user_id = %(me)s::uuid AND {attended('ea')}
+          AND NOT e.is_cancelled AND e.date_time >= %(s)s AND e.date_time < LEAST(%(e)s, NOW())
         ORDER BY e.date_time DESC
         """, p)
     nights = cur.fetchall()
@@ -137,7 +145,7 @@ def build_recap(cur, user_id: str, month: str) -> Optional[dict]:
         SELECT COUNT(DISTINCT o.user_id) AS n
         FROM event_attendees o JOIN users ou ON ou.id = o.user_id
         WHERE o.event_id = ANY(%(ids)s::uuid[]) AND o.user_id <> %(me)s::uuid
-          AND o.status = 'going' AND o.checked_in_at IS NOT NULL
+          AND {attended('o')}
           AND {live('ou')} AND {not_blocked('ou.id', '%(me)s::uuid')}
         """, p)
     partied = cur.fetchone()["n"]
@@ -150,8 +158,8 @@ def build_recap(cur, user_id: str, month: str) -> Optional[dict]:
     kind = "host" if hosted else ("quiet" if not nights else None)
     if kind is None:
         cur.execute(
-            """SELECT EXISTS (SELECT 1 FROM event_attendees ea JOIN events e ON e.id = ea.event_id
-                 WHERE ea.user_id = %(me)s::uuid AND ea.status = 'going' AND ea.checked_in_at IS NOT NULL
+            f"""SELECT EXISTS (SELECT 1 FROM event_attendees ea JOIN events e ON e.id = ea.event_id
+                 WHERE ea.user_id = %(me)s::uuid AND {attended('ea')}
                    AND NOT e.is_cancelled AND e.date_time < %(s)s) AS before""", p)
         before = cur.fetchone()["before"]
         kind = "first" if not before and len(nights) == 1 else "regular"
@@ -171,19 +179,19 @@ def build_recap(cur, user_id: str, month: str) -> Optional[dict]:
     stats: list = []
     if kind == "host":
         cur.execute(
-            """SELECT COUNT(*) AS n FROM event_attendees
-               WHERE event_id = ANY(%(hids)s::uuid[]) AND status = 'going' AND checked_in_at IS NOT NULL""", p)
+            f"""SELECT COUNT(*) AS n FROM event_attendees g
+               WHERE g.event_id = ANY(%(hids)s::uuid[]) AND {attended('g')}""", p)
         guests = cur.fetchone()["n"]
         cur.execute("SELECT AVG(rating)::float AS avg, COUNT(*) AS n FROM event_reviews WHERE event_id = ANY(%(hids)s::uuid[])", p)
         rv = cur.fetchone()
         cur.execute(
-            """
+            f"""
             SELECT COUNT(DISTINCT ea.user_id) AS n
             FROM event_attendees ea JOIN events e ON e.id = ea.event_id
-            WHERE e.id = ANY(%(hids)s::uuid[]) AND ea.status = 'going' AND ea.checked_in_at IS NOT NULL
+            WHERE e.id = ANY(%(hids)s::uuid[]) AND {attended('ea')}
               AND EXISTS (SELECT 1 FROM event_attendees pa JOIN events pe ON pe.id = pa.event_id
-                          WHERE pe.host_id = %(me)s::uuid AND pa.user_id = ea.user_id AND pa.status = 'going'
-                            AND pa.checked_in_at IS NOT NULL AND NOT pe.is_cancelled AND pe.date_time < e.date_time)
+                          WHERE pe.host_id = %(me)s::uuid AND pa.user_id = ea.user_id AND {attended('pa')}
+                            AND NOT pe.is_cancelled AND pe.date_time < e.date_time)
             """, p)
         came_back = cur.fetchone()["n"]
         sold_out = sum(1 for h in hosted if (h["spots_left"] or 0) <= 0)
@@ -264,13 +272,13 @@ def build_recap(cur, user_id: str, month: str) -> Optional[dict]:
         nearby = cur.fetchall()
         p["nids"] = [n["id"] for n in nearby] or [None]
         cur.execute(
-            """
+            f"""
             SELECT COUNT(DISTINCT g.user_id) AS n FROM event_attendees g
             WHERE g.event_id = ANY(%(nids)s::uuid[]) AND g.status = 'going'
               AND g.user_id IN (
                 SELECT o.user_id FROM event_attendees mine
                 JOIN event_attendees o ON o.event_id = mine.event_id AND o.user_id <> mine.user_id
-                WHERE mine.user_id = %(me)s::uuid AND mine.checked_in_at IS NOT NULL AND o.checked_in_at IS NOT NULL)
+                WHERE mine.user_id = %(me)s::uuid AND {attended('mine')} AND {attended('o')})
             """, p)
         recap["met_going"] = cur.fetchone()["n"]
         recap["nearby"] = [{
@@ -314,7 +322,7 @@ def send_month_recap(now: Optional[datetime] = None, force: bool = False) -> int
             f"""
             WITH active AS (
               SELECT ea.user_id FROM event_attendees ea JOIN events e ON e.id = ea.event_id
-              WHERE ea.status = 'going' AND ea.checked_in_at IS NOT NULL AND NOT e.is_cancelled
+              WHERE {attended('ea')} AND NOT e.is_cancelled
                 AND e.date_time >= %(s)s AND e.date_time < %(e)s
               UNION
               SELECT e.host_id FROM events e

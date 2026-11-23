@@ -85,6 +85,19 @@ export async function peekEntry<T>(key: string): Promise<{ value: T; fresh: bool
   return { value: disk.value, fresh: isFresh(disk) }
 }
 
+/**
+ * Keep showing what's cached, but treat it as out of date: the next read
+ * refetches in the background. Use after a change you made (an edit), where
+ * invalidate() would blank the screen into a loader for no reason.
+ */
+export async function markStale(key: string): Promise<void> {
+  const entry = memory.get(key) ?? (await readDisk(key))
+  if (!entry) return
+  const stale = { ...entry, expiresAt: 0 }
+  memory.set(key, stale)
+  writeDisk(key, stale)
+}
+
 export async function invalidate(key: string): Promise<void> {
   memory.delete(key)
   try { await AsyncStorage.removeItem(PREFIX + key) } catch {}

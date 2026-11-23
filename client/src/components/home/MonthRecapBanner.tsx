@@ -3,10 +3,9 @@ import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { Image } from 'expo-image'
 import { router } from 'expo-router'
 import { ChevronRight, X } from 'lucide-react-native'
-import ApiService from '@/api/apiService'
 import { Colors, FontFamily, MarkCream } from '@/constants'
 import { hTap } from '@/lib/haptics'
-import { getRecapFlag, setRecapFlag } from '@/lib/recapSeen'
+import { getLatestRecap, getRecapFlag, setRecapFlag } from '@/lib/recapSeen'
 import type { MonthRecap } from '@/types/api'
 
 const SHOW_DAYS = 7 // the card stays on Home for the first week of the month
@@ -27,9 +26,9 @@ export function MonthRecapBanner() {
     if (istDayOfMonth() > SHOW_DAYS) return
     let alive = true
     let timer: ReturnType<typeof setTimeout> | undefined
-    ApiService.getMonthRecap()
+    getLatestRecap()
       .then(async r => {
-        if (!alive || (await getRecapFlag('dismissed', r.month))) return
+        if (!r || !alive || (await getRecapFlag('dismissed', r.month))) return
         setRecap(r)
         if (r.shareable && !(await getRecapFlag('revealed', r.month))) {
           timer = setTimeout(() => {

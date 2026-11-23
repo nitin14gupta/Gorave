@@ -16,6 +16,7 @@ import { APP_HEADER_BAR_HEIGHT, HeaderIconBtn, BrandedRefreshControl } from '@/c
 import { LargeTitleBar, useLargeTitle } from '@/components/ui/LargeTitle'
 import { useAuthStore } from '@/store/auth'
 import { usePillStore } from '@/store/pillStore'
+import { useNotifStore } from '@/store/notifStore'
 import { NotificationRow, NotificationRowSkeleton } from '@/components/settings/NotificationRow'
 import { NotificationsEmptyState, NotificationsErrorState } from '@/components/settings/NotificationsStatusViews'
 
@@ -120,7 +121,13 @@ export default function NotificationsScreen() {
     }
   }, [showPill, loadingMore, hasMore])
 
-  useFocusEffect(useCallback(() => { loadInitial() }, [loadInitial]))
+  // Opening the list means you've seen everything in it: the badge clears now
+  // and only counts what comes in after. Rows keep their unread look until tapped.
+  useFocusEffect(useCallback(() => {
+    loadInitial()
+    useNotifStore.getState().markSeen()
+    ApiService.markNotificationsSeen().catch(() => {})
+  }, [loadInitial]))
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true)
