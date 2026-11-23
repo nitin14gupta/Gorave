@@ -104,6 +104,7 @@ export const ENDPOINTS = {
   NOTIFICATION_READ: '/notifications/:id/read',
   NOTIFICATION_DISMISS: '/notifications/:id',
   NOTIFICATION_PREFS: '/notifications/preferences',
+  MONTH_RECAP: '/recap',
 
   // Device tokens
   DEVICE_TOKEN: '/devices/token',

@@ -40,7 +40,7 @@ const CATEGORIES: { key: keyof NotificationPrefs; icon: any; label: string; desc
     key: 'discover',
     icon: Sparkles,
     label: 'Picks for you',
-    description: 'Your weekend plan on Thursday evenings, and when a night you saved is filling up',
+    description: 'Your weekend plan on Thursday evenings, when a night you saved is filling up, and your month on Gorave',
   },
 ]
 

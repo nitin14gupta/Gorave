@@ -234,7 +234,7 @@ def respond_to_vibe(
 
         if body.action == "accept":
             cur.execute(
-                "UPDATE vibe_requests SET status = 'accepted', passed_at = NULL WHERE id = %s::uuid",
+                "UPDATE vibe_requests SET status = 'accepted', passed_at = NULL, accepted_at = NOW() WHERE id = %s::uuid",
                 (vibe_id,),
             )
 

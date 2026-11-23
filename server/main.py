@@ -9,6 +9,7 @@ from middleware.security_headers import SecurityHeadersMiddleware
 from middleware.request_id import RequestIDMiddleware
 from routes.auth import router as auth_router
 from routes.deals import router as deals_router
+from routes.recap import router as recap_router
 from routes.users import router as users_router
 from routes.upload import router as upload_router
 from routes.places import router as places_router
@@ -135,18 +136,21 @@ async def _chat_media_purge_loop():
 
 async def _digest_loop():
     """Every 15 minutes: the Thursday-evening weekend digest (it only sends
-    inside its window, once a week per person) and "a night you saved is
-    filling up" nudges. See utils/digests.py."""
+    inside its window, once a week per person), "a night you saved is
+    filling up" nudges (utils/digests.py), and on the 1st, last month's
+    "Your month on Gorave" recap (utils/recap.py)."""
     while True:
         try:
             if await _try_acquire_lock("sched_lock:digests", EVENT_WRAPUP_INTERVAL_SECONDS - 60):
                 from utils.digests import send_weekend_digest, send_saved_filling_up, send_host_reminders, send_people_from_last_night
+                from utils.recap import send_month_recap
                 weekly = await asyncio.to_thread(send_weekend_digest)
                 saved = await asyncio.to_thread(send_saved_filling_up)
                 hosts = await asyncio.to_thread(send_host_reminders)
                 people = await asyncio.to_thread(send_people_from_last_night)
-                if weekly or saved or hosts or people:
-                    print(f"[DIGEST] {weekly} weekend, {saved} saved-night, {hosts} host-reminder, {people} people-from-last-night", flush=True)
+                recaps = await asyncio.to_thread(send_month_recap)
+                if weekly or saved or hosts or people or recaps:
+                    print(f"[DIGEST] {weekly} weekend, {saved} saved-night, {hosts} host-reminder, {people} people-from-last-night, {recaps} month-recap", flush=True)
         except Exception as e:
             print(f"[DIGEST] Digest run failed: {e}", flush=True)
         await asyncio.sleep(EVENT_WRAPUP_INTERVAL_SECONDS)
@@ -216,6 +220,7 @@ async def maintenance_mode(request: Request, call_next):
 
 app.include_router(auth_router)
 app.include_router(deals_router)
+app.include_router(recap_router)
 app.include_router(public_router)
 app.include_router(users_router)
 app.include_router(upload_router)

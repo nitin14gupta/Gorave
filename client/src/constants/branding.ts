@@ -4,6 +4,8 @@ export const Logo = require('../../assets/brand/seal.png')
 export const LogoBlack = require('../../assets/brand/seal-black.png')
 /** All-cream mark, for photos, coloured backgrounds and watermarks. */
 export const LogoCream = require('../../assets/brand/seal-cream.png')
+/** Cream ring + orange dot, no tile: the full-colour mark on dark backgrounds. */
+export const MarkCream = require('../../assets/brand/mark-cream.png')
 
 export const Wordmark = require('../../assets/brand/wordmark-cream.png')
 export const WordmarkBlack = require('../../assets/brand/wordmark-black.png')

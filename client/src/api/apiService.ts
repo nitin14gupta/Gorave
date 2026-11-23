@@ -47,6 +47,7 @@ import type {
   EmergencyContact,
   AppNotification,
   NotificationPrefs,
+  MonthRecap,
   RsvpStatus,
   JoinRequestsResponse,
   BulkAcceptResponse,
@@ -127,6 +128,7 @@ export type {
   EmergencyContact,
   AppNotification,
   NotificationPrefs,
+  MonthRecap,
 } from '@/types/api'
 
 // ── ApiService ───────────────────────────────────────────────────────────────
@@ -764,10 +766,16 @@ class ApiService {
     // The badge display caps at "9+" anyway (see NotificationPopBadge), so
     // there's no reason to fetch further than that just to find out the
     // exact count is >9 — limit=10 tells us everything the UI can show.
+    // Only what came in since the list was last opened (see markNotificationsSeen).
     const items = await this.get<AppNotification[]>(
-      `${ENDPOINTS.NOTIFICATIONS}?unread_only=true&limit=10`
+      `${ENDPOINTS.NOTIFICATIONS}?unseen_only=true&limit=10`
     )
     return items.length
+  }
+
+  /** Opened the notifications list: the badge clears. Rows stay unread until tapped. */
+  static async markNotificationsSeen(): Promise<void> {
+    await this.post<{ ok: boolean }>(`${ENDPOINTS.NOTIFICATIONS}/seen`, {})
   }
 
   static async markAllNotificationsRead(): Promise<void> {
@@ -790,6 +798,12 @@ class ApiService {
 
   static async updateNotificationPrefs(data: Partial<NotificationPrefs>): Promise<NotificationPrefs> {
     return this.patch<NotificationPrefs>(ENDPOINTS.NOTIFICATION_PREFS, data)
+  }
+
+  /** "Your month on Gorave". No month = last month. 404 NO_RECAP if there isn't one. */
+  static async getMonthRecap(month?: string): Promise<MonthRecap> {
+    const q = month && month !== 'latest' ? `?month=${encodeURIComponent(month)}` : ''
+    return this.get<MonthRecap>(`${ENDPOINTS.MONTH_RECAP}${q}`)
   }
 
   static async checkUsername(username: string): Promise<{ available: boolean; error?: string }> {

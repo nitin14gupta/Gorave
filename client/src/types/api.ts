@@ -708,8 +708,40 @@ export interface NotificationPrefs {
   hosting: boolean
   attending: boolean
   payments: boolean
-  /** Picks for you: the weekend digest and saved nights filling up. */
+  /** Picks for you: the weekend digest, saved nights filling up, and your month on Gorave. */
   discover: boolean
+}
+
+export interface MonthRecapStat {
+  value: string
+  label: string
+  style: 'number' | 'word' | 'rating'
+}
+
+export interface MonthRecapNearby {
+  id: string
+  title: string
+  date_time: string
+  area: string | null
+  price_inr: number | null
+  photo: string | null
+}
+
+export interface MonthRecap {
+  month: string
+  month_label: string
+  year: number
+  kind: 'host' | 'regular' | 'first' | 'quiet'
+  shareable: boolean
+  kicker: string
+  headline: [string, string]
+  photos: { url: string; title: string }[]
+  stats: MonthRecapStat[]
+  nights: number
+  hosted: number
+  connections: number
+  nearby?: MonthRecapNearby[]
+  met_going?: number
 }
 
 /**

@@ -22,6 +22,7 @@ export type DeepLinkTarget =
   | { screen: 'browseEvents' }
   | { screen: 'transfer'; token: string }
   | { screen: 'verifyId' }
+  | { screen: 'monthRecap'; month?: string }
 
 export function targetToHref(t: DeepLinkTarget, currentUserId?: string | null): string {
   switch (t.screen) {
@@ -42,6 +43,7 @@ export function targetToHref(t: DeepLinkTarget, currentUserId?: string | null): 
     case 'browseEvents': return '/(tabs)/events'
     case 'transfer': return `/(events)/transfer/${t.token}`
     case 'verifyId': return '/(host-onboarding)/verify'
+    case 'monthRecap': return `/(profile)/month/${t.month ?? 'latest'}`
   }
 }
 
@@ -82,6 +84,8 @@ export function pushDataToTarget(data: any): DeepLinkTarget | null {
       return data.token ? { screen: 'transfer', token: data.token } : null
     case 'host_verification':
       return { screen: 'verifyId' }
+    case 'month_recap':
+      return { screen: 'monthRecap', month: data.month }
     case 'host_onboarding_complete':
     case 'createEvent':
       return { screen: 'createEvent' }
@@ -95,6 +99,7 @@ export function pushDataToTarget(data: any): DeepLinkTarget | null {
 export function notifEntityToTarget(entityType: string | null, entityId: string | null): DeepLinkTarget | null {
   if (entityType === 'host_verification') return { screen: 'verifyId' }
   if (entityType === 'browse') return { screen: 'browseEvents' }
+  if (entityType === 'month_recap') return { screen: 'monthRecap' }
   if (!entityId) return null
   if (entityType === 'event') return { screen: 'event', id: entityId }
   if (entityType === 'refund') return { screen: 'refund', id: entityId }
@@ -145,6 +150,8 @@ export function parseIncomingUrl(url: string): DeepLinkTarget | null {
       return id ? { screen: 'chat', id } : null
     case 'wallet':
       return { screen: 'wallet' }
+    case 'month':
+      return { screen: 'monthRecap', month: id }
     case 'notifications':
       return { screen: 'notifications' }
     case 't':

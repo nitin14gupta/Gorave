@@ -174,6 +174,7 @@ captions about nights out and making friends, not dating.
 | 42 | Host reviews | `(profile)/host-reviews` | Host photo with parallax and the score huge, 5-to-1 bars, event and star chips, each review says which night it was for | ✅ |
 | 43 | My QR | `(profile)/qr` | Pick a style like Instagram: the maroon pass, or any of your photos behind a white card with your face on its edge. Save and Share send what's showing | ✅ |
 | 44 | Search people | `(profile)/search` | Instagram search: recent people as a row of faces, suggestions and results as rows | ✅ |
+| 45 | Your month on Gorave | `(profile)/month/[month]` | Last month as a 9:16 story card: the headline ("6 nights out."), photos of the nights, four stats that never show a zero. Four kinds: regular, first night, host, quiet. Share and Save send the card; a quiet month is in-app only and points to what's on. Opens from the 1st-of-the-month push, the notification, the Home card (first week of the month), and once by itself. Mockups in `docs/mockups/month-on-gorave/` | ✅ |
 
 ### 8. Chat
 

@@ -574,6 +574,7 @@ def _enrich_notification(cur, uid: str, row: dict) -> dict:
 def list_notifications(
     before: Optional[str] = Query(None),
     unread_only: bool = Query(False),
+    unseen_only: bool = Query(False),
     limit: int = Query(10, le=50),
     current_user: dict = Depends(get_current_user),
 ):
@@ -586,8 +587,13 @@ def list_notifications(
             conditions.append("n.created_at < %s")
             params.append(before)
 
-        if unread_only:
+        if unread_only or unseen_only:
             conditions.append("n.read_at IS NULL")
+        if unseen_only:
+            # The badge: only what came in since the list was last opened.
+            conditions.append(
+                "n.created_at > COALESCE((SELECT notifications_seen_at FROM users WHERE id = n.user_id), '-infinity'::timestamptz)"
+            )
 
         where = " AND ".join(conditions)
 
@@ -620,6 +626,14 @@ def list_notifications(
         )
         rows = cur.fetchall()
         return [_enrich_notification(cur, uid, r) for r in rows]
+
+
+@router.post("/seen", status_code=200)
+def mark_notifications_seen(current_user: dict = Depends(get_current_user)):
+    """Opened the notifications list: the badge clears. Rows stay unread until tapped."""
+    with get_db() as (cur, _):
+        cur.execute("UPDATE users SET notifications_seen_at = NOW() WHERE id = %s::uuid", (current_user["id"],))
+    return {"ok": True}
 
 
 @router.patch("/read-all", status_code=200)

@@ -18,6 +18,7 @@ import { PendingReviewsSection, type PendingReviewsSectionHandle } from '@/compo
 import { AlbumPromptSection, type AlbumPromptSectionHandle } from '@/components/home/AlbumPromptSection'
 import { RecentlyViewedSection } from '@/components/home/RecentlyViewedSection'
 import { PromoCarousel } from '@/components/home/PromoCarousel'
+import { MonthRecapBanner } from '@/components/home/MonthRecapBanner'
 import { HostStatusCard } from '@/components/home/HostStatusCard'
 import { TrendingSection, type TrendingSectionHandle } from '@/components/home/TrendingSection'
 import { useEvents } from '@/hooks/useEvents'
@@ -139,6 +140,7 @@ export default function HomeScreen() {
         refreshControl={<BrandedRefreshControl refreshing={refreshing} onRefresh={handleRefresh} progressViewOffset={insets.top} />}
       >
         <HomeTopBar />
+        <MonthRecapBanner />
         {create}
         {mine}
         <TonightCarousel events={tonight} city={profile?.city} />
