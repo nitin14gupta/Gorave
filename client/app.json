@@ -36,8 +36,9 @@
       "softwareKeyboardLayoutMode": "pan",
       "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
-        "backgroundColor": "#111111",
-        "foregroundImage": "./assets/adaptive-icon.png"
+        "backgroundColor": "#141110",
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "monochromeImage": "./assets/adaptive-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
       "intentFilters": [
