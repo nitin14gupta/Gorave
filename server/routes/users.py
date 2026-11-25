@@ -334,10 +334,25 @@ def set_interests(body: InterestsUpdate, current_user: dict = Depends(get_curren
 
 @router.post("/location", response_model=UserResponse)
 def set_location(body: LocationUpdate, current_user: dict = Depends(get_current_user)):
+    from routes.places import CITIES
+    lat, lng = body.lat, body.lng
     with get_db() as (cur, _):
+        # No real coordinates (picked a city by hand, no GPS; older apps sent
+        # 0,0 for "unknown"): keep what we had if the city didn't change,
+        # otherwise use the city's centre, so distances still make sense.
+        if lat is None or lng is None or (lat == 0 and lng == 0):
+            cur.execute("SELECT city, lat, lng FROM users WHERE id = %s", (current_user["id"],))
+            now = cur.fetchone()
+            centre = next((c for c in CITIES if c["name"].lower() == body.city.strip().lower()), None)
+            if now and (now["city"] or "").lower() == body.city.strip().lower() and now["lat"] and now["lng"]:
+                lat, lng = now["lat"], now["lng"]
+            elif centre:
+                lat, lng = centre["lat"], centre["lng"]
+            else:
+                lat, lng = None, None
         cur.execute(
             "UPDATE users SET city = %s, lat = %s, lng = %s, profile_complete = TRUE WHERE id = %s",
-            (body.city, body.lat, body.lng, current_user["id"]),
+            (body.city, lat, lng, current_user["id"]),
         )
         user = _fetch_user(cur, current_user["id"], current_user["id"])
     if not user:

@@ -134,6 +134,15 @@ export type {
   MonthRecap,
 } from '@/types/api'
 
+/** What an SOS really did: who it reached, and who it didn't (to text from the phone). */
+export interface SosResult {
+  ok: boolean
+  alerted: number
+  total: number
+  unsent: { name: string; phone: string }[]
+  message: string
+}
+
 // ── ApiService ───────────────────────────────────────────────────────────────
 
 // Mutex: only one token refresh in-flight at a time — concurrent 401s share the same promise
@@ -444,10 +453,11 @@ class ApiService {
     return this.post<{ message: string }>(ENDPOINTS.SET_INTERESTS, { interests })
   }
 
+  /** No lat/lng (no GPS fix): the server keeps your spot, or uses the city's centre. */
   static async setLocation(
     city: string,
-    lat: number,
-    lng: number,
+    lat?: number,
+    lng?: number,
   ): Promise<{ message: string }> {
     return this.post<{ message: string }>(ENDPOINTS.SET_LOCATION, { city, lat, lng })
   }
@@ -724,8 +734,9 @@ class ApiService {
     await this.delete<{ ok: boolean }>(endpoint)
   }
 
-  static async triggerSos(payload: { event_id?: string; lat: number; lng: number }): Promise<{ ok: boolean; alerted: number }> {
-    return this.post<{ ok: boolean; alerted: number }>(ENDPOINTS.SOS, payload)
+  /** No location? Leave lat/lng out: the SOS still goes, without a map link. */
+  static async triggerSos(payload: { event_id?: string; lat?: number; lng?: number }): Promise<SosResult> {
+    return this.post<SosResult>(ENDPOINTS.SOS, payload)
   }
 
   static async reportUser(userId: string, reason: string): Promise<void> {

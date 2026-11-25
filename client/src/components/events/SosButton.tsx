@@ -7,35 +7,52 @@ import { ConfirmSheet } from '@/components/ui/ConfirmSheet'
 import { SafetyMenuRow } from '@/components/safety/SafetyMenuRow'
 import { useSos } from '@/hooks/useSos'
 import { SosHoldSheet } from './SosHoldSheet'
-import { useHasEmergencyContacts } from '@/hooks/useEmergencyContacts'
+import { useEmergencyContactsStatus } from '@/hooks/useEmergencyContacts'
+import { SosResultSheet } from './SosResultSheet'
 import { useLocationStore } from '@/store/locationStore'
 import { hTap } from '@/lib/haptics'
 import { Colors, FontFamily } from '@/constants'
 
 export function useSosFlow(eventId: string) {
-  const { sendSos } = useSos(eventId)
-  const hasEmergencyContacts = useHasEmergencyContacts()
+  const { sendSos, sending, outcome, clearOutcome } = useSos(eventId)
+  const contacts = useEmergencyContactsStatus()
   const [sosOpen, setSosOpen] = useState(false)
   const [setupOpen, setSetupOpen] = useState(false)
+  const [resultOpen, setResultOpen] = useState(false)
 
   const open = () => {
     hTap()
-    if (hasEmergencyContacts) {
-      useLocationStore.getState()._start()
-      setSosOpen(true)
-    } else {
+    // Only when the server confirmed there are none. If we don't know (still
+    // loading, or the load failed), SOS opens: the server decides.
+    if (contacts === 'none') {
       setSetupOpen(true)
+      return
     }
+    // Starts (or re-checks) location, so it's ready by the end of the hold.
+    useLocationStore.getState()._start()
+    setSosOpen(true)
+  }
+
+  const send = () => {
+    setResultOpen(true)
+    sendSos()
   }
 
   const sheets = (
     <>
       {/* Hold to send, not a Yes tap: an SOS should never go out by accident. */}
-      <SosHoldSheet visible={sosOpen} onSend={sendSos} onClose={() => setSosOpen(false)} />
+      <SosHoldSheet visible={sosOpen} onSend={send} onClose={() => setSosOpen(false)} />
+      {/* What really happened, with texting from the phone and 112 as fallbacks. */}
+      <SosResultSheet
+        visible={resultOpen}
+        sending={sending}
+        outcome={outcome}
+        onClose={() => { setResultOpen(false); clearOutcome() }}
+      />
       <ConfirmSheet
         visible={setupOpen}
         title="Add an emergency contact first"
-        body="SOS alerts your emergency contacts with your location — add at least one before you can send it."
+        body="SOS texts your emergency contacts with your location. Add at least one before you can send it."
         confirmLabel="Add Contact"
         onConfirm={() => router.push('/(safety)/contacts' as any)}
         onClose={() => setSetupOpen(false)}
@@ -62,6 +79,8 @@ export function SosButton({ eventId, size = 13, style }: { eventId: string; size
         hitSlop={6}
         onPressIn={() => { pressScale.set(withSpring(0.9, { duration: 120 })) }}
         onPressOut={() => { pressScale.set(withSpring(1, { duration: 120 })) }}
+        accessibilityRole="button"
+        accessibilityLabel="Emergency SOS"
       >
         <Siren size={size} color={Colors.destructive} strokeWidth={2.4} />
       </AnimatedPressable>
@@ -93,7 +112,7 @@ export function SosPill({ eventId, style }: { eventId: string; style?: StyleProp
   const { open, sheets } = useSosFlow(eventId)
   return (
     <>
-      <Pressable style={[s.pill, style]} onPress={open} hitSlop={6}>
+      <Pressable style={[s.pill, style]} onPress={open} hitSlop={6} accessibilityRole="button" accessibilityLabel="Emergency SOS">
         <Siren size={15} color={Colors.white} strokeWidth={2.4} />
         <Text style={s.pillText}>SOS</Text>
       </Pressable>

@@ -19,7 +19,7 @@ export default function ProfileLocationScreen() {
     if (!selectedCity) return
     setSaving(true)
     try {
-      await setLocation(selectedCity, store.lat ?? 0, store.lng ?? 0)
+      await setLocation(selectedCity, store.lat ?? undefined, store.lng ?? undefined)
       router.back()
     } catch (e: any) {
       showPill(e?.message || 'Could not save your location', 'error')

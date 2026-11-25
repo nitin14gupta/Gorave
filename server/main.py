@@ -118,6 +118,25 @@ async def _event_wrapup_loop():
         await asyncio.sleep(EVENT_WRAPUP_INTERVAL_SECONDS)
 
 
+PAYMENT_RECONCILE_INTERVAL_SECONDS = 180
+
+
+async def _payment_reconcile_loop():
+    """Every 3 minutes: payments Razorpay took that never became a ticket (app
+    closed or offline between paying and confirming, or a QR screen left
+    early) are finalised. See routes/payments.py reconcile_unconfirmed_payments."""
+    while True:
+        try:
+            if await _try_acquire_lock("sched_lock:payment_reconcile", PAYMENT_RECONCILE_INTERVAL_SECONDS - 30):
+                from routes.payments import reconcile_unconfirmed_payments
+                n = await asyncio.to_thread(reconcile_unconfirmed_payments)
+                if n:
+                    print(f"[PAYMENTS] Caught up {n} paid, unconfirmed order(s)", flush=True)
+        except Exception as e:
+            print(f"[PAYMENTS] Catch-up run failed: {e}", flush=True)
+        await asyncio.sleep(PAYMENT_RECONCILE_INTERVAL_SECONDS)
+
+
 async def _chat_media_purge_loop():
     """Every 15 minutes — deletes chat files (unsent ones, and view once/twice ones once used up or 14 days old) from
     storage once they're used up, unsent, or 14 days old. See
@@ -163,6 +182,7 @@ async def lifespan(app: FastAPI):
         asyncio.create_task(_event_wrapup_loop()),
         asyncio.create_task(_chat_media_purge_loop()),
         asyncio.create_task(_digest_loop()),
+        asyncio.create_task(_payment_reconcile_loop()),
     ]
     yield
     for task in tasks:

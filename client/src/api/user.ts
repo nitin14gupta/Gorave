@@ -22,7 +22,7 @@ export const updateProfile = (data: { name?: string; username?: string; dob?: st
 export const setInterests = (interests: string[]) =>
   mine(ApiService.setInterests(interests))
 
-export const setLocation = (city: string, lat: number, lng: number) =>
+export const setLocation = (city: string, lat?: number, lng?: number) =>
   mine(ApiService.setLocation(city, lat, lng))
 
 export const getMe = () => ApiService.getMe()

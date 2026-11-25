@@ -31,6 +31,7 @@ export interface BookViewProps {
   toPay: number
   payLabel: string
   paying: boolean
+  payDisabled?: boolean
   onPay: () => void
   onBack: () => void
 }
@@ -143,7 +144,7 @@ export function BookView(p: BookViewProps) {
         <PrimaryButton
           label={p.payLabel}
           onPress={() => { if (!ev.is_cancelled) { hSuccess(); p.onPay() } }}
-          disabled={ev.is_cancelled || p.paying}
+          disabled={ev.is_cancelled || p.paying || !!p.payDisabled}
           loading={p.paying}
         />
       </View>

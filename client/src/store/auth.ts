@@ -67,6 +67,10 @@ export const useAuthStore = create<AuthState>((set) => ({
     })
     tokenStorage.clear()
     clearAllCached()
+    // Loaded here, not at the top: those stores import apiService, which
+    // imports this file, and a top-level import would make a require cycle.
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    require('@/lib/clearUserData').clearUserData()
     // Drop any deep link that was queued for a now-abandoned session so it
     // doesn't silently resurface on the next unrelated login.
     useDeepLinkStore.getState().clearPending()

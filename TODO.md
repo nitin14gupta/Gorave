@@ -30,6 +30,7 @@ once it ships.
   - `2026-11-21_event_views.sql`
   - `2026-11-23_month_recap.sql`
   - `2026-11-23_notifications_seen.sql`
+  - `2026-11-25_location_zero_fix.sql`
 
   All are in `server/scripts/sql/`.
 - [ ] Production server env: set `R2_CHAT_BUCKET=gorave-chat`.

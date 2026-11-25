@@ -97,12 +97,21 @@ def trigger_sos(body: SosRequest, current_user: dict = Depends(get_current_user)
             if event_row:
                 event_title = event_row["title"]
 
-    maps_link = f"https://maps.google.com/?q={body.lat},{body.lng}"
     context = f" at {event_title}" if event_title else ""
-    message = (
-        f"🚨 SOS from {user_name} via Gorave: I may need assistance{context}. "
-        f"My current location: {maps_link}"
-    )
+    if body.lat is not None and body.lng is not None:
+        where = f"My current location: https://maps.google.com/?q={body.lat},{body.lng}"
+    else:
+        where = "My location isn't shared, so please call me."
+    message = f"🚨 SOS from {user_name} via Gorave: I may need assistance{context}. {where}"
 
-    alerted = sum(1 for c in contacts if send_sms(c["phone"], message))
-    return {"ok": True, "alerted": alerted}
+    # Each contact on its own: one bad number doesn't stop the others. The
+    # count is only what really went out, so the app never claims an SOS
+    # reached someone it didn't.
+    unsent = [c for c in contacts if not send_sms(c["phone"], message)]
+    return {
+        "ok": True,
+        "alerted": len(contacts) - len(unsent),
+        "total": len(contacts),
+        "unsent": [{"name": c["name"], "phone": c["phone"]} for c in unsent],
+        "message": message,
+    }

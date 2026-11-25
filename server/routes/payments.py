@@ -917,3 +917,58 @@ def _finalise_qr_rsvp(*, order_db_id: str, qr_code_id: str, event_id: str,
                                   wallet_amount=wallet_amount or 0,
                                   paid_externally=claimed["razorpay_amount_inr"] or 0,
                                   wallet_note="Wallet used for QR ticket")
+
+
+# ── Catch-up: paid at Razorpay, never confirmed here ──────────────────────────
+
+RECONCILE_MIN_AGE = "2 minutes"   # give the app its own chance to confirm first
+RECONCILE_MAX_AGE = "3 days"
+RECONCILE_BATCH = 100
+
+
+def reconcile_unconfirmed_payments() -> int:
+    """Money Razorpay captured that never became a ticket: the app was closed or
+    lost its connection between paying and confirming, or someone left the QR
+    screen before it noticed. Asks Razorpay about each recent unconfirmed order
+    (and QR) and finalises the captured ones through the same one-time claim
+    the app uses, so nothing is booked twice. Run every few minutes from
+    main.py. Returns how many were finalised."""
+    with get_db() as (cur, _):
+        cur.execute(
+            f"""
+            SELECT id::text, razorpay_order_id, qr_code_id, event_id::text, user_id::text, wallet_amount_inr
+            FROM payment_orders
+            WHERE status IN ('created', 'expired')
+              AND (razorpay_order_id IS NOT NULL OR qr_code_id IS NOT NULL)
+              AND created_at < NOW() - INTERVAL '{RECONCILE_MIN_AGE}'
+              AND created_at > NOW() - INTERVAL '{RECONCILE_MAX_AGE}'
+            ORDER BY created_at
+            LIMIT {RECONCILE_BATCH}
+            """
+        )
+        rows = cur.fetchall()
+    if not rows:
+        return 0
+
+    rz = _get_rz()
+    done = 0
+    for row in rows:
+        try:
+            if row["razorpay_order_id"]:
+                items = (rz.order.payments(row["razorpay_order_id"]) or {}).get("items", [])
+            else:
+                items = (rz.qrcode.fetch_all_payments(row["qr_code_id"]) or {}).get("items", [])
+            captured = next((p for p in items if p.get("status") == "captured"), None)
+            if not captured:
+                continue
+            if row["razorpay_order_id"]:
+                _finalise_rsvp(order_id=row["razorpay_order_id"], event_id=row["event_id"], uid=row["user_id"],
+                               payment_id=captured["id"], wallet_amount=row["wallet_amount_inr"] or 0)
+            else:
+                _finalise_qr_rsvp(order_db_id=row["id"], qr_code_id=row["qr_code_id"], event_id=row["event_id"],
+                                  uid=row["user_id"], payment_id=captured["id"], wallet_amount=row["wallet_amount_inr"] or 0)
+            done += 1
+            print(f"[PAYMENTS] Caught up a paid, unconfirmed order for user {row['user_id']} (event {row['event_id']})", flush=True)
+        except Exception as e:
+            print(f"[PAYMENTS] Catch-up failed for order {row['id']}: {e}", flush=True)
+    return done

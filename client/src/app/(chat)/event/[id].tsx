@@ -16,7 +16,7 @@ import { MediaViewerModal } from '@/components/chat/MediaViewerModal'
 import { MessageBubble } from '@/components/chat/MessageBubble'
 import { MediaStack } from '@/components/chat/MediaStack'
 import { ReportMessageSheet } from '@/components/chat/ReportMessageSheet'
-import { EmptyState, HeaderIconBtn } from '@/components/ui'
+import { EmptyState, HeaderIconBtn, OutlineButton } from '@/components/ui'
 import { useEventChat } from '@/hooks/useEventChat'
 import { useImageViewer } from '@/hooks/useImageViewer'
 import { useVoiceRecorder } from '@/hooks/useVoiceRecorder'
@@ -61,6 +61,7 @@ export default function EventChatScreen() {
   const c = useEventChat(eventId)
   const { viewingMedia, openMedia, closeMedia } = useImageViewer()
   const [text, setText] = useState('')
+  const [retrying, setRetrying] = useState(false)
   const [replyingTo, setReplyingTo] = useState<EventChatMessage | null>(null)
   const [menu, setMenu] = useState<{ msg: EventChatMessage; pageY: number } | null>(null)
   const [reportId, setReportId] = useState<string | null>(null)
@@ -244,8 +245,20 @@ export default function EventChatScreen() {
       {chat?.pinned ? <PinnedBar msg={chat.pinned} canUnpin={chat.is_host} onUnpin={() => pin(null)} /> : null}
 
       <KeyboardAvoidingView behavior="padding" style={s.flex}>
-        {c.loading ? (
+        {c.loading || retrying ? (
           <View style={s.center}><ActivityIndicator color={Colors.inkSecondary} /></View>
+        ) : !chat && c.error ? (
+          // Couldn't load and nothing saved on the phone: say so, don't show a blank chat.
+          <View style={[s.center, s.errorBox]}>
+            <Text style={s.errorTitle}>{"Couldn't load this chat"}</Text>
+            <Text style={s.errorBody}>Check your connection and try again.</Text>
+            <OutlineButton
+              label="Try again"
+              size="small"
+              style={s.errorBtn}
+              onPress={async () => { setRetrying(true); await c.reload(); setRetrying(false) }}
+            />
+          </View>
         ) : (
           <FlatList
             data={rows}
@@ -341,6 +354,10 @@ const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: Colors.background },
   flex: { flex: 1 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  errorBox: { paddingHorizontal: 32, gap: 6 },
+  errorTitle: { fontFamily: FontFamily.headingBold, fontSize: 18, color: Colors.inkPrimary, textAlign: 'center' },
+  errorBody: { fontFamily: FontFamily.bodyRegular, fontSize: 14, color: Colors.inkSecondary, textAlign: 'center' },
+  errorBtn: { marginTop: 10 },
   header: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 12, paddingVertical: 8 },
   headerMain: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10 },
   cover: { width: 40, height: 40, borderRadius: 12, backgroundColor: Colors.surface },

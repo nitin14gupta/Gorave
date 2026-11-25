@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { router } from 'expo-router'
-import { getMe, updateProfile, setInterests as apiSetInterests, setLocation as apiSetLocation, getBadges } from '@/api/user'
+import { getMe, updateProfile, setInterests as apiSetInterests, getBadges } from '@/api/user'
 import { useOnboardingStore } from '@/store/onboarding'
 import { usePillStore } from '@/store/pillStore'
 import type { ProfileResponse } from '@/api/user'
@@ -113,7 +113,8 @@ export function useEditProfile() {
       await Promise.all([
         updateProfile(payload),
         store.interests.length >= 3 ? apiSetInterests(store.interests) : Promise.resolve(),
-        store.city ? apiSetLocation(store.city, store.lat ?? 0, store.lng ?? 0) : Promise.resolve(),
+        // No city here: Change city saves it itself. Saving it again from this
+        // screen used to write the location as 0,0 on every edit.
       ])
       setOriginal({
         name: name.trim(),

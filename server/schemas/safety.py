@@ -47,10 +47,22 @@ class EmergencyContactResponse(BaseModel):
 
 class SosRequest(BaseModel):
     event_id: Optional[str] = None
-    lat: float
-    lng: float
+    # Missing when location is off or no fix yet: the SOS still goes out, without a map link.
+    lat: Optional[float] = None
+    lng: Optional[float] = None
+
+
+class SosContact(BaseModel):
+    name: str
+    phone: str
 
 
 class SosResponse(BaseModel):
     ok: bool
+    # Contacts the SMS actually reached (Twilio accepted it), out of `total`.
     alerted: int
+    total: int
+    # The ones it didn't reach, so the app can offer to text them from the phone.
+    unsent: list[SosContact] = []
+    # The message that was sent, for that same fallback.
+    message: str

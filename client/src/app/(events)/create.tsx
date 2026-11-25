@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo, useRef } from 'react'
 import { StyleSheet, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useRouter } from 'expo-router'
@@ -37,6 +37,9 @@ export default function CreateScreen() {
   const [step, setStep] = useState<1 | 2 | 3 | 4 | 5>(1)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [nextLoading, setNextLoading] = useState(false)
+  // One publish at a time: two taps in the same frame both see the old
+  // `nextLoading` state, but not this ref, so the event is only created once.
+  const publishing = useRef(false)
   const [previewOpen, setPreviewOpen] = useState(false)
   const showPill = usePillStore(s => s.show)
   const [freeSlots, setFreeSlots] = useState<{ used: number; limit: number; resets_on: string } | null>(null)
@@ -95,6 +98,8 @@ export default function CreateScreen() {
   const MIN_FEEDBACK_MS = 320
 
   const doPublish = async () => {
+    if (publishing.current) return
+    publishing.current = true
     setNextLoading(true)
     try {
       const [result] = await Promise.all([
@@ -108,6 +113,7 @@ export default function CreateScreen() {
         router.replace(`/(events)/published?id=${result.id}&title=${encodeURIComponent(result.title)}` as any)
       }
     } finally {
+      publishing.current = false
       setNextLoading(false)
     }
   }

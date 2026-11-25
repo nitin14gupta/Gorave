@@ -48,14 +48,25 @@ def verify_otp(phone: str, code: str) -> bool:
     return check.status == "approved"
 
 
+def sms_configured() -> bool:
+    """A sender number (or messaging service) is set up, so plain SMS can go out."""
+    return bool(_sms_from)
+
+
 def send_sms(to: str, body: str) -> bool:
-    """Send a plain SMS (SOS alerts, etc — anything outside the OTP Verify flow). Returns True on success."""
-    # No sender number set up yet (only the Verify service, for OTP): log instead.
+    """Send a plain SMS (SOS alerts, the "account unlocked" text: anything
+    outside the OTP Verify flow). True only if Twilio accepted it. Never raises:
+    one bad number mustn't stop the rest of an SOS going out."""
+    # No sender number set up yet (only the Verify service, for OTP).
     if not _sms_from:
-        print(f"[SMS NOT SENT, no sender configured] to={to} body={body!r}")
-        return True
-    message = _client.messages.create(body=body, from_=_sms_from, to=to)
-    return message.sid is not None
+        print(f"[SMS NOT SENT, no sender configured] to={to} body={body!r}", flush=True)
+        return False
+    try:
+        message = _client.messages.create(body=body, from_=_sms_from, to=to)
+        return message.sid is not None
+    except Exception as e:
+        print(f"[SMS FAILED] to={to}: {e!r}", flush=True)
+        return False
 
 
 # Comment out the next line to send real OTPs by SMS (Twilio Verify).

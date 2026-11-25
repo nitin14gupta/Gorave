@@ -8,7 +8,7 @@ import { hSuccess } from '@/lib/haptics'
 import { CacheKeys, Colors, FontFamily } from '@/constants'
 import ApiService, { type EventDetail, type TicketInfo } from '@/api/apiService'
 import { usePillStore } from '@/store/pillStore'
-import { getOrFetch, invalidate, peekCached, setCached } from '@/lib/queryCache'
+import { getOrFetch, invalidate, peekCached, peekEntry, setCached } from '@/lib/queryCache'
 import { BrandedLoader } from '@/components/ui'
 import { useGoBack } from '@/hooks/useGoBack'
 import { EventShareCard } from '@/components/events/EventShareCard'
@@ -19,6 +19,14 @@ import { CantMakeItSheet } from '@/components/events/CantMakeItSheet'
 import { ShareToChatSheet } from '@/components/ui/ShareToChatSheet'
 import { useCantMakeIt } from '@/hooks/useCantMakeIt'
 
+
+// Keep a ticket on the phone until the night is over (its end, or 12 hours
+// after the start if there's no end), plus a few hours for the way home.
+function untilNightIsOver(start: string, end?: string | null): number {
+  const s = parseTs(start)?.getTime()
+  const e = (end ? parseTs(end)?.getTime() : undefined) ?? (s ? s + 12 * 3600_000 : undefined)
+  return e ? Math.max(e + 6 * 3600_000 - Date.now(), 60_000) : 60_000
+}
 
 // ── Screen ────────────────────────────────────────────────────────────────────
 
@@ -44,15 +52,19 @@ export default function TicketScreen() {
   const shareCardRef = useRef<View>(null)
   const { shareImage } = useImageShare()
 
-  // The saved ticket shows instantly (and works at the door with no signal),
-  // but is always checked: it may have been passed on or cancelled since.
+  // What's on screen right now, for the error path below (state is stale there).
+  const shown = useRef<TicketInfo | null>(ticket)
+  useEffect(() => { shown.current = ticket }, [ticket])
+
+  // The saved ticket shows instantly (and works at the door with no signal,
+  // even right after the app restarts), but is always checked: it may have
+  // been passed on or cancelled since.
   const fetchTicket = () => {
     if (!id) return
     ApiService.getMyTicket(id)
       .then(t => {
         setTicket(t)
-        const d = parseTs(t.date_time)
-        setCached(CacheKeys.ticket(id), t, d ? Math.max(d.getTime() - Date.now(), 0) : 60_000)
+        setCached(CacheKeys.ticket(id), t, untilNightIsOver(t.date_time, t.end_time))
       })
       .catch((e: any) => {
         if (e?.status === 404 || e?.status === 403) {
@@ -61,7 +73,8 @@ export default function TicketScreen() {
           setGone(true)
           return
         }
-        if (!peekCached<TicketInfo>(CacheKeys.ticket(id))) {
+        // Offline with a saved ticket: keep showing it, say nothing.
+        if (!shown.current) {
           setLoadError(true)
           showPill("Couldn't load your ticket", 'error')
         }
@@ -77,15 +90,22 @@ export default function TicketScreen() {
 
   useEffect(() => {
     if (!id) return
+    // After a restart the ticket isn't in memory yet: read it from the phone
+    // (even past its refresh time, an old ticket beats an error at the door).
+    if (!shown.current) {
+      peekEntry<TicketInfo>(CacheKeys.ticket(id)).then(entry => {
+        if (entry && !shown.current) {
+          setTicket(entry.value)
+          setLoading(false)
+        }
+      })
+    }
     fetchTicket()
     // Cover photo only — this screen never touches live fields (RSVP status,
     // spots left), just cosmetic display for the share card, so it's as safe
     // to cache-until-event-ends as the ticket itself.
     getOrFetch(CacheKeys.eventCover(id), () => ApiService.getEvent(id), {
-      ttlMs: ev => {
-        const d = parseTs(ev.date_time)
-        return d ? Math.max(d.getTime() - Date.now(), 0) : 60_000
-      },
+      ttlMs: ev => untilNightIsOver(ev.date_time, ev.end_time),
     })
       .then(setEvent)
       .catch(() => {})

@@ -41,9 +41,10 @@ export function SafetyView(p: SafetyViewProps) {
             <View style={s.liveRow}><View style={s.liveDot} /><Text style={s.liveText}>YOU&apos;RE AT</Text></View>
             <Text style={s.heroTitle} numberOfLines={2}>{p.activeEvent.title}</Text>
             <Text style={s.heroBody}>
-              {has ? 'If something feels wrong, one tap texts your circle a map link to where you are.' : 'Add someone to your circle first, then SOS can reach them.'}
+              {has ? 'If something feels wrong, one tap texts your circle a map link to where you are.' : 'Add someone to your circle so SOS can text them. SOS can always call 112.'}
             </Text>
-            {has ? <SosPill eventId={p.activeEvent.id} style={s.sos} /> : null}
+            {/* Always there at an event: the SOS flow itself handles "no contacts" and offers 112. */}
+            <SosPill eventId={p.activeEvent.id} style={s.sos} />
           </>
         ) : (
           <>

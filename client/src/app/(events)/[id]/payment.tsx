@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { View, Text, StyleSheet } from 'react-native'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import RazorpayCustomUI from 'react-native-customui'
 import { Colors, FontFamily } from '@/constants'
-import { BrandedLoader } from '@/components/ui'
+import { BrandedLoader, OutlineButton, PrimaryButton } from '@/components/ui'
 import ApiService from '@/api/apiService'
 import { usePillStore } from '@/store/pillStore'
 import { hTap, hSuccess } from '@/lib/haptics'
@@ -40,6 +40,15 @@ export default function PaymentScreen() {
   const [rzpKey, setRzpKey]         = useState('')
   const [showWalletAnim, setShowWalletAnim] = useState(false)
   const [failedMsg, setFailedMsg]   = useState<string | null>(null)
+  // Razorpay took the money but we couldn't confirm it with our server yet
+  // (network dropped, timed out). Never "failed" from here: confirm again.
+  const [unconfirmed, setUnconfirmed] = useState(false)
+
+  // One payment at a time. A ref, not state: two taps in the same frame both
+  // see the old `paying` state, but not the ref.
+  const lock = useRef(false)
+  // The Razorpay result we still have to confirm, kept for "Check again".
+  const pending = useRef<RazorpayResult | null>(null)
 
   const amountToPay = Math.max(0, total - walletApplied)
 
@@ -54,86 +63,159 @@ export default function PaymentScreen() {
       .catch(() => {})
   }, [])
 
+  const begin = (msg: string): boolean => {
+    if (lock.current) return false
+    lock.current = true
+    setPayingMsg(msg)
+    setPaying(true)
+    return true
+  }
+  const end = () => {
+    lock.current = false
+    setPaying(false)
+  }
+
   // ── Full wallet payment ──────────────────────────────────────────────────
 
-  const doWalletPay = async () => {
-    if (!id || paying) return
-    setPaying(true)
+  const walletPay = async () => {
     setPayingMsg('Processing…')
     try {
-      await ApiService.walletPay(id, promoCode)
+      await ApiService.walletPay(id!, promoCode)
       hSuccess()
       if (walletApplied > 0) {
         // paying must clear here or the "processing" screen would keep
         // taking render priority over the wallet success overlay below.
-        setPaying(false)
+        end()
         setShowWalletAnim(true)
         // Navigate happens inside PaymentWalletSuccessOverlay's onDone
       } else {
+        lock.current = false
         router.replace(`/(events)/${id}/ticket` as any)
       }
     } catch (err: any) {
-      showPill(err?.message || 'Payment failed. Try again.', 'error')
-      setPaying(false)
+      showPill(reasonFrom(err, 'Payment failed. Try again.'), 'error')
+      end()
     }
+  }
+
+  const doWalletPay = async () => {
+    if (!id || !begin('Processing…')) return
+    await walletPay()
   }
 
   const afterWalletAnim = () => {
     router.replace(`/(events)/${id}/ticket` as any)
   }
 
-  // ── Shared post-payment verification ─────────────────────────────────────
+  // ── Confirming a payment Razorpay took ───────────────────────────────────
 
-  const finalise = async (data: any) => {
-    const res = await ApiService.verifyPayment({
-      event_id: id!,
-      razorpay_order_id: data.razorpay_order_id,
-      razorpay_payment_id: data.razorpay_payment_id,
-      razorpay_signature: data.razorpay_signature,
-      wallet_amount: walletApplied,
-    })
-    if (res?.status === 'refunded') {
-      // Spot went to someone else between checkout and payment — the server
+  const showResult = (status: string) => {
+    if (status === 'refunded') {
+      // Spot went to someone else between checkout and payment: the server
       // already refunded what was paid to the Gorave Wallet.
-      setPaying(false)
-      showPill('That spot was just taken — your payment is back in your Gorave Wallet', 'error')
+      end()
+      showPill('That spot was just taken. Your payment is back in your Gorave Wallet', 'error')
       router.replace(`/(events)/${id}` as any)
       return
     }
     hSuccess()
     if (walletApplied > 0) {
-      setPaying(false)
+      end()
       setShowWalletAnim(true)
     } else {
+      lock.current = false
       router.replace(`/(events)/${id}/ticket` as any)
     }
   }
 
+  // Confirms with our server, retrying through network drops and timeouts.
+  // Safe to repeat: the server claims each order once. Returns false only if
+  // it still couldn't get through; a real rejection (bad signature, unknown
+  // order) throws.
+  const confirm = async (data: RazorpayResult): Promise<boolean> => {
+    pending.current = data
+    setPayingMsg('Confirming your payment…')
+    for (let attempt = 0; attempt < CONFIRM_TRIES; attempt++) {
+      try {
+        const res = await ApiService.verifyPayment({
+          event_id: id!,
+          razorpay_order_id: data.razorpay_order_id,
+          razorpay_payment_id: data.razorpay_payment_id,
+          razorpay_signature: data.razorpay_signature,
+          wallet_amount: walletApplied,
+        })
+        pending.current = null
+        showResult(res?.status ?? 'going')
+        return true
+      } catch (err: any) {
+        if (err?.status && err.status < 500) throw err
+        if (attempt < CONFIRM_TRIES - 1) await wait(1500 * 2 ** attempt)
+      }
+    }
+    return false
+  }
+
+  const confirmOrHold = async (data: RazorpayResult) => {
+    try {
+      if (await confirm(data)) return
+      // Paid, not confirmed yet. The server also catches these up on its own
+      // (it checks with Razorpay), so the ticket arrives even if they leave.
+      lock.current = false
+      setPaying(false)
+      setUnconfirmed(true)
+    } catch (err: any) {
+      pending.current = null
+      setFailedMsg(reasonFrom(err, 'We couldn’t confirm this payment. If money left your account, it comes back automatically.'))
+      end()
+    }
+  }
+
+  const checkAgain = async () => {
+    if (!pending.current || lock.current) return
+    setUnconfirmed(false)
+    lock.current = true
+    setPaying(true)
+    await confirmOrHold(pending.current)
+  }
+
   // ── Fetch order helper ───────────────────────────────────────────────────
 
+  // null = nothing to open (paid from the wallet, or stopped with a message).
   const fetchOrder = async () => {
     const order = await ApiService.createPaymentOrder(id!, walletApplied, promoCode)
-    if (order.full_wallet) { await doWalletPay(); return null }
+    if (order.full_wallet) { await walletPay(); return null }
     if (!order.order_id || !order.razorpay_key || !order.amount) {
       setFailedMsg('Could not initialise payment. Please try again.')
-      setPaying(false)
+      end()
+      return null
+    }
+    // The UPI app charges what the server says; never more than we showed.
+    if (order.amount !== amountToPay) {
+      setFailedMsg(`The price just changed to ₹${order.amount.toLocaleString('en-IN')}. Go back to check it, then pay again.`)
+      end()
       return null
     }
     return order
   }
 
+  // Razorpay's own errors (cancelled, declined) vs ours (sold out, bad code).
+  const paymentError = (err: any, fallback: string) => {
+    setFailedMsg(err?.code === 0 ? 'Payment was cancelled.' : reasonFrom(err, fallback))
+    end()
+  }
+
   // ── UPI intent ───────────────────────────────────────────────────────────
 
   const handleUpiApp = async (packageName: string) => {
-    if (!id || paying) return
+    if (!id) return
     hTap()
     if (amountToPay === 0) { await doWalletPay(); return }
-    setPaying(true)
-    setPayingMsg('Opening UPI app…')
+    if (!begin('Opening UPI app…')) return
+    let data: RazorpayResult
     try {
       const order = await fetchOrder()
       if (!order) return
-      const data: any = await RazorpayCustomUI.open({
+      data = await RazorpayCustomUI.open({
         key_id: order.razorpay_key,
         order_id: order.order_id,
         amount: String((order.amount ?? 0) * 100),
@@ -146,26 +228,26 @@ export default function PaymentScreen() {
         contact: order.contact ?? '',
         email: order.email ?? '',
       })
-      await finalise(data)
-      setLastPackageName(packageName)
     } catch (err: any) {
-      setFailedMsg(err?.code === 0 ? 'Payment was cancelled.' : (err?.description ?? err?.detail ?? 'Payment failed. Please try again.'))
-      setPaying(false)
+      paymentError(err, 'Payment failed. Please try again.')
+      return
     }
+    setLastPackageName(packageName)
+    await confirmOrHold(data)
   }
 
   // ── UPI collect ──────────────────────────────────────────────────────────
 
   const handleUpiCollect = async (vpa: string) => {
-    if (!id || paying) return
+    if (!id) return
     setUpiSheetOpen(false)
     if (amountToPay === 0) { await doWalletPay(); return }
-    setPaying(true)
-    setPayingMsg('Check your UPI app to approve…')
+    if (!begin('Check your UPI app to approve…')) return
+    let data: RazorpayResult
     try {
       const order = await fetchOrder()
       if (!order) return
-      const data: any = await RazorpayCustomUI.open({
+      data = await RazorpayCustomUI.open({
         key_id: order.razorpay_key,
         order_id: order.order_id,
         amount: String((order.amount ?? 0) * 100),
@@ -178,20 +260,18 @@ export default function PaymentScreen() {
         contact: order.contact ?? '',
         email: order.email ?? '',
       })
-      await finalise(data)
     } catch (err: any) {
-      setFailedMsg(err?.code === 0 ? 'Payment was cancelled.' : (err?.description ?? err?.detail ?? 'UPI collect failed. Please try again.'))
-      setPaying(false)
+      paymentError(err, 'UPI collect failed. Please try again.')
+      return
     }
+    await confirmOrHold(data)
   }
 
   // ── QR code ──────────────────────────────────────────────────────────────
 
   const handleQrPress = async () => {
-    if (paying) return
     hTap()
-    setPaying(true)
-    setPayingMsg('Generating QR code…')
+    if (!begin('Generating QR code…')) return
     try {
       const res = await ApiService.createQrPayment(id!, walletApplied, promoCode)
       router.push({
@@ -207,15 +287,15 @@ export default function PaymentScreen() {
           etitle: eventTitle ?? '',
         },
       })
-      setPaying(false)
+      end()
     } catch (err: any) {
-      const detail = err?.detail ?? err?.message ?? ''
-      if (detail.toLowerCase().includes('unavailable') || detail.toLowerCase().includes('busy') || detail.toLowerCase().includes('try again')) {
+      const detail = reasonFrom(err, '')
+      if (/unavailable|busy|try again/i.test(detail)) {
         showPill('Please try again in a few minutes.', 'error')
       } else {
         showPill(detail || 'Could not generate QR code. Please try again.', 'error')
       }
-      setPaying(false)
+      end()
     }
   }
 
@@ -231,6 +311,21 @@ export default function PaymentScreen() {
 
   if (showWalletAnim) {
     return <PaymentWalletSuccessOverlay amount={walletApplied} onDone={afterWalletAnim} />
+  }
+
+  if (unconfirmed) {
+    return (
+      <View style={[s.root, s.center, s.pad]}>
+        <Text style={s.holdTitle}>Your payment went through</Text>
+        <Text style={s.payingMsg}>
+          {"We're still confirming your ticket. You won't be charged again. If it doesn't show here, it appears in your tickets within a few minutes."}
+        </Text>
+        <View style={s.holdActions}>
+          <PrimaryButton label="Check again" onPress={checkAgain} />
+          <OutlineButton label="Go to the event" onPress={() => router.replace(`/(events)/${id}` as any)} />
+        </View>
+      </View>
+    )
   }
 
   if (paying) {
@@ -283,5 +378,22 @@ export default function PaymentScreen() {
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: Colors.background },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 16 },
-  payingMsg: { fontFamily: FontFamily.bodyMedium, fontSize: 15, color: Colors.inkSecondary, textAlign: 'center' },
+  payingMsg: { fontFamily: FontFamily.bodyMedium, fontSize: 15, lineHeight: 22, color: Colors.inkSecondary, textAlign: 'center' },
+  pad: { paddingHorizontal: 28 },
+  holdTitle: { fontFamily: FontFamily.headingBold, fontSize: 24, letterSpacing: -0.4, color: Colors.inkPrimary, textAlign: 'center' },
+  holdActions: { alignSelf: 'stretch', gap: 10, marginTop: 8 },
 })
+
+const CONFIRM_TRIES = 4 // about 10 seconds of retries (1.5s, 3s, 6s between)
+const wait = (ms: number) => new Promise(r => setTimeout(r, ms))
+
+interface RazorpayResult {
+  razorpay_order_id: string
+  razorpay_payment_id: string
+  razorpay_signature: string
+}
+
+// Our API errors carry the server's reason in `message`; Razorpay's in `description`.
+function reasonFrom(err: any, fallback: string): string {
+  return err?.description || err?.message || fallback
+}

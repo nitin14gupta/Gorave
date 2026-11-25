@@ -109,7 +109,7 @@ export function useLocation() {
     if (!store.city) return
     setLoading(true)
     try {
-      await setLocation(store.city, store.lat ?? 0, store.lng ?? 0)
+      await setLocation(store.city, store.lat ?? undefined, store.lng ?? undefined)
     } catch (e: any) {
       showPill(e?.message || 'Could not save your location, you can update it later', 'error')
     }

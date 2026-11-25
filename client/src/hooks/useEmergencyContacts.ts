@@ -93,6 +93,16 @@ export function useEmergencyContacts() {
 }
 
 export function useHasEmergencyContacts(): boolean {
+  return useEmergencyContactsStatus() === 'some'
+}
+
+/**
+ * 'none' only when the server confirmed you have no contacts. While loading,
+ * or if the load failed with nothing saved on the phone, it's 'unknown':
+ * SOS then still opens (the server is the one who knows), instead of telling
+ * someone in trouble to go and add a contact they already have.
+ */
+export function useEmergencyContactsStatus(): 'some' | 'none' | 'unknown' {
   const contacts = useSafetyStore(s => s.contacts)
   const loaded = useSafetyStore(s => s.loaded)
   const { load } = useEmergencyContacts()
@@ -101,5 +111,6 @@ export function useHasEmergencyContacts(): boolean {
     if (!loaded) load()
   }, [loaded, load])
 
-  return contacts.length > 0
+  if (contacts.length > 0) return 'some'
+  return loaded ? 'none' : 'unknown'
 }

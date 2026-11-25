@@ -89,7 +89,7 @@ function SosHoldSheetCore({ onSend, onClose }: { onSend: () => void; onClose: ()
         <View style={s.iconWrap}><Siren size={26} color={Colors.destructive} strokeWidth={2.2} /></View>
         <Text style={s.title}>Need help?</Text>
         <Text style={s.body}>
-          We&apos;ll text your emergency contacts once, with a map link to where you are right now and the name of this event.
+          We&apos;ll text your emergency contacts once, with a map link to where you are (if location is on) and the name of this event.
         </Text>
 
         <Pressable onPressIn={start} onPressOut={release} style={s.hold}>

@@ -23,6 +23,7 @@ let posSub: Location.LocationSubscription | null = null
 let headingSub: Location.LocationSubscription | null = null
 let smoothedHeading: number | null = null
 let lastHeadingEmit = 0
+let starting = false
 
 export const useLocationStore = create<LocationState>((set, get) => ({
   lat: undefined,
@@ -32,10 +33,14 @@ export const useLocationStore = create<LocationState>((set, get) => ({
   status: undefined,
   _started: false,
 
-  // Idempotent — first caller starts the watch, everyone else just reads
-  // whatever state is already there (instantly, since it's a live subscription).
+  // Idempotent: the first caller starts the watch, everyone else just reads
+  // whatever state is already there (instantly, since it's a live
+  // subscription). If location wasn't allowed last time, calling again checks
+  // once more, so turning it on in Settings works without restarting the app.
   _start: () => {
-    if (get()._started) return
+    if (starting) return
+    if (get()._started && get().status === 'granted') return
+    starting = true
     set({ _started: true })
 
     ;(async () => {
@@ -58,6 +63,7 @@ export const useLocationStore = create<LocationState>((set, get) => ({
         }
         set({ ready: true })
 
+        if (posSub) return // already watching (an earlier start got this far)
         posSub = await Location.watchPositionAsync(
           {
             accuracy: Location.Accuracy.Balanced,
@@ -90,7 +96,10 @@ export const useLocationStore = create<LocationState>((set, get) => ({
             set({ heading: smoothedHeading! })
           }
         })
-      } catch {}
+      } catch {
+      } finally {
+        starting = false
+      }
     })()
   },
 }))

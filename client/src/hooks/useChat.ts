@@ -60,6 +60,7 @@ export function useChat(conversationId: string) {
   // Initial load + mark read
   useEffect(() => {
     noMoreRef.current = false
+    hasConnected.current = false
     let fetched = false
     // Not in memory (cold start): paint the copy saved on the phone while the
     // fresh page loads. Waiting bubbles never get saved, so none come back.
@@ -117,6 +118,37 @@ export function useChat(conversationId: string) {
     pendingTempIds.current.delete(tempId)
     setFailedIds(prev => new Set([...prev, tempId]))
   }, [])
+
+  // Whether the socket has been open before: the first open is the initial
+  // load's job, every later one (after a drop, or coming back to the app)
+  // catches up on what came in meanwhile.
+  const hasConnected = useRef(false)
+
+  // Messages that arrived while the socket was down: the newest page from the
+  // server, merged by id. Older pages already loaded and bubbles still waiting
+  // stay; one of ours the server saved meanwhile replaces its waiting bubble.
+  const catchUp = useCallback(async () => {
+    let fresh: Message[]
+    try {
+      fresh = await ApiService.getMessages(conversationId)
+    } catch {
+      return // still offline: the next reconnect tries again
+    }
+    const savedClientIds = new Set(fresh.map(m => m.client_id).filter(Boolean) as string[])
+    for (const cid of savedClientIds) {
+      const tempId = tempIdFor(cid)
+      outboxRef.current.delete(tempId)
+      pendingTempIds.current.delete(tempId)
+    }
+    setMessages(prev => {
+      const freshIds = new Set(fresh.map(m => m.id))
+      const keep = prev.filter(m => !freshIds.has(m.id) && !(m.client_id && savedClientIds.has(m.client_id) && m.id === tempIdFor(m.client_id)))
+      return [...fresh, ...keep].sort((a, b) => (b.sent_at ?? '').localeCompare(a.sent_at ?? ''))
+    })
+    if (fresh.some(m => m.sender_id !== myId && m.read_at == null)) {
+      ApiService.markRead(conversationId).catch(() => {})
+    }
+  }, [conversationId, myId])
 
   // The saved copy of a message we sent: swap it in for its waiting bubble.
   const confirmSent = useCallback((saved: Message) => {
@@ -190,6 +222,9 @@ export function useChat(conversationId: string) {
         for (const frame of outboxRef.current.values()) {
           try { ws.send(JSON.stringify({ type: 'message', ...frame })) } catch {}
         }
+        // Back after a drop or the app being away: fetch what we missed.
+        if (hasConnected.current) void catchUp()
+        hasConnected.current = true
       }
 
       ws.onmessage = (evt: MessageEvent) => {
@@ -278,7 +313,7 @@ export function useChat(conversationId: string) {
       setIsWsConnected(false)
       scheduleRetry()
     })
-  }, [conversationId, myId, applyReactionUpdate, confirmSent, markFailed])
+  }, [conversationId, myId, applyReactionUpdate, confirmSent, markFailed, catchUp])
   useEffect(() => { connectRef.current = connect }, [connect])
 
   useEffect(() => {
